@@ -65,22 +65,32 @@ export function deriveSubSignals(macroData) {
 }
 
 /**
- * 决策树：三个信号位 → 最终进攻/中性/防守
- * 进攻 = AND（三全宽松）
+ * 决策树：四个信号位 → 最终进攻/观望/防守
+ * 进攻 = AND（四全宽松）
  * 防守 = OR（任一收紧）
- * 中性 = 其余
+ * 观望 = 其余
  */
-export function calcFinalSignal(monetary, fiscal, admin) {
+export function calcFinalSignal(monetary, fiscal, admin, aiSupply) {
   // 防守：任一收紧
-  if (monetary === SIGNAL.TIGHT || fiscal === SIGNAL.TIGHT || admin === SIGNAL.TIGHT) {
+  if (
+    monetary === SIGNAL.TIGHT ||
+    fiscal === SIGNAL.TIGHT ||
+    admin === SIGNAL.TIGHT ||
+    aiSupply === SIGNAL.TIGHT
+  ) {
     return FINAL_SIGNAL.DEFENSE;
   }
 
-  // 进攻：三全宽松
-  if (monetary === SIGNAL.LOOSE && fiscal === SIGNAL.LOOSE && admin === SIGNAL.LOOSE) {
+  // 进攻：四全宽松
+  if (
+    monetary === SIGNAL.LOOSE &&
+    fiscal === SIGNAL.LOOSE &&
+    admin === SIGNAL.LOOSE &&
+    aiSupply === SIGNAL.LOOSE
+  ) {
     return FINAL_SIGNAL.ATTACK;
   }
 
-  // 中性
+  // 观望
   return FINAL_SIGNAL.NEUTRAL;
 }

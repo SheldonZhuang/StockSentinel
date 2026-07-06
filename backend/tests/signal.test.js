@@ -95,37 +95,45 @@ describe('deriveSubSignals', () => {
   });
 });
 
-// 决策树合成
+// 决策树合成（四元：货币/财政/行政/AI供需）
 describe('calcFinalSignal', () => {
-  it('进攻：三全宽松', () => {
-    expect(calcFinalSignal('loose', 'loose', 'loose')).toBe('attack');
+  it('进攻：四个信号位全部宽松', () => {
+    expect(calcFinalSignal('loose', 'loose', 'loose', 'loose')).toBe('attack');
   });
 
   it('防守：货币收紧', () => {
-    expect(calcFinalSignal('tight', 'loose', 'loose')).toBe('defense');
+    expect(calcFinalSignal('tight', 'loose', 'loose', 'loose')).toBe('defense');
   });
 
   it('防守：财政收紧', () => {
-    expect(calcFinalSignal('loose', 'tight', 'loose')).toBe('defense');
+    expect(calcFinalSignal('loose', 'tight', 'loose', 'loose')).toBe('defense');
   });
 
   it('防守：行政收紧', () => {
-    expect(calcFinalSignal('loose', 'loose', 'tight')).toBe('defense');
+    expect(calcFinalSignal('loose', 'loose', 'tight', 'loose')).toBe('defense');
+  });
+
+  it('防守：仅AI供需收紧，其余三个宽松', () => {
+    expect(calcFinalSignal('loose', 'loose', 'loose', 'tight')).toBe('defense');
+  });
+
+  it('防守：AI供需与货币同时收紧', () => {
+    expect(calcFinalSignal('tight', 'loose', 'loose', 'tight')).toBe('defense');
   });
 
   it('防守：多个同时收紧', () => {
-    expect(calcFinalSignal('tight', 'tight', 'tight')).toBe('defense');
+    expect(calcFinalSignal('tight', 'tight', 'tight', 'tight')).toBe('defense');
   });
 
-  it('中性：货币宽松 财政中性 行政宽松', () => {
-    expect(calcFinalSignal('loose', 'neutral', 'loose')).toBe('neutral');
+  it('观望：货币宽松 财政观望 行政宽松 AI供需宽松（非全宽松）', () => {
+    expect(calcFinalSignal('loose', 'neutral', 'loose', 'loose')).toBe('neutral');
   });
 
-  it('中性：三个全中性', () => {
-    expect(calcFinalSignal('neutral', 'neutral', 'neutral')).toBe('neutral');
+  it('观望：四个全观望', () => {
+    expect(calcFinalSignal('neutral', 'neutral', 'neutral', 'neutral')).toBe('neutral');
   });
 
-  it('中性：货币宽松 财政宽松 行政中性（非全宽松）', () => {
-    expect(calcFinalSignal('loose', 'loose', 'neutral')).toBe('neutral');
+  it('观望：货币宽松 财政宽松 行政宽松 AI供需观望（非全宽松）', () => {
+    expect(calcFinalSignal('loose', 'loose', 'loose', 'neutral')).toBe('neutral');
   });
 });
