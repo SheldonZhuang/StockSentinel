@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "股哨兵",
+    "subtitle": "美股进攻/防守信号"
+  },
+  "signal": {
+    "attack": "进攻",
+    "neutral": "中性",
+    "defense": "防守",
+    "loading": "数据加载中..."
+  },
+  "signalPos": {
+    "monetary": "货币政策",
+    "fiscal": "财政政策",
+    "administrative": "行政政策",
+    "loose": "宽松",
+    "neutral": "中性",
+    "tight": "收紧"
+  },
+  "indicators": {
+    "rate": "联邦基金利率",
+    "balanceSheet": "美联储资产负债表",
+    "corePce": "核心 PCE 同比",
+    "trimmedPce": "Trimmed Mean PCE",
+    "unemployment": "失业率",
+    "dataDate": "数据日期",
+    "unit": {
+      "rate": "%",
+      "balanceSheet": "亿美元",
+      "pce": "%",
+      "unemployment": "%"
+    }
+  },
+  "watchlist": {
+    "title": "自选股",
+    "addPlaceholder": "输入股票代码，如 AAPL",
+    "add": "添加",
+    "remove": "移除",
+    "empty": "暂无自选股，添加你关注的股票",
+    "pricePercentile": "价格百分位",
+    "pe": "市盈率 P/E",
+    "ps": "市销率 P/S",
+    "currentPrice": "当前价格",
+    "dateRange": "计算区间",
+    "presets": "快速添加",
+    "mag7": "Mag 7",
+    "etfs": "主要 ETF"
+  },
+  "timeline": {
+    "title": "信号历史",
+    "noHistory": "暂无历史记录"
+  },
+  "auth": {
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出",
+    "email": "邮箱",
+    "password": "密码",
+    "loginTitle": "登录 股哨兵",
+    "registerTitle": "注册账号",
+    "noAccount": "还没有账号？注册",
+    "hasAccount": "已有账号？登录",
+    "loginSuccess": "登录成功",
+    "registerSuccess": "注册成功"
+  },
+  "admin": {
+    "title": "后台管理",
+    "setSignal": "设定信号位",
+    "type": "类型",
+    "signal": "档位",
+    "expiresAt": "有效期至",
+    "note": "备注",
+    "save": "保存",
+    "reference": "参考素材",
+    "fiscal": "财政",
+    "administrative": "行政",
+    "history": "设定历史",
+    "refresh": "刷新"
+  },
+  "settings": {
+    "title": "设置",
+    "emailAlerts": "邮件提醒",
+    "emailAlertsDesc": "信号变更时发送邮件通知"
+  },
+  "lang": {
+    "switch": "语言",
+    "zh": "中文",
+    "en": "English",
+    "fr": "Français",
+    "de": "Deutsch",
+    "es": "Español",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "error": {
+    "fetchFailed": "数据加载失败，显示上次缓存数据",
+    "loginFailed": "邮箱或密码错误",
+    "registerFailed": "注册失败，请重试"
+  }
+}

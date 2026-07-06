@@ -1,0 +1,13 @@
+{
+  "app": { "title": "ストック・センチネル", "subtitle": "米国株攻撃/防御シグナル" },
+  "signal": { "attack": "攻撃", "neutral": "中立", "defense": "防御", "loading": "読み込み中..." },
+  "signalPos": { "monetary": "金融政策", "fiscal": "財政政策", "administrative": "行政政策", "loose": "緩和", "neutral": "中立", "tight": "引き締め" },
+  "indicators": { "rate": "FF金利", "balanceSheet": "FRBバランスシート", "corePce": "コアPCE前年比", "trimmedPce": "トリム平均PCE", "unemployment": "失業率", "dataDate": "データ日付", "unit": { "rate": "%", "balanceSheet": "億ドル", "pce": "%", "unemployment": "%" } },
+  "watchlist": { "title": "ウォッチリスト", "addPlaceholder": "ティッカーを入力、例: AAPL", "add": "追加", "remove": "削除", "empty": "銘柄がありません", "pricePercentile": "価格パーセンタイル", "pe": "PER", "ps": "PSR", "currentPrice": "現在価格", "dateRange": "期間", "presets": "クイック追加", "mag7": "Mag 7", "etfs": "主要ETF" },
+  "timeline": { "title": "シグナル履歴", "noHistory": "履歴なし" },
+  "auth": { "login": "ログイン", "register": "登録", "logout": "ログアウト", "email": "メール", "password": "パスワード", "loginTitle": "ログイン", "registerTitle": "アカウント作成", "noAccount": "アカウントなし？登録", "hasAccount": "アカウントあり？ログイン", "loginSuccess": "ログイン成功", "registerSuccess": "登録完了" },
+  "admin": { "title": "管理パネル", "setSignal": "シグナル設定", "type": "タイプ", "signal": "シグナル", "expiresAt": "有効期限", "note": "メモ", "save": "保存", "reference": "参考資料", "fiscal": "財政", "administrative": "行政", "history": "履歴", "refresh": "更新" },
+  "settings": { "title": "設定", "emailAlerts": "メール通知", "emailAlertsDesc": "シグナル変更時にメールを受け取る" },
+  "lang": { "switch": "言語", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
+  "error": { "fetchFailed": "読み込み失敗、キャッシュデータを表示", "loginFailed": "メールまたはパスワードが無効", "registerFailed": "登録失敗" }
+}

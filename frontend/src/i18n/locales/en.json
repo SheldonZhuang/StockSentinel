@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "Stock Sentinel",
+    "subtitle": "US Stock Attack / Defense Signal"
+  },
+  "signal": {
+    "attack": "Attack",
+    "neutral": "Neutral",
+    "defense": "Defense",
+    "loading": "Loading data..."
+  },
+  "signalPos": {
+    "monetary": "Monetary Policy",
+    "fiscal": "Fiscal Policy",
+    "administrative": "Administrative Policy",
+    "loose": "Loose",
+    "neutral": "Neutral",
+    "tight": "Tight"
+  },
+  "indicators": {
+    "rate": "Fed Funds Rate",
+    "balanceSheet": "Fed Balance Sheet",
+    "corePce": "Core PCE YoY",
+    "trimmedPce": "Trimmed Mean PCE",
+    "unemployment": "Unemployment Rate",
+    "dataDate": "Data Date",
+    "unit": {
+      "rate": "%",
+      "balanceSheet": "B USD",
+      "pce": "%",
+      "unemployment": "%"
+    }
+  },
+  "watchlist": {
+    "title": "Watchlist",
+    "addPlaceholder": "Enter ticker, e.g. AAPL",
+    "add": "Add",
+    "remove": "Remove",
+    "empty": "No stocks in watchlist yet",
+    "pricePercentile": "Price Percentile",
+    "pe": "P/E Ratio",
+    "ps": "P/S Ratio",
+    "currentPrice": "Current Price",
+    "dateRange": "Date Range",
+    "presets": "Quick Add",
+    "mag7": "Mag 7",
+    "etfs": "Major ETFs"
+  },
+  "timeline": {
+    "title": "Signal History",
+    "noHistory": "No history yet"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "loginTitle": "Login to Stock Sentinel",
+    "registerTitle": "Create Account",
+    "noAccount": "No account? Register",
+    "hasAccount": "Have an account? Login",
+    "loginSuccess": "Logged in",
+    "registerSuccess": "Registration successful"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "setSignal": "Set Signal Position",
+    "type": "Type",
+    "signal": "Signal",
+    "expiresAt": "Expires At",
+    "note": "Note",
+    "save": "Save",
+    "reference": "Reference Materials",
+    "fiscal": "Fiscal",
+    "administrative": "Administrative",
+    "history": "History",
+    "refresh": "Refresh"
+  },
+  "settings": {
+    "title": "Settings",
+    "emailAlerts": "Email Alerts",
+    "emailAlertsDesc": "Receive email when signal changes"
+  },
+  "lang": {
+    "switch": "Language",
+    "zh": "中文",
+    "en": "English",
+    "fr": "Français",
+    "de": "Deutsch",
+    "es": "Español",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "error": {
+    "fetchFailed": "Failed to load data, showing cached results",
+    "loginFailed": "Invalid email or password",
+    "registerFailed": "Registration failed, please try again"
+  }
+}

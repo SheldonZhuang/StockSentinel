@@ -1,0 +1,90 @@
+# 股哨兵 Stock Sentinel
+
+美股投资进攻/防守信号判断与示警工具。
+
+## 产品定位
+
+股哨兵不做选股建议，只回答"现在是进攻时机还是防守时机"：
+
+- **长线选股**遵循奥地利经济学派（供需决定价格），交由用户自行按"优质国家/龙头产业/龙头企业"原则选定标的。
+- **短线时机**遵循政治经济学（政策扰乱市场价格），工具核心价值是把货币/财政/行政三方面政策松紧转化为清晰的 🟢进攻 / 🟡中性 / 🔴防守 三档信号。
+- 进攻 = 买在无人问津处（政策松无可松）；防守 = 卖在人声鼎沸时（政策开始收紧）。防守信号采用 OR 逻辑（宁可错杀），进攻信号采用 AND 逻辑（三方面政策必须同时宽松）。
+
+覆盖范围仅限美股（不含房产）。
+
+## 信号计算
+
+| 信号位 | 数据来源 | 判定方式 |
+|---|---|---|
+| 货币信号位 | [FRED](https://fred.stlouisfed.org/)（联邦基金利率、联储资产负债表 WALCL，及核心PCE/Trimmed Mean PCE/失业率作参考展示） | 自动计算 |
+| 财政信号位 | Federal Register API + 财政部新闻（仅供参考） | 管理员后台设定档位 + 有效期 |
+| 行政信号位 | Federal Register API + 白宫/商务部新闻（仅供参考） | 管理员后台设定档位 + 有效期 |
+
+三个信号位每日通过决策树合成最终信号，档位变化时通过 [Resend](https://resend.com/) 邮件提醒订阅用户。
+
+个股/ETF 维度展示自选标的的历史价格百分位位置，以及当前 P/E、P/S 快照（不做买卖建议）。
+
+详细设计见 [docs/superpowers/specs/2026-07-05-stock-sentinel-design.md](docs/superpowers/specs/2026-07-05-stock-sentinel-design.md)。
+
+## 技术栈
+
+- **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT
+- **前端**：Vue 3 + Vite + vue-i18n（中/英/法/德/西/日/韩 七语言）
+- **测试**：Vitest
+- **数据源**：FRED API（宏观）、Yahoo Finance（个股）、Federal Register API（政策参考素材）
+
+## 目录结构
+
+```
+StockSentinel/
+├── backend/
+│   ├── server.js              # Express 入口，路由 + cron 任务
+│   ├── config/signal.config.js
+│   ├── api/                   # fetch-macro / fetch-stocks / fetch-federal-register / signal / admin / auth / watchlist
+│   ├── utils/                 # storage(sql.js 封装) / mailer(Resend)
+│   └── tests/
+└── frontend/
+    └── src/
+        ├── components/        # SignalBadge / MacroPanel / WatchlistPanel / SignalTimeline / AdminPanel
+        ├── views/              # HomeView / LoginView / AdminView
+        ├── i18n/locales/       # zh en fr de es ja ko
+        └── stores/auth.js
+```
+
+## 本地运行
+
+### 环境变量
+
+在 `backend/.env` 中配置：
+
+```
+FRED_API_KEY=your_fred_api_key
+JWT_SECRET=your_jwt_secret
+ADMIN_EMAIL=your_admin_email
+RESEND_API_KEY=your_resend_api_key
+PORT=3001
+```
+
+### 启动后端
+
+```bash
+cd backend
+npm install
+npm run dev      # node --watch server.js
+npm test         # vitest run
+```
+
+### 启动前端
+
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:5173，代理 /api 到 localhost:3001
+npm run build
+```
+
+## 当前状态
+
+MVP 已完成：信号计算、鉴权、自选股、后台管理、邮件提醒、多语言 UI，27/27 测试通过。
+
+**MVP 范围之外**（后续迭代）：付费订阅墙的实际启用、个股估值指标扩展、移动端原生 App/小程序、Google OAuth 登录接入。
