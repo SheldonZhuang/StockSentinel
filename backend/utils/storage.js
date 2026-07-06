@@ -166,7 +166,7 @@ export async function saveSignalSnapshot(data) {
      fred_core_pce, fred_trimmed_pce, fred_unemployment)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
-    data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal, data.finalSignal,
+    data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
     data.fredCorePce, data.fredTrimmedPce, data.fredUnemployment,
   ]);
@@ -241,7 +241,7 @@ export async function getAlertSubscribers() {
 
 export async function getBottleneck() {
   await getDb();
-  return get('SELECT * FROM ai_chain_bottleneck ORDER BY updated_at DESC LIMIT 1');
+  return get('SELECT * FROM ai_chain_bottleneck ORDER BY id DESC LIMIT 1');
 }
 
 export async function setBottleneck(stage, note, setBy) {
