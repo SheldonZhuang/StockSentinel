@@ -48,6 +48,7 @@ function initSchema() {
       monetary_signal TEXT NOT NULL,
       fiscal_signal TEXT NOT NULL,
       admin_signal TEXT NOT NULL,
+      ai_supply_signal TEXT NOT NULL DEFAULT 'neutral',
       final_signal TEXT NOT NULL,
       fred_rate REAL,
       fred_rate_prev REAL,
@@ -89,6 +90,16 @@ function initSchema() {
       user_id INTEGER NOT NULL UNIQUE,
       enabled INTEGER DEFAULT 1,
       FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_chain_bottleneck (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stage TEXT NOT NULL,
+      note TEXT,
+      set_by TEXT,
+      updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
 }
@@ -150,12 +161,12 @@ export async function saveSignalSnapshot(data) {
   await getDb();
   run(`
     INSERT INTO signal_snapshots
-    (date, monetary_signal, fiscal_signal, admin_signal, final_signal,
+    (date, monetary_signal, fiscal_signal, admin_signal, ai_supply_signal, final_signal,
      fred_rate, fred_rate_prev, fred_balance_sheet, fred_balance_sheet_prev,
      fred_core_pce, fred_trimmed_pce, fred_unemployment)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
-    data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.finalSignal,
+    data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal, data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
     data.fredCorePce, data.fredTrimmedPce, data.fredUnemployment,
   ]);
@@ -224,6 +235,21 @@ export async function getAlertSubscribers() {
     JOIN alert_subscriptions a ON a.user_id = u.id
     WHERE a.enabled = 1 AND u.email_alerts = 1
   `);
+}
+
+// --- AI Chain Bottleneck ---
+
+export async function getBottleneck() {
+  await getDb();
+  return get('SELECT * FROM ai_chain_bottleneck ORDER BY updated_at DESC LIMIT 1');
+}
+
+export async function setBottleneck(stage, note, setBy) {
+  await getDb();
+  run(
+    'INSERT INTO ai_chain_bottleneck (stage, note, set_by) VALUES (?, ?, ?)',
+    [stage, note || null, setBy || null]
+  );
 }
 
 export { getDb, persist };
