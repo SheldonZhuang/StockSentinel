@@ -78,7 +78,7 @@
     "aiSupply": "AI供需",
     "history": "设定历史",
     "refresh": "刷新",
-    "bottleneck": "当前卡脖子环节",
+    "bottleneck": "当前最卡脖子环节",
     "bottleneckStage": "环节",
     "bottleneckSave": "保存环节"
   },
