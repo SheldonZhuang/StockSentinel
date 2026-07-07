@@ -11,6 +11,7 @@
           <select v-model="form.type" class="input">
             <option value="fiscal">{{ $t('admin.fiscal') }}</option>
             <option value="administrative">{{ $t('admin.administrative') }}</option>
+            <option value="ai_supply">{{ $t('admin.aiSupply') }}</option>
           </select>
         </div>
         <div class="form-row">
@@ -48,6 +49,11 @@
           <span :class="['sig-badge', currentSignals.administrative]">{{ $t(`signalPos.${currentSignals.administrative}`) }}</span>
           <span v-if="currentSignals.administrativeMeta?.expires_at" class="expires">到期: {{ currentSignals.administrativeMeta.expires_at }}</span>
         </div>
+        <div class="sig-row">
+          <span>{{ $t('admin.aiSupply') }}</span>
+          <span :class="['sig-badge', currentSignals.aiSupply]">{{ $t(`signalPos.${currentSignals.aiSupply}`) }}</span>
+          <span v-if="currentSignals.aiSupplyMeta?.expires_at" class="expires">到期: {{ currentSignals.aiSupplyMeta.expires_at }}</span>
+        </div>
       </div>
     </section>
 
@@ -68,6 +74,33 @@
         </li>
         <li v-if="refDocs.length === 0" class="ref-empty">暂无数据</li>
       </ul>
+    </section>
+
+    <!-- 当前卡脖子环节 -->
+    <section class="section">
+      <h3>{{ $t('admin.bottleneck') }}</h3>
+      <form @submit.prevent="saveBottleneckStage" class="signal-form">
+        <div class="form-row">
+          <label>{{ $t('admin.bottleneckStage') }}</label>
+          <select v-model="bottleneckForm.stage" class="input">
+            <option v-for="stage in bottleneckStages" :key="stage" :value="stage">
+              {{ $t(`aiChain.stages.${stage}`) }}
+            </option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>{{ $t('admin.note') }}</label>
+          <input v-model="bottleneckForm.note" class="input" type="text" />
+        </div>
+        <button type="submit" class="save-btn" :disabled="bottleneckSaving">{{ $t('admin.bottleneckSave') }}</button>
+        <span v-if="bottleneckMsg" class="save-msg">{{ bottleneckMsg }}</span>
+      </form>
+      <div v-if="currentBottleneck?.stage" class="current-signals">
+        <div class="sig-row">
+          <span>{{ $t('aiChain.currentBottleneck') }}</span>
+          <span class="sig-badge loose">{{ $t(`aiChain.stages.${currentBottleneck.stage}`) }}</span>
+        </div>
+      </div>
     </section>
 
     <!-- 设定历史 -->
@@ -105,6 +138,12 @@ const refDocs = ref([]);
 const refLoading = ref(false);
 const refCategory = ref('fiscal');
 
+const bottleneckStages = ['model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
+const bottleneckForm = ref({ stage: 'packaging', note: '' });
+const bottleneckSaving = ref(false);
+const bottleneckMsg = ref('');
+const currentBottleneck = ref(null);
+
 async function saveSignal() {
   saving.value = true;
   saveMsg.value = '';
@@ -128,6 +167,20 @@ async function loadData() {
   history.value = hist;
 }
 
+async function saveBottleneckStage() {
+  bottleneckSaving.value = true;
+  bottleneckMsg.value = '';
+  try {
+    await api.setBottleneck(bottleneckForm.value.stage, bottleneckForm.value.note || null);
+    bottleneckMsg.value = '✓ 已保存';
+    currentBottleneck.value = await api.getBottleneck();
+  } catch (e) {
+    bottleneckMsg.value = '✗ ' + e.message;
+  } finally {
+    bottleneckSaving.value = false;
+  }
+}
+
 async function loadRef(category) {
   refCategory.value = category;
   refLoading.value = true;
@@ -144,6 +197,7 @@ async function loadRef(category) {
 onMounted(async () => {
   await loadData();
   await loadRef('fiscal');
+  currentBottleneck.value = await api.getBottleneck().catch(() => null);
 });
 </script>
 
