@@ -10,6 +10,10 @@
         <WatchlistPanel />
       </div>
     </div>
+    <!-- AI产业链地图 -->
+    <div class="ai-chain-section">
+      <AiChainPanel />
+    </div>
     <!-- 首页底部：信号历史时间轴 -->
     <div class="timeline-section">
       <SignalTimeline />
@@ -21,6 +25,7 @@
 import MacroPanel from '../components/MacroPanel.vue';
 import WatchlistPanel from '../components/WatchlistPanel.vue';
 import SignalTimeline from '../components/SignalTimeline.vue';
+import AiChainPanel from '../components/AiChainPanel.vue';
 </script>
 
 <style scoped>
@@ -38,6 +43,13 @@ import SignalTimeline from '../components/SignalTimeline.vue';
   border-radius: 14px;
   padding: 20px;
   min-height: 400px;
+}
+
+.ai-chain-section {
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 14px;
+  padding: 20px;
 }
 
 .timeline-section {
