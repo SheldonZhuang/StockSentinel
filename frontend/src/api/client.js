@@ -41,4 +41,9 @@ export const api = {
     request('/admin/signals', { method: 'POST', body: JSON.stringify({ type, signal, expiresAt, note }) }),
   getAdminHistory: () => request('/admin/signal-history'),
   getReference: (category) => request(`/admin/reference?category=${category}`),
+
+  // AI Chain Bottleneck
+  getBottleneck: () => request('/bottleneck'),
+  setBottleneck: (stage, note) =>
+    request('/admin/bottleneck', { method: 'POST', body: JSON.stringify({ stage, note }) }),
 };
