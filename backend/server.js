@@ -16,6 +16,7 @@ import {
   getSnapshotHistory,
   getActiveAdminSignal,
   getAlertSubscribers,
+  getBottleneck,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
 
@@ -35,9 +36,10 @@ app.get('/api/signal', async (req, res) => {
   const snapshot = await getLatestSnapshot();
   if (!snapshot) return res.json({ status: 'loading', message: 'No data yet, cron will run soon' });
 
-  const [fiscalOverride, adminOverride] = await Promise.all([
+  const [fiscalOverride, adminOverride, aiSupplyOverride] = await Promise.all([
     getActiveAdminSignal('fiscal'),
     getActiveAdminSignal('administrative'),
+    getActiveAdminSignal('ai_supply'),
   ]);
 
   res.json({
@@ -45,6 +47,7 @@ app.get('/api/signal', async (req, res) => {
     monetarySignal: snapshot.monetary_signal,
     fiscalSignal: fiscalOverride?.signal || snapshot.fiscal_signal,
     adminSignal: adminOverride?.signal || snapshot.admin_signal,
+    aiSupplySignal: aiSupplyOverride?.signal || snapshot.ai_supply_signal,
     indicators: {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
@@ -64,6 +67,12 @@ app.get('/api/signal/history', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 90, 365);
   const history = await getSnapshotHistory(limit);
   res.json(history);
+});
+
+// GET /api/bottleneck — 当前AI产业链最卡脖子环节（公开只读）
+app.get('/api/bottleneck', async (req, res) => {
+  const bottleneck = await getBottleneck();
+  res.json(bottleneck || { stage: null, note: null });
 });
 
 // GET /api/user/me — 当前用户信息 + 是否是 admin
@@ -86,14 +95,16 @@ async function runDailyUpdate() {
 
   const monetary = calcMonetarySignal(macroData);
 
-  const [fiscalOverride, adminOverride] = await Promise.all([
+  const [fiscalOverride, adminOverride, aiSupplyOverride] = await Promise.all([
     getActiveAdminSignal('fiscal'),
     getActiveAdminSignal('administrative'),
+    getActiveAdminSignal('ai_supply'),
   ]);
 
   const fiscal = fiscalOverride?.signal || 'neutral';
   const admin = adminOverride?.signal || 'neutral';
-  const finalSignal = calcFinalSignal(monetary, fiscal, admin);
+  const aiSupply = aiSupplyOverride?.signal || 'neutral';
+  const finalSignal = calcFinalSignal(monetary, fiscal, admin, aiSupply);
 
   const today = new Date().toISOString().slice(0, 10);
   const prevSnapshot = await getLatestSnapshot();
@@ -103,6 +114,7 @@ async function runDailyUpdate() {
     monetarySignal: monetary,
     fiscalSignal: fiscal,
     adminSignal: admin,
+    aiSupplySignal: aiSupply,
     finalSignal,
     fredRate: macroData.currentRate,
     fredRatePrev: macroData.prevRate,
@@ -113,7 +125,7 @@ async function runDailyUpdate() {
     fredUnemployment: macroData.unemployment,
   });
 
-  console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin} → final=${finalSignal}`);
+  console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin}, aiSupply=${aiSupply} → final=${finalSignal}`);
 
   // 信号变更 → 发送邮件提醒
   if (prevSnapshot && prevSnapshot.final_signal !== finalSignal) {
