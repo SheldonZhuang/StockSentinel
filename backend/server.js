@@ -72,7 +72,7 @@ app.get('/api/signal/history', async (req, res) => {
 // GET /api/bottleneck — 当前AI产业链最卡脖子环节（公开只读）
 app.get('/api/bottleneck', async (req, res) => {
   const bottleneck = await getBottleneck();
-  res.json(bottleneck || { stage: null, note: null });
+  res.json({ stage: bottleneck?.stage || null, note: bottleneck?.note || null });
 });
 
 // GET /api/user/me — 当前用户信息 + 是否是 admin
