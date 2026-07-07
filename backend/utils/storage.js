@@ -209,6 +209,15 @@ export async function getAdminSignalHistory(limit = 50) {
   `, [limit]);
 }
 
+export async function getAllOverrides() {
+  const [fiscal, administrative, aiSupply] = await Promise.all([
+    getActiveAdminSignal('fiscal'),
+    getActiveAdminSignal('administrative'),
+    getActiveAdminSignal('ai_supply'),
+  ]);
+  return { fiscal, administrative, aiSupply };
+}
+
 // --- Watchlist ---
 
 export async function getWatchlist(userId) {

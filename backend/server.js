@@ -14,9 +14,9 @@ import {
   getLatestSnapshot,
   saveSignalSnapshot,
   getSnapshotHistory,
-  getActiveAdminSignal,
   getAlertSubscribers,
   getBottleneck,
+  getAllOverrides,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
 
@@ -36,11 +36,7 @@ app.get('/api/signal', async (req, res) => {
   const snapshot = await getLatestSnapshot();
   if (!snapshot) return res.json({ status: 'loading', message: 'No data yet, cron will run soon' });
 
-  const [fiscalOverride, adminOverride, aiSupplyOverride] = await Promise.all([
-    getActiveAdminSignal('fiscal'),
-    getActiveAdminSignal('administrative'),
-    getActiveAdminSignal('ai_supply'),
-  ]);
+  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
 
   res.json({
     finalSignal: snapshot.final_signal,
@@ -95,11 +91,7 @@ async function runDailyUpdate() {
 
   const monetary = calcMonetarySignal(macroData);
 
-  const [fiscalOverride, adminOverride, aiSupplyOverride] = await Promise.all([
-    getActiveAdminSignal('fiscal'),
-    getActiveAdminSignal('administrative'),
-    getActiveAdminSignal('ai_supply'),
-  ]);
+  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
 
   const fiscal = fiscalOverride?.signal || 'neutral';
   const admin = adminOverride?.signal || 'neutral';
