@@ -61,6 +61,7 @@ const positions = computed(() => {
     { key: 'monetary', value: signal.value.monetarySignal },
     { key: 'fiscal', value: signal.value.fiscalSignal },
     { key: 'administrative', value: signal.value.adminSignal },
+    { key: 'aiSupply', value: signal.value.aiSupplySignal },
   ];
 });
 
