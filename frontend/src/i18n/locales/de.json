@@ -1,13 +1,14 @@
 {
   "app": { "title": "Stock Sentinel", "subtitle": "US-Aktien Angriff/Verteidigung Signal" },
-  "signal": { "attack": "Angriff", "neutral": "Neutral", "defense": "Verteidigung", "loading": "Laden..." },
-  "signalPos": { "monetary": "Geldpolitik", "fiscal": "Fiskalpolitik", "administrative": "Verwaltungspolitik", "loose": "Locker", "neutral": "Neutral", "tight": "Straff" },
+  "signal": { "attack": "Angriff", "neutral": "Abwarten", "defense": "Verteidigung", "loading": "Laden..." },
+  "signalPos": { "monetary": "Geldpolitik", "fiscal": "Fiskalpolitik", "administrative": "Verwaltungspolitik", "aiSupply": "KI Angebot/Nachfrage", "loose": "Locker", "neutral": "Abwarten", "tight": "Straff" },
   "indicators": { "rate": "Fed Zinssatz", "balanceSheet": "Fed Bilanz", "corePce": "Kern-PCE jährlich", "trimmedPce": "Gekürzter PCE", "unemployment": "Arbeitslosigkeit", "dataDate": "Datendatum", "unit": { "rate": "%", "balanceSheet": "Mrd USD", "pce": "%", "unemployment": "%" } },
   "watchlist": { "title": "Beobachtungsliste", "addPlaceholder": "Symbol eingeben, z.B. AAPL", "add": "Hinzufügen", "remove": "Entfernen", "empty": "Keine Aktien in der Liste", "pricePercentile": "Preis-Perzentile", "pe": "KGV", "ps": "KUV", "currentPrice": "Aktueller Preis", "dateRange": "Zeitraum", "presets": "Schnell hinzufügen", "mag7": "Mag 7", "etfs": "Haupt-ETFs" },
   "timeline": { "title": "Signalverlauf", "noHistory": "Kein Verlauf" },
   "auth": { "login": "Anmelden", "register": "Registrieren", "logout": "Abmelden", "email": "E-Mail", "password": "Passwort", "loginTitle": "Anmelden", "registerTitle": "Konto erstellen", "noAccount": "Kein Konto? Registrieren", "hasAccount": "Konto vorhanden? Anmelden", "loginSuccess": "Angemeldet", "registerSuccess": "Registrierung erfolgreich" },
-  "admin": { "title": "Verwaltung", "setSignal": "Signal setzen", "type": "Typ", "signal": "Signal", "expiresAt": "Läuft ab am", "note": "Notiz", "save": "Speichern", "reference": "Referenzen", "fiscal": "Fiskal", "administrative": "Verwaltung", "history": "Verlauf", "refresh": "Aktualisieren" },
+  "admin": { "title": "Verwaltung", "setSignal": "Signal setzen", "type": "Typ", "signal": "Signal", "expiresAt": "Läuft ab am", "note": "Notiz", "save": "Speichern", "reference": "Referenzen", "fiscal": "Fiskal", "administrative": "Verwaltung", "aiSupply": "KI Angebot/Nachfrage", "history": "Verlauf", "refresh": "Aktualisieren", "bottleneck": "Aktueller Engpass", "bottleneckStage": "Stufe", "bottleneckSave": "Stufe speichern" },
   "settings": { "title": "Einstellungen", "emailAlerts": "E-Mail-Benachrichtigungen", "emailAlertsDesc": "E-Mail bei Signaländerung erhalten" },
   "lang": { "switch": "Sprache", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
-  "error": { "fetchFailed": "Laden fehlgeschlagen, zeige gecachte Daten", "loginFailed": "Ungültige E-Mail oder Passwort", "registerFailed": "Registrierung fehlgeschlagen" }
+  "error": { "fetchFailed": "Laden fehlgeschlagen, zeige gecachte Daten", "loginFailed": "Ungültige E-Mail oder Passwort", "registerFailed": "Registrierung fehlgeschlagen" },
+  "aiChain": { "title": "KI-Wertschöpfungskette Geldfluss", "currentBottleneck": "Aktueller Engpass", "stages": { "model": "KI-Modelle", "cloud": "Cloud-Anbieter", "chip": "KI-Chips", "memory": "Speicher / Optische Module", "packaging": "Ausrüstung / Packaging / Test", "power": "Energie" } }
 }

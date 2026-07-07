@@ -1,13 +1,14 @@
 {
   "app": { "title": "Stock Sentinel", "subtitle": "Signal Attaque / Défense Actions US" },
-  "signal": { "attack": "Attaque", "neutral": "Neutre", "defense": "Défense", "loading": "Chargement..." },
-  "signalPos": { "monetary": "Politique Monétaire", "fiscal": "Politique Fiscale", "administrative": "Politique Administrative", "loose": "Accommodant", "neutral": "Neutre", "tight": "Restrictif" },
+  "signal": { "attack": "Attaque", "neutral": "Attente", "defense": "Défense", "loading": "Chargement..." },
+  "signalPos": { "monetary": "Politique Monétaire", "fiscal": "Politique Fiscale", "administrative": "Politique Administrative", "aiSupply": "Offre/Demande IA", "loose": "Accommodant", "neutral": "Attente", "tight": "Restrictif" },
   "indicators": { "rate": "Taux Fed", "balanceSheet": "Bilan Fed", "corePce": "PCE Core AoA", "trimmedPce": "PCE Écrêté", "unemployment": "Chômage", "dataDate": "Date des données", "unit": { "rate": "%", "balanceSheet": "Mrd USD", "pce": "%", "unemployment": "%" } },
   "watchlist": { "title": "Liste de Suivi", "addPlaceholder": "Entrer le symbole, ex. AAPL", "add": "Ajouter", "remove": "Supprimer", "empty": "Aucune action dans la liste", "pricePercentile": "Percentile Prix", "pe": "P/E", "ps": "P/S", "currentPrice": "Prix Actuel", "dateRange": "Plage de dates", "presets": "Ajout Rapide", "mag7": "Mag 7", "etfs": "ETF Principaux" },
   "timeline": { "title": "Historique des Signaux", "noHistory": "Pas d'historique" },
   "auth": { "login": "Connexion", "register": "S'inscrire", "logout": "Déconnexion", "email": "Email", "password": "Mot de passe", "loginTitle": "Connexion", "registerTitle": "Créer un compte", "noAccount": "Pas de compte ? S'inscrire", "hasAccount": "Déjà un compte ? Se connecter", "loginSuccess": "Connecté", "registerSuccess": "Inscription réussie" },
-  "admin": { "title": "Administration", "setSignal": "Définir le Signal", "type": "Type", "signal": "Signal", "expiresAt": "Expire le", "note": "Note", "save": "Enregistrer", "reference": "Références", "fiscal": "Fiscal", "administrative": "Administratif", "history": "Historique", "refresh": "Actualiser" },
+  "admin": { "title": "Administration", "setSignal": "Définir le Signal", "type": "Type", "signal": "Signal", "expiresAt": "Expire le", "note": "Note", "save": "Enregistrer", "reference": "Références", "fiscal": "Fiscal", "administrative": "Administratif", "aiSupply": "Offre/Demande IA", "history": "Historique", "refresh": "Actualiser", "bottleneck": "Étape la Plus Critique", "bottleneckStage": "Étape", "bottleneckSave": "Enregistrer l'Étape" },
   "settings": { "title": "Paramètres", "emailAlerts": "Alertes Email", "emailAlertsDesc": "Recevoir un email lors d'un changement de signal" },
   "lang": { "switch": "Langue", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
-  "error": { "fetchFailed": "Échec du chargement, affichage des données en cache", "loginFailed": "Email ou mot de passe invalide", "registerFailed": "Inscription échouée" }
+  "error": { "fetchFailed": "Échec du chargement, affichage des données en cache", "loginFailed": "Email ou mot de passe invalide", "registerFailed": "Inscription échouée" },
+  "aiChain": { "title": "Flux Financier de la Chaîne IA", "currentBottleneck": "Étape la Plus Critique Actuelle", "stages": { "model": "Modèles IA", "cloud": "Fournisseurs Cloud", "chip": "Puces IA", "memory": "Mémoire / Modules Optiques", "packaging": "Équipement / Packaging / Test", "power": "Énergie" } }
 }

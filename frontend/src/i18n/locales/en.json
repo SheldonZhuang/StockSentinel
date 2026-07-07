@@ -5,7 +5,7 @@
   },
   "signal": {
     "attack": "Attack",
-    "neutral": "Neutral",
+    "neutral": "Watch",
     "defense": "Defense",
     "loading": "Loading data..."
   },
@@ -13,8 +13,9 @@
     "monetary": "Monetary Policy",
     "fiscal": "Fiscal Policy",
     "administrative": "Administrative Policy",
+    "aiSupply": "AI Supply/Demand",
     "loose": "Loose",
-    "neutral": "Neutral",
+    "neutral": "Watch",
     "tight": "Tight"
   },
   "indicators": {
@@ -74,8 +75,12 @@
     "reference": "Reference Materials",
     "fiscal": "Fiscal",
     "administrative": "Administrative",
+    "aiSupply": "AI Supply/Demand",
     "history": "History",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "bottleneck": "Current Bottleneck Stage",
+    "bottleneckStage": "Stage",
+    "bottleneckSave": "Save Stage"
   },
   "settings": {
     "title": "Settings",
@@ -96,5 +101,17 @@
     "fetchFailed": "Failed to load data, showing cached results",
     "loginFailed": "Invalid email or password",
     "registerFailed": "Registration failed, please try again"
+  },
+  "aiChain": {
+    "title": "AI Industry Chain Money Flow",
+    "currentBottleneck": "Current Bottleneck Stage",
+    "stages": {
+      "model": "AI Foundation Models",
+      "cloud": "Cloud Providers",
+      "chip": "AI Chips",
+      "memory": "Memory / Optical Modules",
+      "packaging": "Equipment / Packaging / Testing",
+      "power": "Power & Energy"
+    }
   }
 }

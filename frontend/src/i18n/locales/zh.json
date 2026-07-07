@@ -5,7 +5,7 @@
   },
   "signal": {
     "attack": "进攻",
-    "neutral": "中性",
+    "neutral": "观望",
     "defense": "防守",
     "loading": "数据加载中..."
   },
@@ -13,8 +13,9 @@
     "monetary": "货币政策",
     "fiscal": "财政政策",
     "administrative": "行政政策",
+    "aiSupply": "AI供需",
     "loose": "宽松",
-    "neutral": "中性",
+    "neutral": "观望",
     "tight": "收紧"
   },
   "indicators": {
@@ -74,8 +75,12 @@
     "reference": "参考素材",
     "fiscal": "财政",
     "administrative": "行政",
+    "aiSupply": "AI供需",
     "history": "设定历史",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "bottleneck": "当前卡脖子环节",
+    "bottleneckStage": "环节",
+    "bottleneckSave": "保存环节"
   },
   "settings": {
     "title": "设置",
@@ -96,5 +101,17 @@
     "fetchFailed": "数据加载失败，显示上次缓存数据",
     "loginFailed": "邮箱或密码错误",
     "registerFailed": "注册失败，请重试"
+  },
+  "aiChain": {
+    "title": "AI产业链资金流向",
+    "currentBottleneck": "当前最卡脖子环节",
+    "stages": {
+      "model": "AI大模型",
+      "cloud": "云厂商",
+      "chip": "AI芯片",
+      "memory": "存储/光模块",
+      "packaging": "设备/封装/测试",
+      "power": "电力能源"
+    }
   }
 }
