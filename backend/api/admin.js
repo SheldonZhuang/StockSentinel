@@ -4,24 +4,28 @@ import {
   setAdminSignal,
   getActiveAdminSignal,
   getAdminSignalHistory,
+  setBottleneck,
 } from '../utils/storage.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
-const VALID_TYPES = ['fiscal', 'administrative'];
+const VALID_TYPES = ['fiscal', 'administrative', 'ai_supply'];
 
-// GET /api/admin/signals — 当前财政/行政信号位
+// GET /api/admin/signals — 当前财政/行政/AI供需信号位
 router.get('/signals', requireAdmin, async (req, res) => {
-  const [fiscal, administrative] = await Promise.all([
+  const [fiscal, administrative, aiSupply] = await Promise.all([
     getActiveAdminSignal('fiscal'),
     getActiveAdminSignal('administrative'),
+    getActiveAdminSignal('ai_supply'),
   ]);
   res.json({
     fiscal: fiscal?.signal || 'neutral',
     fiscalMeta: fiscal || null,
     administrative: administrative?.signal || 'neutral',
     administrativeMeta: administrative || null,
+    aiSupply: aiSupply?.signal || 'neutral',
+    aiSupplyMeta: aiSupply || null,
   });
 });
 
@@ -54,6 +58,20 @@ router.get('/reference', requireAdmin, async (req, res) => {
     return [];
   });
   res.json(docs);
+});
+
+const VALID_STAGES = [
+  'model', 'cloud', 'chip', 'memory', 'packaging', 'power',
+];
+
+// POST /api/admin/bottleneck — 设定当前AI产业链最卡脖子环节
+router.post('/bottleneck', requireAdmin, async (req, res) => {
+  const { stage, note } = req.body;
+  if (!VALID_STAGES.includes(stage)) {
+    return res.status(400).json({ error: `stage must be one of: ${VALID_STAGES.join(', ')}` });
+  }
+  await setBottleneck(stage, note || null, req.user.email);
+  res.json({ ok: true, stage, note });
 });
 
 export default router;
