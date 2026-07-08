@@ -23,7 +23,14 @@ import { sendSignalAlert } from './utils/mailer.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://stock-sentinel-eight.vercel.app',
+];
+
+app.use(cors({
+  origin: allowedOrigins,
+}));
 app.use(express.json());
 
 // --- 路由 ---
