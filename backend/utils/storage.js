@@ -220,12 +220,12 @@ export async function saveSignalSnapshot(data) {
 
 export async function getLatestSnapshot() {
   await getDb();
-  return get('SELECT * FROM signal_snapshots ORDER BY date DESC LIMIT 1');
+  return get('SELECT * FROM signal_snapshots ORDER BY date DESC, id DESC LIMIT 1');
 }
 
 export async function getSnapshotHistory(limit = 90) {
   await getDb();
-  return all('SELECT * FROM signal_snapshots ORDER BY date DESC LIMIT ?', [limit]);
+  return all('SELECT * FROM signal_snapshots ORDER BY date DESC, id DESC LIMIT ?', [limit]);
 }
 
 // --- Admin Signal Overrides ---
