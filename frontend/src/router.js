@@ -25,11 +25,11 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
-  if (!auth.checked) await auth.init();
+  if (!auth.checked.value) await auth.init();
 
-  if (to.meta.requiresAuth && !auth.user) return '/login';
-  if (to.meta.requiresAdmin && !auth.isAdmin) return '/';
-  if (to.path === '/login' && auth.user) return '/';
+  if (to.meta.requiresAuth && !auth.user.value) return '/login';
+  if (to.meta.requiresAdmin && !auth.isAdmin.value) return '/';
+  if (to.path === '/login' && auth.user.value) return '/';
 });
 
 export default router;
