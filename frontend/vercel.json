@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://stocksentinel-production-55ed.up.railway.app/api/$1" }
+  ]
+}
