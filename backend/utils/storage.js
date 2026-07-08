@@ -14,12 +14,42 @@ async function getDb() {
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
+    migrateSchema();
   } else {
     db = new SQL.Database();
     initSchema();
     persist();
   }
   return db;
+}
+
+// signal_snapshots 新增列（早于此列表创建的 .db 文件缺这些列，需要 ALTER TABLE 补齐）
+const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
+  'rate_decision_date TEXT',
+  'balance_sheet_period_date TEXT',
+  'balance_sheet_release_date TEXT',
+  'balance_sheet_status TEXT',
+  'core_pce_period_date TEXT',
+  'core_pce_release_date TEXT',
+  'trimmed_pce_period_date TEXT',
+  'trimmed_pce_release_date TEXT',
+  'unemployment_period_date TEXT',
+  'unemployment_release_date TEXT',
+];
+
+function migrateSchema() {
+  const existingCols = new Set(
+    all('PRAGMA table_info(signal_snapshots)').map((c) => c.name)
+  );
+  let changed = false;
+  for (const colDef of SIGNAL_SNAPSHOT_NEW_COLUMNS) {
+    const colName = colDef.split(' ')[0];
+    if (!existingCols.has(colName)) {
+      db.run(`ALTER TABLE signal_snapshots ADD COLUMN ${colDef}`);
+      changed = true;
+    }
+  }
+  if (changed) persist();
 }
 
 function persist() {
@@ -57,6 +87,16 @@ function initSchema() {
       fred_core_pce REAL,
       fred_trimmed_pce REAL,
       fred_unemployment REAL,
+      rate_decision_date TEXT,
+      balance_sheet_period_date TEXT,
+      balance_sheet_release_date TEXT,
+      balance_sheet_status TEXT,
+      core_pce_period_date TEXT,
+      core_pce_release_date TEXT,
+      trimmed_pce_period_date TEXT,
+      trimmed_pce_release_date TEXT,
+      unemployment_period_date TEXT,
+      unemployment_release_date TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -163,12 +203,18 @@ export async function saveSignalSnapshot(data) {
     INSERT INTO signal_snapshots
     (date, monetary_signal, fiscal_signal, admin_signal, ai_supply_signal, final_signal,
      fred_rate, fred_rate_prev, fred_balance_sheet, fred_balance_sheet_prev,
-     fred_core_pce, fred_trimmed_pce, fred_unemployment)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     fred_core_pce, fred_trimmed_pce, fred_unemployment,
+     rate_decision_date, balance_sheet_period_date, balance_sheet_release_date, balance_sheet_status,
+     core_pce_period_date, core_pce_release_date, trimmed_pce_period_date, trimmed_pce_release_date,
+     unemployment_period_date, unemployment_release_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
     data.fredCorePce, data.fredTrimmedPce, data.fredUnemployment,
+    data.rateDecisionDate, data.balanceSheetPeriodDate, data.balanceSheetReleaseDate, data.balanceSheetStatus,
+    data.corePcePeriodDate, data.corePceReleaseDate, data.trimmedPcePeriodDate, data.trimmedPceReleaseDate,
+    data.unemploymentPeriodDate, data.unemploymentReleaseDate,
   ]);
 }
 

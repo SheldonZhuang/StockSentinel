@@ -26,11 +26,15 @@ beforeEach(() => {
 
 describe('fetchMacroData', () => {
   it('正常返回所有字段', async () => {
-    axios.get.mockResolvedValue({
-      data: {
-        observations: makeObs([4.75, 4.25, 4.0]),
-      },
-    });
+    // 前5次调用是 fetchSeries（利率/资产负债表/核心PCE/Trimmed PCE/失业率），
+    // 后3次调用是 fetchReleaseDate（核心PCE/Trimmed PCE/失业率各查一次真实发布日期）
+    axios.get
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValue({ data: { observations: [{ date: '2024-01-01', value: '4.75', realtime_start: '2024-01-15' }] } });
 
     const data = await fetchMacroData();
 
@@ -42,6 +46,17 @@ describe('fetchMacroData', () => {
     expect(data).toHaveProperty('trimmedPce');
     expect(data).toHaveProperty('unemployment');
     expect(typeof data.currentRate).toBe('number');
+
+    expect(data).toHaveProperty('rateDecisionDate');
+    expect(data).toHaveProperty('balanceSheetPeriodDate');
+    expect(data).toHaveProperty('balanceSheetReleaseDate');
+    expect(data).toHaveProperty('balanceSheetStatus');
+    expect(data.corePcePeriodDate).toBe('2024-01-01');
+    expect(data.corePceReleaseDate).toBe('2024-01-15');
+    expect(data.trimmedPcePeriodDate).toBe('2024-01-01');
+    expect(data.trimmedPceReleaseDate).toBe('2024-01-15');
+    expect(data.unemploymentPeriodDate).toBe('2024-01-01');
+    expect(data.unemploymentReleaseDate).toBe('2024-01-15');
   });
 
   it('latest value 取第一条有效观测', async () => {

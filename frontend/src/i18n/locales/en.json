@@ -25,11 +25,19 @@
     "trimmedPce": "Trimmed Mean PCE",
     "unemployment": "Unemployment Rate",
     "dataDate": "Data Date",
+    "decisionDate": "FOMC Decision",
+    "periodDate": "Reference Period",
+    "releaseDate": "Release Date",
     "unit": {
       "rate": "%",
       "balanceSheet": "B USD",
       "pce": "%",
       "unemployment": "%"
+    },
+    "bsStatus": {
+      "loose": "QE Expansion",
+      "neutral": "Paused / Flat",
+      "tight": "QT Contraction"
     }
   },
   "watchlist": {

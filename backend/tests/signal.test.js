@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcMonetarySignal, calcFinalSignal, deriveSubSignals } from '../api/signal.js';
+import { calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus } from '../api/signal.js';
 
 // 测试所有货币信号位分支
 describe('calcMonetarySignal', () => {
@@ -92,6 +92,26 @@ describe('deriveSubSignals', () => {
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
     expect(rateSignal).toBe('neutral');
+  });
+});
+
+// 资产负债表方向判断（独立函数，供 fetch-macro.js 复用展示状态）
+describe('deriveBalanceSheetStatus', () => {
+  it('扩张：变化 > 0.25% 视为 QE 扩张(loose)', () => {
+    expect(deriveBalanceSheetStatus(7200, 7100)).toBe('loose');
+  });
+
+  it('收缩：变化 < -0.25% 视为 QT 收缩(tight)', () => {
+    expect(deriveBalanceSheetStatus(7000, 7200)).toBe('tight');
+  });
+
+  it('暂停：变化幅度在 ±0.25% 内视为 neutral', () => {
+    expect(deriveBalanceSheetStatus(7200, 7201)).toBe('neutral');
+  });
+
+  it('数据缺失时视为 neutral', () => {
+    expect(deriveBalanceSheetStatus(null, 7200)).toBe('neutral');
+    expect(deriveBalanceSheetStatus(7200, null)).toBe('neutral');
   });
 });
 

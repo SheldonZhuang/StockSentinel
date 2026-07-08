@@ -2,7 +2,7 @@
   "app": { "title": "ストック・センチネル", "subtitle": "米国株攻撃/防御シグナル" },
   "signal": { "attack": "攻撃", "neutral": "様子見", "defense": "防御", "loading": "読み込み中..." },
   "signalPos": { "monetary": "金融政策", "fiscal": "財政政策", "administrative": "行政政策", "aiSupply": "AI需給", "loose": "緩和", "neutral": "様子見", "tight": "引き締め" },
-  "indicators": { "rate": "FF金利", "balanceSheet": "FRBバランスシート", "corePce": "コアPCE前年比", "trimmedPce": "トリム平均PCE", "unemployment": "失業率", "dataDate": "データ日付", "unit": { "rate": "%", "balanceSheet": "億ドル", "pce": "%", "unemployment": "%" } },
+  "indicators": { "rate": "FF金利", "balanceSheet": "FRBバランスシート", "corePce": "コアPCE前年比", "trimmedPce": "トリム平均PCE", "unemployment": "失業率", "dataDate": "データ日付", "decisionDate": "FOMC決定日", "periodDate": "対象期間", "releaseDate": "発表日", "unit": { "rate": "%", "balanceSheet": "億ドル", "pce": "%", "unemployment": "%" }, "bsStatus": { "loose": "QE拡大", "neutral": "停止・横ばい", "tight": "QT縮小" } },
   "watchlist": { "title": "ウォッチリスト", "addPlaceholder": "ティッカーを入力、例: AAPL", "add": "追加", "remove": "削除", "empty": "銘柄がありません", "pricePercentile": "価格パーセンタイル", "pe": "PER", "ps": "PSR", "currentPrice": "現在価格", "dateRange": "期間", "presets": "クイック追加", "mag7": "Mag 7", "etfs": "主要ETF" },
   "timeline": { "title": "シグナル履歴", "noHistory": "履歴なし" },
   "auth": { "login": "ログイン", "register": "登録", "logout": "ログアウト", "email": "メール", "password": "パスワード", "loginTitle": "ログイン", "registerTitle": "アカウント作成", "noAccount": "アカウントなし？登録", "hasAccount": "アカウントあり？ログイン", "loginSuccess": "ログイン成功", "registerSuccess": "登録完了" },

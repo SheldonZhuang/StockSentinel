@@ -46,22 +46,22 @@ export function deriveSubSignals(macroData) {
     }
   }
 
-  // 资产负债表方向判断
-  let balanceSheetSignal;
-  if (currentBalanceSheet === null || prevBalanceSheet === null) {
-    balanceSheetSignal = 'neutral';
-  } else {
-    const changePct = ((currentBalanceSheet - prevBalanceSheet) / prevBalanceSheet) * 100;
-    if (changePct > BALANCE_SHEET_PAUSE_THRESHOLD_PCT) {
-      balanceSheetSignal = 'loose'; // QE 扩张
-    } else if (changePct < -BALANCE_SHEET_PAUSE_THRESHOLD_PCT) {
-      balanceSheetSignal = 'tight'; // QT 收缩
-    } else {
-      balanceSheetSignal = 'neutral'; // 暂停
-    }
-  }
+  const balanceSheetSignal = deriveBalanceSheetStatus(currentBalanceSheet, prevBalanceSheet);
 
   return { rateSignal, balanceSheetSignal };
+}
+
+/**
+ * 资产负债表方向判断：QE 扩张(loose) / 暂停·持平(neutral) / QT 收缩(tight)
+ * @returns {'loose'|'neutral'|'tight'}
+ */
+export function deriveBalanceSheetStatus(current, prev) {
+  if (current === null || prev === null) return 'neutral';
+
+  const changePct = ((current - prev) / prev) * 100;
+  if (changePct > BALANCE_SHEET_PAUSE_THRESHOLD_PCT) return 'loose'; // QE 扩张
+  if (changePct < -BALANCE_SHEET_PAUSE_THRESHOLD_PCT) return 'tight'; // QT 收缩
+  return 'neutral'; // 暂停
 }
 
 /**
