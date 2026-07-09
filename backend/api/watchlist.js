@@ -2,15 +2,12 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { getWatchlist, addToWatchlist, removeFromWatchlist } from '../utils/storage.js';
 import { fetchStockData } from './fetch-stocks.js';
+import { todayET, daysAgoET } from '../utils/datetime.js';
 
 const router = express.Router();
 
-const DEFAULT_END = () => new Date().toISOString().slice(0, 10);
-const DEFAULT_START = () => {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - 3);
-  return d.toISOString().slice(0, 10);
-};
+const DEFAULT_END = () => todayET();
+const DEFAULT_START = () => daysAgoET(3 * 365);
 
 // GET /api/watchlist — 自选股清单 + 股票数据
 router.get('/', requireAuth, async (req, res) => {

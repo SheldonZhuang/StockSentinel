@@ -1,3 +1,5 @@
+import { todayET } from '../utils/datetime.js';
+
 // FOMC 议息会议决定公布日期（第二日，即声明发布当天）
 // 来源：federalreserve.gov/monetarypolicy/fomccalendars.htm
 // Fed 每年8月左右公布下一年度日程，需要每年手动补充
@@ -25,7 +27,7 @@ const DECISION_DATES = [
  * @param {string} asOfDate - 'YYYY-MM-DD'，默认今天
  * @returns {string|null}
  */
-export function getLastFomcDecisionDate(asOfDate = new Date().toISOString().slice(0, 10)) {
+export function getLastFomcDecisionDate(asOfDate = todayET()) {
   let last = null;
   for (const date of DECISION_DATES) {
     if (date <= asOfDate) last = date;

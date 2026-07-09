@@ -19,6 +19,7 @@ import {
   getAllOverrides,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
+import { todayET } from './utils/datetime.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -61,12 +62,23 @@ app.get('/api/signal', async (req, res) => {
       balanceSheetReleaseDate: snapshot.balance_sheet_release_date,
       balanceSheetStatus: snapshot.balance_sheet_status,
       corePce: snapshot.fred_core_pce,
+      corePcePrev: snapshot.fred_core_pce_prev,
       corePcePeriodDate: snapshot.core_pce_period_date,
       corePceReleaseDate: snapshot.core_pce_release_date,
+      trimmedPce1m: snapshot.fred_trimmed_pce_1m,
+      trimmedPce1mPrev: snapshot.fred_trimmed_pce_1m_prev,
+      trimmedPce1mPeriodDate: snapshot.trimmed_pce_1m_period_date,
+      trimmedPce1mReleaseDate: snapshot.trimmed_pce_1m_release_date,
       trimmedPce: snapshot.fred_trimmed_pce,
+      trimmedPcePrev: snapshot.fred_trimmed_pce_prev,
       trimmedPcePeriodDate: snapshot.trimmed_pce_period_date,
       trimmedPceReleaseDate: snapshot.trimmed_pce_release_date,
+      trimmedPce12m: snapshot.fred_trimmed_pce_12m,
+      trimmedPce12mPrev: snapshot.fred_trimmed_pce_12m_prev,
+      trimmedPce12mPeriodDate: snapshot.trimmed_pce_12m_period_date,
+      trimmedPce12mReleaseDate: snapshot.trimmed_pce_12m_release_date,
       unemployment: snapshot.fred_unemployment,
+      unemploymentPrev: snapshot.fred_unemployment_prev,
       unemploymentPeriodDate: snapshot.unemployment_period_date,
       unemploymentReleaseDate: snapshot.unemployment_release_date,
     },
@@ -115,7 +127,7 @@ async function runDailyUpdate() {
   const aiSupply = aiSupplyOverride?.signal || 'neutral';
   const finalSignal = calcFinalSignal(monetary, fiscal, admin, aiSupply);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
 
   await saveSignalSnapshot({
@@ -132,6 +144,17 @@ async function runDailyUpdate() {
     fredCorePce: macroData.corePce,
     fredTrimmedPce: macroData.trimmedPce,
     fredUnemployment: macroData.unemployment,
+    fredCorePcePrev: macroData.prevCorePce,
+    fredTrimmedPcePrev: macroData.prevTrimmedPce,
+    fredUnemploymentPrev: macroData.prevUnemployment,
+    fredTrimmedPce1m: macroData.trimmedPce1m,
+    fredTrimmedPce1mPrev: macroData.prevTrimmedPce1m,
+    trimmedPce1mPeriodDate: macroData.trimmedPce1mPeriodDate,
+    trimmedPce1mReleaseDate: macroData.trimmedPce1mReleaseDate,
+    fredTrimmedPce12m: macroData.trimmedPce12m,
+    fredTrimmedPce12mPrev: macroData.prevTrimmedPce12m,
+    trimmedPce12mPeriodDate: macroData.trimmedPce12mPeriodDate,
+    trimmedPce12mReleaseDate: macroData.trimmedPce12mReleaseDate,
     rateDecisionDate: macroData.rateDecisionDate,
     balanceSheetPeriodDate: macroData.balanceSheetPeriodDate,
     balanceSheetReleaseDate: macroData.balanceSheetReleaseDate,

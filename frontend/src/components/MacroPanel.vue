@@ -26,15 +26,16 @@
             <span class="ind-label">{{ $t(`indicators.${ind.key}`) }}</span>
             <span class="ind-value">
               {{ ind.value !== null ? ind.value.toFixed(2) + ind.unit : '—' }}
-              <span v-if="ind.change !== null" :class="['ind-change', ind.change > 0 ? 'up' : 'down']">
-                {{ ind.change > 0 ? '▲' : '▼' }}{{ Math.abs(ind.change).toFixed(2) }}{{ ind.unit }}
+              <span v-if="ind.change !== null" :class="['ind-change', trendClass(ind.change)]">
+                {{ trendArrow(ind.change) }}{{ Math.abs(ind.change).toFixed(2) }}{{ ind.unit }}
+                ({{ $t(`indicators.${trendKey(ind.change)}`) }})
               </span>
               <span v-if="ind.bsStatus" :class="['pos-badge', ind.bsStatus]">{{ $t(`indicators.bsStatus.${ind.bsStatus}`) }}</span>
             </span>
           </div>
           <div class="ind-meta">
             <span v-if="ind.decisionDate">{{ $t('indicators.decisionDate') }}: {{ formatDate(ind.decisionDate) }}</span>
-            <span v-if="ind.periodDate">{{ $t('indicators.periodDate') }}: {{ formatDate(ind.periodDate) }}</span>
+            <span v-if="ind.periodDate">{{ $t('indicators.periodDate') }}: {{ ind.periodIsMonth ? formatMonth(ind.periodDate) : formatDate(ind.periodDate) }}</span>
             <span v-if="ind.releaseDate">· {{ $t('indicators.releaseDate') }}: {{ formatDate(ind.releaseDate) }}</span>
           </div>
         </div>
@@ -59,6 +60,35 @@ function formatDate(dateStr) {
   if (!dateStr) return '—';
   const tag = LOCALE_TAGS[locale.value] || 'en-US';
   return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(dateStr + 'T00:00:00Z'));
+}
+
+// PCE/失业率是月度数据，参考期展示到月份即可（不展示FRED返回的月首占位日期）
+function formatMonth(dateStr) {
+  if (!dateStr) return '—';
+  const tag = LOCALE_TAGS[locale.value] || 'en-US';
+  return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long' }).format(new Date(dateStr + 'T00:00:00Z'));
+}
+
+function trendKey(change) {
+  if (change === null) return null;
+  const rounded = Math.round(change * 100) / 100;
+  if (rounded > 0) return 'trendUp';
+  if (rounded < 0) return 'trendDown';
+  return 'trendFlat';
+}
+
+function trendArrow(change) {
+  const key = trendKey(change);
+  if (key === 'trendUp') return '▲';
+  if (key === 'trendDown') return '▼';
+  return '—';
+}
+
+function trendClass(change) {
+  const key = trendKey(change);
+  if (key === 'trendUp') return 'up';
+  if (key === 'trendDown') return 'down';
+  return 'flat';
 }
 
 onMounted(async () => {
@@ -95,16 +125,29 @@ const indicators = computed(() => {
       periodDate: ind.balanceSheetPeriodDate, releaseDate: ind.balanceSheetReleaseDate, bsStatus: ind.balanceSheetStatus,
     },
     {
-      key: 'corePce', value: ind.corePce, unit: '%', change: null,
-      periodDate: ind.corePcePeriodDate, releaseDate: ind.corePceReleaseDate,
+      key: 'corePce', value: ind.corePce, unit: '%',
+      change: ind.corePce !== null && ind.corePcePrev !== null ? ind.corePce - ind.corePcePrev : null,
+      periodDate: ind.corePcePeriodDate, releaseDate: ind.corePceReleaseDate, periodIsMonth: true,
     },
     {
-      key: 'trimmedPce', value: ind.trimmedPce, unit: '%', change: null,
-      periodDate: ind.trimmedPcePeriodDate, releaseDate: ind.trimmedPceReleaseDate,
+      key: 'trimmedPce1m', value: ind.trimmedPce1m, unit: '%',
+      change: ind.trimmedPce1m !== null && ind.trimmedPce1mPrev !== null ? ind.trimmedPce1m - ind.trimmedPce1mPrev : null,
+      periodDate: ind.trimmedPce1mPeriodDate, releaseDate: ind.trimmedPce1mReleaseDate, periodIsMonth: true,
     },
     {
-      key: 'unemployment', value: ind.unemployment, unit: '%', change: null,
-      periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate,
+      key: 'trimmedPce', value: ind.trimmedPce, unit: '%',
+      change: ind.trimmedPce !== null && ind.trimmedPcePrev !== null ? ind.trimmedPce - ind.trimmedPcePrev : null,
+      periodDate: ind.trimmedPcePeriodDate, releaseDate: ind.trimmedPceReleaseDate, periodIsMonth: true,
+    },
+    {
+      key: 'trimmedPce12m', value: ind.trimmedPce12m, unit: '%',
+      change: ind.trimmedPce12m !== null && ind.trimmedPce12mPrev !== null ? ind.trimmedPce12m - ind.trimmedPce12mPrev : null,
+      periodDate: ind.trimmedPce12mPeriodDate, releaseDate: ind.trimmedPce12mReleaseDate, periodIsMonth: true,
+    },
+    {
+      key: 'unemployment', value: ind.unemployment, unit: '%',
+      change: ind.unemployment !== null && ind.unemploymentPrev !== null ? ind.unemployment - ind.unemploymentPrev : null,
+      periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate, periodIsMonth: true,
     },
   ];
 });
@@ -167,6 +210,7 @@ const indicators = computed(() => {
 .ind-change { font-size: 11px; margin-left: 6px; }
 .ind-change.up { color: #f87171; }
 .ind-change.down { color: #4ade80; }
+.ind-change.flat { color: #999; }
 
 .ind-meta { font-size: 11px; color: #555; display: flex; gap: 4px; flex-wrap: wrap; }
 .ind-value .pos-badge { font-size: 10px; padding: 2px 6px; }

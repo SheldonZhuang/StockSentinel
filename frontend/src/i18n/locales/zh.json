@@ -22,7 +22,9 @@
     "rate": "联邦基金利率",
     "balanceSheet": "美联储资产负债表",
     "corePce": "核心 PCE 同比",
-    "trimmedPce": "Trimmed Mean PCE",
+    "trimmedPce1m": "截尾均值PCE (1个月)",
+    "trimmedPce": "截尾均值PCE (6个月)",
+    "trimmedPce12m": "截尾均值PCE (12个月)",
     "unemployment": "失业率",
     "dataDate": "数据日期",
     "decisionDate": "议息会议决定",
@@ -38,7 +40,10 @@
       "loose": "QE 扩张",
       "neutral": "暂停·持平",
       "tight": "QT 收缩"
-    }
+    },
+    "trendUp": "上升",
+    "trendFlat": "持平",
+    "trendDown": "下降"
   },
   "watchlist": {
     "title": "自选股",

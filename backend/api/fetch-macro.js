@@ -2,15 +2,10 @@ import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { deriveBalanceSheetStatus } from './signal.js';
 import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
+import { daysAgoET } from '../utils/datetime.js';
 
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 const { FRED_SERIES, RATE_LOOKBACK_DAYS, BALANCE_SHEET_LOOKBACK_DAYS } = cfg;
-
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
 
 function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -30,8 +25,9 @@ async function fetchSeries(seriesId, startDate, apiKey, units = '') {
  * @returns {string|null} 'YYYY-MM-DD'
  */
 async function fetchReleaseDate(seriesId, periodDate, apiKey) {
-  const today = new Date().toISOString().slice(0, 10);
-  const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${periodDate}&observation_end=${periodDate}&realtime_start=2020-01-01&realtime_end=${today}&api_key=${apiKey}&file_type=json`;
+  // realtime_end 用 FRED 的"最大实时值" 9999-12-31 表示"截止到最新"，
+  // 避免本机时钟与 FRED 服务器时钟存在偏差时被 FRED 判定为"未来日期"而返回 400
+  const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${periodDate}&observation_end=${periodDate}&realtime_start=2020-01-01&realtime_end=9999-12-31&api_key=${apiKey}&file_type=json`;
   const res = await axios.get(url, { timeout: 15000 });
   const obs = res.data.observations || [];
   return obs[0]?.realtime_start || null;
@@ -73,16 +69,18 @@ export async function fetchMacroData() {
   const apiKey = process.env.FRED_API_KEY;
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
-  const rateStart = daysAgo(RATE_LOOKBACK_DAYS);
-  const bsStart = daysAgo(BALANCE_SHEET_LOOKBACK_DAYS);
-  const pceStart = daysAgo(400); // PCE 月度数据，取最近数期
-  const unStart = daysAgo(400);
+  const rateStart = daysAgoET(RATE_LOOKBACK_DAYS);
+  const bsStart = daysAgoET(BALANCE_SHEET_LOOKBACK_DAYS);
+  const pceStart = daysAgoET(400); // PCE 月度数据，取最近数期
+  const unStart = daysAgoET(400);
 
-  const [rateObs, bsObs, corePceObs, trimmedPceObs, unrateObs] = await Promise.all([
+  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs] = await Promise.all([
     fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
     fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
     fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'),       // 同比变动百分比
+    fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_1M, pceStart, apiKey),   // 本身就是年化变动率
     fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE, pceStart, apiKey),       // 本身就是年化变动率
+    fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_12M, pceStart, apiKey),  // 本身就是同比变动率
     fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey),
   ]);
 
@@ -90,12 +88,15 @@ export async function fetchMacroData() {
   const prevBalanceSheet = prevValue(bsObs);
   const balanceSheetPeriodDate = latestDate(bsObs);
   const corePcePeriodDate = latestDate(corePceObs);
+  const trimmedPce1mPeriodDate = latestDate(trimmedPce1mObs);
   const trimmedPcePeriodDate = latestDate(trimmedPceObs);
+  const trimmedPce12mPeriodDate = latestDate(trimmedPce12mObs);
   const unemploymentPeriodDate = latestDate(unrateObs);
-
-  const [corePceReleaseDate, trimmedPceReleaseDate, unemploymentReleaseDate] = await Promise.all([
+  const [corePceReleaseDate, trimmedPce1mReleaseDate, trimmedPceReleaseDate, trimmedPce12mReleaseDate, unemploymentReleaseDate] = await Promise.all([
     corePcePeriodDate ? fetchReleaseDate(FRED_SERIES.CORE_PCE, corePcePeriodDate, apiKey) : null,
+    trimmedPce1mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_1M, trimmedPce1mPeriodDate, apiKey) : null,
     trimmedPcePeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE, trimmedPcePeriodDate, apiKey) : null,
+    trimmedPce12mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_12M, trimmedPce12mPeriodDate, apiKey) : null,
     unemploymentPeriodDate ? fetchReleaseDate(FRED_SERIES.UNEMPLOYMENT, unemploymentPeriodDate, apiKey) : null,
   ]);
 
@@ -105,8 +106,15 @@ export async function fetchMacroData() {
     currentBalanceSheet,
     prevBalanceSheet,
     corePce: latestValue(corePceObs),
+    prevCorePce: prevValue(corePceObs),
+    trimmedPce1m: latestValue(trimmedPce1mObs),
+    prevTrimmedPce1m: prevValue(trimmedPce1mObs),
     trimmedPce: latestValue(trimmedPceObs),
+    prevTrimmedPce: prevValue(trimmedPceObs),
+    trimmedPce12m: latestValue(trimmedPce12mObs),
+    prevTrimmedPce12m: prevValue(trimmedPce12mObs),
     unemployment: latestValue(unrateObs),
+    prevUnemployment: prevValue(unrateObs),
 
     // 议息会议决定日期（利率每日更新，真正的"决定"日以 FOMC 日历为准）
     rateDecisionDate: getLastFomcDecisionDate(),
@@ -118,8 +126,12 @@ export async function fetchMacroData() {
 
     corePcePeriodDate,
     corePceReleaseDate,
+    trimmedPce1mPeriodDate,
+    trimmedPce1mReleaseDate,
     trimmedPcePeriodDate,
     trimmedPceReleaseDate,
+    trimmedPce12mPeriodDate,
+    trimmedPce12mReleaseDate,
     unemploymentPeriodDate,
     unemploymentReleaseDate,
   };

@@ -35,6 +35,17 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'trimmed_pce_release_date TEXT',
   'unemployment_period_date TEXT',
   'unemployment_release_date TEXT',
+  'fred_core_pce_prev REAL',
+  'fred_trimmed_pce_prev REAL',
+  'fred_unemployment_prev REAL',
+  'fred_trimmed_pce_1m REAL',
+  'fred_trimmed_pce_1m_prev REAL',
+  'trimmed_pce_1m_period_date TEXT',
+  'trimmed_pce_1m_release_date TEXT',
+  'fred_trimmed_pce_12m REAL',
+  'fred_trimmed_pce_12m_prev REAL',
+  'trimmed_pce_12m_period_date TEXT',
+  'trimmed_pce_12m_release_date TEXT',
 ];
 
 function migrateSchema() {
@@ -97,6 +108,17 @@ function initSchema() {
       trimmed_pce_release_date TEXT,
       unemployment_period_date TEXT,
       unemployment_release_date TEXT,
+      fred_core_pce_prev REAL,
+      fred_trimmed_pce_prev REAL,
+      fred_unemployment_prev REAL,
+      fred_trimmed_pce_1m REAL,
+      fred_trimmed_pce_1m_prev REAL,
+      trimmed_pce_1m_period_date TEXT,
+      trimmed_pce_1m_release_date TEXT,
+      fred_trimmed_pce_12m REAL,
+      fred_trimmed_pce_12m_prev REAL,
+      trimmed_pce_12m_period_date TEXT,
+      trimmed_pce_12m_release_date TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -206,8 +228,11 @@ export async function saveSignalSnapshot(data) {
      fred_core_pce, fred_trimmed_pce, fred_unemployment,
      rate_decision_date, balance_sheet_period_date, balance_sheet_release_date, balance_sheet_status,
      core_pce_period_date, core_pce_release_date, trimmed_pce_period_date, trimmed_pce_release_date,
-     unemployment_period_date, unemployment_release_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     unemployment_period_date, unemployment_release_date,
+     fred_core_pce_prev, fred_trimmed_pce_prev, fred_unemployment_prev,
+     fred_trimmed_pce_1m, fred_trimmed_pce_1m_prev, trimmed_pce_1m_period_date, trimmed_pce_1m_release_date,
+     fred_trimmed_pce_12m, fred_trimmed_pce_12m_prev, trimmed_pce_12m_period_date, trimmed_pce_12m_release_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -215,6 +240,9 @@ export async function saveSignalSnapshot(data) {
     data.rateDecisionDate, data.balanceSheetPeriodDate, data.balanceSheetReleaseDate, data.balanceSheetStatus,
     data.corePcePeriodDate, data.corePceReleaseDate, data.trimmedPcePeriodDate, data.trimmedPceReleaseDate,
     data.unemploymentPeriodDate, data.unemploymentReleaseDate,
+    data.fredCorePcePrev, data.fredTrimmedPcePrev, data.fredUnemploymentPrev,
+    data.fredTrimmedPce1m, data.fredTrimmedPce1mPrev, data.trimmedPce1mPeriodDate, data.trimmedPce1mReleaseDate,
+    data.fredTrimmedPce12m, data.fredTrimmedPce12mPrev, data.trimmedPce12mPeriodDate, data.trimmedPce12mReleaseDate,
   ]);
 }
 
