@@ -1,20 +1,21 @@
-import yahooFinance from 'yahoo-finance2';
+import { getDailyCloses, getQuote } from './market-data.js';
 
 /**
  * 拉取股票数据：价格历史百分位 + 当前 P/E 和 P/S
+ * 行情走 market-data 三层回退（Yahoo→Tiingo→TwelveData）；备用源无估值字段时 PE/PS 为 null
  * @param {string} symbol
  * @param {string} startDate  YYYY-MM-DD
  * @param {string} endDate    YYYY-MM-DD
  * @returns {object}
  */
 export async function fetchStockData(symbol, startDate, endDate) {
-  const [historical, quote] = await Promise.all([
-    yahooFinance.historical(symbol, { period1: startDate, period2: endDate }).catch(() => []),
-    yahooFinance.quote(symbol).catch(() => null),
+  const [bars, quote] = await Promise.all([
+    getDailyCloses(symbol, startDate, endDate),
+    getQuote(symbol),
   ]);
 
-  const closes = historical.map(h => h.close).filter(v => v !== null && v !== undefined);
-  const currentPrice = quote?.regularMarketPrice ?? closes[closes.length - 1] ?? null;
+  const closes = (bars || []).map(b => b.close);
+  const currentPrice = quote?.price ?? closes[closes.length - 1] ?? null;
 
   const percentile = calcPricePercentile(currentPrice, closes);
 

@@ -1,6 +1,6 @@
-import yahooFinance from 'yahoo-finance2';
 import cfg from '../config/signal.config.js';
 import { fetchSeries, fetchReleaseDate, latestValue, latestDate } from './fetch-macro.js';
+import { getDailyCloses } from './market-data.js';
 import { todayET, daysAgoET } from '../utils/datetime.js';
 
 const {
@@ -108,8 +108,8 @@ export async function fetchAiSupplyData(apiKey) {
       const period1 = daysAgoET(AI_MARKET_WINDOW_DAYS);
       const period2 = todayET();
       const [semiBars, benchBars] = await Promise.all([
-        yahooFinance.historical(AI_MARKET_SYMBOLS.SEMI, { period1, period2 }),
-        yahooFinance.historical(AI_MARKET_SYMBOLS.BENCH, { period1, period2 }),
+        getDailyCloses(AI_MARKET_SYMBOLS.SEMI, period1, period2),
+        getDailyCloses(AI_MARKET_SYMBOLS.BENCH, period1, period2),
       ]);
       return { smhSpyRelReturnPct: calcRelativeReturn(semiBars, benchBars) };
     })().catch(err => {

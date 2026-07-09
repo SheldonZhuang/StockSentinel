@@ -8,6 +8,7 @@ vi.mock('yahoo-finance2', () => ({
 import axios from 'axios';
 import yahooFinance from 'yahoo-finance2';
 import chainCfg from '../config/ai-chain.config.js';
+import { clearMarketDataCache } from '../api/market-data.js';
 import {
   aggregateDailyTokens,
   calcUsageTrend,
@@ -143,6 +144,10 @@ describe('fetchAiChainData', () => {
     vi.clearAllMocks();
     process.env.OPENROUTER_API_KEY = 'test-or-key';
     chainCfg.YAHOO_CALL_DELAY_MS = 0; // 测试不等真实节流间隔
+    // 防止 market-data 回退层缓存跨用例串数据 / 备用源key污染
+    clearMarketDataCache();
+    delete process.env.TIINGO_API_KEY;
+    delete process.env.TWELVEDATA_API_KEY;
   });
 
   const flatBars = [{ close: 100 }, { close: 100 }];

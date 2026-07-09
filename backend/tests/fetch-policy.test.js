@@ -5,6 +5,7 @@ vi.mock('yahoo-finance2', () => ({ default: { historical: vi.fn(), quote: vi.fn(
 
 import axios from 'axios';
 import yahooFinance from 'yahoo-finance2';
+import { clearMarketDataCache } from '../api/market-data.js';
 import {
   calcTtmDeficitChange,
   calcPercentile,
@@ -86,6 +87,10 @@ describe('fetchPolicyData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.FRED_API_KEY = 'test-key';
+    // 防止 market-data 回退层缓存跨用例串数据 / 备用源key污染
+    clearMarketDataCache();
+    delete process.env.TIINGO_API_KEY;
+    delete process.env.TWELVEDATA_API_KEY;
   });
 
   function mockFredBySeriesId(handlers) {

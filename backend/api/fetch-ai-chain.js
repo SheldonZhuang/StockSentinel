@@ -2,6 +2,7 @@ import axios from 'axios';
 import yahooFinance from 'yahoo-finance2';
 import chainCfg from '../config/ai-chain.config.js';
 import { calcRelativeReturn } from './fetch-policy.js';
+import { getDailyCloses } from './market-data.js';
 import { todayET, daysAgoET } from '../utils/datetime.js';
 
 const {
@@ -135,15 +136,16 @@ export function rankStages(stageMetrics, minStages = MIN_STAGES_FOR_RANKING) {
 
 /**
  * 顺序拉取多只标的的日线（每次间隔 YAHOO_CALL_DELAY_MS，避免突发429），单标的失败 → null
+ * 走 market-data 三层回退（Yahoo→Tiingo→TwelveData）
  * @returns {Map<string, Array|null>}
  */
 async function fetchBarsSequential(symbols, period1, period2) {
   const bars = new Map();
   for (const sym of symbols) {
     try {
-      bars.set(sym, await yahooFinance.historical(sym, { period1, period2 }));
+      bars.set(sym, await getDailyCloses(sym, period1, period2));
     } catch (err) {
-      console.warn(`[fetch-ai-chain] historical(${sym}) failed:`, err.message);
+      console.warn(`[fetch-ai-chain] closes(${sym}) failed:`, err.message);
       bars.set(sym, null);
     }
     await throttle();
@@ -158,11 +160,9 @@ export async function fetchStageRanking() {
   const period1 = daysAgoET(AI_CHAIN_WINDOW_DAYS);
   const period2 = todayET();
 
-  let benchBars;
-  try {
-    benchBars = await yahooFinance.historical(BENCH_SYMBOL, { period1, period2 });
-  } catch (err) {
-    console.warn(`[fetch-ai-chain] bench ${BENCH_SYMBOL} fetch failed:`, err.message);
+  const benchBars = await getDailyCloses(BENCH_SYMBOL, period1, period2);
+  if (!benchBars) {
+    console.warn(`[fetch-ai-chain] bench ${BENCH_SYMBOL} unavailable from all providers`);
     return { ...NULL_RANKING };
   }
   await throttle();
