@@ -19,6 +19,7 @@ import {
   calcAdminSignal,
   calcAiSupplySignal,
   deriveAiSupplySubSignals,
+  deriveSubSignals,
   calcBubbleWarning,
 } from './api/signal.js';
 import {
@@ -78,6 +79,13 @@ app.get('/api/signal', async (req, res) => {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
       rateDecisionDate: snapshot.rate_decision_date,
+      // 利率子档位（暂停/降息→宽松，<50bp预防式→观望，≥50bp应对式→收紧），与其他判断指标的徽章统一
+      rateSignal: deriveSubSignals({
+        currentRate: snapshot.fred_rate,
+        prevRate: snapshot.fred_rate_prev,
+        currentBalanceSheet: snapshot.fred_balance_sheet,
+        prevBalanceSheet: snapshot.fred_balance_sheet_prev,
+      }).rateSignal,
       balanceSheet: snapshot.fred_balance_sheet,
       balanceSheetPrev: snapshot.fred_balance_sheet_prev,
       balanceSheetPeriodDate: snapshot.balance_sheet_period_date,

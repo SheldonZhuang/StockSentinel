@@ -86,7 +86,7 @@ function trendArrow(change) {
   const key = trendKey(change);
   if (key === 'trendUp') return '▲';
   if (key === 'trendDown') return '▼';
-  return '—';
+  return ''; // 持平不加符号，直接显示 0.00%
 }
 
 function trendClass(change) {
@@ -123,6 +123,7 @@ const indicators = computed(() => {
     {
       key: 'rate', value: ind.rate, unit: '%',
       change: ind.rate !== null && ind.ratePrev !== null ? ind.rate - ind.ratePrev : null,
+      signalBadge: ind.rateSignal,
       decisionDate: ind.rateDecisionDate,
     },
     {
@@ -249,7 +250,7 @@ const indicators = computed(() => {
 .ind-change { font-size: 11px; margin-left: 6px; }
 .ind-change.up { color: #f87171; }
 .ind-change.down { color: #4ade80; }
-.ind-change.flat { color: #999; }
+.ind-change.flat { color: #facc15; } /* 持平=中性，与观望档位同色 */
 
 .ind-extra { font-size: 11px; color: #888; }
 
