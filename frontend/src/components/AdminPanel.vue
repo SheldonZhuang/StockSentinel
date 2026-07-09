@@ -64,12 +64,14 @@
         <div class="ref-tabs">
           <button :class="['tab', refCategory === 'fiscal' ? 'active' : '']" @click="loadRef('fiscal')">{{ $t('admin.fiscal') }}</button>
           <button :class="['tab', refCategory === 'administrative' ? 'active' : '']" @click="loadRef('administrative')">{{ $t('admin.administrative') }}</button>
+          <button :class="['tab', refCategory === 'ai_supply' ? 'active' : '']" @click="loadRef('ai_supply')">{{ $t('admin.aiSupply') }}</button>
         </div>
       </div>
       <div v-if="refLoading" class="loading">{{ $t('signal.loading') }}</div>
       <ul v-else class="ref-list">
         <li v-for="doc in refDocs" :key="doc.url" class="ref-item">
           <a :href="doc.url" target="_blank" class="ref-link">{{ doc.title }}</a>
+          <span v-if="refCategory === 'ai_supply' && doc.type" class="ref-source">{{ doc.type }}</span>
           <span class="ref-date">{{ doc.date }}</span>
         </li>
         <li v-if="refDocs.length === 0" class="ref-empty">暂无数据</li>
@@ -243,6 +245,7 @@ onMounted(async () => {
 .ref-link { font-size: 12px; color: #6b9eff; text-decoration: none; flex: 1; line-height: 1.4; }
 .ref-link:hover { text-decoration: underline; }
 .ref-date { font-size: 11px; color: #555; white-space: nowrap; }
+.ref-source { font-size: 10px; color: #6b9eff; border: 1px solid #1e3a5a; border-radius: 4px; padding: 0 5px; white-space: nowrap; }
 .ref-empty { font-size: 13px; color: #666; }
 
 .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }

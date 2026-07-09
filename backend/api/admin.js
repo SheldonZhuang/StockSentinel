@@ -7,6 +7,7 @@ import {
   setBottleneck,
 } from '../utils/storage.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
+import { fetchAiSupplyNews } from './fetch-rss.js';
 import chainCfg from '../config/ai-chain.config.js';
 
 const router = express.Router();
@@ -53,11 +54,14 @@ router.get('/signal-history', requireAdmin, async (req, res) => {
   res.json(history);
 });
 
-// GET /api/admin/reference?category=fiscal|administrative
+// GET /api/admin/reference?category=fiscal|administrative|ai_supply
 router.get('/reference', requireAdmin, async (req, res) => {
-  const category = req.query.category === 'administrative' ? 'administrative' : 'fiscal';
-  const docs = await fetchFederalRegister(category, 20).catch(err => {
-    console.warn('[admin] Federal Register fetch failed:', err.message);
+  const category = ['administrative', 'ai_supply'].includes(req.query.category) ? req.query.category : 'fiscal';
+  const fetcher = category === 'ai_supply'
+    ? () => fetchAiSupplyNews(20)                 // 英伟达官方新闻+博客 + TrendForce
+    : () => fetchFederalRegister(category, 20);   // Federal Register 关键词检索
+  const docs = await fetcher().catch(err => {
+    console.warn(`[admin] reference(${category}) fetch failed:`, err.message);
     return [];
   });
   res.json(docs);
