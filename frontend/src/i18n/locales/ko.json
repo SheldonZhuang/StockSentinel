@@ -10,5 +10,5 @@
   "settings": { "title": "설정", "emailAlerts": "이메일 알림", "emailAlertsDesc": "신호 변경 시 이메일 받기" },
   "lang": { "switch": "언어", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
   "error": { "fetchFailed": "로딩 실패, 캐시 데이터 표시", "loginFailed": "이메일 또는 비밀번호가 잘못됨", "registerFailed": "회원가입 실패" },
-  "aiChain": { "title": "AI 산업 체인 자금 흐름", "currentBottleneck": "현재 병목 단계", "sourceAuto": "자동 감지", "sourceManual": "수동 설정", "relReturnLabel": "30일 vs SPY", "bubbleTitle": "버블 모니터", "modelUsageTrend": "모델 사용량 추세 (7일/28일)", "capexYoY": "클라우드 설비투자 전년비", "semiIpYoy": "반도체 생산 전년비", "bubbleWarning": "버블 경고: AI 수요 지표 약화, 방어 고려", "noData": "데이터 없음", "stages": { "model": "AI 대형 모델", "cloud": "클라우드 제공업체", "chip": "AI 칩", "memory": "메모리 / 광모듈", "packaging": "장비 / 패키징 / 테스트", "power": "전력 에너지" } }
+  "aiChain": { "title": "AI 산업 체인 자금 흐름", "currentBottleneck": "현재 병목 단계", "sourceAuto": "자동 감지", "sourceManual": "수동 설정", "relReturnLabel": "30일 vs SPY", "bubbleTitle": "버블 모니터", "modelUsageTrend": "모델 사용량 추세 (7일/28일)", "capexYoY": "클라우드 설비투자 (최근 4분기)", "capexAmount": "{yi}억 달러", "semiIpYoy": "반도체 생산 전년비", "bubbleWarning": "버블 경고: AI 수요 지표 약화, 방어 고려", "noData": "데이터 없음", "stages": { "model": "AI 대형 모델", "cloud": "클라우드 제공업체", "chip": "AI 칩", "memory": "메모리 / 광모듈", "packaging": "장비 / 패키징 / 테스트", "power": "전력 에너지" } }
 }

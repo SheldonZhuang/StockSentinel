@@ -42,19 +42,19 @@
       <div class="bubble-metrics">
         <div class="bubble-cell">
           <span class="bubble-label">{{ $t('aiChain.modelUsageTrend') }}</span>
-          <span :class="bubbleValueClass(bubble.modelUsageTrendPct)">
+          <span :class="['bubble-value', usageClass]">
             {{ bubble.modelUsageTrendPct != null ? formatPct(bubble.modelUsageTrendPct) : $t('aiChain.noData') }}
           </span>
         </div>
         <div class="bubble-cell">
           <span class="bubble-label">{{ $t('aiChain.capexYoY') }}</span>
-          <span :class="bubbleValueClass(bubble.capexYoY)">
-            {{ bubble.capexYoY != null ? formatPct(bubble.capexYoY) : $t('aiChain.noData') }}
+          <span :class="['bubble-value', capexClass]">
+            {{ capexDisplay }}
           </span>
         </div>
         <div class="bubble-cell">
           <span class="bubble-label">{{ $t('aiChain.semiIpYoy') }}</span>
-          <span :class="bubbleValueClass(bubble.semiIpYoy)">
+          <span :class="['bubble-value', semiIpClass]">
             {{ bubble.semiIpYoy != null ? formatPct(bubble.semiIpYoy) : $t('aiChain.noData') }}
           </span>
         </div>
@@ -68,9 +68,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { AI_CHAIN_STAGES } from '../data/aiChain.js';
 import { api } from '../api/client.js';
 
+const { t } = useI18n();
 const chainData = ref(null);
 
 const bottleneck = computed(() => chainData.value?.bottleneck || { stage: null, source: 'auto', note: null });
@@ -86,10 +88,46 @@ function formatPct(v) {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
-function bubbleValueClass(v) {
-  if (v == null) return 'bubble-value';
-  return ['bubble-value', v >= 0 ? 'pos' : 'neg'];
-}
+// 统一颜色语义：绿=宽松/利好进攻，黄=中性/观望，红=收紧/利好防守（与信号位徽章一致）
+// 调用量：触发预警→红；负增长但未到预警线→黄；正增长→绿
+const usageClass = computed(() => {
+  const v = bubble.value.modelUsageTrendPct;
+  if (v == null) return '';
+  if ((bubble.value.reasons || []).includes('modelUsage')) return 'neg';
+  return v >= 0 ? 'pos' : 'neutral';
+});
+
+// 资本开支：判定阈值即0，负增长必触发预警→红，正增长→绿
+const capexClass = computed(() => {
+  const v = bubble.value.capexYoY;
+  if (v == null) return '';
+  if ((bubble.value.reasons || []).includes('capex')) return 'neg';
+  return v >= 0 ? 'pos' : 'neutral';
+});
+
+// 半导体产出：直接用后端 aiSupply 基本面子信号（>5%宽松/<0%收紧/其间观望）
+const semiIpClass = computed(() => {
+  const sig = bubble.value.aiFundamentalSignal;
+  if (sig === 'loose') return 'pos';
+  if (sig === 'tight') return 'neg';
+  if (sig === 'neutral') return 'neutral';
+  return '';
+});
+
+// 资本开支显示：总额（按语言用 亿/億/억 或 B/Mrd/MM）+ 同比%
+const capexDisplay = computed(() => {
+  const { capexTtm, capexYoY } = bubble.value;
+  if (capexTtm == null && capexYoY == null) return t('aiChain.noData');
+  const parts = [];
+  if (capexTtm != null) {
+    parts.push(t('aiChain.capexAmount', {
+      yi: Math.round(capexTtm / 1e8).toLocaleString(),
+      bn: (capexTtm / 1e9).toFixed(0),
+    }));
+  }
+  if (capexYoY != null) parts.push(`(${formatPct(capexYoY)})`);
+  return parts.join(' ');
+});
 
 onMounted(async () => {
   try {
@@ -179,5 +217,6 @@ onMounted(async () => {
 .bubble-value { font-size: 14px; color: #ccc; font-variant-numeric: tabular-nums; }
 .bubble-value.pos { color: #4ade80; }
 .bubble-value.neg { color: #f87171; }
+.bubble-value.neutral { color: #facc15; }
 .bubble-source { font-size: 10px; color: #444; }
 </style>

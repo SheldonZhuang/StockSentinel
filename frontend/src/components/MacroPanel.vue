@@ -160,11 +160,13 @@ const indicators = computed(() => {
       extra: ind.fiscalDeficitChangePct != null
         ? `${t('indicators.yoyChange')} ${ind.fiscalDeficitChangePct > 0 ? '+' : ''}${ind.fiscalDeficitChangePct.toFixed(1)}%`
         : null,
+      signalBadge: ind.fiscalAutoSignal,
       periodDate: ind.fiscalPeriodDate, releaseDate: ind.fiscalReleaseDate, periodIsMonth: true,
     },
     {
       key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
       extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
+      signalBadge: ind.adminAutoSignal,
       periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
     },
     {

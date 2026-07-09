@@ -10,5 +10,5 @@
   "settings": { "title": "設定", "emailAlerts": "メール通知", "emailAlertsDesc": "シグナル変更時にメールを受け取る" },
   "lang": { "switch": "言語", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
   "error": { "fetchFailed": "読み込み失敗、キャッシュデータを表示", "loginFailed": "メールまたはパスワードが無効", "registerFailed": "登録失敗" },
-  "aiChain": { "title": "AI産業チェーンの資金流動", "currentBottleneck": "現在の最大の制約要因", "sourceAuto": "自動検出", "sourceManual": "手動設定", "relReturnLabel": "30日 vs SPY", "bubbleTitle": "バブル監視", "modelUsageTrend": "モデル利用量トレンド（7日/28日）", "capexYoY": "クラウド設備投資前年比", "semiIpYoy": "半導体生産前年比", "bubbleWarning": "バブル警告：AI需要指標が弱含み、防御を検討", "noData": "データなし", "stages": { "model": "AI大規模モデル", "cloud": "クラウドプロバイダー", "chip": "AIチップ", "memory": "メモリ／光モジュール", "packaging": "設備／パッケージング／テスト", "power": "電力エネルギー" } }
+  "aiChain": { "title": "AI産業チェーンの資金流動", "currentBottleneck": "現在の最大の制約要因", "sourceAuto": "自動検出", "sourceManual": "手動設定", "relReturnLabel": "30日 vs SPY", "bubbleTitle": "バブル監視", "modelUsageTrend": "モデル利用量トレンド（7日/28日）", "capexYoY": "クラウド設備投資（直近4四半期）", "capexAmount": "{yi}億ドル", "semiIpYoy": "半導体生産前年比", "bubbleWarning": "バブル警告：AI需要指標が弱含み、防御を検討", "noData": "データなし", "stages": { "model": "AI大規模モデル", "cloud": "クラウドプロバイダー", "chip": "AIチップ", "memory": "メモリ／光モジュール", "packaging": "設備／パッケージング／テスト", "power": "電力エネルギー" } }
 }
