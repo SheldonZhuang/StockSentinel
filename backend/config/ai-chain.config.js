@@ -20,8 +20,13 @@ export default {
   MIN_STAGES_FOR_RANKING: 3, // 有效环节少于3个时不给自动卡点结论
 
   // 云厂商资本开支监测（滚动4季度同比）
-  HYPERSCALERS: ['MSFT', 'AMZN', 'GOOGL', 'META'],
-  CAPEX_LOOKBACK_DAYS: 830, // 约9个季度含缓冲
+  // 数据源 SEC EDGAR 官方 XBRL（无需key）；AMZN 的 capex 科目名与其他三家不同
+  HYPERSCALER_CIK: {
+    MSFT: { cik: '0000789019', concept: 'PaymentsToAcquirePropertyPlantAndEquipment' },
+    AMZN: { cik: '0001018724', concept: 'PaymentsToAcquireProductiveAssets' },
+    GOOGL: { cik: '0001652044', concept: 'PaymentsToAcquirePropertyPlantAndEquipment' },
+    META: { cik: '0001326801', concept: 'PaymentsToAcquirePropertyPlantAndEquipment' },
+  },
 
   // OpenRouter 模型调用量（需 OPENROUTER_API_KEY，展示时须注明来源 openrouter.ai/rankings）
   OPENROUTER_RANKINGS_URL: 'https://openrouter.ai/api/v1/datasets/rankings-daily',

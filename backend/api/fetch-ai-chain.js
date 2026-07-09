@@ -1,5 +1,4 @@
 import axios from 'axios';
-import yahooFinance from 'yahoo-finance2';
 import chainCfg from '../config/ai-chain.config.js';
 import { calcRelativeReturn } from './fetch-policy.js';
 import { getDailyCloses } from './market-data.js';
@@ -11,13 +10,20 @@ const {
   BENCH_SYMBOL,
   AI_CHAIN_WINDOW_DAYS,
   MIN_STAGES_FOR_RANKING,
-  HYPERSCALERS,
-  CAPEX_LOOKBACK_DAYS,
+  HYPERSCALER_CIK,
   OPENROUTER_RANKINGS_URL,
   USAGE_RECENT_DAYS,
   USAGE_PRIOR_DAYS,
   USAGE_FETCH_DAYS,
 } = chainCfg;
+
+// SEC EDGAR 官方 XBRL 数据：无需key，限速10次/秒；
+// SEC 公平访问政策要求 User-Agent 为"名称 邮箱"裸格式——带括号或版本号会被WAF拒绝(403)
+const EDGAR_HEADERS = {
+  'User-Agent': 'StockSentinel admin@stocksentinel.app',
+  'Accept-Encoding': 'gzip, deflate',
+};
+const edgarUrl = (cik, concept) => `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`;
 
 const NULL_USAGE = { modelUsageTrendPct: null, modelUsageLatestTokens: null, modelUsageAsOf: null };
 const NULL_CAPEX = { capexYoY: null, capexTtm: null, capexPrevTtm: null };
@@ -206,25 +212,66 @@ export async function fetchModelUsage() {
 }
 
 /**
- * 云厂商季度资本开支（fundamentalsTimeSeries），顺序拉取，单公司失败 → 剔除
+ * SEC XBRL facts → 离散季度 capex 序列（降序）
+ * 现金流量表在 10-Q 中按财年累计(YTD)披露：同一财年起点下，相邻累计值相减得出单季值；
+ * 10-K 全年值减去9个月累计得出 Q4；独立披露的单季 fact（时长60-120天）直接采用。
+ * 同一季度末重复出现时后者覆盖（EDGAR facts 按申报先后排列，后者为修正值）
+ * @param {Array<{start, end, val, form}>} facts - units.USD 数组
+ * @returns {Array<{date, capitalExpenditure}>} 按 date 降序
+ */
+export function deriveQuarterlyCapex(facts) {
+  const seen = new Map();
+  for (const f of facts || []) {
+    if (!f.start || !f.end || typeof f.val !== 'number') continue;
+    if (f.form && !f.form.startsWith('10-Q') && !f.form.startsWith('10-K')) continue;
+    seen.set(`${f.start}|${f.end}`, f);
+  }
+
+  const byStart = new Map();
+  for (const f of seen.values()) {
+    if (!byStart.has(f.start)) byStart.set(f.start, []);
+    byStart.get(f.start).push(f);
+  }
+
+  const DAY = 86400000;
+  const quarters = new Map(); // 季度末日期 → 单季值
+  for (const [start, entries] of byStart) {
+    entries.sort((a, b) => (a.end < b.end ? -1 : 1));
+    let prevVal = 0;
+    let prevEnd = start;
+    for (const e of entries) {
+      const days = (new Date(e.end) - new Date(prevEnd)) / DAY;
+      // 相邻累计差覆盖 prevEnd→end 区间：只有约一个季度长时才是有效单季值
+      // （链条缺季时区间会超长，自动跳过，不会把半年值当成单季）
+      if (days >= 60 && days <= 120) quarters.set(e.end, e.val - prevVal);
+      prevVal = e.val;
+      prevEnd = e.end;
+    }
+  }
+
+  return [...quarters.entries()]
+    .map(([date, capitalExpenditure]) => ({ date, capitalExpenditure }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/**
+ * 云厂商季度资本开支：SEC EDGAR 官方财报数据（Yahoo 财报接口对数据中心IP限流，弃用）
+ * 单公司失败 → 剔除（calcCapexYoY 只聚合有完整8季数据的公司）
  */
 export async function fetchHyperscalerCapex() {
-  const period1 = daysAgoET(CAPEX_LOOKBACK_DAYS);
-  const period2 = todayET();
   const quartersBySymbol = {};
 
-  for (const sym of HYPERSCALERS) {
+  for (const [sym, { cik, concept }] of Object.entries(HYPERSCALER_CIK)) {
     try {
-      const rows = await yahooFinance.fundamentalsTimeSeries(sym, {
-        period1, period2, type: 'quarterly', module: 'cash-flow',
+      const res = await axios.get(edgarUrl(cik, concept), {
+        headers: EDGAR_HEADERS,
+        timeout: 20000,
       });
-      quartersBySymbol[sym] = (rows || [])
-        .map(r => ({ date: r.date, capitalExpenditure: r.capitalExpenditure }))
-        .sort((a, b) => (a.date < b.date ? 1 : -1)); // 降序：最新季度在前
+      quartersBySymbol[sym] = deriveQuarterlyCapex(res.data?.units?.USD);
     } catch (err) {
-      console.warn(`[fetch-ai-chain] capex(${sym}) failed:`, err.message);
+      console.warn(`[fetch-ai-chain] EDGAR capex(${sym}) failed:`, err.message);
     }
-    await throttle();
+    await sleep(150); // EDGAR 限速10次/秒，保守间隔
   }
   return calcCapexYoY(quartersBySymbol);
 }

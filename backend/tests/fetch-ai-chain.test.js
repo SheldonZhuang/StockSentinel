@@ -13,6 +13,7 @@ import {
   aggregateDailyTokens,
   calcUsageTrend,
   calcCapexYoY,
+  deriveQuarterlyCapex,
   calcStageRelReturns,
   rankStages,
   fetchAiChainData,
@@ -97,6 +98,56 @@ describe('calcCapexYoY', () => {
   });
 });
 
+// SEC XBRL facts → 离散季度值（10-Q 现金流按财年累计披露，需相邻相减）
+describe('deriveQuarterlyCapex', () => {
+  // 一个财年的 YTD 链：Q1(3月)、6月累计、9月累计、10-K 全年
+  const ytdChain = (startYear, q1, h1, m9, fy) => [
+    { start: `${startYear}-01-01`, end: `${startYear}-03-31`, val: q1, form: '10-Q' },
+    { start: `${startYear}-01-01`, end: `${startYear}-06-30`, val: h1, form: '10-Q' },
+    { start: `${startYear}-01-01`, end: `${startYear}-09-30`, val: m9, form: '10-Q' },
+    { start: `${startYear}-01-01`, end: `${startYear}-12-31`, val: fy, form: '10-K' },
+  ];
+
+  it('YTD 累计链相减得出4个单季值', () => {
+    const quarters = deriveQuarterlyCapex(ytdChain(2025, 100, 220, 350, 500));
+    expect(quarters).toEqual([
+      { date: '2025-12-31', capitalExpenditure: 150 },
+      { date: '2025-09-30', capitalExpenditure: 130 },
+      { date: '2025-06-30', capitalExpenditure: 120 },
+      { date: '2025-03-31', capitalExpenditure: 100 },
+    ]);
+  });
+
+  it('独立单季 fact 与 YTD 推导结果按季度末去重（后者覆盖）', () => {
+    const facts = [
+      ...ytdChain(2025, 100, 220, 350, 500),
+      // MSFT 风格：同时披露独立单季值
+      { start: '2025-04-01', end: '2025-06-30', val: 120, form: '10-Q' },
+    ];
+    const quarters = deriveQuarterlyCapex(facts);
+    expect(quarters).toHaveLength(4);
+    expect(quarters.find(x => x.date === '2025-06-30').capitalExpenditure).toBe(120);
+  });
+
+  it('缺 Q1 时半年累计不会被误当单季（时长超120天跳过）', () => {
+    const facts = [
+      { start: '2025-01-01', end: '2025-06-30', val: 220, form: '10-Q' },
+      { start: '2025-01-01', end: '2025-09-30', val: 350, form: '10-Q' },
+    ];
+    const quarters = deriveQuarterlyCapex(facts);
+    expect(quarters).toEqual([{ date: '2025-09-30', capitalExpenditure: 130 }]);
+  });
+
+  it('非 10-Q/10-K 表单与无效值被过滤', () => {
+    const facts = [
+      { start: '2025-01-01', end: '2025-03-31', val: 100, form: '8-K' },
+      { start: '2025-01-01', end: '2025-03-31', form: '10-Q' }, // 无 val
+    ];
+    expect(deriveQuarterlyCapex(facts)).toEqual([]);
+    expect(deriveQuarterlyCapex(null)).toEqual([]);
+  });
+});
+
 describe('calcStageRelReturns / rankStages', () => {
   const bars = closes => closes.map(c => ({ close: c }));
   const bench = bars([100, 100]); // SPY 0%
@@ -162,18 +213,32 @@ describe('fetchAiChainData', () => {
     }
     return rows;
   })();
-  const capexRows = [
-    { date: '2026-03-31', capitalExpenditure: -110 }, { date: '2025-12-31', capitalExpenditure: -110 },
-    { date: '2025-09-30', capitalExpenditure: -110 }, { date: '2025-06-30', capitalExpenditure: -110 },
-    { date: '2025-03-31', capitalExpenditure: -100 }, { date: '2024-12-31', capitalExpenditure: -100 },
-    { date: '2024-09-30', capitalExpenditure: -100 }, { date: '2024-06-30', capitalExpenditure: -100 },
+  // SEC EDGAR facts：两个财年的 YTD 链，每季110/100 → TTM 440 vs 400 → +10%
+  const edgarFacts = [
+    { start: '2025-01-01', end: '2025-03-31', val: 100, form: '10-Q' },
+    { start: '2025-01-01', end: '2025-06-30', val: 200, form: '10-Q' },
+    { start: '2025-01-01', end: '2025-09-30', val: 300, form: '10-Q' },
+    { start: '2025-01-01', end: '2025-12-31', val: 400, form: '10-K' },
+    { start: '2026-01-01', end: '2026-03-31', val: 110, form: '10-Q' },
+    { start: '2026-01-01', end: '2026-06-30', val: 220, form: '10-Q' },
+    { start: '2026-01-01', end: '2026-09-30', val: 330, form: '10-Q' },
+    { start: '2026-01-01', end: '2026-12-31', val: 440, form: '10-K' },
   ];
+
+  // axios 按 URL 分发：sec.gov → EDGAR capex；其余（openrouter）→ 调用量数据
+  function mockAxiosByHost({ edgar = { data: { units: { USD: edgarFacts } } }, openrouter = { data: { data: null } } } = {}) {
+    axios.get.mockImplementation(url => {
+      if (url.includes('sec.gov')) {
+        return edgar instanceof Error ? Promise.reject(edgar) : Promise.resolve(edgar);
+      }
+      return openrouter instanceof Error ? Promise.reject(openrouter) : Promise.resolve(openrouter);
+    });
+  }
 
   it('正常返回：排名+卡点+调用量+资本开支', async () => {
     yahooFinance.historical.mockImplementation(sym =>
       Promise.resolve(sym === 'NVDA' ? upBars : flatBars));
-    yahooFinance.fundamentalsTimeSeries.mockResolvedValue(capexRows);
-    axios.get.mockResolvedValue({ data: { data: orRows } });
+    mockAxiosByHost({ openrouter: { data: { data: orRows } } });
 
     const d = await fetchAiChainData();
     expect(d.autoBottleneck).toBe('chip'); // NVDA +10% 拉高 chip 环节
@@ -183,34 +248,41 @@ describe('fetchAiChainData', () => {
     expect(d.capexYoY).toBeCloseTo(10, 5);
   });
 
-  it('Yahoo 全挂：排名/资本开支 null，调用量仍有值', async () => {
+  it('Yahoo 全挂：排名 null，EDGAR资本开支与调用量仍有值', async () => {
     yahooFinance.historical.mockRejectedValue(new Error('429'));
-    yahooFinance.fundamentalsTimeSeries.mockRejectedValue(new Error('429'));
-    axios.get.mockResolvedValue({ data: { data: orRows } });
+    mockAxiosByHost({ openrouter: { data: { data: orRows } } });
 
     const d = await fetchAiChainData();
     expect(d.autoBottleneck).toBe(null);
+    expect(d.capexYoY).toBeCloseTo(10, 5); // capex 走 EDGAR，不受 Yahoo 影响
+    expect(d.modelUsageTrendPct).toBeCloseTo(10, 5);
+  });
+
+  it('EDGAR 挂：资本开支 null，排名与调用量不受影响', async () => {
+    yahooFinance.historical.mockResolvedValue(flatBars);
+    mockAxiosByHost({ edgar: new Error('503'), openrouter: { data: { data: orRows } } });
+
+    const d = await fetchAiChainData();
     expect(d.capexYoY).toBe(null);
     expect(d.modelUsageTrendPct).toBeCloseTo(10, 5);
   });
 
-  it('OpenRouter 响应异常：调用量 null，排名不受影响', async () => {
+  it('OpenRouter 响应异常：调用量 null，资本开支不受影响', async () => {
     yahooFinance.historical.mockResolvedValue(flatBars);
-    yahooFinance.fundamentalsTimeSeries.mockResolvedValue(capexRows);
-    axios.get.mockResolvedValue({ data: { unexpected: true } });
+    mockAxiosByHost({ openrouter: { data: { unexpected: true } } });
 
     const d = await fetchAiChainData();
     expect(d.modelUsageTrendPct).toBe(null);
     expect(d.capexYoY).toBeCloseTo(10, 5);
   });
 
-  it('无 OPENROUTER_API_KEY：不调 axios，调用量 null，不抛错', async () => {
+  it('无 OPENROUTER_API_KEY：调用量 null 且不请求 openrouter，不抛错', async () => {
     delete process.env.OPENROUTER_API_KEY;
     yahooFinance.historical.mockResolvedValue(flatBars);
-    yahooFinance.fundamentalsTimeSeries.mockResolvedValue(capexRows);
+    mockAxiosByHost();
 
     const d = await fetchAiChainData();
     expect(d.modelUsageTrendPct).toBe(null);
-    expect(axios.get).not.toHaveBeenCalled();
+    expect(axios.get.mock.calls.every(c => c[0].includes('sec.gov'))).toBe(true);
   });
 });
