@@ -9,7 +9,7 @@ export default {
   STAGE_BASKETS: {
     cloud: ['MSFT', 'AMZN', 'GOOGL', 'META', 'NBIS'],
     chip: ['NVDA', 'AMD', 'AVGO', 'ARM', 'INTC'],
-    memory: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI'],
+    memory: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'], // SIVEF = Sivers Semiconductors AB (OTC，光子学)
     packaging: ['AMAT', 'LRCX', 'TSM', 'KLAC'],
     power: ['BE'], // 用户指定只用 Bloom Energy（单一标的波动大，排名噪声已知晓）
   },

@@ -20,7 +20,7 @@ export const AI_CHAIN_STAGES = [
   },
   {
     key: 'memory',
-    tickers: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI'],
+    tickers: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'],
   },
   {
     key: 'packaging',
