@@ -9,8 +9,17 @@ const TIINGO_IEX_URL = sym => `https://api.tiingo.com/iex/${sym}`;
 const TWELVEDATA_SERIES_URL = 'https://api.twelvedata.com/time_series';
 const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10分钟：省备用源配额（TwelveData 8次/分钟最紧）并提速自选股页面
+// TwelveData 免费层 8次/分钟：全局最小调用间隔，超频会返回 status:error 白白烧掉调用
+const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
 const cache = new Map();
+let lastTwelveDataCallAt = 0;
+
+async function twelveDataThrottle() {
+  const wait = lastTwelveDataCallAt + TWELVEDATA_MIN_INTERVAL_MS - Date.now();
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  lastTwelveDataCallAt = Date.now();
+}
 
 function cacheGet(key) {
   const hit = cache.get(key);
@@ -26,9 +35,10 @@ function cacheSet(key, value) {
   cache.set(key, { at: Date.now(), value });
 }
 
-/** 测试用：清空缓存 */
+/** 测试用：清空缓存并重置节流状态 */
 export function clearMarketDataCache() {
   cache.clear();
+  lastTwelveDataCallAt = 0;
 }
 
 // --- 日线收盘价：升序 [{date, close}] ---
@@ -58,6 +68,7 @@ async function closesFromTiingo(symbol, startDate, endDate) {
 async function closesFromTwelveData(symbol, startDate, endDate) {
   const apikey = process.env.TWELVEDATA_API_KEY;
   if (!apikey) return null;
+  await twelveDataThrottle();
   const res = await axios.get(TWELVEDATA_SERIES_URL, {
     params: { symbol, interval: '1day', start_date: startDate, end_date: endDate, apikey },
     timeout: 15000,
@@ -128,6 +139,7 @@ async function quoteFromTiingo(symbol) {
 async function quoteFromTwelveData(symbol) {
   const apikey = process.env.TWELVEDATA_API_KEY;
   if (!apikey) return null;
+  await twelveDataThrottle();
   const res = await axios.get(TWELVEDATA_PRICE_URL, { params: { symbol, apikey }, timeout: 15000 });
   const price = parseFloat(res.data?.price);
   if (isNaN(price)) return null;
