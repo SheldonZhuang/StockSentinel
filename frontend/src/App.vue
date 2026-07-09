@@ -12,6 +12,13 @@
         </select>
 
         <template v-if="auth.user.value">
+          <button
+            class="nav-btn alert-toggle"
+            :title="$t('settings.emailAlerts') + ' — ' + $t('settings.emailAlertsDesc')"
+            @click="toggleAlerts"
+          >
+            {{ auth.user.value.emailAlerts ? '🔔' : '🔕' }}
+          </button>
           <router-link v-if="auth.isAdmin.value" to="/admin" class="nav-link">
             {{ $t('admin.title') }}
           </router-link>
@@ -33,6 +40,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth.js';
 import { setLocale } from './i18n/index.js';
+import { api } from './api/client.js';
 import { onMounted } from 'vue';
 
 const { locale } = useI18n();
@@ -51,6 +59,16 @@ const langs = [
 
 function onLangChange(e) {
   setLocale(e.target.value);
+}
+
+async function toggleAlerts() {
+  const next = !auth.user.value.emailAlerts;
+  try {
+    await api.updateAlerts(next);
+    auth.user.value = { ...auth.user.value, emailAlerts: next };
+  } catch (e) {
+    console.error('Failed to toggle alerts', e);
+  }
 }
 
 async function logout() {

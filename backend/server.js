@@ -21,6 +21,7 @@ import {
   deriveAiSupplySubSignals,
   deriveSubSignals,
   calcBubbleWarning,
+  detectSignalChanges,
 } from './api/signal.js';
 import {
   getLatestSnapshot,
@@ -31,6 +32,8 @@ import {
   saveAiChainSnapshot,
   getLatestAiChainSnapshot,
   getAllOverrides,
+  getUserById,
+  updateUserAlerts,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
 import { todayET } from './utils/datetime.js';
@@ -190,10 +193,23 @@ app.get('/api/ai-chain', async (req, res) => {
   });
 });
 
-// GET /api/user/me — 当前用户信息 + 是否是 admin
+// GET /api/user/me — 当前用户信息 + 是否是 admin + 邮件提醒开关状态
 app.get('/api/user/me', requireAuth, async (req, res) => {
   const isAdmin = req.user.email === process.env.ADMIN_EMAIL;
-  res.json({ id: req.user.id, email: req.user.email, isAdmin });
+  const user = await getUserById(req.user.id);
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+    isAdmin,
+    emailAlerts: !!user?.email_alerts,
+  });
+});
+
+// PATCH /api/user/alerts — 开关邮件示警
+app.patch('/api/user/alerts', requireAuth, async (req, res) => {
+  const enabled = !!req.body.enabled;
+  await updateUserAlerts(req.user.id, enabled);
+  res.json({ ok: true, emailAlerts: enabled });
 });
 
 // --- cron 任务 ---
@@ -305,12 +321,36 @@ async function runDailyUpdate() {
 
   console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin}, aiSupply=${aiSupply} → final=${finalSignal}`);
 
-  // 信号变更 → 发送邮件提醒
-  if (prevSnapshot && prevSnapshot.final_signal !== finalSignal) {
+  // 示警：最终信号变化 / 任一维度转收紧 / 泡沫预警触发（用户策略：任一收紧=立即防守，必须果断）
+  const changes = detectSignalChanges(prevSnapshot, {
+    finalSignal,
+    monetary,
+    fiscal,
+    admin,
+    aiSupply,
+    bubbleWarning: bubble.warning,
+    bubbleReasons: bubble.reasons,
+  });
+  if (changes.length > 0) {
     const subscribers = await getAlertSubscribers();
     if (subscribers.length > 0) {
-      console.log(`[cron] Signal changed ${prevSnapshot.final_signal} → ${finalSignal}, alerting ${subscribers.length} users`);
-      await sendSignalAlert(subscribers, prevSnapshot.final_signal, finalSignal);
+      console.log(`[cron] ${changes.length} alert-worthy change(s), alerting ${subscribers.length} users`);
+      await sendSignalAlert(subscribers, {
+        finalSignal,
+        changes,
+        details: {
+          monetary, fiscal, admin, aiSupply,
+          fiscalDeficitChangePct: policyData.deficitTtmChangePct,
+          epuTradePercentile: policyData.epuTradePercentile,
+          smhSpyRelReturnPct: policyData.smhSpyRelReturnPct,
+          semiIpYoy: policyData.semiIpYoy,
+          modelUsageTrendPct: chainData.modelUsageTrendPct,
+          capexYoY: chainData.capexYoY,
+          rateChangeBp: macroData.currentRate !== null && macroData.prevRate !== null
+            ? Math.round((macroData.currentRate - macroData.prevRate) * 100)
+            : null,
+        },
+      });
     }
   }
 }

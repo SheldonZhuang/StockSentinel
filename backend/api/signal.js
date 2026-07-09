@@ -149,6 +149,41 @@ export function calcAiSupplySignal(policyData, bubble = null) {
 }
 
 /**
+ * 示警变化检测：对比前一快照与本次结果，找出所有值得提醒的事件
+ * 用户策略"防守信号出现任意一项就立即防守"→ 不止最终信号变化，任一维度转收紧、泡沫预警触发都要示警
+ * @param {object|null} prevSnapshot - 上一条 signal_snapshots 行（下划线列名），无历史时为 null
+ * @param {object} current - { finalSignal, monetary, fiscal, admin, aiSupply, bubbleWarning, bubbleReasons }
+ * @returns {Array<{kind, ...}>} 空数组 = 无需示警
+ */
+export function detectSignalChanges(prevSnapshot, current) {
+  if (!prevSnapshot) return []; // 首次运行无对比基准，不示警
+
+  const changes = [];
+
+  if (prevSnapshot.final_signal !== current.finalSignal) {
+    changes.push({ kind: 'final', from: prevSnapshot.final_signal, to: current.finalSignal });
+  }
+
+  const dims = [
+    ['monetary', prevSnapshot.monetary_signal, current.monetary],
+    ['fiscal', prevSnapshot.fiscal_signal, current.fiscal],
+    ['admin', prevSnapshot.admin_signal, current.admin],
+    ['aiSupply', prevSnapshot.ai_supply_signal, current.aiSupply],
+  ];
+  for (const [dim, prev, now] of dims) {
+    if (prev !== SIGNAL.TIGHT && now === SIGNAL.TIGHT) {
+      changes.push({ kind: 'dimTight', dim, from: prev, to: now });
+    }
+  }
+
+  if (!prevSnapshot.ai_bubble_warning && current.bubbleWarning) {
+    changes.push({ kind: 'bubble', reasons: current.bubbleReasons || [] });
+  }
+
+  return changes;
+}
+
+/**
  * 决策树：四个信号位 → 最终进攻/观望/防守
  * 进攻 = AND（四全宽松）
  * 防守 = OR（任一收紧）

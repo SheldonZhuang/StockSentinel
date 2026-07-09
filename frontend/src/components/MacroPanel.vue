@@ -10,6 +10,26 @@
         </div>
       </div>
 
+      <!-- 信号解读：为什么防守 / 距进攻还差什么 -->
+      <div class="interpret-section">
+        <div class="section-title">{{ $t('interpret.title') }}</div>
+        <div v-if="tightDims.length" class="interpret-block">
+          <span class="interpret-label">{{ $t('interpret.triggers') }}</span>
+          <span v-for="d in tightDims" :key="d.key" class="interpret-item tight">
+            {{ $t(`signalPos.${d.key}`) }}<template v-if="d.detail">（{{ d.detail }}）</template>
+          </span>
+        </div>
+        <div v-if="signal.finalSignal === 'attack'" class="interpret-block">
+          <span class="interpret-item loose">✓ {{ $t('interpret.allLoose') }}</span>
+        </div>
+        <div v-else class="interpret-block">
+          <span class="interpret-label">{{ $t('interpret.toAttack') }}</span>
+          <span v-for="d in dimStates" :key="d.key" :class="['interpret-item', d.value === 'loose' ? 'loose' : 'pending']">
+            {{ d.value === 'loose' ? '✓' : '○' }} {{ $t(`signalPos.${d.key}`) }}
+          </span>
+        </div>
+      </div>
+
       <!-- 三个信号位明细 -->
       <div class="signal-positions">
         <div v-for="pos in positions" :key="pos.key" class="pos-row">
@@ -116,6 +136,30 @@ const positions = computed(() => {
   ];
 });
 
+// 各维度收紧时附带的关键数据（解读卡展示"为什么"）
+function dimDetail(key) {
+  const ind = signal.value?.indicators || {};
+  const fmt = v => (v == null ? null : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`);
+  if (key === 'fiscal' && ind.fiscalDeficitChangePct != null) {
+    return `${t('indicators.fiscalDeficitTtm')} ${t('indicators.yoyChange')} ${fmt(ind.fiscalDeficitChangePct)}`;
+  }
+  if (key === 'administrative' && ind.epuTradePercentile != null) {
+    return `${t('indicators.epuTrade')} ${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`;
+  }
+  if (key === 'aiSupply' && ind.aiBubbleWarning) {
+    return t('aiChain.bubbleWarning');
+  }
+  return null;
+}
+
+// 收紧中的维度（防守触发原因）
+const tightDims = computed(() =>
+  positions.value.filter(p => p.value === 'tight').map(p => ({ ...p, detail: dimDetail(p.key) }))
+);
+
+// 四维达成进攻条件（全宽松）的进度
+const dimStates = computed(() => positions.value);
+
 const indicators = computed(() => {
   if (!signal.value?.indicators) return [];
   const ind = signal.value.indicators;
@@ -195,6 +239,21 @@ const indicators = computed(() => {
 .signal-section { display: flex; flex-direction: column; gap: 8px; }
 
 .data-date { font-size: 12px; color: #666; }
+
+.interpret-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #111;
+  border-radius: 10px;
+}
+.interpret-block { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.interpret-label { font-size: 12px; color: #888; }
+.interpret-item { font-size: 12px; }
+.interpret-item.tight { color: #f87171; }
+.interpret-item.loose { color: #4ade80; }
+.interpret-item.pending { color: #facc15; }
 
 .signal-positions {
   display: flex;

@@ -70,7 +70,14 @@
   },
   "timeline": {
     "title": "Signal History",
-    "noHistory": "No history yet"
+    "noHistory": "No history yet",
+    "changed": "Signal changed"
+  },
+  "interpret": {
+    "title": "Signal Interpretation",
+    "triggers": "Defense triggered by:",
+    "toAttack": "Toward attack (all four loose):",
+    "allLoose": "All four dimensions loose — attack conditions met"
   },
   "auth": {
     "login": "Login",

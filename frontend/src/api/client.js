@@ -24,6 +24,7 @@ export const api = {
   register: (email, password) => request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }),
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   getMe: () => request('/user/me'),
+  updateAlerts: (enabled) => request('/user/alerts', { method: 'PATCH', body: JSON.stringify({ enabled }) }),
 
   // Watchlist
   getWatchlist: (start, end) => {
