@@ -7,11 +7,13 @@ import {
   setBottleneck,
 } from '../utils/storage.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
+import chainCfg from '../config/ai-chain.config.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
 const VALID_TYPES = ['fiscal', 'administrative', 'ai_supply'];
-const VALID_STAGES = ['model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
+// 'auto' 为哨兵值：清除手动设定，回到按环节排名自动识别
+const VALID_STAGES = [...chainCfg.STAGE_KEYS, 'auto'];
 
 // GET /api/admin/signals — 当前财政/行政/AI供需信号位
 router.get('/signals', requireAdmin, async (req, res) => {

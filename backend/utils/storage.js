@@ -14,6 +14,8 @@ async function getDb() {
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
+    // 老库也要先补建缺失的表（全部 CREATE TABLE IF NOT EXISTS，幂等），再补列
+    initSchema();
     migrateSchema();
   } else {
     db = new SQL.Database();
@@ -63,6 +65,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'semi_ip_yoy REAL',
   'semi_ip_period_date TEXT',
   'semi_ip_release_date TEXT',
+  'model_usage_trend_pct REAL',
+  'capex_yoy REAL',
+  'ai_bubble_warning INTEGER',
 ];
 
 function migrateSchema() {
@@ -153,6 +158,9 @@ function initSchema() {
       semi_ip_yoy REAL,
       semi_ip_period_date TEXT,
       semi_ip_release_date TEXT,
+      model_usage_trend_pct REAL,
+      capex_yoy REAL,
+      ai_bubble_warning INTEGER,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -196,6 +204,24 @@ function initSchema() {
       note TEXT,
       set_by TEXT,
       updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_chain_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      auto_bottleneck TEXT,
+      stage_metrics TEXT,
+      model_usage_trend_pct REAL,
+      model_usage_latest_tokens REAL,
+      model_usage_as_of TEXT,
+      capex_yoy REAL,
+      capex_ttm REAL,
+      capex_prev_ttm REAL,
+      bubble_warning INTEGER DEFAULT 0,
+      bubble_reasons TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
     )
   `);
 }
@@ -270,8 +296,9 @@ export async function saveSignalSnapshot(data) {
      fiscal_period_date, fiscal_release_date,
      admin_auto_signal, epu_trade, epu_trade_percentile, epu_trade_period_date,
      ai_supply_auto_signal, ai_market_signal, ai_fundamental_signal,
-     smh_spy_rel_return_pct, semi_ip_yoy, semi_ip_period_date, semi_ip_release_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     smh_spy_rel_return_pct, semi_ip_yoy, semi_ip_period_date, semi_ip_release_date,
+     model_usage_trend_pct, capex_yoy, ai_bubble_warning)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -287,6 +314,7 @@ export async function saveSignalSnapshot(data) {
     data.adminAutoSignal, data.epuTrade, data.epuTradePercentile, data.epuTradePeriodDate,
     data.aiSupplyAutoSignal, data.aiMarketSignal, data.aiFundamentalSignal,
     data.smhSpyRelReturnPct, data.semiIpYoy, data.semiIpPeriodDate, data.semiIpReleaseDate,
+    data.modelUsageTrendPct, data.capexYoY, data.aiBubbleWarning,
   ]);
 }
 
@@ -377,6 +405,43 @@ export async function setBottleneck(stage, note, setBy) {
     'INSERT INTO ai_chain_bottleneck (stage, note, set_by) VALUES (?, ?, ?)',
     [stage, note || null, setBy || null]
   );
+}
+
+/**
+ * 生效卡点：最新手动设定行 stage 不是 'auto' 哨兵 → 手动；否则用最新链快照的自动识别结果
+ * @returns {{stage: string|null, source: 'manual'|'auto', note: string|null}}
+ */
+export async function getEffectiveBottleneck() {
+  await getDb();
+  const manual = await getBottleneck();
+  if (manual && manual.stage !== 'auto') {
+    return { stage: manual.stage, source: 'manual', note: manual.note || null };
+  }
+  const snap = await getLatestAiChainSnapshot();
+  return { stage: snap?.auto_bottleneck || null, source: 'auto', note: null };
+}
+
+// --- AI Chain Snapshots ---
+
+export async function saveAiChainSnapshot(data) {
+  await getDb();
+  run(`
+    INSERT INTO ai_chain_snapshots
+    (date, auto_bottleneck, stage_metrics,
+     model_usage_trend_pct, model_usage_latest_tokens, model_usage_as_of,
+     capex_yoy, capex_ttm, capex_prev_ttm, bubble_warning, bubble_reasons)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    data.date, data.autoBottleneck, data.stageMetrics,
+    data.modelUsageTrendPct, data.modelUsageLatestTokens, data.modelUsageAsOf,
+    data.capexYoY, data.capexTtm, data.capexPrevTtm,
+    data.bubbleWarning ? 1 : 0, data.bubbleReasons,
+  ]);
+}
+
+export async function getLatestAiChainSnapshot() {
+  await getDb();
+  return get('SELECT * FROM ai_chain_snapshots ORDER BY date DESC, id DESC LIMIT 1');
 }
 
 export { getDb, persist };

@@ -6,9 +6,9 @@
   "watchlist": { "title": "ウォッチリスト", "addPlaceholder": "ティッカーを入力、例: AAPL", "add": "追加", "remove": "削除", "empty": "銘柄がありません", "pricePercentile": "価格パーセンタイル", "pe": "PER", "ps": "PSR", "currentPrice": "現在価格", "dateRange": "期間", "presets": "クイック追加", "mag7": "Mag 7", "etfs": "主要ETF" },
   "timeline": { "title": "シグナル履歴", "noHistory": "履歴なし" },
   "auth": { "login": "ログイン", "register": "登録", "logout": "ログアウト", "email": "メール", "password": "パスワード", "loginTitle": "ログイン", "registerTitle": "アカウント作成", "noAccount": "アカウントなし？登録", "hasAccount": "アカウントあり？ログイン", "loginSuccess": "ログイン成功", "registerSuccess": "登録完了" },
-  "admin": { "title": "管理パネル", "setSignal": "シグナル設定", "type": "タイプ", "signal": "シグナル", "expiresAt": "有効期限", "note": "メモ", "save": "保存", "reference": "参考資料", "fiscal": "財政", "administrative": "行政", "aiSupply": "AI需給", "history": "履歴", "refresh": "更新", "bottleneck": "現在の最大の制約要因", "bottleneckStage": "工程", "bottleneckSave": "工程を保存" },
+  "admin": { "title": "管理パネル", "setSignal": "シグナル設定", "type": "タイプ", "signal": "シグナル", "expiresAt": "有効期限", "note": "メモ", "save": "保存", "reference": "参考資料", "fiscal": "財政", "administrative": "行政", "aiSupply": "AI需給", "history": "履歴", "refresh": "更新", "bottleneck": "現在の最大の制約要因", "bottleneckStage": "工程", "bottleneckSave": "工程を保存", "bottleneckAuto": "自動検出（ランキングに従う）" },
   "settings": { "title": "設定", "emailAlerts": "メール通知", "emailAlertsDesc": "シグナル変更時にメールを受け取る" },
   "lang": { "switch": "言語", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
   "error": { "fetchFailed": "読み込み失敗、キャッシュデータを表示", "loginFailed": "メールまたはパスワードが無効", "registerFailed": "登録失敗" },
-  "aiChain": { "title": "AI産業チェーンの資金流動", "currentBottleneck": "現在の最大の制約要因", "stages": { "model": "AI大規模モデル", "cloud": "クラウドプロバイダー", "chip": "AIチップ", "memory": "メモリ／光モジュール", "packaging": "設備／パッケージング／テスト", "power": "電力エネルギー" } }
+  "aiChain": { "title": "AI産業チェーンの資金流動", "currentBottleneck": "現在の最大の制約要因", "sourceAuto": "自動検出", "sourceManual": "手動設定", "relReturnLabel": "30日 vs SPY", "bubbleTitle": "バブル監視", "modelUsageTrend": "モデル利用量トレンド（7日/28日）", "capexYoY": "クラウド設備投資前年比", "semiIpYoy": "半導体生産前年比", "bubbleWarning": "バブル警告：AI需要指標が弱含み、防御を検討", "noData": "データなし", "stages": { "model": "AI大規模モデル", "cloud": "クラウドプロバイダー", "chip": "AIチップ", "memory": "メモリ／光モジュール", "packaging": "設備／パッケージング／テスト", "power": "電力エネルギー" } }
 }

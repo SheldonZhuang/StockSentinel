@@ -10,6 +10,8 @@ import { requireAuth } from './api/auth.js';
 
 import { fetchMacroData } from './api/fetch-macro.js';
 import { fetchPolicyData } from './api/fetch-policy.js';
+import { fetchAiChainData } from './api/fetch-ai-chain.js';
+import chainCfg from './config/ai-chain.config.js';
 import {
   calcMonetarySignal,
   calcFinalSignal,
@@ -17,13 +19,16 @@ import {
   calcAdminSignal,
   calcAiSupplySignal,
   deriveAiSupplySubSignals,
+  calcBubbleWarning,
 } from './api/signal.js';
 import {
   getLatestSnapshot,
   saveSignalSnapshot,
   getSnapshotHistory,
   getAlertSubscribers,
-  getBottleneck,
+  getEffectiveBottleneck,
+  saveAiChainSnapshot,
+  getLatestAiChainSnapshot,
   getAllOverrides,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
@@ -112,6 +117,9 @@ app.get('/api/signal', async (req, res) => {
       semiIpReleaseDate: snapshot.semi_ip_release_date,
       aiMarketSignal: snapshot.ai_market_signal,
       aiFundamentalSignal: snapshot.ai_fundamental_signal,
+      modelUsageTrendPct: snapshot.model_usage_trend_pct,
+      capexYoY: snapshot.capex_yoy,
+      aiBubbleWarning: !!snapshot.ai_bubble_warning,
     },
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,
@@ -125,10 +133,49 @@ app.get('/api/signal/history', async (req, res) => {
   res.json(history);
 });
 
-// GET /api/bottleneck — 当前AI产业链最卡脖子环节（公开只读）
+// GET /api/bottleneck — 当前AI产业链最卡脖子环节（公开只读，手动优先否则自动识别）
 app.get('/api/bottleneck', async (req, res) => {
-  const bottleneck = await getBottleneck();
-  res.json({ stage: bottleneck?.stage || null, note: bottleneck?.note || null });
+  const bottleneck = await getEffectiveBottleneck();
+  res.json(bottleneck);
+});
+
+// GET /api/ai-chain — AI产业链环节排名 + 卡点 + 泡沫监测（公开只读）
+app.get('/api/ai-chain', async (req, res) => {
+  const [bottleneck, chainSnap, signalSnap] = await Promise.all([
+    getEffectiveBottleneck(),
+    getLatestAiChainSnapshot(),
+    getLatestSnapshot(),
+  ]);
+
+  let stages = chainCfg.STAGE_KEYS.map(key => ({ key, relReturnPct: null, rank: null, validTickerCount: 0 }));
+  if (chainSnap?.stage_metrics) {
+    try {
+      const saved = new Map(JSON.parse(chainSnap.stage_metrics).map(s => [s.key, s]));
+      stages = stages.map(s => saved.get(s.key) || s);
+    } catch (err) {
+      console.warn('[api] failed to parse stage_metrics:', err.message);
+    }
+  }
+
+  let bubbleReasons = [];
+  try {
+    bubbleReasons = chainSnap?.bubble_reasons ? JSON.parse(chainSnap.bubble_reasons) : [];
+  } catch { /* 忽略脏数据 */ }
+
+  res.json({
+    bottleneck,
+    stages,
+    bubble: {
+      modelUsageTrendPct: chainSnap?.model_usage_trend_pct ?? null,
+      modelUsageLatestTokens: chainSnap?.model_usage_latest_tokens ?? null,
+      modelUsageAsOf: chainSnap?.model_usage_as_of ?? null,
+      capexYoY: chainSnap?.capex_yoy ?? null,
+      semiIpYoy: signalSnap?.semi_ip_yoy ?? null,
+      warning: !!chainSnap?.bubble_warning,
+      reasons: bubbleReasons,
+    },
+    dataDate: chainSnap?.date ?? null,
+  });
 });
 
 // GET /api/user/me — 当前用户信息 + 是否是 admin
@@ -153,9 +200,13 @@ async function runDailyUpdate() {
 
   // 财政/行政/AI供需自动判定（内部各维度独立容错，永不 throw）
   const policyData = await fetchPolicyData();
+  // AI产业链数据串行在 policy 之后拉取，避免与其他 Yahoo 调用并发触发限流
+  const chainData = await fetchAiChainData();
+  const bubble = calcBubbleWarning(chainData);
+
   const fiscalAuto = calcFiscalSignal(policyData);
   const adminAuto = calcAdminSignal(policyData);
-  const aiSupplyAuto = calcAiSupplySignal(policyData);
+  const aiSupplyAuto = calcAiSupplySignal(policyData, bubble);
   const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
 
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
@@ -221,6 +272,23 @@ async function runDailyUpdate() {
     semiIpYoy: policyData.semiIpYoy,
     semiIpPeriodDate: policyData.semiIpPeriodDate,
     semiIpReleaseDate: policyData.semiIpReleaseDate,
+    modelUsageTrendPct: chainData.modelUsageTrendPct,
+    capexYoY: chainData.capexYoY,
+    aiBubbleWarning: bubble.warning ? 1 : 0,
+  });
+
+  await saveAiChainSnapshot({
+    date: today,
+    autoBottleneck: chainData.autoBottleneck,
+    stageMetrics: JSON.stringify(chainData.stages),
+    modelUsageTrendPct: chainData.modelUsageTrendPct,
+    modelUsageLatestTokens: chainData.modelUsageLatestTokens,
+    modelUsageAsOf: chainData.modelUsageAsOf,
+    capexYoY: chainData.capexYoY,
+    capexTtm: chainData.capexTtm,
+    capexPrevTtm: chainData.capexPrevTtm,
+    bubbleWarning: bubble.warning,
+    bubbleReasons: JSON.stringify(bubble.reasons),
   });
 
   console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin}, aiSupply=${aiSupply} → final=${finalSignal}`);

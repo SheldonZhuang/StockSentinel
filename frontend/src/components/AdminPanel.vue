@@ -84,7 +84,7 @@
           <label>{{ $t('admin.bottleneckStage') }}</label>
           <select v-model="bottleneckForm.stage" class="input">
             <option v-for="stage in bottleneckStages" :key="stage" :value="stage">
-              {{ $t(`aiChain.stages.${stage}`) }}
+              {{ stage === 'auto' ? $t('admin.bottleneckAuto') : $t(`aiChain.stages.${stage}`) }}
             </option>
           </select>
         </div>
@@ -98,7 +98,10 @@
       <div v-if="currentBottleneck?.stage" class="current-signals">
         <div class="sig-row">
           <span>{{ $t('aiChain.currentBottleneck') }}</span>
-          <span class="sig-badge loose">{{ $t(`aiChain.stages.${currentBottleneck.stage}`) }}</span>
+          <span class="sig-badge loose">
+            {{ $t(`aiChain.stages.${currentBottleneck.stage}`) }} ·
+            {{ $t(currentBottleneck.source === 'manual' ? 'aiChain.sourceManual' : 'aiChain.sourceAuto') }}
+          </span>
         </div>
       </div>
     </section>
@@ -138,7 +141,8 @@ const refDocs = ref([]);
 const refLoading = ref(false);
 const refCategory = ref('fiscal');
 
-const bottleneckStages = ['model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
+// 'auto' = 清除手动设定，回到按环节排名自动识别
+const bottleneckStages = ['auto', 'model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
 const bottleneckForm = ref({ stage: 'packaging', note: '' });
 const bottleneckSaving = ref(false);
 const bottleneckMsg = ref('');

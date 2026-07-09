@@ -101,7 +101,8 @@
     "refresh": "Refresh",
     "bottleneck": "Current Bottleneck Stage",
     "bottleneckStage": "Stage",
-    "bottleneckSave": "Save Stage"
+    "bottleneckSave": "Save Stage",
+    "bottleneckAuto": "Auto (follow stage ranking)"
   },
   "settings": {
     "title": "Settings",
@@ -126,6 +127,15 @@
   "aiChain": {
     "title": "AI Industry Chain Money Flow",
     "currentBottleneck": "Current Bottleneck Stage",
+    "sourceAuto": "Auto-detected",
+    "sourceManual": "Manual",
+    "relReturnLabel": "30d vs SPY",
+    "bubbleTitle": "Bubble Monitor",
+    "modelUsageTrend": "Model Usage Trend (7d/28d)",
+    "capexYoY": "Hyperscaler Capex YoY",
+    "semiIpYoy": "Semiconductor Output YoY",
+    "bubbleWarning": "Bubble warning: AI demand indicators weakening, consider defense",
+    "noData": "No data",
     "stages": {
       "model": "AI Foundation Models",
       "cloud": "Cloud Providers",

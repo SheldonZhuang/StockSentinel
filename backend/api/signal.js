@@ -5,6 +5,7 @@ const {
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
   AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
+  AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
 } = cfg;
 
 /**
@@ -110,10 +111,30 @@ export function deriveAiSupplySubSignals({ smhSpyRelReturnPct, semiIpYoy }) {
 }
 
 /**
- * AI供需信号：两个子信号都有数据时要求一致才定档（不一致 → 观望）；
- * 只有一边有数据时直接采用该边（数据缺失 ≠ 意见分歧）；全缺失 → 观望
+ * AI泡沫预警：模型调用量趋势跌破阈值 或 云厂商资本开支同比转负（用户框架："下降→尽快防守"）
+ * 数据缺失(null)不触发预警（优雅降级）
+ * @returns {{warning: boolean, reasons: string[]}}
  */
-export function calcAiSupplySignal(policyData) {
+export function calcBubbleWarning({ modelUsageTrendPct, capexYoY } = {}) {
+  const reasons = [];
+  if (modelUsageTrendPct !== null && modelUsageTrendPct !== undefined
+    && modelUsageTrendPct < AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT) {
+    reasons.push('modelUsage');
+  }
+  if (capexYoY !== null && capexYoY !== undefined && capexYoY < AI_CAPEX_YOY_TIGHT_PCT) {
+    reasons.push('capex');
+  }
+  return { warning: reasons.length > 0, reasons };
+}
+
+/**
+ * AI供需信号：两个子信号都有数据时要求一致才定档（不一致 → 观望）；
+ * 只有一边有数据时直接采用该边（数据缺失 ≠ 意见分歧）；全缺失 → 观望；
+ * 泡沫预警触发时强制收紧（管理员 override 仍最优先，在 server 层应用）
+ */
+export function calcAiSupplySignal(policyData, bubble = null) {
+  if (bubble?.warning) return SIGNAL.TIGHT;
+
   const { smhSpyRelReturnPct, semiIpYoy } = policyData;
   const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
   const hasMarket = smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined;

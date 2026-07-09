@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
+  calcBubbleWarning,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -219,6 +220,50 @@ describe('calcAiSupplySignal', () => {
 
   it('观望：数据全缺失', () => {
     expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: null })).toBe('neutral');
+  });
+});
+
+// AI泡沫预警（调用量趋势 < -10% 或 资本开支同比 < 0）
+describe('calcBubbleWarning', () => {
+  it('调用量趋势跌破阈值 → 预警', () => {
+    expect(calcBubbleWarning({ modelUsageTrendPct: -12, capexYoY: 20 }))
+      .toEqual({ warning: true, reasons: ['modelUsage'] });
+  });
+
+  it('资本开支同比转负 → 预警', () => {
+    expect(calcBubbleWarning({ modelUsageTrendPct: 5, capexYoY: -5 }))
+      .toEqual({ warning: true, reasons: ['capex'] });
+  });
+
+  it('双重预警', () => {
+    expect(calcBubbleWarning({ modelUsageTrendPct: -20, capexYoY: -1 }))
+      .toEqual({ warning: true, reasons: ['modelUsage', 'capex'] });
+  });
+
+  it('未跌破阈值不预警', () => {
+    expect(calcBubbleWarning({ modelUsageTrendPct: -9, capexYoY: 3 }).warning).toBe(false);
+  });
+
+  it('数据缺失不预警（优雅降级）', () => {
+    expect(calcBubbleWarning({ modelUsageTrendPct: null, capexYoY: null }).warning).toBe(false);
+    expect(calcBubbleWarning({}).warning).toBe(false);
+    expect(calcBubbleWarning().warning).toBe(false);
+  });
+});
+
+// 泡沫预警对 AI供需信号的强制作用
+describe('calcAiSupplySignal + bubble', () => {
+  it('预警触发时即使双子信号宽松也强制收紧', () => {
+    expect(calcAiSupplySignal(
+      { smhSpyRelReturnPct: 12, semiIpYoy: 8 },
+      { warning: true, reasons: ['capex'] }
+    )).toBe('tight');
+  });
+
+  it('无预警时行为与不传 bubble 一致（回归）', () => {
+    const data = { smhSpyRelReturnPct: 12, semiIpYoy: 8 };
+    expect(calcAiSupplySignal(data, { warning: false, reasons: [] })).toBe(calcAiSupplySignal(data));
+    expect(calcAiSupplySignal(data, null)).toBe('loose');
   });
 });
 

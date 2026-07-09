@@ -2,28 +2,29 @@
 //
 // tickers 说明：
 // - 未上市公司用公司名展示（如 'Anthropic'、'OpenAI'），不是股票代码，不可用于行情/自选股接口
-// - 已上市公司用交易所代码，海外代码带交易所后缀（如 '005930.KS' = 三星电子, 韩国交易所）
+// - 可交易标的篮子须与 backend/config/ai-chain.config.js 的 STAGE_BASKETS 保持同步（后端用它做环节相对强弱排名）
+// - memory 环节的 SK海力士/三星电子无流动性好的美股上市渠道，用 MU/SNDK 作为存储代理
 // - 同一代码可能出现在多个环节（如 'GOOGL' 同时在 model 和 cloud，因为 Google 既做AI大模型也做云服务），这是有意为之，不是重复错误
 export const AI_CHAIN_STAGES = [
   {
     key: 'model',
-    tickers: ['Anthropic', 'OpenAI', 'GOOGL'],
+    tickers: ['Anthropic', 'OpenAI', 'Google Gemini'],
   },
   {
     key: 'cloud',
-    tickers: ['GOOGL', 'AMZN', 'MSFT', 'META', 'NBIS'],
+    tickers: ['MSFT', 'AMZN', 'GOOGL', 'META', 'NBIS'],
   },
   {
     key: 'chip',
-    tickers: ['NVDA', 'AVGO', 'AMD', 'INTC'],
+    tickers: ['NVDA', 'AMD', 'AVGO', 'ARM', 'INTC'],
   },
   {
     key: 'memory',
-    tickers: ['005930.KS', '000660.KS', 'MU', 'COHR', 'LITE'],
+    tickers: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI'],
   },
   {
     key: 'packaging',
-    tickers: ['TSM', 'LRCX', 'AMAT', 'KLAC'],
+    tickers: ['AMAT', 'LRCX', 'TSM', 'KLAC'],
   },
   {
     key: 'power',

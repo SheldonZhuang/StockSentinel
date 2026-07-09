@@ -101,7 +101,8 @@
     "refresh": "刷新",
     "bottleneck": "当前最卡脖子环节",
     "bottleneckStage": "环节",
-    "bottleneckSave": "保存环节"
+    "bottleneckSave": "保存环节",
+    "bottleneckAuto": "自动识别（跟随环节排名）"
   },
   "settings": {
     "title": "设置",
@@ -126,6 +127,15 @@
   "aiChain": {
     "title": "AI产业链资金流向",
     "currentBottleneck": "当前最卡脖子环节",
+    "sourceAuto": "自动识别",
+    "sourceManual": "手动设定",
+    "relReturnLabel": "30日相对SPY",
+    "bubbleTitle": "泡沫监测",
+    "modelUsageTrend": "模型用量趋势（7日/28日）",
+    "capexYoY": "云厂商资本开支同比",
+    "semiIpYoy": "半导体产出同比",
+    "bubbleWarning": "泡沫预警：AI需求指标转弱，建议防守",
+    "noData": "暂无数据",
     "stages": {
       "model": "AI大模型",
       "cloud": "云厂商",

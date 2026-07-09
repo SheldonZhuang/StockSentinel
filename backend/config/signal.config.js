@@ -42,6 +42,10 @@ export default {
   AI_SEMI_IP_YOY_TIGHT_PCT: 0,             // 同比 <0% → tight
   AI_SEMI_IP_LOOKBACK_DAYS: 400,
 
+  // AI泡沫预警（任一触发 → aiSupply 自动信号强制收紧）
+  AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT: -10, // 模型调用量 近7日均值 vs 前28日均值 低于该值 → 预警
+  AI_CAPEX_YOY_TIGHT_PCT: 0,                 // 云厂商滚动4季资本开支同比 低于该值 → 预警
+
   // 信号档位常量
   SIGNAL: {
     LOOSE: 'loose',

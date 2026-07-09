@@ -6,9 +6,9 @@
   "watchlist": { "title": "관심 종목", "addPlaceholder": "종목 코드 입력, 예: AAPL", "add": "추가", "remove": "삭제", "empty": "관심 종목이 없습니다", "pricePercentile": "가격 백분위", "pe": "PER", "ps": "PSR", "currentPrice": "현재 가격", "dateRange": "기간", "presets": "빠른 추가", "mag7": "Mag 7", "etfs": "주요 ETF" },
   "timeline": { "title": "신호 히스토리", "noHistory": "히스토리 없음" },
   "auth": { "login": "로그인", "register": "회원가입", "logout": "로그아웃", "email": "이메일", "password": "비밀번호", "loginTitle": "로그인", "registerTitle": "계정 만들기", "noAccount": "계정 없음? 가입", "hasAccount": "계정 있음? 로그인", "loginSuccess": "로그인 성공", "registerSuccess": "회원가입 성공" },
-  "admin": { "title": "관리자 패널", "setSignal": "신호 설정", "type": "유형", "signal": "신호", "expiresAt": "만료일", "note": "메모", "save": "저장", "reference": "참고 자료", "fiscal": "재정", "administrative": "행정", "aiSupply": "AI 수급", "history": "히스토리", "refresh": "새로고침", "bottleneck": "현재 병목 단계", "bottleneckStage": "단계", "bottleneckSave": "단계 저장" },
+  "admin": { "title": "관리자 패널", "setSignal": "신호 설정", "type": "유형", "signal": "신호", "expiresAt": "만료일", "note": "메모", "save": "저장", "reference": "참고 자료", "fiscal": "재정", "administrative": "행정", "aiSupply": "AI 수급", "history": "히스토리", "refresh": "새로고침", "bottleneck": "현재 병목 단계", "bottleneckStage": "단계", "bottleneckSave": "단계 저장", "bottleneckAuto": "자동 감지 (랭킹 기준)" },
   "settings": { "title": "설정", "emailAlerts": "이메일 알림", "emailAlertsDesc": "신호 변경 시 이메일 받기" },
   "lang": { "switch": "언어", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
   "error": { "fetchFailed": "로딩 실패, 캐시 데이터 표시", "loginFailed": "이메일 또는 비밀번호가 잘못됨", "registerFailed": "회원가입 실패" },
-  "aiChain": { "title": "AI 산업 체인 자금 흐름", "currentBottleneck": "현재 병목 단계", "stages": { "model": "AI 대형 모델", "cloud": "클라우드 제공업체", "chip": "AI 칩", "memory": "메모리 / 광모듈", "packaging": "장비 / 패키징 / 테스트", "power": "전력 에너지" } }
+  "aiChain": { "title": "AI 산업 체인 자금 흐름", "currentBottleneck": "현재 병목 단계", "sourceAuto": "자동 감지", "sourceManual": "수동 설정", "relReturnLabel": "30일 vs SPY", "bubbleTitle": "버블 모니터", "modelUsageTrend": "모델 사용량 추세 (7일/28일)", "capexYoY": "클라우드 설비투자 전년비", "semiIpYoy": "반도체 생산 전년비", "bubbleWarning": "버블 경고: AI 수요 지표 약화, 방어 고려", "noData": "데이터 없음", "stages": { "model": "AI 대형 모델", "cloud": "클라우드 제공업체", "chip": "AI 칩", "memory": "메모리 / 광모듈", "packaging": "장비 / 패키징 / 테스트", "power": "전력 에너지" } }
 }

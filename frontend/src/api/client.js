@@ -44,6 +44,7 @@ export const api = {
 
   // AI Chain Bottleneck
   getBottleneck: () => request('/bottleneck'),
+  getAiChain: () => request('/ai-chain'),
   setBottleneck: (stage, note) =>
     request('/admin/bottleneck', { method: 'POST', body: JSON.stringify({ stage, note }) }),
 };
