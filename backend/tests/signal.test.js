@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus } from '../api/signal.js';
+import {
+  calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
+  calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
+} from '../api/signal.js';
 
 // 测试所有货币信号位分支
 describe('calcMonetarySignal', () => {
@@ -112,6 +115,110 @@ describe('deriveBalanceSheetStatus', () => {
   it('数据缺失时视为 neutral', () => {
     expect(deriveBalanceSheetStatus(null, 7200)).toBe('neutral');
     expect(deriveBalanceSheetStatus(7200, null)).toBe('neutral');
+  });
+});
+
+// 财政信号：TTM赤字同比变化（阈值 ±5%）
+describe('calcFiscalSignal', () => {
+  it('宽松：赤字同比扩大超过阈值', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: 12.3 })).toBe('loose');
+  });
+
+  it('收紧：赤字同比收窄超过阈值', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: -8.1 })).toBe('tight');
+  });
+
+  it('观望：变化在阈值内', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: 3.2 })).toBe('neutral');
+    expect(calcFiscalSignal({ deficitTtmChangePct: -4.9 })).toBe('neutral');
+  });
+
+  it('观望：恰好等于阈值（边界不触发）', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: 5 })).toBe('neutral');
+    expect(calcFiscalSignal({ deficitTtmChangePct: -5 })).toBe('neutral');
+  });
+
+  it('观望：数据缺失', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: null })).toBe('neutral');
+    expect(calcFiscalSignal({})).toBe('neutral');
+  });
+});
+
+// 行政信号：贸易政策不确定性指数10年百分位（>80 tight，<50 loose）
+describe('calcAdminSignal', () => {
+  it('收紧：百分位 > 80', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92.5 })).toBe('tight');
+  });
+
+  it('宽松：百分位 < 50', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 33 })).toBe('loose');
+  });
+
+  it('观望：百分位在 50~80 之间', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 65 })).toBe('neutral');
+  });
+
+  it('观望：恰好等于边界值', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 80 })).toBe('neutral');
+    expect(calcAdminSignal({ epuTradePercentile: 50 })).toBe('neutral');
+  });
+
+  it('观望：数据缺失', () => {
+    expect(calcAdminSignal({ epuTradePercentile: null })).toBe('neutral');
+    expect(calcAdminSignal({})).toBe('neutral');
+  });
+});
+
+// AI供需子信号（市场：SMH-SPY相对收益 ±8%；基本面：半导体IP同比 >5% / <0%）
+describe('deriveAiSupplySubSignals', () => {
+  it('市场子信号：相对收益 >+8% → loose，<-8% → tight，之间 → neutral', () => {
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 12, semiIpYoy: null }).marketSignal).toBe('loose');
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: -10, semiIpYoy: null }).marketSignal).toBe('tight');
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 3, semiIpYoy: null }).marketSignal).toBe('neutral');
+  });
+
+  it('基本面子信号：同比 >+5% → loose，<0% → tight，0~5% → neutral', () => {
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: 9.5 }).fundamentalSignal).toBe('loose');
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: -2.1 }).fundamentalSignal).toBe('tight');
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: 2.4 }).fundamentalSignal).toBe('neutral');
+  });
+
+  it('数据缺失的子信号为 neutral', () => {
+    const subs = deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: null });
+    expect(subs.marketSignal).toBe('neutral');
+    expect(subs.fundamentalSignal).toBe('neutral');
+  });
+});
+
+// AI供需合成：两边都有数据要求一致；单边缺失用另一边；全缺失观望
+describe('calcAiSupplySignal', () => {
+  it('宽松：两个子信号都宽松', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: 8 })).toBe('loose');
+  });
+
+  it('收紧：两个子信号都收紧', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: -15, semiIpYoy: -3 })).toBe('tight');
+  });
+
+  it('观望：市场宽松但基本面收紧（分歧）', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: -3 })).toBe('neutral');
+  });
+
+  it('观望：市场宽松但基本面观望（分歧）', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: 2 })).toBe('neutral');
+  });
+
+  it('单边缺失：市场数据缺失时采用基本面判定', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: 8 })).toBe('loose');
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: -3 })).toBe('tight');
+  });
+
+  it('单边缺失：基本面数据缺失时采用市场判定', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: -15, semiIpYoy: null })).toBe('tight');
+  });
+
+  it('观望：数据全缺失', () => {
+    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: null })).toBe('neutral');
   });
 });
 

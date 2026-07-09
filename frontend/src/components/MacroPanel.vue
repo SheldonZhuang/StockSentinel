@@ -14,23 +14,28 @@
       <div class="signal-positions">
         <div v-for="pos in positions" :key="pos.key" class="pos-row">
           <span class="pos-label">{{ $t(`signalPos.${pos.key}`) }}</span>
-          <span :class="['pos-badge', pos.value]">{{ $t(`signalPos.${pos.value}`) }}</span>
+          <span class="pos-value">
+            <span v-if="pos.source === 'override'" class="pos-source">{{ $t('signalPos.override') }}</span>
+            <span :class="['pos-badge', pos.value]">{{ $t(`signalPos.${pos.value}`) }}</span>
+          </span>
         </div>
       </div>
 
-      <!-- FRED 指标参考数值 -->
+      <!-- 指标参考数值 -->
       <div class="indicators-section">
-        <div class="section-title">FRED 指标</div>
+        <div class="section-title">{{ $t('indicators.sectionTitle') }}</div>
         <div class="indicator-block" v-for="ind in indicators" :key="ind.key">
           <div class="indicator-row">
             <span class="ind-label">{{ $t(`indicators.${ind.key}`) }}</span>
             <span class="ind-value">
-              {{ ind.value !== null ? ind.value.toFixed(2) + ind.unit : '—' }}
+              {{ ind.value != null ? ind.value.toFixed(2) + ind.unit : '—' }}
               <span v-if="ind.change !== null" :class="['ind-change', trendClass(ind.change)]">
                 {{ trendArrow(ind.change) }}{{ Math.abs(ind.change).toFixed(2) }}{{ ind.unit }}
                 ({{ $t(`indicators.${trendKey(ind.change)}`) }})
               </span>
               <span v-if="ind.bsStatus" :class="['pos-badge', ind.bsStatus]">{{ $t(`indicators.bsStatus.${ind.bsStatus}`) }}</span>
+              <span v-if="ind.extra" class="ind-extra">{{ ind.extra }}</span>
+              <span v-if="ind.signalBadge" :class="['pos-badge', ind.signalBadge]">{{ $t(`signalPos.${ind.signalBadge}`) }}</span>
             </span>
           </div>
           <div class="ind-meta">
@@ -105,9 +110,9 @@ const positions = computed(() => {
   if (!signal.value) return [];
   return [
     { key: 'monetary', value: signal.value.monetarySignal },
-    { key: 'fiscal', value: signal.value.fiscalSignal },
-    { key: 'administrative', value: signal.value.adminSignal },
-    { key: 'aiSupply', value: signal.value.aiSupplySignal },
+    { key: 'fiscal', value: signal.value.fiscalSignal, source: signal.value.fiscalSignalSource },
+    { key: 'administrative', value: signal.value.adminSignal, source: signal.value.adminSignalSource },
+    { key: 'aiSupply', value: signal.value.aiSupplySignal, source: signal.value.aiSupplySignalSource },
   ];
 });
 
@@ -149,6 +154,28 @@ const indicators = computed(() => {
       change: ind.unemployment !== null && ind.unemploymentPrev !== null ? ind.unemployment - ind.unemploymentPrev : null,
       periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate, periodIsMonth: true,
     },
+    {
+      // 存的是盈余/赤字（赤字为负，百万美元），展示为"赤字规模"（十亿美元）
+      key: 'fiscalDeficitTtm', value: ind.fiscalDeficitTtm != null ? -ind.fiscalDeficitTtm / 1000 : null, unit: 'B', change: null,
+      extra: ind.fiscalDeficitChangePct != null
+        ? `${t('indicators.yoyChange')} ${ind.fiscalDeficitChangePct > 0 ? '+' : ''}${ind.fiscalDeficitChangePct.toFixed(1)}%`
+        : null,
+      periodDate: ind.fiscalPeriodDate, releaseDate: ind.fiscalReleaseDate, periodIsMonth: true,
+    },
+    {
+      key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
+      extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
+      periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
+    },
+    {
+      key: 'smhSpyRelReturn', value: ind.smhSpyRelReturnPct, unit: '%', change: null,
+      signalBadge: ind.aiMarketSignal,
+    },
+    {
+      key: 'semiIpYoy', value: ind.semiIpYoy, unit: '%', change: null,
+      signalBadge: ind.aiFundamentalSignal,
+      periodDate: ind.semiIpPeriodDate, releaseDate: ind.semiIpReleaseDate, periodIsMonth: true,
+    },
   ];
 });
 </script>
@@ -183,6 +210,16 @@ const indicators = computed(() => {
 
 .pos-label { font-size: 13px; color: #aaa; }
 
+.pos-value { display: flex; align-items: center; gap: 6px; }
+
+.pos-source {
+  font-size: 10px;
+  color: #777;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .pos-badge {
   font-size: 12px;
   font-weight: 600;
@@ -211,6 +248,8 @@ const indicators = computed(() => {
 .ind-change.up { color: #f87171; }
 .ind-change.down { color: #4ade80; }
 .ind-change.flat { color: #999; }
+
+.ind-extra { font-size: 11px; color: #888; }
 
 .ind-meta { font-size: 11px; color: #555; display: flex; gap: 4px; flex-wrap: wrap; }
 .ind-value .pos-badge { font-size: 10px; padding: 2px 6px; }

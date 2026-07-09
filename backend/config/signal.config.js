@@ -19,7 +19,28 @@ export default {
     TRIMMED_MEAN_PCE: 'PCETRIM6M680SFRBDAL',
     TRIMMED_MEAN_PCE_12M: 'PCETRIM12M159SFRBDAL',
     UNEMPLOYMENT: 'UNRATE',
+    FISCAL_DEFICIT: 'MTSDS133FMS',  // 联邦财政盈余/赤字（月度，百万美元，赤字为负）
+    EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度）
+    SEMI_IP: 'IPG3344S',            // 半导体及电子元件工业产出指数（月度）
   },
+
+  // 财政信号：滚动12月(TTM)赤字总额 vs 一年前TTM，变化超过阈值(%)才判定方向
+  // 赤字扩大 > 阈值 → loose（财政扩张），收窄 > 阈值 → tight
+  FISCAL_TTM_CHANGE_THRESHOLD_PCT: 5,
+  FISCAL_LOOKBACK_DAYS: 800, // 需要约25个月观测（12+12+缓冲）
+
+  // 行政信号：EPUTRADE 最新值在近10年观测中的百分位
+  EPU_PERCENTILE_TIGHT: 80,  // >80 分位 → tight（贸易政策高压）
+  EPU_PERCENTILE_LOOSE: 50,  // <50 分位 → loose（政策环境平静）
+  EPU_LOOKBACK_DAYS: 3660,   // 10年
+
+  // AI供需信号：市场代理（SMH vs SPY 相对收益）+ 基本面代理（半导体IP同比），两者一致才定档
+  AI_MARKET_SYMBOLS: { SEMI: 'SMH', BENCH: 'SPY' },
+  AI_MARKET_WINDOW_DAYS: 90,               // 相对收益回看窗口（日历日）
+  AI_MARKET_REL_RETURN_THRESHOLD_PCT: 8,   // 相对收益 >+8% → loose，<-8% → tight
+  AI_SEMI_IP_YOY_LOOSE_PCT: 5,             // 半导体IP同比 >+5% → loose
+  AI_SEMI_IP_YOY_TIGHT_PCT: 0,             // 同比 <0% → tight
+  AI_SEMI_IP_LOOKBACK_DAYS: 400,
 
   // 信号档位常量
   SIGNAL: {

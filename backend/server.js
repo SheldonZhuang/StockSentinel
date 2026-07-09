@@ -9,7 +9,15 @@ import watchlistRouter from './api/watchlist.js';
 import { requireAuth } from './api/auth.js';
 
 import { fetchMacroData } from './api/fetch-macro.js';
-import { calcMonetarySignal, calcFinalSignal } from './api/signal.js';
+import { fetchPolicyData } from './api/fetch-policy.js';
+import {
+  calcMonetarySignal,
+  calcFinalSignal,
+  calcFiscalSignal,
+  calcAdminSignal,
+  calcAiSupplySignal,
+  deriveAiSupplySubSignals,
+} from './api/signal.js';
 import {
   getLatestSnapshot,
   saveSignalSnapshot,
@@ -46,12 +54,21 @@ app.get('/api/signal', async (req, res) => {
 
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
 
+  // 生效值 = 手动覆盖优先，否则自动判定；旧快照没有 *_auto_signal 时兜底到当时存的生效值
+  const fiscalSignal = fiscalOverride?.signal || snapshot.fiscal_auto_signal || snapshot.fiscal_signal;
+  const adminSignal = adminOverride?.signal || snapshot.admin_auto_signal || snapshot.admin_signal;
+  const aiSupplySignal = aiSupplyOverride?.signal || snapshot.ai_supply_auto_signal || snapshot.ai_supply_signal;
+
   res.json({
-    finalSignal: snapshot.final_signal,
+    // 读取时实时重算，避免 override 在 cron 之后变化导致与快照不一致
+    finalSignal: calcFinalSignal(snapshot.monetary_signal, fiscalSignal, adminSignal, aiSupplySignal),
     monetarySignal: snapshot.monetary_signal,
-    fiscalSignal: fiscalOverride?.signal || snapshot.fiscal_signal,
-    adminSignal: adminOverride?.signal || snapshot.admin_signal,
-    aiSupplySignal: aiSupplyOverride?.signal || snapshot.ai_supply_signal,
+    fiscalSignal,
+    fiscalSignalSource: fiscalOverride ? 'override' : 'auto',
+    adminSignal,
+    adminSignalSource: adminOverride ? 'override' : 'auto',
+    aiSupplySignal,
+    aiSupplySignalSource: aiSupplyOverride ? 'override' : 'auto',
     indicators: {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
@@ -81,6 +98,20 @@ app.get('/api/signal', async (req, res) => {
       unemploymentPrev: snapshot.fred_unemployment_prev,
       unemploymentPeriodDate: snapshot.unemployment_period_date,
       unemploymentReleaseDate: snapshot.unemployment_release_date,
+      fiscalDeficitTtm: snapshot.fiscal_deficit_ttm,
+      fiscalDeficitTtmPrev: snapshot.fiscal_deficit_ttm_prev,
+      fiscalDeficitChangePct: snapshot.fiscal_deficit_change_pct,
+      fiscalPeriodDate: snapshot.fiscal_period_date,
+      fiscalReleaseDate: snapshot.fiscal_release_date,
+      epuTrade: snapshot.epu_trade,
+      epuTradePercentile: snapshot.epu_trade_percentile,
+      epuTradePeriodDate: snapshot.epu_trade_period_date,
+      smhSpyRelReturnPct: snapshot.smh_spy_rel_return_pct,
+      semiIpYoy: snapshot.semi_ip_yoy,
+      semiIpPeriodDate: snapshot.semi_ip_period_date,
+      semiIpReleaseDate: snapshot.semi_ip_release_date,
+      aiMarketSignal: snapshot.ai_market_signal,
+      aiFundamentalSignal: snapshot.ai_fundamental_signal,
     },
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,
@@ -120,11 +151,19 @@ async function runDailyUpdate() {
 
   const monetary = calcMonetarySignal(macroData);
 
+  // 财政/行政/AI供需自动判定（内部各维度独立容错，永不 throw）
+  const policyData = await fetchPolicyData();
+  const fiscalAuto = calcFiscalSignal(policyData);
+  const adminAuto = calcAdminSignal(policyData);
+  const aiSupplyAuto = calcAiSupplySignal(policyData);
+  const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
+
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
 
-  const fiscal = fiscalOverride?.signal || 'neutral';
-  const admin = adminOverride?.signal || 'neutral';
-  const aiSupply = aiSupplyOverride?.signal || 'neutral';
+  // 生效值 = 手动覆盖优先，否则自动判定（判定函数保证返回信号串）
+  const fiscal = fiscalOverride?.signal || fiscalAuto;
+  const admin = adminOverride?.signal || adminAuto;
+  const aiSupply = aiSupplyOverride?.signal || aiSupplyAuto;
   const finalSignal = calcFinalSignal(monetary, fiscal, admin, aiSupply);
 
   const today = todayET();
@@ -165,6 +204,23 @@ async function runDailyUpdate() {
     trimmedPceReleaseDate: macroData.trimmedPceReleaseDate,
     unemploymentPeriodDate: macroData.unemploymentPeriodDate,
     unemploymentReleaseDate: macroData.unemploymentReleaseDate,
+    fiscalAutoSignal: fiscalAuto,
+    fiscalDeficitTtm: policyData.deficitTtm,
+    fiscalDeficitTtmPrev: policyData.deficitTtmPrev,
+    fiscalDeficitChangePct: policyData.deficitTtmChangePct,
+    fiscalPeriodDate: policyData.fiscalPeriodDate,
+    fiscalReleaseDate: policyData.fiscalReleaseDate,
+    adminAutoSignal: adminAuto,
+    epuTrade: policyData.epuTrade,
+    epuTradePercentile: policyData.epuTradePercentile,
+    epuTradePeriodDate: policyData.epuTradePeriodDate,
+    aiSupplyAutoSignal: aiSupplyAuto,
+    aiMarketSignal: marketSignal,
+    aiFundamentalSignal: fundamentalSignal,
+    smhSpyRelReturnPct: policyData.smhSpyRelReturnPct,
+    semiIpYoy: policyData.semiIpYoy,
+    semiIpPeriodDate: policyData.semiIpPeriodDate,
+    semiIpReleaseDate: policyData.semiIpReleaseDate,
   });
 
   console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin}, aiSupply=${aiSupply} → final=${finalSignal}`);

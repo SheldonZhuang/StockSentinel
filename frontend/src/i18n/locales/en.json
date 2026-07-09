@@ -16,9 +16,11 @@
     "aiSupply": "AI Supply/Demand",
     "loose": "Loose",
     "neutral": "Watch",
-    "tight": "Tight"
+    "tight": "Tight",
+    "override": "Manual"
   },
   "indicators": {
+    "sectionTitle": "Reference Indicators",
     "rate": "Fed Funds Rate",
     "balanceSheet": "Fed Balance Sheet",
     "corePce": "Core PCE YoY",
@@ -26,6 +28,12 @@
     "trimmedPce": "Trimmed Mean PCE (6M)",
     "trimmedPce12m": "Trimmed Mean PCE (12M)",
     "unemployment": "Unemployment Rate",
+    "fiscalDeficitTtm": "Federal Deficit (TTM)",
+    "yoyChange": "YoY",
+    "epuTrade": "Trade Policy Uncertainty",
+    "percentile10y": "10-yr percentile",
+    "smhSpyRelReturn": "SMH−SPY Relative Return (90d)",
+    "semiIpYoy": "Semiconductor IP YoY",
     "dataDate": "Data Date",
     "decisionDate": "FOMC Decision",
     "periodDate": "Reference Period",

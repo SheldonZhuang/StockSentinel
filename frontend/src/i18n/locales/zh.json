@@ -16,9 +16,11 @@
     "aiSupply": "AI供需",
     "loose": "宽松",
     "neutral": "观望",
-    "tight": "收紧"
+    "tight": "收紧",
+    "override": "手动覆盖"
   },
   "indicators": {
+    "sectionTitle": "参考指标",
     "rate": "联邦基金利率",
     "balanceSheet": "美联储资产负债表",
     "corePce": "核心 PCE 同比",
@@ -26,6 +28,12 @@
     "trimmedPce": "截尾均值PCE (6个月)",
     "trimmedPce12m": "截尾均值PCE (12个月)",
     "unemployment": "失业率",
+    "fiscalDeficitTtm": "联邦财政赤字 (滚动12个月)",
+    "yoyChange": "同比",
+    "epuTrade": "贸易政策不确定性指数",
+    "percentile10y": "10年百分位",
+    "smhSpyRelReturn": "SMH−SPY 相对收益 (90天)",
+    "semiIpYoy": "半导体工业产出同比",
     "dataDate": "数据日期",
     "decisionDate": "议息会议决定",
     "periodDate": "数据参考期",

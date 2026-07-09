@@ -46,6 +46,23 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'fred_trimmed_pce_12m_prev REAL',
   'trimmed_pce_12m_period_date TEXT',
   'trimmed_pce_12m_release_date TEXT',
+  'fiscal_auto_signal TEXT',
+  'fiscal_deficit_ttm REAL',
+  'fiscal_deficit_ttm_prev REAL',
+  'fiscal_deficit_change_pct REAL',
+  'fiscal_period_date TEXT',
+  'fiscal_release_date TEXT',
+  'admin_auto_signal TEXT',
+  'epu_trade REAL',
+  'epu_trade_percentile REAL',
+  'epu_trade_period_date TEXT',
+  'ai_supply_auto_signal TEXT',
+  'ai_market_signal TEXT',
+  'ai_fundamental_signal TEXT',
+  'smh_spy_rel_return_pct REAL',
+  'semi_ip_yoy REAL',
+  'semi_ip_period_date TEXT',
+  'semi_ip_release_date TEXT',
 ];
 
 function migrateSchema() {
@@ -119,6 +136,23 @@ function initSchema() {
       fred_trimmed_pce_12m_prev REAL,
       trimmed_pce_12m_period_date TEXT,
       trimmed_pce_12m_release_date TEXT,
+      fiscal_auto_signal TEXT,
+      fiscal_deficit_ttm REAL,
+      fiscal_deficit_ttm_prev REAL,
+      fiscal_deficit_change_pct REAL,
+      fiscal_period_date TEXT,
+      fiscal_release_date TEXT,
+      admin_auto_signal TEXT,
+      epu_trade REAL,
+      epu_trade_percentile REAL,
+      epu_trade_period_date TEXT,
+      ai_supply_auto_signal TEXT,
+      ai_market_signal TEXT,
+      ai_fundamental_signal TEXT,
+      smh_spy_rel_return_pct REAL,
+      semi_ip_yoy REAL,
+      semi_ip_period_date TEXT,
+      semi_ip_release_date TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -231,8 +265,13 @@ export async function saveSignalSnapshot(data) {
      unemployment_period_date, unemployment_release_date,
      fred_core_pce_prev, fred_trimmed_pce_prev, fred_unemployment_prev,
      fred_trimmed_pce_1m, fred_trimmed_pce_1m_prev, trimmed_pce_1m_period_date, trimmed_pce_1m_release_date,
-     fred_trimmed_pce_12m, fred_trimmed_pce_12m_prev, trimmed_pce_12m_period_date, trimmed_pce_12m_release_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     fred_trimmed_pce_12m, fred_trimmed_pce_12m_prev, trimmed_pce_12m_period_date, trimmed_pce_12m_release_date,
+     fiscal_auto_signal, fiscal_deficit_ttm, fiscal_deficit_ttm_prev, fiscal_deficit_change_pct,
+     fiscal_period_date, fiscal_release_date,
+     admin_auto_signal, epu_trade, epu_trade_percentile, epu_trade_period_date,
+     ai_supply_auto_signal, ai_market_signal, ai_fundamental_signal,
+     smh_spy_rel_return_pct, semi_ip_yoy, semi_ip_period_date, semi_ip_release_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -243,6 +282,11 @@ export async function saveSignalSnapshot(data) {
     data.fredCorePcePrev, data.fredTrimmedPcePrev, data.fredUnemploymentPrev,
     data.fredTrimmedPce1m, data.fredTrimmedPce1mPrev, data.trimmedPce1mPeriodDate, data.trimmedPce1mReleaseDate,
     data.fredTrimmedPce12m, data.fredTrimmedPce12mPrev, data.trimmedPce12mPeriodDate, data.trimmedPce12mReleaseDate,
+    data.fiscalAutoSignal, data.fiscalDeficitTtm, data.fiscalDeficitTtmPrev, data.fiscalDeficitChangePct,
+    data.fiscalPeriodDate, data.fiscalReleaseDate,
+    data.adminAutoSignal, data.epuTrade, data.epuTradePercentile, data.epuTradePeriodDate,
+    data.aiSupplyAutoSignal, data.aiMarketSignal, data.aiFundamentalSignal,
+    data.smhSpyRelReturnPct, data.semiIpYoy, data.semiIpPeriodDate, data.semiIpReleaseDate,
   ]);
 }
 

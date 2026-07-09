@@ -1,6 +1,11 @@
 import cfg from '../config/signal.config.js';
 
-const { SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_HIKE_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT } = cfg;
+const {
+  SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_HIKE_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
+  FISCAL_TTM_CHANGE_THRESHOLD_PCT,
+  EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
+  AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
+} = cfg;
 
 /**
  * 根据 FRED 原始数据判定货币信号位
@@ -62,6 +67,64 @@ export function deriveBalanceSheetStatus(current, prev) {
   if (changePct > BALANCE_SHEET_PAUSE_THRESHOLD_PCT) return 'loose'; // QE 扩张
   if (changePct < -BALANCE_SHEET_PAUSE_THRESHOLD_PCT) return 'tight'; // QT 收缩
   return 'neutral'; // 暂停
+}
+
+/**
+ * 财政信号：TTM赤字同比扩大超阈值 → 宽松（财政扩张），收窄超阈值 → 收紧
+ * @param {object} policyData - fetchPolicyData() 返回的对象
+ */
+export function calcFiscalSignal({ deficitTtmChangePct }) {
+  if (deficitTtmChangePct === null || deficitTtmChangePct === undefined) return SIGNAL.NEUTRAL;
+  if (deficitTtmChangePct > FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.LOOSE;
+  if (deficitTtmChangePct < -FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.TIGHT;
+  return SIGNAL.NEUTRAL;
+}
+
+/**
+ * 行政信号：贸易政策不确定性指数近10年百分位 >80 → 收紧，<50 → 宽松
+ */
+export function calcAdminSignal({ epuTradePercentile }) {
+  if (epuTradePercentile === null || epuTradePercentile === undefined) return SIGNAL.NEUTRAL;
+  if (epuTradePercentile > EPU_PERCENTILE_TIGHT) return SIGNAL.TIGHT;
+  if (epuTradePercentile < EPU_PERCENTILE_LOOSE) return SIGNAL.LOOSE;
+  return SIGNAL.NEUTRAL;
+}
+
+/**
+ * AI供需子信号：市场（SMH-SPY相对收益）与基本面（半导体IP同比）
+ */
+export function deriveAiSupplySubSignals({ smhSpyRelReturnPct, semiIpYoy }) {
+  let marketSignal = SIGNAL.NEUTRAL;
+  if (smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined) {
+    if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.LOOSE;
+    else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.TIGHT;
+  }
+
+  let fundamentalSignal = SIGNAL.NEUTRAL;
+  if (semiIpYoy !== null && semiIpYoy !== undefined) {
+    if (semiIpYoy > AI_SEMI_IP_YOY_LOOSE_PCT) fundamentalSignal = SIGNAL.LOOSE;
+    else if (semiIpYoy < AI_SEMI_IP_YOY_TIGHT_PCT) fundamentalSignal = SIGNAL.TIGHT;
+  }
+
+  return { marketSignal, fundamentalSignal };
+}
+
+/**
+ * AI供需信号：两个子信号都有数据时要求一致才定档（不一致 → 观望）；
+ * 只有一边有数据时直接采用该边（数据缺失 ≠ 意见分歧）；全缺失 → 观望
+ */
+export function calcAiSupplySignal(policyData) {
+  const { smhSpyRelReturnPct, semiIpYoy } = policyData;
+  const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
+  const hasMarket = smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined;
+  const hasFundamental = semiIpYoy !== null && semiIpYoy !== undefined;
+
+  if (hasMarket && hasFundamental) {
+    return marketSignal === fundamentalSignal ? marketSignal : SIGNAL.NEUTRAL;
+  }
+  if (hasMarket) return marketSignal;
+  if (hasFundamental) return fundamentalSignal;
+  return SIGNAL.NEUTRAL;
 }
 
 /**

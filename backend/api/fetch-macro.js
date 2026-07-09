@@ -13,7 +13,7 @@ function addDays(dateStr, n) {
   return d.toISOString().slice(0, 10);
 }
 
-async function fetchSeries(seriesId, startDate, apiKey, units = '') {
+export async function fetchSeries(seriesId, startDate, apiKey, units = '') {
   const unitsParam = units ? `&units=${units}` : '';
   const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${startDate}&api_key=${apiKey}&file_type=json&sort_order=desc${unitsParam}`;
   const res = await axios.get(url, { timeout: 15000 });
@@ -24,7 +24,7 @@ async function fetchSeries(seriesId, startDate, apiKey, units = '') {
  * 查询某一期数据的真实首次发布日期（realtime_start）
  * @returns {string|null} 'YYYY-MM-DD'
  */
-async function fetchReleaseDate(seriesId, periodDate, apiKey) {
+export async function fetchReleaseDate(seriesId, periodDate, apiKey) {
   // realtime_end 用 FRED 的"最大实时值" 9999-12-31 表示"截止到最新"，
   // 避免本机时钟与 FRED 服务器时钟存在偏差时被 FRED 判定为"未来日期"而返回 400
   const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${periodDate}&observation_end=${periodDate}&realtime_start=2020-01-01&realtime_end=9999-12-31&api_key=${apiKey}&file_type=json`;
@@ -33,7 +33,7 @@ async function fetchReleaseDate(seriesId, periodDate, apiKey) {
   return obs[0]?.realtime_start || null;
 }
 
-function latestValue(observations) {
+export function latestValue(observations) {
   for (const obs of observations) {
     const v = parseFloat(obs.value);
     if (!isNaN(v)) return v;
@@ -41,7 +41,7 @@ function latestValue(observations) {
   return null;
 }
 
-function latestDate(observations) {
+export function latestDate(observations) {
   for (const obs of observations) {
     const v = parseFloat(obs.value);
     if (!isNaN(v)) return obs.date;
@@ -49,7 +49,7 @@ function latestDate(observations) {
   return null;
 }
 
-function prevValue(observations) {
+export function prevValue(observations) {
   let found = 0;
   for (const obs of observations) {
     const v = parseFloat(obs.value);
