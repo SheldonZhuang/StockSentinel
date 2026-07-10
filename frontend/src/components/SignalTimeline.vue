@@ -60,34 +60,34 @@ onMounted(async () => {
 
 <style scoped>
 .timeline { padding: 0; }
-.title { font-size: 14px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px 0; }
-.empty { font-size: 13px; color: #666; }
+.title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-5); margin: 0 0 16px 0; }
+.empty { font-size: 13px; color: var(--text-4); }
 
 .entries { display: flex; flex-direction: column; }
 .entry { display: flex; gap: 12px; }
 
 .entry-dot-col { display: flex; flex-direction: column; align-items: center; width: 16px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-.dot.big { width: 14px; height: 14px; margin-top: 2px; box-shadow: 0 0 6px rgba(255,255,255,0.35); }
-.dot.attack { background: #4ade80; }
-.dot.neutral { background: #facc15; }
-.dot.defense { background: #f87171; }
-.line { flex: 1; width: 1px; background: #222; min-height: 12px; margin: 2px 0; }
+.dot.big { width: 14px; height: 14px; margin-top: 2px; box-shadow: 0 0 6px var(--highlight); }
+.dot.attack { background: var(--green); }
+.dot.neutral { background: var(--yellow); }
+.dot.defense { background: var(--red); }
+.line { flex: 1; width: 1px; background: var(--border-2); min-height: 12px; margin: 2px 0; }
 
 .change-tag {
   font-size: 10px;
-  color: #facc15;
-  border: 1px solid #4a3d15;
+  color: var(--yellow);
+  border: 1px solid var(--yellow-border);
   border-radius: 4px;
   padding: 0 5px;
   margin-left: 6px;
 }
 
 .entry-content { padding-bottom: 12px; }
-.entry-date { font-size: 11px; color: #555; }
+.entry-date { font-size: 11px; color: var(--text-5); }
 .entry-signal { font-size: 14px; font-weight: 600; margin: 2px 0; }
-.entry-signal.attack { color: #4ade80; }
-.entry-signal.neutral { color: #facc15; }
-.entry-signal.defense { color: #f87171; }
-.entry-detail { font-size: 11px; color: #555; }
+.entry-signal.attack { color: var(--green); }
+.entry-signal.neutral { color: var(--yellow); }
+.entry-signal.defense { color: var(--red); }
+.entry-detail { font-size: 11px; color: var(--text-5); }
 </style>

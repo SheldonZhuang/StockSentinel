@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "Stock Sentinel",
-    "subtitle": "US Stock Attack / Defense Signal"
+    "subtitle": "US Stock Attack / Defense Signal",
+    "theme": "Theme"
   },
   "signal": {
     "attack": "Attack",

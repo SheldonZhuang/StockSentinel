@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "股哨兵",
-    "subtitle": "美股进攻/防守信号"
+    "subtitle": "美股进攻/防守信号",
+    "theme": "主题"
   },
   "signal": {
     "attack": "进攻",

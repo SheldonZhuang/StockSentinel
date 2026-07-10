@@ -1,0 +1,123 @@
+/* 股哨兵主题系统：所有颜色语义 token 集中于此
+   暗色为默认（:root），亮色通过 html[data-theme="light"] 覆盖
+   组件样式一律引用 var(--…)，禁止散落硬编码色值 */
+
+:root {
+  /* 表面 */
+  --bg-body: #0a0a0a;
+  --panel-a: #101010;
+  --panel-b: #0c0c0c;
+  --bg-card: #111;
+  --bg-input: #1a1a1a;
+
+  /* 边框 */
+  --border-1: #1a1a1a;
+  --border-2: #222;
+  --border-3: #333;
+  --border-focus: #555;
+
+  /* 文字（1强 → 5极弱） */
+  --text-1: #eee;
+  --text-2: #ccc;
+  --text-3: #999;
+  --text-4: #666;
+  --text-5: #555;
+
+  /* 状态色：绿=宽松/进攻，黄=中性/观望，红=收紧/防守，蓝=链接/标的 */
+  --green: #4ade80;
+  --green-bg: #173a24;
+  --green-border: #1f4a2c;
+  --yellow: #facc15;
+  --yellow-bg: #2a2a1a;
+  --yellow-border: #4a4215;
+  --red: #f87171;
+  --red-bg: #3a1717;
+  --red-border: #4a1f1f;
+  --blue: #6b9eff;
+  --blue-bg: #0d1a2e;
+  --blue-border: #1e3a5a;
+
+  /* 卡点橙（AI产业链瓶颈高亮） */
+  --amber: #facc15;
+  --amber-bg: #1a140a;
+  --amber-border: #5a3d1e;
+
+  /* 特效 */
+  --glow-green: rgba(74, 222, 128, 0.25);
+  --glow-yellow: rgba(250, 204, 21, 0.2);
+  --glow-red: rgba(248, 113, 113, 0.3);
+  --highlight: rgba(255, 255, 255, 0.1);
+  --grid-line: rgba(107, 158, 255, 0.025);
+  --bg-navbar: rgba(13, 13, 13, 0.75);
+  --bg-body-glow: #10141f;
+  --brand-sub: #4a6fa5;
+}
+
+html[data-theme='light'] {
+  /* 表面 */
+  --bg-body: #f4f5f7;
+  --panel-a: #ffffff;
+  --panel-b: #fafbfc;
+  --bg-card: #f3f4f6;
+  --bg-input: #ffffff;
+
+  /* 边框 */
+  --border-1: #e8eaee;
+  --border-2: #dfe2e8;
+  --border-3: #c9cfd8;
+  --border-focus: #94a3b8;
+
+  /* 文字 */
+  --text-1: #111827;
+  --text-2: #374151;
+  --text-3: #6b7280;
+  --text-4: #9ca3af;
+  --text-5: #adb4bf;
+
+  /* 状态色：亮底上用深色文字保证对比度 */
+  --green: #16a34a;
+  --green-bg: #dcfce7;
+  --green-border: #bbf7d0;
+  --yellow: #b45309;
+  --yellow-bg: #fef3c7;
+  --yellow-border: #fde68a;
+  --red: #dc2626;
+  --red-bg: #fee2e2;
+  --red-border: #fecaca;
+  --blue: #2563eb;
+  --blue-bg: #dbeafe;
+  --blue-border: #bfdbfe;
+
+  --amber: #b45309;
+  --amber-bg: #fff7ed;
+  --amber-border: #fdba74;
+
+  /* 特效：亮色下光晕与纹理减弱 */
+  --glow-green: rgba(22, 163, 74, 0.18);
+  --glow-yellow: rgba(180, 83, 9, 0.15);
+  --glow-red: rgba(220, 38, 38, 0.2);
+  --highlight: rgba(0, 0, 0, 0.05);
+  --grid-line: rgba(37, 99, 235, 0.03);
+  --bg-navbar: rgba(255, 255, 255, 0.8);
+  --bg-body-glow: #e8edf5;
+  --brand-sub: #7d93b8;
+}
+
+/* 全局基础 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    radial-gradient(ellipse 100% 60% at 50% -10%, var(--bg-body-glow) 0%, var(--bg-body) 60%);
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+  background-attachment: fixed;
+  color: var(--text-2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
+  min-height: 100vh;
+  transition: background 0.2s, color 0.2s;
+}
+
+a { text-decoration: none; }

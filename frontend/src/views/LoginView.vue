@@ -66,36 +66,36 @@ async function submit() {
 }
 
 .login-card {
-  background: #0d0d0d;
-  border: 1px solid #222;
+  background: var(--panel-a);
+  border: 1px solid var(--border-2);
   border-radius: 16px;
   padding: 32px;
   width: 100%;
   max-width: 380px;
 }
 
-.app-title { font-size: 20px; color: #eee; margin: 0 0 24px 0; }
+.app-title { font-size: 20px; color: var(--text-1); margin: 0 0 24px 0; }
 
 .login-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; }
-.field label { font-size: 13px; color: #888; }
+.field label { font-size: 13px; color: var(--text-3); }
 .field input {
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: var(--bg-input);
+  border: 1px solid var(--border-3);
   border-radius: 8px;
-  color: #eee;
+  color: var(--text-1);
   padding: 10px 12px;
   font-size: 14px;
 }
-.field input:focus { outline: none; border-color: #555; }
+.field input:focus { outline: none; border-color: var(--border-focus); }
 
-.error { font-size: 13px; color: #f87171; }
+.error { font-size: 13px; color: var(--red); }
 
 .submit-btn {
-  background: #1e3a2f;
-  color: #4ade80;
-  border: 1px solid #2d5a3d;
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
   border-radius: 8px;
   padding: 10px;
   font-size: 15px;
@@ -107,7 +107,7 @@ async function submit() {
 .toggle-btn {
   background: none;
   border: none;
-  color: #6b9eff;
+  color: var(--blue);
   font-size: 13px;
   cursor: pointer;
   padding: 0;

@@ -171,18 +171,18 @@ const groups = computed(() => {
 <style scoped>
 .macro-panel { display: flex; flex-direction: column; gap: 12px; }
 
-.loading { color: #888; font-size: 14px; }
+.loading { color: var(--text-3); font-size: 14px; }
 
 .indicators-section { display: flex; flex-direction: column; gap: 10px; }
-.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin-bottom: 4px; }
+.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-5); margin-bottom: 4px; }
 
 .group-title {
   font-size: 11px;
-  color: #6b9eff;
+  color: var(--blue);
   font-weight: 600;
   margin-top: 6px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--border-1);
 }
 
 .indicator-block { display: flex; flex-direction: column; gap: 2px; }
@@ -194,16 +194,16 @@ const groups = computed(() => {
   font-size: 13px;
 }
 
-.ind-label { color: #888; }
-.ind-value { color: #ccc; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ind-label { color: var(--text-3); }
+.ind-value { color: var(--text-2); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ind-change { font-size: 11px; margin-left: 6px; }
-.ind-change.up { color: #f87171; }
-.ind-change.down { color: #4ade80; }
-.ind-change.flat { color: #facc15; } /* 持平=中性，与观望档位同色 */
+.ind-change.up { color: var(--red); }
+.ind-change.down { color: var(--green); }
+.ind-change.flat { color: var(--yellow); } /* 持平=中性，与观望档位同色 */
 
-.ind-extra { font-size: 11px; color: #888; }
+.ind-extra { font-size: 11px; color: var(--text-3); }
 
-.ind-meta { font-size: 11px; color: #555; display: flex; gap: 4px; flex-wrap: wrap; }
+.ind-meta { font-size: 11px; color: var(--text-5); display: flex; gap: 4px; flex-wrap: wrap; }
 
 .pos-badge {
   font-size: 10px;
@@ -211,7 +211,7 @@ const groups = computed(() => {
   padding: 2px 6px;
   border-radius: 6px;
 }
-.pos-badge.loose { background: #173a24; color: #4ade80; }
-.pos-badge.neutral { background: #2a2a1a; color: #facc15; }
-.pos-badge.tight { background: #3a1717; color: #f87171; }
+.pos-badge.loose { background: var(--green-bg); color: var(--green); }
+.pos-badge.neutral { background: var(--yellow-bg); color: var(--yellow); }
+.pos-badge.tight { background: var(--red-bg); color: var(--red); }
 </style>

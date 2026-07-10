@@ -325,7 +325,12 @@ export async function getLatestSnapshot() {
 
 export async function getSnapshotHistory(limit = 90) {
   await getDb();
-  return all('SELECT * FROM signal_snapshots ORDER BY date DESC, id DESC LIMIT ?', [limit]);
+  // 每天只取最新一条（服务重启会当天多次快照，时间轴按日展示即可）
+  return all(`
+    SELECT * FROM signal_snapshots
+    WHERE id IN (SELECT MAX(id) FROM signal_snapshots GROUP BY date)
+    ORDER BY date DESC LIMIT ?
+  `, [limit]);
 }
 
 // --- Admin Signal Overrides ---

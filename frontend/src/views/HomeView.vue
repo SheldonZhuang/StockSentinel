@@ -53,8 +53,8 @@ onMounted(async () => {
 
 .panel {
   position: relative;
-  background: linear-gradient(180deg, #101010, #0c0c0c);
-  border: 1px solid #1e1e1e;
+  background: linear-gradient(180deg, var(--panel-a), var(--panel-b));
+  border: 1px solid var(--border-2);
   border-radius: 14px;
   padding: 20px;
   overflow: hidden;
@@ -64,7 +64,7 @@ onMounted(async () => {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--highlight), transparent);
 }
 
 .hero-section { padding: 28px 20px; }

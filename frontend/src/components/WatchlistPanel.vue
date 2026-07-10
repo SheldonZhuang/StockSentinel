@@ -133,19 +133,19 @@ onMounted(loadWatchlist);
 .add-row { display: flex; gap: 8px; }
 .add-input {
   flex: 1;
-  background: #111;
-  border: 1px solid #333;
+  background: var(--bg-input);
+  border: 1px solid var(--border-3);
   border-radius: 8px;
-  color: #eee;
+  color: var(--text-1);
   padding: 8px 12px;
   font-size: 14px;
   text-transform: uppercase;
 }
-.add-input:focus { outline: none; border-color: #555; }
+.add-input:focus { outline: none; border-color: var(--border-focus); }
 .add-btn {
-  background: #1e3a2f;
-  color: #4ade80;
-  border: 1px solid #2d5a3d;
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
   border-radius: 8px;
   padding: 8px 16px;
   cursor: pointer;
@@ -154,33 +154,33 @@ onMounted(loadWatchlist);
 .add-btn:disabled { opacity: 0.4; cursor: default; }
 
 .date-range-row { display: flex; align-items: center; gap: 8px; }
-.date-input { background: #111; border: 1px solid #333; border-radius: 6px; color: #ccc; padding: 6px 8px; font-size: 12px; }
-.date-sep { color: #555; }
+.date-input { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-2); padding: 6px 8px; font-size: 12px; }
+.date-sep { color: var(--text-5); }
 
 .presets-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.preset-label { font-size: 12px; color: #666; }
-.preset-btn { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #aaa; padding: 4px 10px; font-size: 12px; cursor: pointer; }
-.preset-btn:hover { border-color: #555; color: #eee; }
+.preset-label { font-size: 12px; color: var(--text-4); }
+.preset-btn { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-3); padding: 4px 10px; font-size: 12px; cursor: pointer; }
+.preset-btn:hover { border-color: var(--border-focus); color: var(--text-1); }
 
-.loading, .empty { font-size: 13px; color: #666; text-align: center; padding: 20px; }
+.loading, .empty { font-size: 13px; color: var(--text-4); text-align: center; padding: 20px; }
 
 .stock-list { display: flex; flex-direction: column; gap: 8px; }
 
 .stock-card {
-  background: #111;
-  border: 1px solid #222;
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
   border-radius: 10px;
   padding: 12px;
 }
 
 .stock-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.stock-symbol { font-weight: 700; font-size: 15px; color: #eee; }
-.stock-name { font-size: 12px; color: #666; flex: 1; }
-.remove-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; padding: 0 4px; margin-left: auto; }
-.remove-btn:hover { color: #f87171; }
+.stock-symbol { font-weight: 700; font-size: 15px; color: var(--text-1); }
+.stock-name { font-size: 12px; color: var(--text-4); flex: 1; }
+.remove-btn { background: none; border: none; color: var(--text-5); cursor: pointer; font-size: 14px; padding: 0 4px; margin-left: auto; }
+.remove-btn:hover { color: var(--red); }
 
 .stock-price { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.price-value { font-size: 18px; font-weight: 600; color: #ddd; font-variant-numeric: tabular-nums; }
+.price-value { font-size: 18px; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
 
 .percentile-badge {
   font-size: 12px;
@@ -188,13 +188,13 @@ onMounted(loadWatchlist);
   padding: 2px 8px;
   border-radius: 6px;
 }
-.percentile-badge.high { background: #3a1717; color: #f87171; }
-.percentile-badge.mid { background: #3a3416; color: #facc15; }
-.percentile-badge.low { background: #173a24; color: #4ade80; }
+.percentile-badge.high { background: var(--red-bg); color: var(--red); }
+.percentile-badge.mid { background: var(--yellow-bg); color: var(--yellow); }
+.percentile-badge.low { background: var(--green-bg); color: var(--green); }
 
 .stock-valuation { display: flex; gap: 16px; }
-.val-item { font-size: 12px; color: #777; }
-.val-item strong { color: #bbb; }
+.val-item { font-size: 12px; color: var(--text-4); }
+.val-item strong { color: var(--text-2); }
 
-.stock-error { font-size: 12px; color: #f87171; }
+.stock-error { font-size: 12px; color: var(--red); }
 </style>
