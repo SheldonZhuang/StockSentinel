@@ -1,7 +1,10 @@
 // 决策树规则、利率/资产负债表阈值
 export default {
-  // 利率判定：单次调整 >= 50bp 视为应对式加息（防守信号）
-  RATE_REACTIVE_HIKE_BP: 50,
+  // 利率判定：单次调整幅度(绝对值) >= 50bp 视为应对式加息/应对式降息（防守信号），方向不限
+  RATE_REACTIVE_ADJUSTMENT_BP: 50,
+
+  // 零利率区间上限：利率目标上限降至此值以下视为"降到底"，是应对式调整锁/萨姆锁的解锁条件之一
+  ZERO_RATE_FLOOR_PCT: 0.25,
 
   // 资产负债表变化阈值：变化幅度 < 0.25% 视为"暂停"（不收缩也不扩张）
   BALANCE_SHEET_PAUSE_THRESHOLD_PCT: 0.25,
@@ -19,10 +22,14 @@ export default {
     TRIMMED_MEAN_PCE: 'PCETRIM6M680SFRBDAL',
     TRIMMED_MEAN_PCE_12M: 'PCETRIM12M159SFRBDAL',
     UNEMPLOYMENT: 'UNRATE',
+    SAHM: 'SAHMREALTIME',           // 萨姆规则实时值（圣路易斯联储官方计算）
     FISCAL_DEFICIT: 'MTSDS133FMS',  // 联邦财政盈余/赤字（月度，百万美元，赤字为负）
     EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度）
     SEMI_IP: 'IPG3344S',            // 半导体及电子元件工业产出指数（月度）
   },
+
+  // 萨姆规则：值 >= 阈值 视为经济进入衰退初期，触发衰退防守锁
+  SAHM_TRIGGER_THRESHOLD: 0.5,
 
   // 财政信号：滚动12月(TTM)赤字总额 vs 一年前TTM，变化超过阈值(%)才判定方向
   // 赤字扩大 > 阈值 → loose（财政扩张），收窄 > 阈值 → tight
