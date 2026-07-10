@@ -247,7 +247,7 @@ const tightDims = computed(() =>
 .dim-badge.neutral { background: var(--yellow-bg); color: var(--yellow); }
 .dim-badge.tight { background: var(--red-bg); color: var(--red); }
 
-.dim-metric { font-size: var(--fs-xs); color: var(--text-4); font-variant-numeric: tabular-nums; }
+.dim-metric { font-size: var(--fs-xs); color: var(--text-4); font-family: var(--font-num); }
 
 @media (max-width: 900px) {
   .dim-cards { grid-template-columns: repeat(2, 1fr); }

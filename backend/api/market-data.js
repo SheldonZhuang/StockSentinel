@@ -8,7 +8,12 @@ const TIINGO_DAILY_URL = sym => `https://api.tiingo.com/tiingo/daily/${sym}/pric
 const TIINGO_IEX_URL = sym => `https://api.tiingo.com/iex/${sym}`;
 const TWELVEDATA_SERIES_URL = 'https://api.twelvedata.com/time_series';
 const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
+// FMP 新版 stable 接口（旧 v3 对2025-08后注册的key已关闭）；免费层250次/天
+const FMP_QUOTE_URL = 'https://financialmodelingprep.com/stable/quote';
+const FMP_RATIOS_URL = 'https://financialmodelingprep.com/stable/ratios-ttm';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10分钟：省备用源配额（TwelveData 8次/分钟最紧）并提速自选股页面
+
+const fmpKey = () => process.env.FMP_API_KEY || process.env.financialmodelingprep_API_KEY;
 // TwelveData 免费层 8次/分钟：全局最小调用间隔，超频会返回 status:error 白白烧掉调用
 const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
@@ -119,6 +124,7 @@ async function quoteFromYahoo(symbol) {
     price: q.regularMarketPrice,
     trailingPE: q.trailingPE ?? null,
     forwardPE: q.forwardPE ?? null,
+    priceToSales: null, // yahoo quote 无P/S，由 FMP ratios 补全
     priceToBook: q.priceToBook ?? null,
     shortName: q.shortName ?? null,
     source: 'yahoo',
@@ -133,7 +139,7 @@ async function quoteFromTiingo(symbol) {
   const price = row?.tngoLast ?? row?.last ?? row?.prevClose ?? null;
   if (price === null || isNaN(price)) return null;
   // 备用源只有价格，估值字段降级为 null
-  return { price, trailingPE: null, forwardPE: null, priceToBook: null, shortName: null, source: 'tiingo' };
+  return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: null, source: 'tiingo' };
 }
 
 async function quoteFromTwelveData(symbol) {
@@ -143,12 +149,46 @@ async function quoteFromTwelveData(symbol) {
   const res = await axios.get(TWELVEDATA_PRICE_URL, { params: { symbol, apikey }, timeout: 15000 });
   const price = parseFloat(res.data?.price);
   if (isNaN(price)) return null;
-  return { price, trailingPE: null, forwardPE: null, priceToBook: null, shortName: null, source: 'twelvedata' };
+  return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: null, source: 'twelvedata' };
+}
+
+async function quoteFromFmp(symbol) {
+  const apikey = fmpKey();
+  if (!apikey) return null;
+  const res = await axios.get(FMP_QUOTE_URL, { params: { symbol, apikey }, timeout: 15000 });
+  const row = Array.isArray(res.data) ? res.data[0] : null;
+  const price = row?.price ?? null;
+  if (price === null || isNaN(price)) return null;
+  return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: row.name ?? null, source: 'fmp' };
 }
 
 /**
- * 实时报价（三层回退 + 10分钟缓存）。备用源只有价格，估值字段为 null
- * @returns {{price, trailingPE, forwardPE, priceToBook, shortName, source}|null}
+ * FMP ratios-ttm 补全估值字段（真实P/E与P/S，个股有效；ETF/指数无财报返回空属正常）
+ * 任一失败静默跳过，不影响价格
+ */
+async function fillFundamentalsFromFmp(symbol, quote) {
+  const apikey = fmpKey();
+  if (!apikey) return quote;
+  if (quote.trailingPE !== null && quote.priceToSales !== null) return quote;
+  try {
+    const res = await axios.get(FMP_RATIOS_URL, { params: { symbol, apikey }, timeout: 15000 });
+    const r = Array.isArray(res.data) ? res.data[0] : null;
+    if (!r) return quote;
+    return {
+      ...quote,
+      trailingPE: quote.trailingPE ?? r.priceToEarningsRatioTTM ?? null,
+      priceToSales: quote.priceToSales ?? r.priceToSalesRatioTTM ?? null,
+      priceToBook: quote.priceToBook ?? r.priceToBookRatioTTM ?? null,
+    };
+  } catch (err) {
+    console.warn(`[market-data] fmp ratios(${symbol}) failed:`, err.message);
+    return quote;
+  }
+}
+
+/**
+ * 实时报价（四层回退 + FMP估值补全 + 10分钟缓存）
+ * @returns {{price, trailingPE, forwardPE, priceToSales, priceToBook, shortName, source}|null}
  */
 export async function getQuote(symbol) {
   const key = `quote:${symbol}`;
@@ -159,12 +199,14 @@ export async function getQuote(symbol) {
     ['yahoo', quoteFromYahoo],
     ['tiingo', quoteFromTiingo],
     ['twelvedata', quoteFromTwelveData],
+    ['fmp', quoteFromFmp],
   ];
   for (const [name, fn] of providers) {
     try {
-      const quote = await fn(symbol);
+      let quote = await fn(symbol);
       if (quote) {
         if (name !== 'yahoo') console.warn(`[market-data] ${symbol} quote via fallback: ${name}`);
+        quote = await fillFundamentalsFromFmp(symbol, quote);
         cacheSet(key, quote);
         return quote;
       }

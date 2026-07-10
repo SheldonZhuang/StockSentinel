@@ -195,7 +195,7 @@ const groups = computed(() => {
 }
 
 .ind-label { color: var(--text-3); font-weight: 500; }
-.ind-value { color: var(--text-2); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ind-value { color: var(--text-2); font-family: var(--font-num); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ind-change { font-size: var(--fs-xs); margin-left: 6px; }
 .ind-change.up { color: var(--red); }
 .ind-change.down { color: var(--green); }

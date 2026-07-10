@@ -178,7 +178,7 @@ onMounted(async () => {
   padding: 0 5px;
 }
 .stage-metrics { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.rel-return { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.rel-return { font-size: var(--fs-sm); font-family: var(--font-num); }
 .rel-return.pos { color: var(--green); }
 .rel-return.neg { color: var(--red); }
 .bottleneck-tag { font-size: var(--fs-xs); color: var(--yellow); }
@@ -215,7 +215,7 @@ onMounted(async () => {
 .bubble-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
 .bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
 .bubble-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
-.bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-family: var(--font-num); }
 .bubble-value.pos { color: var(--green); }
 .bubble-value.neg { color: var(--red); }
 .bubble-value.neutral { color: var(--yellow); }

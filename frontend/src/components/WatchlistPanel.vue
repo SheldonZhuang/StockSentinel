@@ -42,8 +42,11 @@
         <template v-else>
           <div class="stock-price">
             <span class="price-value">${{ stock.currentPrice?.toFixed(2) }}</span>
-            <span class="percentile-badge" :class="percentileClass(stock.pricePercentile)">
-              {{ stock.pricePercentile !== null ? stock.pricePercentile + '%' : '—' }}
+            <span class="pct-group" :title="$t('watchlist.percentileHint')">
+              <span class="pct-label">{{ $t('watchlist.pricePercentile') }}</span>
+              <span class="percentile-badge" :class="percentileClass(stock.pricePercentile)">
+                {{ stock.pricePercentile !== null ? stock.pricePercentile + '%' : '—' }}
+              </span>
             </span>
           </div>
           <div class="stock-valuation">
@@ -180,13 +183,17 @@ onMounted(loadWatchlist);
 .remove-btn:hover { color: var(--red); }
 
 .stock-price { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.price-value { font-size: var(--fs-xl); font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.price-value { font-size: var(--fs-xl); font-weight: 600; color: var(--text-1); font-family: var(--font-num); }
+
+.pct-group { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.pct-label { font-size: var(--fs-xs); color: var(--text-4); }
 
 .percentile-badge {
   font-size: var(--fs-sm);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
+  font-family: var(--font-num);
 }
 .percentile-badge.high { background: var(--red-bg); color: var(--red); }
 .percentile-badge.mid { background: var(--yellow-bg); color: var(--yellow); }
@@ -194,7 +201,7 @@ onMounted(loadWatchlist);
 
 .stock-valuation { display: flex; gap: 16px; }
 .val-item { font-size: var(--fs-sm); color: var(--text-4); }
-.val-item strong { color: var(--text-2); }
+.val-item strong { color: var(--text-2); font-family: var(--font-num); font-weight: 600; }
 
 .stock-error { font-size: var(--fs-sm); color: var(--red); }
 </style>

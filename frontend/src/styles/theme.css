@@ -30,6 +30,9 @@
   --fs-lg: 14px;
   --fs-xl: 18px;
 
+  /* 数字专用字体：全站数值统一用等宽栈，与正文字体明确区分 */
+  --font-num: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
   /* 状态色：绿=宽松/进攻，黄=中性/观望，红=收紧/防守，蓝=链接/标的 */
   --green: #4ade80;
   --green-bg: #173a24;

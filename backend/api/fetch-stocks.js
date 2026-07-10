@@ -27,7 +27,7 @@ export async function fetchStockData(symbol, startDate, endDate) {
     endDate,
     dataPointCount: closes.length,
     currentPE: quote?.trailingPE ?? null,
-    currentPS: quote?.priceToBook ?? null, // yahoo-finance2 用 priceToBook 近似 P/S
+    currentPS: quote?.priceToSales ?? null, // 真实P/S来自FMP ratios-ttm；ETF/指数无财报为null属正常
     trailingPE: quote?.trailingPE ?? null,
     forwardPE: quote?.forwardPE ?? null,
     shortName: quote?.shortName ?? symbol,

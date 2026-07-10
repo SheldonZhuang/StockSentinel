@@ -61,6 +61,7 @@
     "remove": "Remove",
     "empty": "No stocks in watchlist yet",
     "pricePercentile": "Price Percentile",
+    "percentileHint": "Where the current price sits among all closes in the selected range: 99% = near the range high, 10% = near the range low",
     "pe": "P/E Ratio",
     "ps": "P/S Ratio",
     "currentPrice": "Current Price",

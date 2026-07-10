@@ -14,6 +14,8 @@ beforeEach(() => {
   clearMarketDataCache();
   process.env.TIINGO_API_KEY = 'test-tiingo';
   process.env.TWELVEDATA_API_KEY = 'test-td';
+  delete process.env.FMP_API_KEY;
+  delete process.env.financialmodelingprep_API_KEY;
 });
 
 describe('getDailyCloses 三层回退', () => {
@@ -105,7 +107,7 @@ describe('getQuote 三层回退', () => {
     });
     const q = await getQuote('SPY');
     expect(q).toEqual({
-      price: 555.5, trailingPE: 30, forwardPE: 25, priceToBook: 12, shortName: 'SPDR S&P 500', source: 'yahoo',
+      price: 555.5, trailingPE: 30, forwardPE: 25, priceToSales: null, priceToBook: 12, shortName: 'SPDR S&P 500', source: 'yahoo',
     });
   });
 
@@ -133,5 +135,47 @@ describe('getQuote 三层回退', () => {
     yahooFinance.quote.mockRejectedValue(new Error('429'));
     axios.get.mockRejectedValue(new Error('down'));
     expect(await getQuote('SPY')).toBe(null);
+  });
+
+  it('有FMP key时：Tiingo只给价格 → ratios-ttm 补全真实PE/PS', async () => {
+    process.env.FMP_API_KEY = 'test-fmp';
+    yahooFinance.quote.mockRejectedValue(new Error('429'));
+    axios.get.mockImplementation(url => {
+      if (url.includes('tiingo')) return Promise.resolve({ data: [{ tngoLast: 316.2 }] });
+      if (url.includes('ratios-ttm')) {
+        return Promise.resolve({ data: [{ priceToEarningsRatioTTM: 38.1, priceToSalesRatioTTM: 10.3, priceToBookRatioTTM: 43.7 }] });
+      }
+      return Promise.reject(new Error('unexpected'));
+    });
+    const q = await getQuote('AAPL');
+    expect(q.price).toBe(316.2);
+    expect(q.trailingPE).toBeCloseTo(38.1, 5);
+    expect(q.priceToSales).toBeCloseTo(10.3, 5);
+  });
+
+  it('FMP作为第4层价格兜底（stable/quote）', async () => {
+    process.env.FMP_API_KEY = 'test-fmp';
+    yahooFinance.quote.mockRejectedValue(new Error('429'));
+    axios.get.mockImplementation(url => {
+      if (url.includes('tiingo') || url.includes('twelvedata')) return Promise.reject(new Error('down'));
+      if (url.includes('stable/quote')) return Promise.resolve({ data: [{ price: 751.7, name: 'SPDR S&P 500' }] });
+      if (url.includes('ratios-ttm')) return Promise.resolve({ data: [] }); // ETF无财报
+      return Promise.reject(new Error('unexpected'));
+    });
+    const q = await getQuote('SPY');
+    expect(q.price).toBe(751.7);
+    expect(q.source).toBe('fmp');
+    expect(q.trailingPE).toBe(null); // ETF无PE属正常
+  });
+
+  it('无FMP key时不做补全也不调ratios接口', async () => {
+    yahooFinance.quote.mockRejectedValue(new Error('429'));
+    axios.get.mockImplementation(url => {
+      if (url.includes('tiingo')) return Promise.resolve({ data: [{ tngoLast: 100 }] });
+      return Promise.reject(new Error('down'));
+    });
+    const q = await getQuote('AAPL');
+    expect(q.trailingPE).toBe(null);
+    expect(axios.get.mock.calls.every(c => !String(c[0]).includes('ratios-ttm'))).toBe(true);
   });
 });
