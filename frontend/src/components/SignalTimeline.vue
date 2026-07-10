@@ -18,10 +18,10 @@
             {{ signalEmoji(item.final_signal) }} {{ $t(`signal.${item.final_signal}`) }}
           </div>
           <div class="entry-detail">
+            {{ $t('signalPos.aiSupply') }}: {{ $t(`signalPos.${item.ai_supply_signal || 'neutral'}`) }} ·
             {{ $t('signalPos.monetary') }}: {{ $t(`signalPos.${item.monetary_signal}`) }} ·
             {{ $t('signalPos.fiscal') }}: {{ $t(`signalPos.${item.fiscal_signal}`) }} ·
-            {{ $t('signalPos.administrative') }}: {{ $t(`signalPos.${item.admin_signal}`) }} ·
-            {{ $t('signalPos.aiSupply') }}: {{ $t(`signalPos.${item.ai_supply_signal || 'neutral'}`) }}
+            {{ $t('signalPos.administrative') }}: {{ $t(`signalPos.${item.admin_signal}`) }}
           </div>
         </div>
       </div>

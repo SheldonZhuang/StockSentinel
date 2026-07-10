@@ -165,10 +165,11 @@ export function detectSignalChanges(prevSnapshot, current) {
   }
 
   const dims = [
+    // 顺序遵循策略主线"长线看供需，短线看政策"：AI供需 → 货币 → 财政 → 行政
+    ['aiSupply', prevSnapshot.ai_supply_signal, current.aiSupply],
     ['monetary', prevSnapshot.monetary_signal, current.monetary],
     ['fiscal', prevSnapshot.fiscal_signal, current.fiscal],
     ['admin', prevSnapshot.admin_signal, current.admin],
-    ['aiSupply', prevSnapshot.ai_supply_signal, current.aiSupply],
   ];
   for (const [dim, prev, now] of dims) {
     if (prev !== SIGNAL.TIGHT && now === SIGNAL.TIGHT) {
@@ -185,27 +186,28 @@ export function detectSignalChanges(prevSnapshot, current) {
 
 /**
  * 决策树：四个信号位 → 最终进攻/观望/防守
+ * 参数顺序遵循策略主线"长线看供需，短线看政策"：AI供需 → 货币 → 财政 → 行政
  * 进攻 = AND（四全宽松）
  * 防守 = OR（任一收紧）
  * 观望 = 其余
  */
-export function calcFinalSignal(monetary, fiscal, admin, aiSupply) {
+export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
   // 防守：任一收紧
   if (
+    aiSupply === SIGNAL.TIGHT ||
     monetary === SIGNAL.TIGHT ||
     fiscal === SIGNAL.TIGHT ||
-    admin === SIGNAL.TIGHT ||
-    aiSupply === SIGNAL.TIGHT
+    admin === SIGNAL.TIGHT
   ) {
     return FINAL_SIGNAL.DEFENSE;
   }
 
   // 进攻：四全宽松
   if (
+    aiSupply === SIGNAL.LOOSE &&
     monetary === SIGNAL.LOOSE &&
     fiscal === SIGNAL.LOOSE &&
-    admin === SIGNAL.LOOSE &&
-    aiSupply === SIGNAL.LOOSE
+    admin === SIGNAL.LOOSE
   ) {
     return FINAL_SIGNAL.ATTACK;
   }

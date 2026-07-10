@@ -70,14 +70,15 @@ app.get('/api/signal', async (req, res) => {
 
   res.json({
     // 读取时实时重算，避免 override 在 cron 之后变化导致与快照不一致
-    finalSignal: calcFinalSignal(snapshot.monetary_signal, fiscalSignal, adminSignal, aiSupplySignal),
+    finalSignal: calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
+    // 顺序遵循策略主线：长线看供需（AI供需），短线看政策（货币/财政/行政）
+    aiSupplySignal,
+    aiSupplySignalSource: aiSupplyOverride ? 'override' : 'auto',
     monetarySignal: snapshot.monetary_signal,
     fiscalSignal,
     fiscalSignalSource: fiscalOverride ? 'override' : 'auto',
     adminSignal,
     adminSignalSource: adminOverride ? 'override' : 'auto',
-    aiSupplySignal,
-    aiSupplySignalSource: aiSupplyOverride ? 'override' : 'auto',
     indicators: {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
@@ -243,7 +244,7 @@ async function runDailyUpdate() {
   const fiscal = fiscalOverride?.signal || fiscalAuto;
   const admin = adminOverride?.signal || adminAuto;
   const aiSupply = aiSupplyOverride?.signal || aiSupplyAuto;
-  const finalSignal = calcFinalSignal(monetary, fiscal, admin, aiSupply);
+  const finalSignal = calcFinalSignal(aiSupply, monetary, fiscal, admin);
 
   const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
@@ -319,7 +320,7 @@ async function runDailyUpdate() {
     bubbleReasons: JSON.stringify(bubble.reasons),
   });
 
-  console.log(`[cron] Signal updated: monetary=${monetary}, fiscal=${fiscal}, admin=${admin}, aiSupply=${aiSupply} → final=${finalSignal}`);
+  console.log(`[cron] Signal updated: aiSupply=${aiSupply}, monetary=${monetary}, fiscal=${fiscal}, admin=${admin} → final=${finalSignal}`);
 
   // 示警：最终信号变化 / 任一维度转收紧 / 泡沫预警触发（用户策略：任一收紧=立即防守，必须果断）
   const changes = detectSignalChanges(prevSnapshot, {

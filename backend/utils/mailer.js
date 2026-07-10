@@ -43,11 +43,12 @@ export function buildAlertEmail(payload) {
   }
 
   const fmt = (v, suffix = '%') => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}${suffix}`);
+  // 顺序遵循策略主线：长线看供需（AI供需），短线看政策（货币/财政/行政）
   const statusRows = [
+    ['AI供需 AI Supply/Demand', details.aiSupply, details.semiIpYoy !== undefined ? `半导体产出 Semi IP ${fmt(details.semiIpYoy)}` : ''],
     ['货币政策 Monetary', details.monetary],
     ['财政政策 Fiscal', details.fiscal, details.fiscalDeficitChangePct !== undefined ? `赤字TTM同比 Deficit YoY ${fmt(details.fiscalDeficitChangePct)}` : ''],
     ['行政政策 Administrative', details.admin, details.epuTradePercentile !== undefined && details.epuTradePercentile !== null ? `贸易不确定性 EPU P${Number(details.epuTradePercentile).toFixed(0)}` : ''],
-    ['AI供需 AI Supply/Demand', details.aiSupply, details.semiIpYoy !== undefined ? `半导体产出 Semi IP ${fmt(details.semiIpYoy)}` : ''],
   ];
 
   const subject = `股哨兵示警 Stock Sentinel Alert：当前 ${SIGNAL_LABELS[finalSignal] || finalSignal}`;

@@ -9,9 +9,9 @@
         <div class="form-row">
           <label>{{ $t('admin.type') }}</label>
           <select v-model="form.type" class="input">
+            <option value="ai_supply">{{ $t('admin.aiSupply') }}</option>
             <option value="fiscal">{{ $t('admin.fiscal') }}</option>
             <option value="administrative">{{ $t('admin.administrative') }}</option>
-            <option value="ai_supply">{{ $t('admin.aiSupply') }}</option>
           </select>
         </div>
         <div class="form-row">
@@ -40,6 +40,11 @@
       <h3>当前信号位</h3>
       <div v-if="currentSignals" class="current-signals">
         <div class="sig-row">
+          <span>{{ $t('admin.aiSupply') }}</span>
+          <span :class="['sig-badge', currentSignals.aiSupply]">{{ $t(`signalPos.${currentSignals.aiSupply}`) }}</span>
+          <span v-if="currentSignals.aiSupplyMeta?.expires_at" class="expires">到期: {{ currentSignals.aiSupplyMeta.expires_at }}</span>
+        </div>
+        <div class="sig-row">
           <span>{{ $t('admin.fiscal') }}</span>
           <span :class="['sig-badge', currentSignals.fiscal]">{{ $t(`signalPos.${currentSignals.fiscal}`) }}</span>
           <span v-if="currentSignals.fiscalMeta?.expires_at" class="expires">到期: {{ currentSignals.fiscalMeta.expires_at }}</span>
@@ -49,11 +54,6 @@
           <span :class="['sig-badge', currentSignals.administrative]">{{ $t(`signalPos.${currentSignals.administrative}`) }}</span>
           <span v-if="currentSignals.administrativeMeta?.expires_at" class="expires">到期: {{ currentSignals.administrativeMeta.expires_at }}</span>
         </div>
-        <div class="sig-row">
-          <span>{{ $t('admin.aiSupply') }}</span>
-          <span :class="['sig-badge', currentSignals.aiSupply]">{{ $t(`signalPos.${currentSignals.aiSupply}`) }}</span>
-          <span v-if="currentSignals.aiSupplyMeta?.expires_at" class="expires">到期: {{ currentSignals.aiSupplyMeta.expires_at }}</span>
-        </div>
       </div>
     </section>
 
@@ -62,9 +62,9 @@
       <div class="section-header">
         <h3>{{ $t('admin.reference') }}</h3>
         <div class="ref-tabs">
+          <button :class="['tab', refCategory === 'ai_supply' ? 'active' : '']" @click="loadRef('ai_supply')">{{ $t('admin.aiSupply') }}</button>
           <button :class="['tab', refCategory === 'fiscal' ? 'active' : '']" @click="loadRef('fiscal')">{{ $t('admin.fiscal') }}</button>
           <button :class="['tab', refCategory === 'administrative' ? 'active' : '']" @click="loadRef('administrative')">{{ $t('admin.administrative') }}</button>
-          <button :class="['tab', refCategory === 'ai_supply' ? 'active' : '']" @click="loadRef('ai_supply')">{{ $t('admin.aiSupply') }}</button>
         </div>
       </div>
       <div v-if="refLoading" class="loading">{{ $t('signal.loading') }}</div>
@@ -134,14 +134,14 @@
 import { ref, onMounted } from 'vue';
 import { api } from '../api/client.js';
 
-const form = ref({ type: 'fiscal', signal: 'neutral', expiresAt: '', note: '' });
+const form = ref({ type: 'ai_supply', signal: 'neutral', expiresAt: '', note: '' });
 const saving = ref(false);
 const saveMsg = ref('');
 const currentSignals = ref(null);
 const history = ref([]);
 const refDocs = ref([]);
 const refLoading = ref(false);
-const refCategory = ref('fiscal');
+const refCategory = ref('ai_supply');
 
 // 'auto' = 清除手动设定，回到按环节排名自动识别
 const bottleneckStages = ['auto', 'model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
@@ -202,7 +202,7 @@ async function loadRef(category) {
 
 onMounted(async () => {
   await loadData();
-  await loadRef('fiscal');
+  await loadRef('ai_supply');
   currentBottleneck.value = await api.getBottleneck().catch(() => null);
 });
 </script>

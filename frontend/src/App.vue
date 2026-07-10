@@ -3,7 +3,11 @@
     <!-- 导航栏 -->
     <nav class="navbar">
       <router-link to="/" class="nav-brand">
-        📡 <span>{{ $t('app.title') }}</span>
+        📡
+        <span class="brand-text">
+          {{ $t('app.title') }}
+          <span class="brand-sub">STOCK SENTINEL</span>
+        </span>
       </router-link>
       <div class="nav-right">
         <!-- 语言切换 -->
@@ -83,9 +87,15 @@ onMounted(() => auth.init());
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: #0a0a0a;
+  background:
+    linear-gradient(rgba(107, 158, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(107, 158, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(ellipse 100% 60% at 50% -10%, #10141f 0%, #0a0a0a 60%);
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+  background-attachment: fixed;
   color: #e0e0e0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
   min-height: 100vh;
 }
 
@@ -96,7 +106,9 @@ a { text-decoration: none; }
   justify-content: space-between;
   align-items: center;
   padding: 14px 24px;
-  background: #0d0d0d;
+  background: rgba(13, 13, 13, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid #1a1a1a;
   position: sticky;
   top: 0;
@@ -111,6 +123,13 @@ a { text-decoration: none; }
   font-size: 16px;
   font-weight: 700;
   text-decoration: none;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-sub {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: #4a6fa5;
 }
 
 .nav-right {
