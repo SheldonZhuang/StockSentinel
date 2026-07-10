@@ -67,6 +67,8 @@
     "currentPrice": "Current Price",
     "dateRange": "Date Range",
     "presets": "Quick Add",
+    "sortBy": "Sort",
+    "sortSymbol": "A–Z",
     "mag7": "Mag 7",
     "etfs": "Major ETFs"
   },

@@ -67,6 +67,8 @@
     "currentPrice": "当前价格",
     "dateRange": "计算区间",
     "presets": "快速添加",
+    "sortBy": "排序",
+    "sortSymbol": "首字母",
     "mag7": "Mag 7",
     "etfs": "主要 ETF"
   },

@@ -28,11 +28,25 @@
       <button @click="addPreset(ETFS)" class="preset-btn">{{ $t('watchlist.etfs') }}</button>
     </div>
 
+    <!-- 排序 -->
+    <div class="sort-row">
+      <span class="preset-label">{{ $t('watchlist.sortBy') }}:</span>
+      <button
+        v-for="opt in SORT_OPTIONS"
+        :key="opt.key"
+        :class="['preset-btn', 'sort-btn', { active: sortKey === opt.key }]"
+        @click="toggleSort(opt.key)"
+      >
+        {{ $t(opt.label) }}
+        <span v-if="sortKey === opt.key" class="sort-arrow">{{ sortDir === 1 ? '▲' : '▼' }}</span>
+      </button>
+    </div>
+
     <!-- 股票列表 -->
     <div v-if="loading" class="loading">{{ $t('signal.loading') }}</div>
     <div v-else-if="stocks.length === 0" class="empty">{{ $t('watchlist.empty') }}</div>
     <div v-else class="stock-list">
-      <div v-for="stock in stocks" :key="stock.symbol" class="stock-card">
+      <div v-for="stock in sortedStocks" :key="stock.symbol" class="stock-card">
         <div class="stock-header">
           <span class="stock-symbol">{{ stock.symbol }}</span>
           <span class="stock-name" v-if="stock.shortName && stock.shortName !== stock.symbol">{{ stock.shortName }}</span>
@@ -66,15 +80,52 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { api } from '../api/client.js';
 
 const MAG7 = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 const ETFS = ['QQQ', 'SPY'];
 
+// 排序项：首字母 / 价格百分位 / PE / PS
+const SORT_OPTIONS = [
+  { key: 'symbol', label: 'watchlist.sortSymbol' },
+  { key: 'pricePercentile', label: 'watchlist.pricePercentile' },
+  { key: 'currentPE', label: 'watchlist.pe' },
+  { key: 'currentPS', label: 'watchlist.ps' },
+];
+
 const newSymbol = ref('');
 const loading = ref(true);
 const stocks = ref([]);
+const sortKey = ref(null); // null = 添加顺序
+const sortDir = ref(1);    // 1 升序 / -1 降序
+
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = -sortDir.value; // 同键再点切换方向
+  } else {
+    sortKey.value = key;
+    sortDir.value = 1;
+  }
+}
+
+// 无数据(null/—)的条目永远排在最后，不受方向影响
+const sortedStocks = computed(() => {
+  if (!sortKey.value) return stocks.value;
+  const key = sortKey.value;
+  const dir = sortDir.value;
+  return [...stocks.value].sort((a, b) => {
+    const va = a[key];
+    const vb = b[key];
+    const aNull = va === null || va === undefined;
+    const bNull = vb === null || vb === undefined;
+    if (aNull && bNull) return 0;
+    if (aNull) return 1;
+    if (bNull) return -1;
+    if (key === 'symbol') return dir * String(va).localeCompare(String(vb));
+    return dir * (va - vb);
+  });
+});
 
 const today = new Date().toISOString().slice(0, 10);
 const threeYearsAgo = (() => {
@@ -161,6 +212,9 @@ onMounted(loadWatchlist);
 .date-sep { color: var(--text-5); }
 
 .presets-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sort-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sort-btn.active { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
+.sort-arrow { font-size: 9px; margin-left: 2px; }
 .preset-label { font-size: var(--fs-sm); color: var(--text-4); }
 .preset-btn { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-3); padding: 4px 10px; font-size: var(--fs-sm); cursor: pointer; }
 .preset-btn:hover { border-color: var(--border-focus); color: var(--text-1); }
