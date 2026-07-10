@@ -79,18 +79,18 @@ async function submit() {
 .login-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; }
-.field label { font-size: 13px; color: var(--text-3); }
+.field label { font-size: var(--fs-md); color: var(--text-3); }
 .field input {
   background: var(--bg-input);
   border: 1px solid var(--border-3);
   border-radius: 8px;
   color: var(--text-1);
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--fs-lg);
 }
 .field input:focus { outline: none; border-color: var(--border-focus); }
 
-.error { font-size: 13px; color: var(--red); }
+.error { font-size: var(--fs-md); color: var(--red); }
 
 .submit-btn {
   background: var(--green-bg);
@@ -98,7 +98,7 @@ async function submit() {
   border: 1px solid var(--green-border);
   border-radius: 8px;
   padding: 10px;
-  font-size: 15px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   cursor: pointer;
 }
@@ -108,7 +108,7 @@ async function submit() {
   background: none;
   border: none;
   color: var(--blue);
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
   padding: 0;
 }

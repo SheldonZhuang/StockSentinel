@@ -16,12 +16,19 @@
   --border-3: #333;
   --border-focus: #555;
 
-  /* 文字（1强 → 5极弱） */
-  --text-1: #eee;
-  --text-2: #ccc;
-  --text-3: #999;
-  --text-4: #666;
-  --text-5: #555;
+  /* 文字（1强 → 5极弱）。4/5 也须保证在面板底色上可读 */
+  --text-1: #f0f0f0;
+  --text-2: #c8c8c8;
+  --text-3: #9a9a9a;
+  --text-4: #7a7a7a;
+  --text-5: #676767;
+
+  /* 字号阶梯：全站只用这5档（品牌副标9px与Hero大字除外） */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 14px;
+  --fs-xl: 18px;
 
   /* 状态色：绿=宽松/进攻，黄=中性/观望，红=收紧/防守，蓝=链接/标的 */
   --green: #4ade80;
@@ -67,12 +74,12 @@ html[data-theme='light'] {
   --border-3: #c9cfd8;
   --border-focus: #94a3b8;
 
-  /* 文字 */
+  /* 文字：亮底同样保证4/5级可读（此前 #9ca3af/#adb4bf 对比不足） */
   --text-1: #111827;
-  --text-2: #374151;
-  --text-3: #6b7280;
-  --text-4: #9ca3af;
-  --text-5: #adb4bf;
+  --text-2: #333e4f;
+  --text-3: #5b6472;
+  --text-4: #79828f;
+  --text-5: #8b93a0;
 
   /* 状态色：亮底上用深色文字保证对比度 */
   --green: #16a34a;

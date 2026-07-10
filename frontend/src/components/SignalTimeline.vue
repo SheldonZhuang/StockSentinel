@@ -60,8 +60,8 @@ onMounted(async () => {
 
 <style scoped>
 .timeline { padding: 0; }
-.title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-5); margin: 0 0 16px 0; }
-.empty { font-size: 13px; color: var(--text-4); }
+.title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin: 0 0 16px 0; }
+.empty { font-size: var(--fs-md); color: var(--text-4); }
 
 .entries { display: flex; flex-direction: column; }
 .entry { display: flex; gap: 12px; }
@@ -75,7 +75,7 @@ onMounted(async () => {
 .line { flex: 1; width: 1px; background: var(--border-2); min-height: 12px; margin: 2px 0; }
 
 .change-tag {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--yellow);
   border: 1px solid var(--yellow-border);
   border-radius: 4px;
@@ -84,10 +84,10 @@ onMounted(async () => {
 }
 
 .entry-content { padding-bottom: 12px; }
-.entry-date { font-size: 11px; color: var(--text-5); }
-.entry-signal { font-size: 14px; font-weight: 600; margin: 2px 0; }
+.entry-date { font-size: var(--fs-xs); color: var(--text-4); }
+.entry-signal { font-size: var(--fs-lg); font-weight: 600; margin: 2px 0; }
 .entry-signal.attack { color: var(--green); }
 .entry-signal.neutral { color: var(--yellow); }
 .entry-signal.defense { color: var(--red); }
-.entry-detail { font-size: 11px; color: var(--text-5); }
+.entry-detail { font-size: var(--fs-xs); color: var(--text-4); }
 </style>

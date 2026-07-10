@@ -139,12 +139,12 @@ onMounted(() => auth.init());
   border-radius: 6px;
   color: var(--text-3);
   padding: 5px 8px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
 }
 
 .nav-link {
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--text-3);
   transition: color 0.2s;
 }
@@ -156,7 +156,7 @@ onMounted(() => auth.init());
   border-radius: 6px;
   color: var(--text-3);
   padding: 5px 12px;
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
 }
 .nav-btn:hover { border-color: var(--border-focus); color: var(--text-1); }

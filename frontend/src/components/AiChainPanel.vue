@@ -142,10 +142,10 @@ onMounted(async () => {
 .ai-chain-panel { display: flex; flex-direction: column; gap: 12px; }
 
 .section-title {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-5);
+  color: var(--text-4);
   margin-bottom: 4px;
 }
 
@@ -169,23 +169,23 @@ onMounted(async () => {
 }
 
 .stage-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.stage-name { font-size: 13px; color: var(--text-2); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.stage-name { font-size: var(--fs-md); color: var(--text-2); font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .rank-badge {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--yellow);
   border: 1px solid var(--yellow-border);
   border-radius: 4px;
   padding: 0 5px;
 }
 .stage-metrics { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.rel-return { font-size: 12px; font-variant-numeric: tabular-nums; }
+.rel-return { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .rel-return.pos { color: var(--green); }
 .rel-return.neg { color: var(--red); }
-.bottleneck-tag { font-size: 11px; color: var(--yellow); }
+.bottleneck-tag { font-size: var(--fs-xs); color: var(--yellow); }
 
 .stage-tickers { display: flex; flex-wrap: wrap; gap: 6px; }
 .ticker-chip {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--blue);
   background: var(--blue-bg);
   border: 1px solid var(--blue-border);
@@ -193,7 +193,7 @@ onMounted(async () => {
   padding: 2px 8px;
 }
 
-.stage-arrow { text-align: center; color: var(--text-5); font-size: 14px; }
+.stage-arrow { text-align: center; color: var(--text-5); font-size: var(--fs-lg); }
 
 .bubble-monitor {
   background: var(--bg-card);
@@ -204,9 +204,9 @@ onMounted(async () => {
   flex-direction: column;
   gap: 8px;
 }
-.bubble-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-5); }
+.bubble-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); }
 .bubble-alert {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--red);
   background: var(--red-bg);
   border-radius: 6px;
@@ -214,10 +214,10 @@ onMounted(async () => {
 }
 .bubble-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
 .bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
-.bubble-label { font-size: 11px; color: var(--text-3); }
-.bubble-value { font-size: 14px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.bubble-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+.bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-variant-numeric: tabular-nums; }
 .bubble-value.pos { color: var(--green); }
 .bubble-value.neg { color: var(--red); }
 .bubble-value.neutral { color: var(--yellow); }
-.bubble-source { font-size: 10px; color: var(--text-5); }
+.bubble-source { font-size: var(--fs-xs); color: var(--text-4); }
 </style>

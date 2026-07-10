@@ -135,7 +135,7 @@ const tightDims = computed(() =>
 
 <style scoped>
 .signal-hero { display: flex; flex-direction: column; gap: 16px; }
-.loading { color: var(--text-3); font-size: 14px; }
+.loading { color: var(--text-3); font-size: var(--fs-lg); }
 
 .hero-main { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
@@ -153,7 +153,7 @@ const tightDims = computed(() =>
   transition: all 0.3s ease;
 }
 .hero-badge .hero-emoji { font-size: 20px; }
-.hero-badge .hero-label { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+.hero-badge .hero-label { font-size: var(--fs-xl); font-weight: 700; letter-spacing: 0.02em; }
 
 .hero-badge.active { opacity: 1; transform: scale(1.08); }
 .hero-badge.attack { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
@@ -171,11 +171,11 @@ const tightDims = computed(() =>
   50% { box-shadow: 0 0 48px var(--glow-red); }
 }
 
-.hero-date { font-size: 12px; color: var(--text-4); }
+.hero-date { font-size: var(--fs-sm); color: var(--text-4); }
 
 .bubble-banner {
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--red);
   background: var(--red-bg);
   border: 1px solid var(--red-border);
@@ -190,8 +190,8 @@ const tightDims = computed(() =>
   align-items: center;
 }
 .interpret-block { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 6px 12px; }
-.interpret-label { font-size: 12px; color: var(--text-3); }
-.interpret-item { font-size: 12px; }
+.interpret-label { font-size: var(--fs-sm); color: var(--text-3); }
+.interpret-item { font-size: var(--fs-sm); }
 .interpret-item.tight { color: var(--red); }
 .interpret-item.loose { color: var(--green); }
 .interpret-item.pending { color: var(--yellow); }
@@ -226,9 +226,9 @@ const tightDims = computed(() =>
 .dim-card.loose { border-color: var(--green-bg); }
 
 .dim-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-.dim-name { font-size: 12px; color: var(--text-3); font-weight: 600; }
+.dim-name { font-size: var(--fs-sm); color: var(--text-3); font-weight: 600; }
 .dim-source {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   color: var(--text-4);
   border: 1px solid var(--border-3);
   border-radius: 4px;
@@ -238,7 +238,7 @@ const tightDims = computed(() =>
 
 .dim-badge {
   align-self: flex-start;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 6px;
@@ -247,7 +247,7 @@ const tightDims = computed(() =>
 .dim-badge.neutral { background: var(--yellow-bg); color: var(--yellow); }
 .dim-badge.tight { background: var(--red-bg); color: var(--red); }
 
-.dim-metric { font-size: 11px; color: var(--text-4); font-variant-numeric: tabular-nums; }
+.dim-metric { font-size: var(--fs-xs); color: var(--text-4); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 900px) {
   .dim-cards { grid-template-columns: repeat(2, 1fr); }
@@ -255,6 +255,6 @@ const tightDims = computed(() =>
 @media (max-width: 600px) {
   .dim-cards { grid-template-columns: 1fr; }
   .hero-badge { padding: 10px 18px; }
-  .hero-badge .hero-label { font-size: 15px; }
+  .hero-badge .hero-label { font-size: var(--fs-lg); }
 }
 </style>

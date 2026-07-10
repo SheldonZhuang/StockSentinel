@@ -138,7 +138,7 @@ onMounted(loadWatchlist);
   border-radius: 8px;
   color: var(--text-1);
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   text-transform: uppercase;
 }
 .add-input:focus { outline: none; border-color: var(--border-focus); }
@@ -154,15 +154,15 @@ onMounted(loadWatchlist);
 .add-btn:disabled { opacity: 0.4; cursor: default; }
 
 .date-range-row { display: flex; align-items: center; gap: 8px; }
-.date-input { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-2); padding: 6px 8px; font-size: 12px; }
+.date-input { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-2); padding: 6px 8px; font-size: var(--fs-sm); }
 .date-sep { color: var(--text-5); }
 
 .presets-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.preset-label { font-size: 12px; color: var(--text-4); }
-.preset-btn { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-3); padding: 4px 10px; font-size: 12px; cursor: pointer; }
+.preset-label { font-size: var(--fs-sm); color: var(--text-4); }
+.preset-btn { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-3); padding: 4px 10px; font-size: var(--fs-sm); cursor: pointer; }
 .preset-btn:hover { border-color: var(--border-focus); color: var(--text-1); }
 
-.loading, .empty { font-size: 13px; color: var(--text-4); text-align: center; padding: 20px; }
+.loading, .empty { font-size: var(--fs-md); color: var(--text-4); text-align: center; padding: 20px; }
 
 .stock-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -174,16 +174,16 @@ onMounted(loadWatchlist);
 }
 
 .stock-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.stock-symbol { font-weight: 700; font-size: 15px; color: var(--text-1); }
-.stock-name { font-size: 12px; color: var(--text-4); flex: 1; }
-.remove-btn { background: none; border: none; color: var(--text-5); cursor: pointer; font-size: 14px; padding: 0 4px; margin-left: auto; }
+.stock-symbol { font-weight: 700; font-size: var(--fs-lg); color: var(--text-1); }
+.stock-name { font-size: var(--fs-sm); color: var(--text-4); flex: 1; }
+.remove-btn { background: none; border: none; color: var(--text-5); cursor: pointer; font-size: var(--fs-lg); padding: 0 4px; margin-left: auto; }
 .remove-btn:hover { color: var(--red); }
 
 .stock-price { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.price-value { font-size: 18px; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+.price-value { font-size: var(--fs-xl); font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
 
 .percentile-badge {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
@@ -193,8 +193,8 @@ onMounted(loadWatchlist);
 .percentile-badge.low { background: var(--green-bg); color: var(--green); }
 
 .stock-valuation { display: flex; gap: 16px; }
-.val-item { font-size: 12px; color: var(--text-4); }
+.val-item { font-size: var(--fs-sm); color: var(--text-4); }
 .val-item strong { color: var(--text-2); }
 
-.stock-error { font-size: 12px; color: var(--red); }
+.stock-error { font-size: var(--fs-sm); color: var(--red); }
 </style>

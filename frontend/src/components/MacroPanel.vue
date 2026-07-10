@@ -171,13 +171,13 @@ const groups = computed(() => {
 <style scoped>
 .macro-panel { display: flex; flex-direction: column; gap: 12px; }
 
-.loading { color: var(--text-3); font-size: 14px; }
+.loading { color: var(--text-3); font-size: var(--fs-lg); }
 
 .indicators-section { display: flex; flex-direction: column; gap: 10px; }
-.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-5); margin-bottom: 4px; }
+.section-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 4px; }
 
 .group-title {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--blue);
   font-weight: 600;
   margin-top: 6px;
@@ -191,22 +191,22 @@ const groups = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
-.ind-label { color: var(--text-3); }
+.ind-label { color: var(--text-3); font-weight: 500; }
 .ind-value { color: var(--text-2); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.ind-change { font-size: 11px; margin-left: 6px; }
+.ind-change { font-size: var(--fs-xs); margin-left: 6px; }
 .ind-change.up { color: var(--red); }
 .ind-change.down { color: var(--green); }
 .ind-change.flat { color: var(--yellow); } /* 持平=中性，与观望档位同色 */
 
-.ind-extra { font-size: 11px; color: var(--text-3); }
+.ind-extra { font-size: var(--fs-xs); color: var(--text-3); }
 
-.ind-meta { font-size: 11px; color: var(--text-5); display: flex; gap: 4px; flex-wrap: wrap; }
+.ind-meta { font-size: var(--fs-xs); color: var(--text-4); display: flex; gap: 4px; flex-wrap: wrap; }
 
 .pos-badge {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 6px;
