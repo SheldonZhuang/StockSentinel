@@ -7,9 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/stock-sentinel.db');
 
 let db = null;
+let dbInitPromise = null;
 
 async function getDb() {
   if (db) return db;
+  // 缓存初始化 Promise：并发首次调用共享同一次初始化，避免双 Database 实例互相覆盖落盘数据
+  dbInitPromise ??= initDb();
+  return dbInitPromise;
+}
+
+async function initDb() {
   const SQL = await initSqlJs();
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
@@ -95,7 +102,10 @@ function persist() {
   if (!db) return;
   const data = db.export();
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
+  // 先写临时文件再原子改名：进程在写入中途被杀不会留下截断的 db 文件
+  const tmpPath = `${DB_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, Buffer.from(data));
+  fs.renameSync(tmpPath, DB_PATH);
 }
 
 function initSchema() {
@@ -365,7 +375,7 @@ export async function getActiveAdminSignal(type) {
     SELECT * FROM admin_signal_overrides
     WHERE type = ?
     AND (expires_at IS NULL OR expires_at > datetime('now'))
-    ORDER BY created_at DESC LIMIT 1
+    ORDER BY created_at DESC, id DESC LIMIT 1
   `, [type]);
 }
 

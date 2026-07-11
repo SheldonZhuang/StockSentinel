@@ -16,6 +16,11 @@ const routes = [
     component: () => import('./views/AdminView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
   },
+  {
+    // 未知路径回首页，避免只剩导航栏的空白页
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  },
 ];
 
 const router = createRouter({

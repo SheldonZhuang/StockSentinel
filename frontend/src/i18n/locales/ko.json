@@ -1,16 +1,193 @@
 {
-  "app": { "title": "스톡 센티넬", "subtitle": "미국 주식 공격/방어 신호", "theme": "테마" },
-  "signal": { "attack": "공격", "neutral": "관망", "defense": "방어", "loading": "로딩 중..." },
-  "signalPos": { "monetary": "통화 정책", "fiscal": "재정 정책", "administrative": "행정 정책", "aiSupply": "AI 수급", "loose": "완화", "neutral": "관망", "tight": "긴축", "override": "수동 설정" },
-  "indicators": { "sectionTitle": "참고 지표", "rate": "FF 금리", "balanceSheet": "연준 대차대조표", "corePce": "핵심 PCE 전년비", "trimmedPce1m": "트리밍 PCE (1개월)", "trimmedPce": "트리밍 PCE (6개월)", "trimmedPce12m": "트리밍 PCE (12개월)", "unemployment": "실업률", "sahm": "삼 법칙", "fiscalDeficitTtm": "연방 재정적자 (최근 12개월)", "yoyChange": "전년비", "epuTrade": "무역정책 불확실성 지수", "percentile10y": "10년 백분위", "smhSpyRelReturn": "SMH−SPY 상대 수익률 (90일)", "semiIpYoy": "반도체 산업생산 전년비", "dataDate": "데이터 날짜", "decisionDate": "FOMC 결정일", "periodDate": "데이터 참조 기간", "releaseDate": "발표일", "unit": { "rate": "%", "balanceSheet": "억 달러", "pce": "%", "unemployment": "%", "sahm": "%" }, "bsStatus": { "loose": "QE 확대", "neutral": "일시정지·보합", "tight": "QT 축소" }, "trendUp": "상승", "trendFlat": "보합", "trendDown": "하락" },
-  "watchlist": { "title": "관심 종목", "addPlaceholder": "종목 코드 입력, 예: AAPL", "add": "추가", "remove": "삭제", "empty": "관심 종목이 없습니다", "pricePercentile": "가격 백분위", "percentileHint": "선택 기간 전체 종가 중 현재 가격의 위치: 99% = 기간 고점 부근, 10% = 기간 저점 부근", "pe": "PER", "ps": "PSR", "valuationHint": "ETF/지수는 재무제표가 없어 PER·PSR 공란은 정상입니다. 개별 종목의 공란은 대부분 데이터 소스의 일시적 제한으로, 나중에 새로고침하면 복구됩니다", "currentPrice": "현재 가격", "dateRange": "기간", "presets": "빠른 추가", "sortBy": "정렬", "sortSymbol": "A–Z", "mag7": "Mag 7", "etfs": "주요 ETF" },
-  "timeline": { "title": "신호 히스토리", "noHistory": "히스토리 없음", "changed": "신호 변경" },
-  "interpret": { "title": "신호 해석", "triggers": "방어 트리거:", "toAttack": "공격 조건까지 (4개 모두 완화):", "allLoose": "4개 차원 모두 완화 — 공격 조건 충족" },
-  "auth": { "login": "로그인", "register": "회원가입", "logout": "로그아웃", "email": "이메일", "password": "비밀번호", "loginTitle": "로그인", "registerTitle": "계정 만들기", "noAccount": "계정 없음? 가입", "hasAccount": "계정 있음? 로그인", "loginSuccess": "로그인 성공", "registerSuccess": "회원가입 성공" },
-  "admin": { "title": "관리자 패널", "setSignal": "신호 설정", "type": "유형", "signal": "신호", "expiresAt": "만료일", "note": "메모", "save": "저장", "reference": "참고 자료", "fiscal": "재정", "administrative": "행정", "aiSupply": "AI 수급", "history": "히스토리", "refresh": "새로고침", "bottleneck": "현재 병목 단계", "bottleneckStage": "단계", "bottleneckSave": "단계 저장", "bottleneckAuto": "자동 감지 (랭킹 기준)", "clearLock": "잠금 해제", "clearSahmLock": "삼 법칙 잠금 해제", "clearReactiveLock": "대응적 조정 잠금 해제", "lockOverrideNote": "긴급 밸브: 데이터 이상으로 오작동 시 수동 해제" },
-  "settings": { "title": "설정", "emailAlerts": "이메일 알림", "emailAlertsDesc": "신호 변경 시 이메일 받기" },
-  "lang": { "switch": "언어", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
-  "error": { "fetchFailed": "로딩 실패, 캐시 데이터 표시", "loginFailed": "이메일 또는 비밀번호가 잘못됨", "registerFailed": "회원가입 실패" },
-  "aiChain": { "title": "AI 산업 체인 자금 흐름", "currentBottleneck": "현재 병목 단계", "sourceAuto": "자동 감지", "sourceManual": "수동 설정", "relReturnLabel": "30일 vs SPY", "bubbleTitle": "버블 모니터", "modelUsageTrend": "모델 사용량 추세 (7일/28일)", "capexYoY": "클라우드 설비투자 (최근 4분기)", "capexAmount": "{yi}억 달러", "semiIpYoy": "반도체 생산 전년비", "bubbleWarning": "버블 경고: AI 수요 지표 약화, 방어 고려", "noData": "데이터 없음", "stages": { "model": "AI 대형 모델", "cloud": "클라우드 제공업체", "chip": "AI 칩", "memory": "메모리 / 광모듈", "packaging": "장비 / 패키징 / 테스트", "power": "전력 에너지" } },
-  "recessionLock": { "banner": "방어 잠금 활성화", "sahmReason": "삼 법칙 {value}（기준 ≥0.5）", "reactiveReason": "대응적 금리 조정 {bp}bp", "waitCondition": "금리가 0-0.25%에 도달하거나 소폭 조정으로 잠금이 해제될 때까지 대기 중", "overridden": "관리자에 의해 수동으로 해제됨" }
+  "app": {
+    "title": "스톡 센티넬",
+    "subtitle": "미국 주식 공격/방어 신호",
+    "theme": "테마"
+  },
+  "signal": {
+    "attack": "공격",
+    "neutral": "관망",
+    "defense": "방어",
+    "loading": "로딩 중..."
+  },
+  "signalPos": {
+    "monetary": "통화 정책",
+    "fiscal": "재정 정책",
+    "administrative": "행정 정책",
+    "aiSupply": "AI 수급",
+    "loose": "완화",
+    "neutral": "관망",
+    "tight": "긴축",
+    "override": "수동 설정"
+  },
+  "indicators": {
+    "sectionTitle": "참고 지표",
+    "rate": "FF 금리",
+    "balanceSheet": "연준 대차대조표",
+    "corePce": "핵심 PCE 전년비",
+    "trimmedPce1m": "트리밍 PCE (1개월)",
+    "trimmedPce": "트리밍 PCE (6개월)",
+    "trimmedPce12m": "트리밍 PCE (12개월)",
+    "unemployment": "실업률",
+    "sahm": "삼 법칙",
+    "fiscalDeficitTtm": "연방 재정적자 (최근 12개월)",
+    "yoyChange": "전년비",
+    "epuTrade": "무역정책 불확실성 지수",
+    "percentile10y": "10년 백분위",
+    "smhSpyRelReturn": "SMH−SPY 상대 수익률 (90일)",
+    "semiIpYoy": "반도체 산업생산 전년비",
+    "dataDate": "데이터 날짜",
+    "decisionDate": "FOMC 결정일",
+    "periodDate": "데이터 참조 기간",
+    "releaseDate": "발표일",
+    "unit": {
+      "rate": "%",
+      "balanceSheet": "억 달러",
+      "pce": "%",
+      "unemployment": "%",
+      "sahm": "%"
+    },
+    "bsStatus": {
+      "loose": "QE 확대",
+      "neutral": "일시정지·보합",
+      "tight": "QT 축소"
+    },
+    "trendUp": "상승",
+    "trendFlat": "보합",
+    "trendDown": "하락"
+  },
+  "watchlist": {
+    "title": "관심 종목",
+    "addPlaceholder": "종목 코드 입력, 예: AAPL",
+    "add": "추가",
+    "remove": "삭제",
+    "empty": "관심 종목이 없습니다",
+    "pricePercentile": "가격 백분위",
+    "percentileHint": "선택 기간 전체 종가 중 현재 가격의 위치: 99% = 기간 고점 부근, 10% = 기간 저점 부근",
+    "pe": "PER",
+    "ps": "PSR",
+    "valuationHint": "ETF/지수는 재무제표가 없어 PER·PSR 공란은 정상입니다. 개별 종목의 공란은 대부분 데이터 소스의 일시적 제한으로, 나중에 새로고침하면 복구됩니다",
+    "currentPrice": "현재 가격",
+    "dateRange": "기간",
+    "presets": "빠른 추가",
+    "sortBy": "정렬",
+    "sortSymbol": "A–Z",
+    "mag7": "Mag 7",
+    "etfs": "주요 ETF"
+  },
+  "timeline": {
+    "title": "신호 히스토리",
+    "noHistory": "히스토리 없음",
+    "changed": "신호 변경"
+  },
+  "interpret": {
+    "title": "신호 해석",
+    "triggers": "방어 트리거:",
+    "toAttack": "공격 조건까지 (4개 모두 완화):",
+    "allLoose": "4개 차원 모두 완화 — 공격 조건 충족"
+  },
+  "auth": {
+    "login": "로그인",
+    "register": "회원가입",
+    "logout": "로그아웃",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginTitle": "로그인",
+    "registerTitle": "계정 만들기",
+    "noAccount": "계정 없음? 가입",
+    "hasAccount": "계정 있음? 로그인",
+    "loginSuccess": "로그인 성공",
+    "registerSuccess": "회원가입 성공"
+  },
+  "admin": {
+    "title": "관리자 패널",
+    "setSignal": "신호 설정",
+    "type": "유형",
+    "signal": "신호",
+    "expiresAt": "만료일",
+    "note": "메모",
+    "save": "저장",
+    "reference": "참고 자료",
+    "fiscal": "재정",
+    "administrative": "행정",
+    "aiSupply": "AI 수급",
+    "history": "히스토리",
+    "refresh": "새로고침",
+    "bottleneck": "현재 병목 단계",
+    "bottleneckStage": "단계",
+    "bottleneckSave": "단계 저장",
+    "bottleneckAuto": "자동 감지 (랭킹 기준)",
+    "clearLock": "잠금 해제",
+    "clearSahmLock": "삼 법칙 잠금 해제",
+    "clearReactiveLock": "대응적 조정 잠금 해제",
+    "lockOverrideNote": "긴급 밸브: 데이터 이상으로 오작동 시 수동 해제",
+    "currentSignals": "현재 신호",
+    "expiresLabel": "만료",
+    "noData": "데이터 없음",
+    "noRecords": "기록 없음",
+    "colType": "유형",
+    "colSignal": "단계",
+    "colExpires": "유효 기간",
+    "colNote": "메모",
+    "colTime": "시간",
+    "savedMsg": "✓ 저장됨",
+    "clearedMsg": "✓ 해제됨",
+    "typeNames": {
+      "fiscal": "재정",
+      "administrative": "행정",
+      "ai_supply": "AI 수급",
+      "sahmLock": "삼 룰 잠금",
+      "reactiveAdjustmentLock": "대응형 조정 잠금"
+    },
+    "signalCleared": "해제됨"
+  },
+  "settings": {
+    "title": "설정",
+    "emailAlerts": "이메일 알림",
+    "emailAlertsDesc": "신호 변경 시 이메일 받기"
+  },
+  "lang": {
+    "switch": "언어",
+    "zh": "中文",
+    "en": "English",
+    "fr": "Français",
+    "de": "Deutsch",
+    "es": "Español",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "error": {
+    "fetchFailed": "로딩 실패, 캐시 데이터 표시",
+    "loginFailed": "이메일 또는 비밀번호가 잘못됨",
+    "registerFailed": "회원가입 실패"
+  },
+  "aiChain": {
+    "title": "AI 산업 체인 자금 흐름",
+    "currentBottleneck": "현재 병목 단계",
+    "sourceAuto": "자동 감지",
+    "sourceManual": "수동 설정",
+    "relReturnLabel": "30일 vs SPY",
+    "bubbleTitle": "버블 모니터",
+    "modelUsageTrend": "모델 사용량 추세 (7일/28일)",
+    "capexYoY": "클라우드 설비투자 (최근 4분기)",
+    "capexAmount": "{yi}억 달러",
+    "semiIpYoy": "반도체 생산 전년비",
+    "bubbleWarning": "버블 경고: AI 수요 지표 약화, 방어 고려",
+    "noData": "데이터 없음",
+    "stages": {
+      "model": "AI 대형 모델",
+      "cloud": "클라우드 제공업체",
+      "chip": "AI 칩",
+      "memory": "메모리 / 광모듈",
+      "packaging": "장비 / 패키징 / 테스트",
+      "power": "전력 에너지"
+    }
+  },
+  "recessionLock": {
+    "banner": "방어 잠금 활성화",
+    "sahmReason": "삼 법칙 {value}（기준 ≥0.5）",
+    "reactiveReason": "대응적 금리 조정 {bp}bp",
+    "waitCondition": "금리가 0-0.25%에 도달하거나 소폭 조정으로 잠금이 해제될 때까지 대기 중",
+    "overridden": "관리자에 의해 수동으로 해제됨"
+  }
 }

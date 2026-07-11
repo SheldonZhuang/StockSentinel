@@ -137,14 +137,19 @@ const threeYearsAgo = (() => {
 const startDate = ref(threeYearsAgo);
 const endDate = ref(today);
 
+let loadSeq = 0;
 async function loadWatchlist() {
+  // 请求序号防竞态：改日期触发的并发请求中，只有最后一次的响应允许落地
+  const seq = ++loadSeq;
   loading.value = true;
   try {
-    stocks.value = await api.getWatchlist(startDate.value, endDate.value);
+    const data = await api.getWatchlist(startDate.value, endDate.value);
+    if (seq !== loadSeq) return;
+    stocks.value = data;
   } catch (e) {
     console.error('Watchlist load failed', e);
   } finally {
-    loading.value = false;
+    if (seq === loadSeq) loading.value = false;
   }
 }
 
@@ -161,8 +166,12 @@ async function addStock() {
 }
 
 async function removeStock(symbol) {
-  await api.removeFromWatchlist(symbol);
-  stocks.value = stocks.value.filter(s => s.symbol !== symbol);
+  try {
+    await api.removeFromWatchlist(symbol);
+    stocks.value = stocks.value.filter(s => s.symbol !== symbol);
+  } catch (e) {
+    alert(e.message);
+  }
 }
 
 async function addPreset(symbols) {

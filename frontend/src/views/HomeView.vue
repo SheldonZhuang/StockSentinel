@@ -41,7 +41,9 @@ const signal = ref(null);
 
 onMounted(async () => {
   try {
-    signal.value = await api.getSignal();
+    const res = await api.getSignal();
+    // 后端无快照时返回 {status:'loading'}（HTTP 200），视同加载中，否则维度卡会渲染出 undefined 的 i18n key
+    signal.value = res?.finalSignal ? res : null;
   } catch (e) {
     console.error('Failed to load signal', e);
   }

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createUser, getUserByEmail } from '../utils/storage.js';
+import { asyncRoute } from '../utils/async-route.js';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -15,9 +16,12 @@ function signToken(user) {
 }
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', asyncRoute(async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  // 必须校验类型：非字符串 password 会让 bcrypt.hash 抛错
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    return res.status(400).json({ error: 'email and password required' });
+  }
   if (password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
 
   const existing = await getUserByEmail(email);
@@ -27,12 +31,14 @@ router.post('/register', async (req, res) => {
   const user = await createUser(email, hash);
   const token = signToken(user);
   res.json({ token, user: { id: user.id, email: user.email } });
-});
+}));
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', asyncRoute(async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    return res.status(400).json({ error: 'email and password required' });
+  }
 
   const user = await getUserByEmail(email);
   if (!user) return res.status(401).json({ error: 'invalid credentials' });
@@ -42,12 +48,12 @@ router.post('/login', async (req, res) => {
 
   const token = signToken(user);
   res.json({ token, user: { id: user.id, email: user.email } });
-});
+}));
 
 // GET /api/auth/me  (需要 JWT 中间件)
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me', requireAuth, asyncRoute(async (req, res) => {
   res.json({ id: req.user.id, email: req.user.email });
-});
+}));
 
 // --- JWT 中间件 ---
 export function requireAuth(req, res, next) {

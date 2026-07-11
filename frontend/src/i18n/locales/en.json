@@ -127,7 +127,26 @@
     "clearLock": "Clear Lock",
     "clearSahmLock": "Clear Sahm Lock",
     "clearReactiveLock": "Clear Reactive Adjustment Lock",
-    "lockOverrideNote": "Emergency valve: manually clear if data anomaly caused a false trigger"
+    "lockOverrideNote": "Emergency valve: manually clear if data anomaly caused a false trigger",
+    "currentSignals": "Current Signals",
+    "expiresLabel": "Expires",
+    "noData": "No data",
+    "noRecords": "No records",
+    "colType": "Type",
+    "colSignal": "Level",
+    "colExpires": "Valid Until",
+    "colNote": "Note",
+    "colTime": "Time",
+    "savedMsg": "✓ Saved",
+    "clearedMsg": "✓ Cleared",
+    "typeNames": {
+      "fiscal": "Fiscal",
+      "administrative": "Administrative",
+      "ai_supply": "AI Supply",
+      "sahmLock": "Sahm Lock",
+      "reactiveAdjustmentLock": "Reactive Adjustment Lock"
+    },
+    "signalCleared": "Cleared"
   },
   "settings": {
     "title": "Settings",

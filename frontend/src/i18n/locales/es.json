@@ -1,16 +1,193 @@
 {
-  "app": { "title": "Stock Sentinel", "subtitle": "Señal Ataque/Defensa Acciones EEUU", "theme": "Tema" },
-  "signal": { "attack": "Ataque", "neutral": "Observar", "defense": "Defensa", "loading": "Cargando..." },
-  "signalPos": { "monetary": "Política Monetaria", "fiscal": "Política Fiscal", "administrative": "Política Administrativa", "aiSupply": "Oferta/Demanda IA", "loose": "Expansivo", "neutral": "Observar", "tight": "Restrictivo", "override": "Manual" },
-  "indicators": { "sectionTitle": "Indicadores de Referencia", "rate": "Tasa Fed", "balanceSheet": "Balance Fed", "corePce": "PCE Subyacente", "trimmedPce1m": "PCE Recortado (1M)", "trimmedPce": "PCE Recortado (6M)", "trimmedPce12m": "PCE Recortado (12M)", "unemployment": "Desempleo", "sahm": "Regla de Sahm", "fiscalDeficitTtm": "Déficit Federal (12M móviles)", "yoyChange": "Interanual", "epuTrade": "Incertidumbre Política Comercial", "percentile10y": "Percentil 10 años", "smhSpyRelReturn": "Retorno Relativo SMH−SPY (90d)", "semiIpYoy": "Producción Semiconductores Interanual", "dataDate": "Fecha de datos", "decisionDate": "Decisión del FOMC", "periodDate": "Período de referencia", "releaseDate": "Fecha de publicación", "unit": { "rate": "%", "balanceSheet": "MM USD", "pce": "%", "unemployment": "%", "sahm": "%" }, "bsStatus": { "loose": "Expansión QE", "neutral": "Pausa / Estable", "tight": "Contracción QT" }, "trendUp": "Subida", "trendFlat": "Estable", "trendDown": "Bajada" },
-  "watchlist": { "title": "Lista de Seguimiento", "addPlaceholder": "Ingresar símbolo, ej. AAPL", "add": "Agregar", "remove": "Eliminar", "empty": "Sin acciones en la lista", "pricePercentile": "Percentil de Precio", "percentileHint": "Posición del precio actual entre todos los cierres del rango: 99% = cerca del máximo, 10% = cerca del mínimo", "pe": "P/E", "ps": "P/S", "valuationHint": "Los ETF/índices no tienen estados financieros, P/E y P/S vacíos es normal; en acciones individuales, un vacío suele indicar limitación temporal de la fuente de datos — actualice más tarde", "currentPrice": "Precio Actual", "dateRange": "Rango de Fechas", "presets": "Agregar Rápido", "sortBy": "Ordenar", "sortSymbol": "A–Z", "mag7": "Mag 7", "etfs": "ETFs Principales" },
-  "timeline": { "title": "Historial de Señales", "noHistory": "Sin historial", "changed": "Cambio de señal" },
-  "interpret": { "title": "Interpretación de la Señal", "triggers": "Defensa activada por:", "toAttack": "Hacia ataque (las cuatro expansivas):", "allLoose": "Las cuatro dimensiones expansivas — condiciones de ataque cumplidas" },
-  "auth": { "login": "Iniciar Sesión", "register": "Registrarse", "logout": "Cerrar Sesión", "email": "Correo", "password": "Contraseña", "loginTitle": "Iniciar Sesión", "registerTitle": "Crear Cuenta", "noAccount": "¿Sin cuenta? Registrarse", "hasAccount": "¿Tienes cuenta? Iniciar sesión", "loginSuccess": "Sesión iniciada", "registerSuccess": "Registro exitoso" },
-  "admin": { "title": "Administración", "setSignal": "Establecer Señal", "type": "Tipo", "signal": "Señal", "expiresAt": "Expira el", "note": "Nota", "save": "Guardar", "reference": "Referencias", "fiscal": "Fiscal", "administrative": "Administrativo", "aiSupply": "Oferta/Demanda IA", "history": "Historial", "refresh": "Actualizar", "bottleneck": "Cuello de Botella Actual", "bottleneckStage": "Etapa", "bottleneckSave": "Guardar Etapa", "bottleneckAuto": "Automático (según ranking)", "clearLock": "Borrar Bloqueo", "clearSahmLock": "Borrar Bloqueo Sahm", "clearReactiveLock": "Borrar Bloqueo de Ajuste Reactivo", "lockOverrideNote": "Válvula de emergencia: borrar manualmente si una anomalía de datos causó un disparo falso" },
-  "settings": { "title": "Configuración", "emailAlerts": "Alertas por Email", "emailAlertsDesc": "Recibir email cuando cambie la señal" },
-  "lang": { "switch": "Idioma", "zh": "中文", "en": "English", "fr": "Français", "de": "Deutsch", "es": "Español", "ja": "日本語", "ko": "한국어" },
-  "error": { "fetchFailed": "Error al cargar, mostrando datos en caché", "loginFailed": "Email o contraseña inválidos", "registerFailed": "Registro fallido" },
-  "aiChain": { "title": "Flujo de Capital de la Cadena IA", "currentBottleneck": "Cuello de Botella Actual", "sourceAuto": "Detección automática", "sourceManual": "Manual", "relReturnLabel": "30d vs SPY", "bubbleTitle": "Monitor de Burbuja", "modelUsageTrend": "Tendencia de Uso de Modelos (7d/28d)", "capexYoY": "Capex de Nube (12M móviles)", "capexAmount": "{bn} MM USD", "semiIpYoy": "Producción de Semiconductores Interanual", "bubbleWarning": "Alerta de burbuja: demanda de IA debilitándose, considerar defensa", "noData": "Sin datos", "stages": { "model": "Modelos de IA", "cloud": "Proveedores de Nube", "chip": "Chips de IA", "memory": "Memoria / Módulos Ópticos", "packaging": "Equipos / Empaquetado / Pruebas", "power": "Energía" } },
-  "recessionLock": { "banner": "Bloqueo de Defensa Activo", "sahmReason": "Regla de Sahm {value} (umbral ≥0.5)", "reactiveReason": "Ajuste de tasa reactivo {bp}bp", "waitCondition": "Esperando que la tasa llegue a 0-0.25% o un ajuste menor para desbloquear", "overridden": "Borrado manualmente por el administrador" }
+  "app": {
+    "title": "Stock Sentinel",
+    "subtitle": "Señal Ataque/Defensa Acciones EEUU",
+    "theme": "Tema"
+  },
+  "signal": {
+    "attack": "Ataque",
+    "neutral": "Observar",
+    "defense": "Defensa",
+    "loading": "Cargando..."
+  },
+  "signalPos": {
+    "monetary": "Política Monetaria",
+    "fiscal": "Política Fiscal",
+    "administrative": "Política Administrativa",
+    "aiSupply": "Oferta/Demanda IA",
+    "loose": "Expansivo",
+    "neutral": "Observar",
+    "tight": "Restrictivo",
+    "override": "Manual"
+  },
+  "indicators": {
+    "sectionTitle": "Indicadores de Referencia",
+    "rate": "Tasa Fed",
+    "balanceSheet": "Balance Fed",
+    "corePce": "PCE Subyacente",
+    "trimmedPce1m": "PCE Recortado (1M)",
+    "trimmedPce": "PCE Recortado (6M)",
+    "trimmedPce12m": "PCE Recortado (12M)",
+    "unemployment": "Desempleo",
+    "sahm": "Regla de Sahm",
+    "fiscalDeficitTtm": "Déficit Federal (12M móviles)",
+    "yoyChange": "Interanual",
+    "epuTrade": "Incertidumbre Política Comercial",
+    "percentile10y": "Percentil 10 años",
+    "smhSpyRelReturn": "Retorno Relativo SMH−SPY (90d)",
+    "semiIpYoy": "Producción Semiconductores Interanual",
+    "dataDate": "Fecha de datos",
+    "decisionDate": "Decisión del FOMC",
+    "periodDate": "Período de referencia",
+    "releaseDate": "Fecha de publicación",
+    "unit": {
+      "rate": "%",
+      "balanceSheet": "MM USD",
+      "pce": "%",
+      "unemployment": "%",
+      "sahm": "%"
+    },
+    "bsStatus": {
+      "loose": "Expansión QE",
+      "neutral": "Pausa / Estable",
+      "tight": "Contracción QT"
+    },
+    "trendUp": "Subida",
+    "trendFlat": "Estable",
+    "trendDown": "Bajada"
+  },
+  "watchlist": {
+    "title": "Lista de Seguimiento",
+    "addPlaceholder": "Ingresar símbolo, ej. AAPL",
+    "add": "Agregar",
+    "remove": "Eliminar",
+    "empty": "Sin acciones en la lista",
+    "pricePercentile": "Percentil de Precio",
+    "percentileHint": "Posición del precio actual entre todos los cierres del rango: 99% = cerca del máximo, 10% = cerca del mínimo",
+    "pe": "P/E",
+    "ps": "P/S",
+    "valuationHint": "Los ETF/índices no tienen estados financieros, P/E y P/S vacíos es normal; en acciones individuales, un vacío suele indicar limitación temporal de la fuente de datos — actualice más tarde",
+    "currentPrice": "Precio Actual",
+    "dateRange": "Rango de Fechas",
+    "presets": "Agregar Rápido",
+    "sortBy": "Ordenar",
+    "sortSymbol": "A–Z",
+    "mag7": "Mag 7",
+    "etfs": "ETFs Principales"
+  },
+  "timeline": {
+    "title": "Historial de Señales",
+    "noHistory": "Sin historial",
+    "changed": "Cambio de señal"
+  },
+  "interpret": {
+    "title": "Interpretación de la Señal",
+    "triggers": "Defensa activada por:",
+    "toAttack": "Hacia ataque (las cuatro expansivas):",
+    "allLoose": "Las cuatro dimensiones expansivas — condiciones de ataque cumplidas"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar Sesión",
+    "email": "Correo",
+    "password": "Contraseña",
+    "loginTitle": "Iniciar Sesión",
+    "registerTitle": "Crear Cuenta",
+    "noAccount": "¿Sin cuenta? Registrarse",
+    "hasAccount": "¿Tienes cuenta? Iniciar sesión",
+    "loginSuccess": "Sesión iniciada",
+    "registerSuccess": "Registro exitoso"
+  },
+  "admin": {
+    "title": "Administración",
+    "setSignal": "Establecer Señal",
+    "type": "Tipo",
+    "signal": "Señal",
+    "expiresAt": "Expira el",
+    "note": "Nota",
+    "save": "Guardar",
+    "reference": "Referencias",
+    "fiscal": "Fiscal",
+    "administrative": "Administrativo",
+    "aiSupply": "Oferta/Demanda IA",
+    "history": "Historial",
+    "refresh": "Actualizar",
+    "bottleneck": "Cuello de Botella Actual",
+    "bottleneckStage": "Etapa",
+    "bottleneckSave": "Guardar Etapa",
+    "bottleneckAuto": "Automático (según ranking)",
+    "clearLock": "Borrar Bloqueo",
+    "clearSahmLock": "Borrar Bloqueo Sahm",
+    "clearReactiveLock": "Borrar Bloqueo de Ajuste Reactivo",
+    "lockOverrideNote": "Válvula de emergencia: borrar manualmente si una anomalía de datos causó un disparo falso",
+    "currentSignals": "Señales actuales",
+    "expiresLabel": "Expira",
+    "noData": "Sin datos",
+    "noRecords": "Sin registros",
+    "colType": "Tipo",
+    "colSignal": "Nivel",
+    "colExpires": "Válido hasta",
+    "colNote": "Nota",
+    "colTime": "Hora",
+    "savedMsg": "✓ Guardado",
+    "clearedMsg": "✓ Borrado",
+    "typeNames": {
+      "fiscal": "Fiscal",
+      "administrative": "Administrativo",
+      "ai_supply": "Oferta/demanda IA",
+      "sahmLock": "Bloqueo Sahm",
+      "reactiveAdjustmentLock": "Bloqueo de ajuste reactivo"
+    },
+    "signalCleared": "Borrado"
+  },
+  "settings": {
+    "title": "Configuración",
+    "emailAlerts": "Alertas por Email",
+    "emailAlertsDesc": "Recibir email cuando cambie la señal"
+  },
+  "lang": {
+    "switch": "Idioma",
+    "zh": "中文",
+    "en": "English",
+    "fr": "Français",
+    "de": "Deutsch",
+    "es": "Español",
+    "ja": "日本語",
+    "ko": "한국어"
+  },
+  "error": {
+    "fetchFailed": "Error al cargar, mostrando datos en caché",
+    "loginFailed": "Email o contraseña inválidos",
+    "registerFailed": "Registro fallido"
+  },
+  "aiChain": {
+    "title": "Flujo de Capital de la Cadena IA",
+    "currentBottleneck": "Cuello de Botella Actual",
+    "sourceAuto": "Detección automática",
+    "sourceManual": "Manual",
+    "relReturnLabel": "30d vs SPY",
+    "bubbleTitle": "Monitor de Burbuja",
+    "modelUsageTrend": "Tendencia de Uso de Modelos (7d/28d)",
+    "capexYoY": "Capex de Nube (12M móviles)",
+    "capexAmount": "{bn} MM USD",
+    "semiIpYoy": "Producción de Semiconductores Interanual",
+    "bubbleWarning": "Alerta de burbuja: demanda de IA debilitándose, considerar defensa",
+    "noData": "Sin datos",
+    "stages": {
+      "model": "Modelos de IA",
+      "cloud": "Proveedores de Nube",
+      "chip": "Chips de IA",
+      "memory": "Memoria / Módulos Ópticos",
+      "packaging": "Equipos / Empaquetado / Pruebas",
+      "power": "Energía"
+    }
+  },
+  "recessionLock": {
+    "banner": "Bloqueo de Defensa Activo",
+    "sahmReason": "Regla de Sahm {value} (umbral ≥0.5)",
+    "reactiveReason": "Ajuste de tasa reactivo {bp}bp",
+    "waitCondition": "Esperando que la tasa llegue a 0-0.25% o un ajuste menor para desbloquear",
+    "overridden": "Borrado manualmente por el administrador"
+  }
 }

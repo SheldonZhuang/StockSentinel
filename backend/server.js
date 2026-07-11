@@ -39,6 +39,7 @@ import {
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
 import { todayET } from './utils/datetime.js';
+import { asyncRoute } from './utils/async-route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -59,7 +60,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/watchlist', watchlistRouter);
 
 // GET /api/signal — 当前宏观信号 + 各信号位明细
-app.get('/api/signal', async (req, res) => {
+app.get('/api/signal', asyncRoute(async (req, res) => {
   const snapshot = await getLatestSnapshot();
   if (!snapshot) return res.json({ status: 'loading', message: 'No data yet, cron will run soon' });
 
@@ -159,23 +160,23 @@ app.get('/api/signal', async (req, res) => {
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,
   });
-});
+}));
 
 // GET /api/signal/history
-app.get('/api/signal/history', async (req, res) => {
-  const limit = Math.min(parseInt(req.query.limit) || 90, 365);
+app.get('/api/signal/history', asyncRoute(async (req, res) => {
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 90, 365));
   const history = await getSnapshotHistory(limit);
   res.json(history);
-});
+}));
 
 // GET /api/bottleneck — 当前AI产业链最卡脖子环节（公开只读，手动优先否则自动识别）
-app.get('/api/bottleneck', async (req, res) => {
+app.get('/api/bottleneck', asyncRoute(async (req, res) => {
   const bottleneck = await getEffectiveBottleneck();
   res.json(bottleneck);
-});
+}));
 
 // GET /api/ai-chain — AI产业链环节排名 + 卡点 + 泡沫监测（公开只读）
-app.get('/api/ai-chain', async (req, res) => {
+app.get('/api/ai-chain', asyncRoute(async (req, res) => {
   const [bottleneck, chainSnap, signalSnap] = await Promise.all([
     getEffectiveBottleneck(),
     getLatestAiChainSnapshot(),
@@ -213,10 +214,10 @@ app.get('/api/ai-chain', async (req, res) => {
     },
     dataDate: chainSnap?.date ?? null,
   });
-});
+}));
 
 // GET /api/user/me — 当前用户信息 + 是否是 admin + 邮件提醒开关状态
-app.get('/api/user/me', requireAuth, async (req, res) => {
+app.get('/api/user/me', requireAuth, asyncRoute(async (req, res) => {
   const isAdmin = req.user.email === process.env.ADMIN_EMAIL;
   const user = await getUserById(req.user.id);
   res.json({
@@ -225,14 +226,14 @@ app.get('/api/user/me', requireAuth, async (req, res) => {
     isAdmin,
     emailAlerts: !!user?.email_alerts,
   });
-});
+}));
 
 // PATCH /api/user/alerts — 开关邮件示警
-app.patch('/api/user/alerts', requireAuth, async (req, res) => {
+app.patch('/api/user/alerts', requireAuth, asyncRoute(async (req, res) => {
   const enabled = !!req.body.enabled;
   await updateUserAlerts(req.user.id, enabled);
   res.json({ ok: true, emailAlerts: enabled });
-});
+}));
 
 /**
  * 根据当天 macroData 和前一条快照，计算两个锁的 effective 状态（应用管理员清锁 override 后）
@@ -241,8 +242,11 @@ app.patch('/api/user/alerts', requireAuth, async (req, res) => {
  */
 function computeLocks(macroData, prevSnapshot, overrides) {
   const { currentRate, prevRate, sahmValue } = macroData;
-  const rateDiffBp = currentRate !== null && prevRate !== null
-    ? Math.round((currentRate - prevRate) * 100)
+  // 利率变动基线优先用上一快照：FRED 序列相邻观测差只在变动次日非零，
+  // 当天 cron 恰好缺跑就永久漏检；快照差跨任意天数仍能捕捉调整事件（首次运行退回序列前值）
+  const baselineRate = prevSnapshot?.fred_rate ?? prevRate;
+  const rateDiffBp = currentRate !== null && baselineRate !== null && baselineRate !== undefined
+    ? Math.round((currentRate - baselineRate) * 100)
     : null;
 
   const prevSahmLockActive = prevSnapshot ? !!prevSnapshot.sahm_lock_active : false;
@@ -306,17 +310,27 @@ async function runDailyUpdate() {
   const aiSupplyAuto = calcAiSupplySignal(policyData, bubble);
   const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
 
+  const today = todayET();
+  const prevSnapshot = await getLatestSnapshot();
+
+  // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
+  // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
+  const fiscalAutoEff = policyData.deficitTtmChangePct == null && prevSnapshot?.fiscal_auto_signal
+    ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
+  const adminAutoEff = policyData.epuTradePercentile == null && prevSnapshot?.admin_auto_signal
+    ? prevSnapshot.admin_auto_signal : adminAuto;
+  const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;
+  const aiSupplyAutoEff = aiDataMissing && !bubble.warning && prevSnapshot?.ai_supply_auto_signal
+    ? prevSnapshot.ai_supply_auto_signal : aiSupplyAuto;
+
   const overrides = await getAllOverrides();
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
 
   // 生效值 = 手动覆盖优先，否则自动判定（判定函数保证返回信号串）
-  const fiscal = fiscalOverride?.signal || fiscalAuto;
-  const admin = adminOverride?.signal || adminAuto;
-  const aiSupply = aiSupplyOverride?.signal || aiSupplyAuto;
+  const fiscal = fiscalOverride?.signal || fiscalAutoEff;
+  const admin = adminOverride?.signal || adminAutoEff;
+  const aiSupply = aiSupplyOverride?.signal || aiSupplyAutoEff;
   const decisionTreeSignal = calcFinalSignal(aiSupply, monetary, fiscal, admin);
-
-  const today = todayET();
-  const prevSnapshot = await getLatestSnapshot();
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
   const finalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
@@ -359,17 +373,17 @@ async function runDailyUpdate() {
     unemploymentReleaseDate: macroData.unemploymentReleaseDate,
     sahmPeriodDate: macroData.sahmPeriodDate,
     sahmReleaseDate: macroData.sahmReleaseDate,
-    fiscalAutoSignal: fiscalAuto,
+    fiscalAutoSignal: fiscalAutoEff,
     fiscalDeficitTtm: policyData.deficitTtm,
     fiscalDeficitTtmPrev: policyData.deficitTtmPrev,
     fiscalDeficitChangePct: policyData.deficitTtmChangePct,
     fiscalPeriodDate: policyData.fiscalPeriodDate,
     fiscalReleaseDate: policyData.fiscalReleaseDate,
-    adminAutoSignal: adminAuto,
+    adminAutoSignal: adminAutoEff,
     epuTrade: policyData.epuTrade,
     epuTradePercentile: policyData.epuTradePercentile,
     epuTradePeriodDate: policyData.epuTradePeriodDate,
-    aiSupplyAutoSignal: aiSupplyAuto,
+    aiSupplyAutoSignal: aiSupplyAutoEff,
     aiMarketSignal: marketSignal,
     aiFundamentalSignal: fundamentalSignal,
     smhSpyRelReturnPct: policyData.smhSpyRelReturnPct,
@@ -436,8 +450,15 @@ async function runDailyUpdate() {
   }
 }
 
-// 每天 UTC 06:00 执行（美东01:00，北京14:00）
-cron.schedule('0 6 * * *', runDailyUpdate, { timezone: 'UTC' });
+// 统一错误中间件：asyncRoute 捕获的异常在此收口为 500，而不是 unhandledRejection 崩溃进程
+app.use((err, req, res, next) => {
+  console.error(`[api] ${req.method} ${req.path} failed:`, err.message);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'internal server error' });
+});
+
+// 每天 UTC 06:00 执行（美东01:00夏令时02:00，北京14:00）；cron 回调兜底 catch，防止未处理 rejection 终止进程
+cron.schedule('0 6 * * *', () => runDailyUpdate().catch(err => console.error('[cron] daily update failed:', err)), { timezone: 'UTC' });
 
 // 启动时立即执行一次
 runDailyUpdate().catch(err => console.error('[startup] initial update failed:', err));

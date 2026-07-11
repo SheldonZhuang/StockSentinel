@@ -127,7 +127,26 @@
     "clearLock": "清除锁定",
     "clearSahmLock": "清除萨姆锁",
     "clearReactiveLock": "清除应对式调整锁",
-    "lockOverrideNote": "应急阀门：若判定为数据异常导致误触发，可手动清除"
+    "lockOverrideNote": "应急阀门：若判定为数据异常导致误触发，可手动清除",
+    "currentSignals": "当前信号位",
+    "expiresLabel": "到期",
+    "noData": "暂无数据",
+    "noRecords": "暂无记录",
+    "colType": "类型",
+    "colSignal": "档位",
+    "colExpires": "有效期",
+    "colNote": "备注",
+    "colTime": "时间",
+    "savedMsg": "✓ 已保存",
+    "clearedMsg": "✓ 已清除",
+    "typeNames": {
+      "fiscal": "财政",
+      "administrative": "行政",
+      "ai_supply": "AI供需",
+      "sahmLock": "萨姆锁",
+      "reactiveAdjustmentLock": "应对式调整锁"
+    },
+    "signalCleared": "已清除"
   },
   "settings": {
     "title": "设置",

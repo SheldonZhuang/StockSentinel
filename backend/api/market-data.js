@@ -19,6 +19,8 @@ const fmpKey = () => process.env.FMP_API_KEY || process.env.financialmodelingpre
 const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
 const cache = new Map();
+// in-flight 去重：同 key 并发请求共享同一次拉取，避免重复烧备用源配额（TwelveData 8次/分钟最紧）
+const inFlight = new Map();
 let lastTwelveDataCallAt = 0;
 // 串行队列：并发调用者逐个排队等自己的时间窗，避免多个调用者读到同一个
 // lastTwelveDataCallAt、睡完同时醒来齐发导致 429（自选股接口是并发拉全部股票的）
@@ -51,8 +53,18 @@ function cacheSet(key, value, ttl = CACHE_TTL_MS) {
 /** 测试用：清空缓存并重置节流状态 */
 export function clearMarketDataCache() {
   cache.clear();
+  inFlight.clear();
   lastTwelveDataCallAt = 0;
   twelveDataQueue = Promise.resolve();
+}
+
+/** 同 key 并发合并：已有相同请求在飞则直接等它的结果 */
+function dedupe(key, fn) {
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const p = fn().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
 }
 
 // --- 日线收盘价：升序 [{date, close}] ---
@@ -104,24 +116,29 @@ export async function getDailyCloses(symbol, startDate, endDate) {
   const cached = cacheGet(key);
   if (cached !== undefined) return cached;
 
-  const providers = [
-    ['yahoo', closesFromYahoo],
-    ['tiingo', closesFromTiingo],
-    ['twelvedata', closesFromTwelveData],
-  ];
-  for (const [name, fn] of providers) {
-    try {
-      const closes = await fn(symbol, startDate, endDate);
-      if (closes) {
-        if (name !== 'yahoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
-        cacheSet(key, closes, CLOSES_CACHE_TTL_MS);
-        return closes;
+  return dedupe(key, async () => {
+    const cachedAgain = cacheGet(key); // 排队期间可能已被同 key 请求填充
+    if (cachedAgain !== undefined) return cachedAgain;
+
+    const providers = [
+      ['yahoo', closesFromYahoo],
+      ['tiingo', closesFromTiingo],
+      ['twelvedata', closesFromTwelveData],
+    ];
+    for (const [name, fn] of providers) {
+      try {
+        const closes = await fn(symbol, startDate, endDate);
+        if (closes) {
+          if (name !== 'yahoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
+          cacheSet(key, closes, CLOSES_CACHE_TTL_MS);
+          return closes;
+        }
+      } catch (err) {
+        console.warn(`[market-data] ${name} closes(${symbol}) failed:`, err.message);
       }
-    } catch (err) {
-      console.warn(`[market-data] ${name} closes(${symbol}) failed:`, err.message);
     }
-  }
-  return null; // 全失败不缓存，下次调用重试
+    return null; // 全失败不缓存，下次调用重试
+  });
 }
 
 // --- 实时报价 ---
@@ -204,24 +221,29 @@ export async function getQuote(symbol) {
   const cached = cacheGet(key);
   if (cached !== undefined) return cached;
 
-  const providers = [
-    ['yahoo', quoteFromYahoo],
-    ['tiingo', quoteFromTiingo],
-    ['twelvedata', quoteFromTwelveData],
-    ['fmp', quoteFromFmp],
-  ];
-  for (const [name, fn] of providers) {
-    try {
-      let quote = await fn(symbol);
-      if (quote) {
-        if (name !== 'yahoo') console.warn(`[market-data] ${symbol} quote via fallback: ${name}`);
-        quote = await fillFundamentalsFromFmp(symbol, quote);
-        cacheSet(key, quote);
-        return quote;
+  return dedupe(key, async () => {
+    const cachedAgain = cacheGet(key);
+    if (cachedAgain !== undefined) return cachedAgain;
+
+    const providers = [
+      ['yahoo', quoteFromYahoo],
+      ['tiingo', quoteFromTiingo],
+      ['twelvedata', quoteFromTwelveData],
+      ['fmp', quoteFromFmp],
+    ];
+    for (const [name, fn] of providers) {
+      try {
+        let quote = await fn(symbol);
+        if (quote) {
+          if (name !== 'yahoo') console.warn(`[market-data] ${symbol} quote via fallback: ${name}`);
+          quote = await fillFundamentalsFromFmp(symbol, quote);
+          cacheSet(key, quote);
+          return quote;
+        }
+      } catch (err) {
+        console.warn(`[market-data] ${name} quote(${symbol}) failed:`, err.message);
       }
-    } catch (err) {
-      console.warn(`[market-data] ${name} quote(${symbol}) failed:`, err.message);
     }
-  }
-  return null;
+    return null;
+  });
 }

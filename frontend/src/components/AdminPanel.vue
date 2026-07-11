@@ -62,22 +62,22 @@
 
     <!-- 当前信号位状态 -->
     <section class="section">
-      <h3>当前信号位</h3>
+      <h3>{{ $t('admin.currentSignals') }}</h3>
       <div v-if="currentSignals" class="current-signals">
         <div class="sig-row">
           <span>{{ $t('admin.aiSupply') }}</span>
           <span :class="['sig-badge', currentSignals.aiSupply]">{{ $t(`signalPos.${currentSignals.aiSupply}`) }}</span>
-          <span v-if="currentSignals.aiSupplyMeta?.expires_at" class="expires">到期: {{ currentSignals.aiSupplyMeta.expires_at }}</span>
+          <span v-if="currentSignals.aiSupplyMeta?.expires_at" class="expires">{{ $t('admin.expiresLabel') }}: {{ currentSignals.aiSupplyMeta.expires_at }}</span>
         </div>
         <div class="sig-row">
           <span>{{ $t('admin.fiscal') }}</span>
           <span :class="['sig-badge', currentSignals.fiscal]">{{ $t(`signalPos.${currentSignals.fiscal}`) }}</span>
-          <span v-if="currentSignals.fiscalMeta?.expires_at" class="expires">到期: {{ currentSignals.fiscalMeta.expires_at }}</span>
+          <span v-if="currentSignals.fiscalMeta?.expires_at" class="expires">{{ $t('admin.expiresLabel') }}: {{ currentSignals.fiscalMeta.expires_at }}</span>
         </div>
         <div class="sig-row">
           <span>{{ $t('admin.administrative') }}</span>
           <span :class="['sig-badge', currentSignals.administrative]">{{ $t(`signalPos.${currentSignals.administrative}`) }}</span>
-          <span v-if="currentSignals.administrativeMeta?.expires_at" class="expires">到期: {{ currentSignals.administrativeMeta.expires_at }}</span>
+          <span v-if="currentSignals.administrativeMeta?.expires_at" class="expires">{{ $t('admin.expiresLabel') }}: {{ currentSignals.administrativeMeta.expires_at }}</span>
         </div>
       </div>
     </section>
@@ -99,7 +99,7 @@
           <span v-if="refCategory === 'ai_supply' && doc.type" class="ref-source">{{ doc.type }}</span>
           <span class="ref-date">{{ doc.date }}</span>
         </li>
-        <li v-if="refDocs.length === 0" class="ref-empty">暂无数据</li>
+        <li v-if="refDocs.length === 0" class="ref-empty">{{ $t('admin.noData') }}</li>
       </ul>
     </section>
 
@@ -136,15 +136,15 @@
     <!-- 设定历史 -->
     <section class="section">
       <h3>{{ $t('admin.history') }}</h3>
-      <div v-if="history.length === 0" class="loading">暂无记录</div>
+      <div v-if="history.length === 0" class="loading">{{ $t('admin.noRecords') }}</div>
       <table v-else class="history-table">
         <thead>
-          <tr><th>类型</th><th>档位</th><th>有效期</th><th>备注</th><th>时间</th></tr>
+          <tr><th>{{ $t('admin.colType') }}</th><th>{{ $t('admin.colSignal') }}</th><th>{{ $t('admin.colExpires') }}</th><th>{{ $t('admin.colNote') }}</th><th>{{ $t('admin.colTime') }}</th></tr>
         </thead>
         <tbody>
           <tr v-for="h in history" :key="h.id">
-            <td>{{ h.type }}</td>
-            <td :class="['sig-badge', h.signal]">{{ h.signal }}</td>
+            <td>{{ $te(`admin.typeNames.${h.type}`) ? $t(`admin.typeNames.${h.type}`) : h.type }}</td>
+            <td :class="['sig-badge', h.signal]">{{ h.signal === 'cleared' ? $t('admin.signalCleared') : $t(`signalPos.${h.signal}`) }}</td>
             <td>{{ h.expires_at || '—' }}</td>
             <td>{{ h.note || '—' }}</td>
             <td>{{ h.created_at }}</td>
@@ -158,7 +158,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { api } from '../api/client.js';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const form = ref({ type: 'ai_supply', signal: 'neutral', expiresAt: '', note: '' });
 const saving = ref(false);
 const saveMsg = ref('');
@@ -178,12 +180,20 @@ const bottleneckSaving = ref(false);
 const bottleneckMsg = ref('');
 const currentBottleneck = ref(null);
 
+// datetime-local 产出无时区的本地时间串，直接入库会被后端按 UTC 比较导致过期判定漂移；
+// 在浏览器侧（知道用户真实时区）先转成 UTC ISO
+function toUtcIso(local) {
+  if (!local) return null;
+  const d = new Date(local);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 async function saveSignal() {
   saving.value = true;
   saveMsg.value = '';
   try {
-    await api.setAdminSignal(form.value.type, form.value.signal, form.value.expiresAt || null, form.value.note || null);
-    saveMsg.value = '✓ 已保存';
+    await api.setAdminSignal(form.value.type, form.value.signal, toUtcIso(form.value.expiresAt), form.value.note || null);
+    saveMsg.value = t('admin.savedMsg');
     await loadData();
   } catch (e) {
     saveMsg.value = '✗ ' + e.message;
@@ -196,8 +206,8 @@ async function clearLock() {
   lockSaving.value = true;
   lockMsg.value = '';
   try {
-    await api.setLockOverride(lockForm.value.type, lockForm.value.expiresAt || null, lockForm.value.note || null);
-    lockMsg.value = '✓ 已清除';
+    await api.setLockOverride(lockForm.value.type, toUtcIso(lockForm.value.expiresAt), lockForm.value.note || null);
+    lockMsg.value = t('admin.clearedMsg');
   } catch (e) {
     lockMsg.value = '✗ ' + e.message;
   } finally {
@@ -219,7 +229,7 @@ async function saveBottleneckStage() {
   bottleneckMsg.value = '';
   try {
     await api.setBottleneck(bottleneckForm.value.stage, bottleneckForm.value.note || null);
-    bottleneckMsg.value = '✓ 已保存';
+    bottleneckMsg.value = t('admin.savedMsg');
     currentBottleneck.value = await api.getBottleneck();
   } catch (e) {
     bottleneckMsg.value = '✗ ' + e.message;

@@ -10,8 +10,13 @@ async function request(path, options = {}) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(BASE + path, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  // 网关 502/504 等场景返回 HTML，res.json() 会抛难懂的 SyntaxError，先兜住
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(data?.error || `HTTP ${res.status}`);
+    err.status = res.status; // 让调用方能区分 401（token失效）与网络/服务端故障
+    throw err;
+  }
   return data;
 }
 
