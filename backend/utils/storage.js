@@ -68,6 +68,12 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'model_usage_trend_pct REAL',
   'capex_yoy REAL',
   'ai_bubble_warning INTEGER',
+  'sahm_value REAL',
+  'sahm_period_date TEXT',
+  'sahm_release_date TEXT',
+  'sahm_lock_active INTEGER',
+  'reactive_adjustment_lock_active INTEGER',
+  'reactive_adjustment_lock_trigger_bp REAL',
 ];
 
 function migrateSchema() {
@@ -161,6 +167,12 @@ function initSchema() {
       model_usage_trend_pct REAL,
       capex_yoy REAL,
       ai_bubble_warning INTEGER,
+      sahm_value REAL,
+      sahm_period_date TEXT,
+      sahm_release_date TEXT,
+      sahm_lock_active INTEGER,
+      reactive_adjustment_lock_active INTEGER,
+      reactive_adjustment_lock_trigger_bp REAL,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -297,8 +309,10 @@ export async function saveSignalSnapshot(data) {
      admin_auto_signal, epu_trade, epu_trade_percentile, epu_trade_period_date,
      ai_supply_auto_signal, ai_market_signal, ai_fundamental_signal,
      smh_spy_rel_return_pct, semi_ip_yoy, semi_ip_period_date, semi_ip_release_date,
-     model_usage_trend_pct, capex_yoy, ai_bubble_warning)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     model_usage_trend_pct, capex_yoy, ai_bubble_warning,
+     sahm_value, sahm_period_date, sahm_release_date,
+     sahm_lock_active, reactive_adjustment_lock_active, reactive_adjustment_lock_trigger_bp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -315,6 +329,8 @@ export async function saveSignalSnapshot(data) {
     data.aiSupplyAutoSignal, data.aiMarketSignal, data.aiFundamentalSignal,
     data.smhSpyRelReturnPct, data.semiIpYoy, data.semiIpPeriodDate, data.semiIpReleaseDate,
     data.modelUsageTrendPct, data.capexYoY, data.aiBubbleWarning,
+    data.sahmValue, data.sahmPeriodDate, data.sahmReleaseDate,
+    data.sahmLockActive, data.reactiveAdjustmentLockActive, data.reactiveAdjustmentLockTriggerBp,
   ]);
 }
 
@@ -361,12 +377,14 @@ export async function getAdminSignalHistory(limit = 50) {
 }
 
 export async function getAllOverrides() {
-  const [fiscal, administrative, aiSupply] = await Promise.all([
+  const [fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear] = await Promise.all([
     getActiveAdminSignal('fiscal'),
     getActiveAdminSignal('administrative'),
     getActiveAdminSignal('ai_supply'),
+    getActiveAdminSignal('sahmLock'),
+    getActiveAdminSignal('reactiveAdjustmentLock'),
   ]);
-  return { fiscal, administrative, aiSupply };
+  return { fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear };
 }
 
 // --- Watchlist ---
