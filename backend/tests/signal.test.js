@@ -61,13 +61,13 @@ describe('calcMonetarySignal', () => {
     })).toBe('tight');
   });
 
-  it('中性：预防式加息 <50bp + 资产负债表暂停', () => {
+  it('宽松：预防式加息 <50bp（小幅加息/加息减缓）+ 资产负债表暂停', () => {
     expect(calcMonetarySignal({
       currentRate: 4.5,
       prevRate: 4.25,
       currentBalanceSheet: 7200,
       prevBalanceSheet: 7200,
-    })).toBe('neutral');
+    })).toBe('loose');
   });
 
   it('中性：降息 + QT 同时发生（互相抵消）', () => {
@@ -90,12 +90,28 @@ describe('deriveSubSignals', () => {
     expect(rateSignal).toBe('tight');
   });
 
-  it('49bp 加息视为预防式 neutral', () => {
+  it('49bp 加息视为预防式 loose', () => {
     const { rateSignal } = deriveSubSignals({
       currentRate: 4.74, prevRate: 4.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
-    expect(rateSignal).toBe('neutral');
+    expect(rateSignal).toBe('loose');
+  });
+
+  it('49bp 降息视为预防式 loose（对称）', () => {
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 3.76, prevRate: 4.25,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('loose');
+  });
+
+  it('恰好 50bp 降息视为应对式 tight（对称）', () => {
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 3.75, prevRate: 4.25,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('tight');
   });
 });
 

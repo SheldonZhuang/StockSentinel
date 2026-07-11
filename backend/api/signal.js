@@ -1,11 +1,12 @@
 import cfg from '../config/signal.config.js';
 
 const {
-  SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_HIKE_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
+  SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_ADJUSTMENT_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
   AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
+  SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT,
 } = cfg;
 
 /**
@@ -36,19 +37,16 @@ export function calcMonetarySignal(macroData) {
 export function deriveSubSignals(macroData) {
   const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet } = macroData;
 
-  // 利率方向判断
+  // 利率方向判断：按调整幅度绝对值统一处理，加息/降息对称
   let rateSignal;
   if (currentRate === null || prevRate === null) {
     rateSignal = 'neutral';
   } else {
-    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 转换为 bp
-    if (rateDiffBp >= RATE_REACTIVE_HIKE_BP) {
-      rateSignal = 'tight'; // 应对式加息
-    } else if (rateDiffBp < 0) {
-      rateSignal = 'loose'; // 降息
+    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 转换为 bp，正=加息，负=降息
+    if (Math.abs(rateDiffBp) >= RATE_REACTIVE_ADJUSTMENT_BP) {
+      rateSignal = 'tight'; // 应对式加息 或 应对式降息
     } else {
-      // rateDiffBp 在 0~49bp：0=暂停(loose)，1-49=预防式加息(neutral)
-      rateSignal = rateDiffBp === 0 ? 'loose' : 'neutral';
+      rateSignal = 'loose'; // 暂停、预防式加息/降息（幅度<50bp，含加息减缓）
     }
   }
 
