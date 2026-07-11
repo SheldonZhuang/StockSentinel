@@ -42,6 +42,8 @@ export const api = {
     request('/admin/signals', { method: 'POST', body: JSON.stringify({ type, signal, expiresAt, note }) }),
   getAdminHistory: () => request('/admin/signal-history'),
   getReference: (category) => request(`/admin/reference?category=${category}`),
+  setLockOverride: (type, expiresAt, note) =>
+    request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),
 
   // AI Chain Bottleneck
   getBottleneck: () => request('/bottleneck'),
