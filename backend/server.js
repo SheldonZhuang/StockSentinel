@@ -93,6 +93,12 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
     fiscalSignalSource: fiscalOverride ? 'override' : 'auto',
     adminSignal,
     adminSignalSource: adminOverride ? 'override' : 'auto',
+    // stale = 当日数据源故障，该维度沿用上一次有效判定（前端标灰提示"数据延迟"）
+    staleFlags: {
+      fiscal: !!snapshot.fiscal_stale,
+      administrative: !!snapshot.admin_stale,
+      aiSupply: !!snapshot.ai_supply_stale,
+    },
     indicators: {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
@@ -315,13 +321,13 @@ async function runDailyUpdate() {
 
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
-  const fiscalAutoEff = policyData.deficitTtmChangePct == null && prevSnapshot?.fiscal_auto_signal
-    ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
-  const adminAutoEff = policyData.epuTradePercentile == null && prevSnapshot?.admin_auto_signal
-    ? prevSnapshot.admin_auto_signal : adminAuto;
+  const fiscalStale = policyData.deficitTtmChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
+  const adminStale = policyData.epuTradePercentile == null && !!prevSnapshot?.admin_auto_signal;
   const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;
-  const aiSupplyAutoEff = aiDataMissing && !bubble.warning && prevSnapshot?.ai_supply_auto_signal
-    ? prevSnapshot.ai_supply_auto_signal : aiSupplyAuto;
+  const aiSupplyStale = aiDataMissing && !bubble.warning && !!prevSnapshot?.ai_supply_auto_signal;
+  const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
+  const adminAutoEff = adminStale ? prevSnapshot.admin_auto_signal : adminAuto;
+  const aiSupplyAutoEff = aiSupplyStale ? prevSnapshot.ai_supply_auto_signal : aiSupplyAuto;
 
   const overrides = await getAllOverrides();
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
@@ -396,6 +402,9 @@ async function runDailyUpdate() {
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
     reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
+    fiscalStale,
+    adminStale,
+    aiSupplyStale,
   });
 
   await saveAiChainSnapshot({

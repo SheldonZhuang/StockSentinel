@@ -81,6 +81,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'sahm_lock_active INTEGER',
   'reactive_adjustment_lock_active INTEGER',
   'reactive_adjustment_lock_trigger_bp REAL',
+  'fiscal_stale INTEGER',
+  'admin_stale INTEGER',
+  'ai_supply_stale INTEGER',
 ];
 
 function migrateSchema() {
@@ -321,8 +324,9 @@ export async function saveSignalSnapshot(data) {
      smh_spy_rel_return_pct, semi_ip_yoy, semi_ip_period_date, semi_ip_release_date,
      model_usage_trend_pct, capex_yoy, ai_bubble_warning,
      sahm_value, sahm_period_date, sahm_release_date,
-     sahm_lock_active, reactive_adjustment_lock_active, reactive_adjustment_lock_trigger_bp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     sahm_lock_active, reactive_adjustment_lock_active, reactive_adjustment_lock_trigger_bp,
+     fiscal_stale, admin_stale, ai_supply_stale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -341,6 +345,7 @@ export async function saveSignalSnapshot(data) {
     data.modelUsageTrendPct, data.capexYoY, data.aiBubbleWarning,
     data.sahmValue, data.sahmPeriodDate, data.sahmReleaseDate,
     data.sahmLockActive, data.reactiveAdjustmentLockActive, data.reactiveAdjustmentLockTriggerBp,
+    data.fiscalStale ? 1 : 0, data.adminStale ? 1 : 0, data.aiSupplyStale ? 1 : 0,
   ]);
 }
 

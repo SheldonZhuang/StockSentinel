@@ -54,7 +54,24 @@
     },
     "trendUp": "Anstieg",
     "trendFlat": "Stabil",
-    "trendDown": "Rückgang"
+    "trendDown": "Rückgang",
+    "modelUsageTrend": "Modellnutzungstrend",
+    "capexYoY": "Cloud-Capex (JoJ)",
+    "hints": {
+      "modelUsageTrend": "Regel: 7-Tage-Durchschnitt >10 % unter dem 28-Tage-Durchschnitt → Blasenwarnung, KI-Angebot zwangsweise restriktiv. Spitze des Geldflusses: Nutzer zahlen an Modellanbieter",
+      "capexYoY": "Regel: Hyperscaler-Capex (MSFT/AMZN/GOOGL/META, rollierend 4 Quartale) JoJ <0 % → Blasenwarnung, zwangsweise restriktiv. 2. Ebene: Modellanbieter kaufen Cloud-Rechenleistung",
+      "semiIpYoy": "Regel: Halbleiter-Industrieproduktion JoJ >+5 % → locker, <0 % → restriktiv; muss mit Markt-Proxy übereinstimmen, sonst neutral. 3. Ebene: Cloud kauft Chips",
+      "smhSpyRelReturn": "Regel: SMH−SPY 90-Tage-Relativrendite >+8 % → locker, <−8 % → restriktiv; muss mit Fundamental-Proxy übereinstimmen, sonst neutral",
+      "rate": "Regel: Einzelanpassung ≥50 Bp (reaktiv, beliebige Richtung) → restriktiv + reaktive Anpassungssperre (erzwungene Defensive); <50 Bp oder Pause → locker",
+      "balanceSheet": "Regel: WoW >+0,25 % → QE (locker), <−0,25 % → QT (restriktiv), dazwischen → Pause. Geldpolitik = Zins locker UND kein QT → locker; reaktiv ODER QT → restriktiv",
+      "sahm": "Regel: Sahm-Wert ≥0,5 → Rezessionsbeginn, Sahm-Sperre (erzwungene Defensive); Entsperrung bei Zins ≤0,25 % oder <50-Bp-Anpassung",
+      "fiscalDeficitTtm": "Regel: TTM-Defizit JoJ weitet sich >5 % aus → locker (Fiskalexpansion), schrumpft >5 % → restriktiv, dazwischen → neutral",
+      "epuTrade": "Regel: 10-Jahres-Perzentil des Handelspolitik-Unsicherheitsindex >80 → restriktiv, <50 → locker, 50–80 → neutral",
+      "reference": "Nur zur Referenz, fließt nicht in die Beurteilung ein"
+    },
+    "hintGlobal": "Globale Regel: Angriff = alle vier locker (UND); Defensive = eine restriktiv (ODER); Sahm-/Reaktivsperren erzwingen Defensive",
+    "stale": "Daten verzögert",
+    "staleHint": "Datenquelle vorübergehend nicht verfügbar; letzte gültige Beurteilung beibehalten"
   },
   "watchlist": {
     "title": "Beobachtungsliste",
@@ -159,7 +176,9 @@
   "error": {
     "fetchFailed": "Laden fehlgeschlagen, zeige gecachte Daten",
     "loginFailed": "Ungültige E-Mail oder Passwort",
-    "registerFailed": "Registrierung fehlgeschlagen"
+    "registerFailed": "Registrierung fehlgeschlagen",
+    "loadFailed": "Laden fehlgeschlagen",
+    "retry": "Erneut versuchen"
   },
   "aiChain": {
     "title": "KI-Wertschöpfungskette Geldfluss",

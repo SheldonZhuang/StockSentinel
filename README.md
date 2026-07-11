@@ -16,24 +16,33 @@
 
 ## 信号计算
 
-| 信号位 | 数据来源 | 判定方式 |
-|---|---|---|
-| 货币信号位 | [FRED](https://fred.stlouisfed.org/)（联邦基金利率、联储资产负债表 WALCL，及核心PCE/Trimmed Mean PCE/失业率作参考展示） | 自动计算 |
-| 财政信号位 | Federal Register API + 财政部新闻（仅供参考） | 管理员后台设定档位 + 有效期 |
-| 行政信号位 | Federal Register API + 白宫/商务部新闻（仅供参考） | 管理员后台设定档位 + 有效期 |
+四维信号全部自动数据驱动（管理员可手动覆盖），每日通过决策树合成最终信号：
 
-三个信号位每日通过决策树合成最终信号，档位变化时通过 [Resend](https://resend.com/) 邮件提醒订阅用户。
+| 信号位 | 数据来源 | 判定规则 |
+|---|---|---|
+| AI供需（长线主线） | SMH−SPY 90天相对收益（三层行情回退）+ FRED `IPG3344S` 半导体产出同比 | 相对收益 ±8%、产出同比 >+5%/<0%，双源一致才定档；泡沫预警触发强制收紧 |
+| 货币政策 | FRED `DFEDTARU` 利率 + `WALCL` 资产负债表（核心PCE/Trimmed PCE/失业率仅参考展示） | 单次调整 ≥50bp 应对式→收紧；资产负债表 ±0.25% 判 QE/QT |
+| 财政政策 | FRED `MTSDS133FMS` 联邦月度赤字 | 滚动12月赤字同比扩大 >5%→宽松，收窄 >5%→收紧 |
+| 行政政策 | FRED `EPUTRADE` 贸易政策不确定性指数 | 近10年百分位 >80→收紧，<50→宽松 |
+
+**全局叠加**：进攻 = 四维全宽松（AND）；防守 = 任一收紧（OR）；萨姆锁（`SAHMREALTIME` ≥0.5）与应对式调整锁（利率单次 ≥50bp）激活时强制防守，直到零利率或 <50bp 小幅调整解锁。
+
+**泡沫监测**（按 AI 产业链现金流向排序）：模型调用量趋势（OpenRouter，7日/28日均量 <−10% 预警）→ 云厂商滚动4季资本开支（SEC EDGAR，同比 <0% 预警）→ 半导体产出同比。任一预警 → AI供需强制收紧。
+
+**可信度工程**：单维度数据源故障时沿用上一次有效判定（stale-keep，前端标灰提示"数据延迟"），不降级为中性，避免故障日误发"解除防守"警报。
+
+档位变化 / 任一维度转收紧 / 泡沫预警触发时，通过 [Resend](https://resend.com/) 邮件提醒订阅用户。
 
 个股/ETF 维度展示自选标的的历史价格百分位位置，以及当前 P/E、P/S 快照（不做买卖建议）。
 
-详细设计见 [docs/superpowers/specs/2026-07-05-stock-sentinel-design.md](docs/superpowers/specs/2026-07-05-stock-sentinel-design.md)。
+历史回测报告见 [docs/backtest-report.md](docs/backtest-report.md)。详细设计见 [docs/superpowers/specs/2026-07-05-stock-sentinel-design.md](docs/superpowers/specs/2026-07-05-stock-sentinel-design.md)。
 
 ## 技术栈
 
 - **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT
 - **前端**：Vue 3 + Vite + vue-i18n（中/英/法/德/西/日/韩 七语言）
 - **测试**：Vitest
-- **数据源**：FRED API（宏观）、Yahoo Finance（个股）、Federal Register API（政策参考素材）
+- **数据源**：FRED API（宏观/财政/行政/半导体产出）、行情三层回退 Yahoo→Tiingo→TwelveData（+FMP估值）、SEC EDGAR XBRL（云厂商capex）、OpenRouter（模型调用量）、Federal Register API（政策参考素材）
 
 ## 目录结构
 
@@ -64,6 +73,10 @@ FRED_API_KEY=your_fred_api_key
 JWT_SECRET=your_jwt_secret
 ADMIN_EMAIL=your_admin_email
 RESEND_API_KEY=your_resend_api_key
+TIINGO_API_KEY=your_tiingo_key        # 行情备用源（可选）
+TWELVEDATA_API_KEY=your_twelvedata_key # 行情备用源（可选）
+FMP_API_KEY=your_fmp_key              # P/E、P/S 估值补全（可选）
+OPENROUTER_API_KEY=your_openrouter_key # 模型调用量泡沫监测（可选）
 PORT=3001
 ```
 

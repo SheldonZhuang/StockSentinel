@@ -52,10 +52,11 @@
 
       <!-- 四维信号卡（顺序=策略主线：长线看供需，短线看政策） -->
       <div class="dim-cards">
-        <div v-for="d in positions" :key="d.key" :class="['dim-card', d.value]">
+        <div v-for="d in positions" :key="d.key" :class="['dim-card', d.value, { stale: d.stale }]">
           <div class="dim-head">
             <span class="dim-name">{{ $t(`signalPos.${d.key}`) }}</span>
             <span v-if="d.source === 'override'" class="dim-source">{{ $t('signalPos.override') }}</span>
+            <span v-else-if="d.stale" class="dim-source stale-tag" :title="$t('indicators.staleHint')">{{ $t('indicators.stale') }}</span>
           </div>
           <div :class="['dim-badge', d.value]">{{ $t(`signalPos.${d.value}`) }}</div>
           <div class="dim-metric">{{ d.metric || '—' }}</div>
@@ -127,11 +128,12 @@ function dimDetail(key) {
 const positions = computed(() => {
   const s = props.signal;
   if (!s) return [];
+  const stale = s.staleFlags || {};
   return [
-    { key: 'aiSupply', value: s.aiSupplySignal, source: s.aiSupplySignalSource, metric: dimMetric('aiSupply') },
+    { key: 'aiSupply', value: s.aiSupplySignal, source: s.aiSupplySignalSource, metric: dimMetric('aiSupply'), stale: !!stale.aiSupply },
     { key: 'monetary', value: s.monetarySignal, metric: dimMetric('monetary') },
-    { key: 'fiscal', value: s.fiscalSignal, source: s.fiscalSignalSource, metric: dimMetric('fiscal') },
-    { key: 'administrative', value: s.adminSignal, source: s.adminSignalSource, metric: dimMetric('administrative') },
+    { key: 'fiscal', value: s.fiscalSignal, source: s.fiscalSignalSource, metric: dimMetric('fiscal'), stale: !!stale.fiscal },
+    { key: 'administrative', value: s.adminSignal, source: s.adminSignalSource, metric: dimMetric('administrative'), stale: !!stale.administrative },
   ];
 });
 
@@ -263,6 +265,9 @@ const lockInfo = computed(() => {
 .dim-card:hover { border-color: var(--border-3); }
 .dim-card.tight { border-color: var(--red-border); }
 .dim-card.loose { border-color: var(--green-bg); }
+/* stale = 数据源故障沿用上次判定，整卡降饱和提示数据非当日 */
+.dim-card.stale { opacity: 0.55; filter: grayscale(0.4); }
+.stale-tag { cursor: help; color: var(--yellow); border-color: var(--yellow-border); }
 
 .dim-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .dim-name { font-size: var(--fs-sm); color: var(--text-3); font-weight: 600; }

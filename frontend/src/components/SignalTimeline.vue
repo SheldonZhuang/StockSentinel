@@ -2,6 +2,10 @@
   <div class="timeline">
     <h3 class="title">{{ $t('timeline.title') }}</h3>
     <div v-if="loading" class="empty">{{ $t('signal.loading') }}</div>
+    <div v-else-if="error" class="empty error-state">
+      {{ $t('error.loadFailed') }}
+      <button class="retry-btn" @click="load">{{ $t('error.retry') }}</button>
+    </div>
     <div v-else-if="history.length === 0" class="empty">{{ $t('timeline.noHistory') }}</div>
     <div v-else class="entries">
       <div v-for="(item, i) in history" :key="item.id" :class="['entry', { changed: isChangePoint(i) }]">
@@ -35,6 +39,7 @@ import { api } from '../api/client.js';
 
 const history = ref([]);
 const loading = ref(true);
+const error = ref(false);
 
 function signalEmoji(s) {
   return s === 'attack' ? '🟢' : s === 'defense' ? '🔴' : '🟡';
@@ -46,22 +51,37 @@ function isChangePoint(i) {
   return !!next && history.value[i].final_signal !== next.final_signal;
 }
 
-onMounted(async () => {
+async function load() {
+  loading.value = true;
+  error.value = false;
   try {
-    const data = await api.getSignalHistory(90);
-    history.value = data;
+    history.value = await api.getSignalHistory(90);
   } catch (e) {
     console.error(e);
+    error.value = true;
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(load);
 </script>
 
 <style scoped>
 .timeline { padding: 0; }
 .title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin: 0 0 16px 0; }
 .empty { font-size: var(--fs-md); color: var(--text-4); }
+.error-state { display: flex; align-items: center; gap: 10px; color: var(--red); }
+.retry-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-3);
+  border-radius: 6px;
+  color: var(--text-2);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+}
+.retry-btn:hover { border-color: var(--blue); }
 
 .entries { display: flex; flex-direction: column; }
 .entry { display: flex; gap: 12px; }

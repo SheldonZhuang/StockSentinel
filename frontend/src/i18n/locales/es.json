@@ -54,7 +54,24 @@
     },
     "trendUp": "Subida",
     "trendFlat": "Estable",
-    "trendDown": "Bajada"
+    "trendDown": "Bajada",
+    "modelUsageTrend": "Tendencia de uso de modelos",
+    "capexYoY": "Capex cloud (interanual)",
+    "hints": {
+      "modelUsageTrend": "Regla: media de 7 días cae >10 % vs 28 días previos → alerta de burbuja, oferta/demanda IA forzada a restrictiva. Cima del flujo de caja: los usuarios pagan a los modelos",
+      "capexYoY": "Regla: capex de hyperscalers (MSFT/AMZN/GOOGL/META, 4T móviles) interanual <0 % → alerta de burbuja, restrictiva forzada. 2.º nivel: los modelos compran nube",
+      "semiIpYoy": "Regla: producción industrial de semiconductores interanual >+5 % → laxa, <0 % → restrictiva; debe coincidir con el proxy de mercado, si no → neutral. 3.er nivel: la nube compra chips",
+      "smhSpyRelReturn": "Regla: retorno relativo SMH−SPY 90 días >+8 % → laxa, <−8 % → restrictiva; debe coincidir con el proxy fundamental, si no → neutral",
+      "rate": "Regla: ajuste único ≥50 pb (reactivo, cualquier dirección) → restrictiva + bloqueo de ajuste reactivo (defensa forzada); <50 pb o pausa → laxa",
+      "balanceSheet": "Regla: variación semanal >+0,25 % → QE (laxa), <−0,25 % → QT (restrictiva), entre → pausa. Monetaria = tasa laxa Y sin QT → laxa; reactivo O QT → restrictiva",
+      "sahm": "Regla: valor Sahm ≥0,5 → inicio de recesión, bloqueo Sahm (defensa forzada); se desbloquea con tasa ≤0,25 % o ajuste <50 pb",
+      "fiscalDeficitTtm": "Regla: déficit TTM interanual se amplía >5 % → laxa (expansión fiscal), se reduce >5 % → restrictiva, entre → neutral",
+      "epuTrade": "Regla: percentil de 10 años del índice de incertidumbre comercial >80 → restrictiva, <50 → laxa, 50–80 → neutral",
+      "reference": "Solo referencia, no participa en el juicio"
+    },
+    "hintGlobal": "Regla global: Ataque = las cuatro laxas (Y); Defensa = cualquiera restrictiva (O); los bloqueos Sahm/reactivo fuerzan defensa",
+    "stale": "Datos retrasados",
+    "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",
@@ -159,7 +176,9 @@
   "error": {
     "fetchFailed": "Error al cargar, mostrando datos en caché",
     "loginFailed": "Email o contraseña inválidos",
-    "registerFailed": "Registro fallido"
+    "registerFailed": "Registro fallido",
+    "loadFailed": "Error al cargar",
+    "retry": "Reintentar"
   },
   "aiChain": {
     "title": "Flujo de Capital de la Cadena IA",

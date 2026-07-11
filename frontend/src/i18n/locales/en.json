@@ -54,7 +54,24 @@
     },
     "trendUp": "Up",
     "trendFlat": "Flat",
-    "trendDown": "Down"
+    "trendDown": "Down",
+    "modelUsageTrend": "Model Usage Trend",
+    "capexYoY": "Hyperscaler Capex YoY",
+    "hints": {
+      "modelUsageTrend": "Rule: 7-day avg volume down >10% vs prior 28-day avg → bubble warning, AI supply forced tight. Top of cash flow: users pay model providers",
+      "capexYoY": "Rule: hyperscaler (MSFT/AMZN/GOOGL/META) rolling-4Q capex YoY <0% → bubble warning, AI supply forced tight. 2nd layer: model providers buy cloud compute",
+      "semiIpYoy": "Rule: semiconductor industrial production YoY >+5% → loose, <0% → tight; must agree with market proxy, else neutral. 3rd layer: clouds buy chips",
+      "smhSpyRelReturn": "Rule: SMH−SPY 90-day relative return >+8% → loose, <−8% → tight; must agree with fundamental proxy, else neutral",
+      "rate": "Rule: single adjustment ≥50bp (reactive, either direction) → tight and triggers reactive adjustment lock (forced defense); <50bp or pause → loose",
+      "balanceSheet": "Rule: WoW >+0.25% → QE (loose), <−0.25% → QT (tight), between → pause. Monetary = rate loose AND no QT → loose; reactive move OR QT → tight",
+      "sahm": "Rule: Sahm value ≥0.5 → early recession, triggers Sahm lock (forced defense); unlocks at rate ≤0.25% or a <50bp small adjustment",
+      "fiscalDeficitTtm": "Rule: TTM deficit YoY expands >5% → loose (fiscal expansion), shrinks >5% → tight, between → neutral",
+      "epuTrade": "Rule: trade policy uncertainty index 10-year percentile >80 → tight, <50 → loose, 50–80 → neutral",
+      "reference": "Reference only, not part of signal judgment"
+    },
+    "hintGlobal": "Global rule: Attack = all four loose (AND); Defense = any one tight (OR); Sahm/reactive locks force defense when active",
+    "stale": "Data delayed",
+    "staleHint": "Data source temporarily unavailable; last valid judgment retained"
   },
   "watchlist": {
     "title": "Watchlist",
@@ -166,7 +183,9 @@
   "error": {
     "fetchFailed": "Failed to load data, showing cached results",
     "loginFailed": "Invalid email or password",
-    "registerFailed": "Registration failed, please try again"
+    "registerFailed": "Registration failed, please try again",
+    "loadFailed": "Failed to load",
+    "retry": "Retry"
   },
   "aiChain": {
     "title": "AI Industry Chain Money Flow",

@@ -7,9 +7,9 @@
         <div class="section-title">{{ $t('indicators.sectionTitle') }}</div>
         <template v-for="group in groups" :key="group.key">
           <div class="group-title">{{ $t(`signalPos.${group.key}`) }}</div>
-          <div class="indicator-block" v-for="ind in group.items" :key="ind.key">
+          <div class="indicator-block" v-for="ind in group.items" :key="ind.key" :title="hintFor(ind)">
             <div class="indicator-row">
-              <span class="ind-label">{{ $t(`indicators.${ind.key}`) }}</span>
+              <span :class="['ind-label', { hinted: hintFor(ind) }]">{{ $t(`indicators.${ind.key}`) }}</span>
               <span class="ind-value">
                 {{ ind.value != null ? ind.value.toFixed(2) + ind.unit : '—' }}
                 <span v-if="ind.change !== null" :class="['ind-change', trendClass(ind.change)]">
@@ -58,6 +58,16 @@ function formatMonth(dateStr) {
   return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long' }).format(new Date(dateStr + 'T00:00:00Z'));
 }
 
+// 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
+const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade']);
+
+function hintFor(ind) {
+  if (JUDGED_KEYS.has(ind.key)) {
+    return `${t(`indicators.hints.${ind.key}`)}\n${t('indicators.hintGlobal')}`;
+  }
+  return t('indicators.hints.reference');
+}
+
 function trendKey(change) {
   if (change === null) return null;
   const rounded = Math.round(change * 100) / 100;
@@ -88,14 +98,27 @@ const groups = computed(() => {
     {
       key: 'aiSupply',
       items: [
+        // 顺序=AI产业链现金流向：模型用量（源头需求）→ 云厂商资本开支 → 半导体产出 → 市场代理
         {
-          key: 'smhSpyRelReturn', value: ind.smhSpyRelReturnPct, unit: '%', change: null,
-          signalBadge: ind.aiMarketSignal,
+          key: 'modelUsageTrend', value: ind.modelUsageTrendPct, unit: '%', change: null,
+          // 阈值与 backend/config/signal.config.js 保持同步：<-10% 触发泡沫预警
+          signalBadge: ind.modelUsageTrendPct != null
+            ? (ind.modelUsageTrendPct < -10 ? 'tight' : ind.modelUsageTrendPct >= 0 ? 'loose' : 'neutral')
+            : null,
+        },
+        {
+          key: 'capexYoY', value: ind.capexYoY, unit: '%', change: null,
+          // 阈值同步 signal.config.js：<0% 触发泡沫预警
+          signalBadge: ind.capexYoY != null ? (ind.capexYoY < 0 ? 'tight' : 'loose') : null,
         },
         {
           key: 'semiIpYoy', value: ind.semiIpYoy, unit: '%', change: null,
           signalBadge: ind.aiFundamentalSignal,
           periodDate: ind.semiIpPeriodDate, releaseDate: ind.semiIpReleaseDate, periodIsMonth: true,
+        },
+        {
+          key: 'smhSpyRelReturn', value: ind.smhSpyRelReturnPct, unit: '%', change: null,
+          signalBadge: ind.aiMarketSignal,
         },
       ],
     },
@@ -201,6 +224,8 @@ const groups = computed(() => {
 }
 
 .ind-label { color: var(--text-3); font-weight: 500; }
+/* 有悬浮提示的指标标签加虚线下划线，提示可悬停 */
+.ind-label.hinted { cursor: help; text-decoration: underline dotted var(--text-5); text-underline-offset: 3px; }
 .ind-value { color: var(--text-2); font-family: var(--font-num); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ind-change { font-size: var(--fs-xs); margin-left: 6px; }
 .ind-change.up { color: var(--red); }

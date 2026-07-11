@@ -1,6 +1,10 @@
 <template>
   <div class="ai-chain-panel">
     <div class="section-title">{{ $t('aiChain.title') }}</div>
+    <div v-if="loadError" class="error-state">
+      {{ $t('error.loadFailed') }}
+      <button class="retry-btn" @click="load">{{ $t('error.retry') }}</button>
+    </div>
     <div class="chain-flow">
       <div
         v-for="(stage, idx) in stages"
@@ -40,20 +44,20 @@
       <div class="bubble-title">{{ $t('aiChain.bubbleTitle') }}</div>
       <div v-if="bubble.warning" class="bubble-alert">⚠️ {{ $t('aiChain.bubbleWarning') }}</div>
       <div class="bubble-metrics">
-        <div class="bubble-cell">
-          <span class="bubble-label">{{ $t('aiChain.modelUsageTrend') }}</span>
+        <div class="bubble-cell" :title="$t('indicators.hints.modelUsageTrend') + '\n' + $t('indicators.hintGlobal')">
+          <span class="bubble-label hinted">{{ $t('aiChain.modelUsageTrend') }}</span>
           <span :class="['bubble-value', usageClass]">
             {{ bubble.modelUsageTrendPct != null ? formatPct(bubble.modelUsageTrendPct) : $t('aiChain.noData') }}
           </span>
         </div>
-        <div class="bubble-cell">
-          <span class="bubble-label">{{ $t('aiChain.capexYoY') }}</span>
+        <div class="bubble-cell" :title="$t('indicators.hints.capexYoY') + '\n' + $t('indicators.hintGlobal')">
+          <span class="bubble-label hinted">{{ $t('aiChain.capexYoY') }}</span>
           <span :class="['bubble-value', capexClass]">
             {{ capexDisplay }}
           </span>
         </div>
-        <div class="bubble-cell">
-          <span class="bubble-label">{{ $t('aiChain.semiIpYoy') }}</span>
+        <div class="bubble-cell" :title="$t('indicators.hints.semiIpYoy') + '\n' + $t('indicators.hintGlobal')">
+          <span class="bubble-label hinted">{{ $t('aiChain.semiIpYoy') }}</span>
           <span :class="['bubble-value', semiIpClass]">
             {{ bubble.semiIpYoy != null ? formatPct(bubble.semiIpYoy) : $t('aiChain.noData') }}
           </span>
@@ -74,6 +78,17 @@ import { api } from '../api/client.js';
 
 const { t } = useI18n();
 const chainData = ref(null);
+const loadError = ref(false);
+
+async function load() {
+  loadError.value = false;
+  try {
+    chainData.value = await api.getAiChain();
+  } catch (e) {
+    console.error('Failed to load ai-chain data', e);
+    loadError.value = true;
+  }
+}
 
 const bottleneck = computed(() => chainData.value?.bottleneck || { stage: null, source: 'auto', note: null });
 const bubble = computed(() => chainData.value?.bubble || {});
@@ -129,17 +144,23 @@ const capexDisplay = computed(() => {
   return parts.join(' ');
 });
 
-onMounted(async () => {
-  try {
-    chainData.value = await api.getAiChain();
-  } catch (e) {
-    console.error('Failed to load ai-chain data', e);
-  }
-});
+onMounted(load);
 </script>
 
 <style scoped>
 .ai-chain-panel { display: flex; flex-direction: column; gap: 12px; }
+
+.error-state { display: flex; align-items: center; gap: 10px; color: var(--red); font-size: var(--fs-md); }
+.retry-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-3);
+  border-radius: 6px;
+  color: var(--text-2);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+}
+.retry-btn:hover { border-color: var(--blue); }
 
 .section-title {
   font-size: var(--fs-xs);
@@ -215,6 +236,7 @@ onMounted(async () => {
 .bubble-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
 .bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
 .bubble-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+.bubble-label.hinted { cursor: help; text-decoration: underline dotted var(--text-5); text-underline-offset: 3px; }
 .bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-family: var(--font-num); }
 .bubble-value.pos { color: var(--green); }
 .bubble-value.neg { color: var(--red); }
