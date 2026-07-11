@@ -179,3 +179,45 @@ describe('getQuote 三层回退', () => {
     expect(axios.get.mock.calls.every(c => !String(c[0]).includes('ratios-ttm'))).toBe(true);
   });
 });
+
+describe('TwelveData 并发节流', () => {
+  it('并发调用串行排队，相邻调用间隔≥8秒（不齐发）', async () => {
+    vi.useFakeTimers();
+    try {
+      yahooFinance.quote.mockRejectedValue(new Error('429'));
+      const tdCallTimes = [];
+      axios.get.mockImplementation(url => {
+        if (url.includes('tiingo')) return Promise.reject(new Error('403'));
+        tdCallTimes.push(Date.now());
+        return Promise.resolve({ data: { price: '100' } });
+      });
+      const all = Promise.all([getQuote('AAA'), getQuote('BBB'), getQuote('CCC')]);
+      await vi.runAllTimersAsync();
+      await all;
+      expect(tdCallTimes.length).toBe(3);
+      expect(tdCallTimes[1] - tdCallTimes[0]).toBeGreaterThanOrEqual(8000);
+      expect(tdCallTimes[2] - tdCallTimes[1]).toBeGreaterThanOrEqual(8000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('缓存TTL分级', () => {
+  it('11分钟后：日线closes仍走缓存（12小时TTL），quote已过期重取（10分钟TTL）', async () => {
+    vi.useFakeTimers();
+    try {
+      yahooFinance.historical.mockResolvedValue([{ date: new Date('2026-07-01'), close: 100 }]);
+      yahooFinance.quote.mockResolvedValue({ regularMarketPrice: 100 });
+      await getDailyCloses('SPY', '2026-07-01', '2026-07-02');
+      await getQuote('SPY');
+      await vi.advanceTimersByTimeAsync(11 * 60 * 1000);
+      await getDailyCloses('SPY', '2026-07-01', '2026-07-02');
+      await getQuote('SPY');
+      expect(yahooFinance.historical).toHaveBeenCalledTimes(1);
+      expect(yahooFinance.quote).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

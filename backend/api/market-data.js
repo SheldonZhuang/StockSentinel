@@ -12,6 +12,7 @@ const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
 const FMP_QUOTE_URL = 'https://financialmodelingprep.com/stable/quote';
 const FMP_RATIOS_URL = 'https://financialmodelingprep.com/stable/ratios-ttm';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10分钟：省备用源配额（TwelveData 8次/分钟最紧）并提速自选股页面
+const CLOSES_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 历史日线盘中不变，12小时缓存大幅降低备用源配额消耗
 
 const fmpKey = () => process.env.FMP_API_KEY || process.env.financialmodelingprep_API_KEY;
 // TwelveData 免费层 8次/分钟：全局最小调用间隔，超频会返回 status:error 白白烧掉调用
@@ -19,31 +20,39 @@ const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
 const cache = new Map();
 let lastTwelveDataCallAt = 0;
+// 串行队列：并发调用者逐个排队等自己的时间窗，避免多个调用者读到同一个
+// lastTwelveDataCallAt、睡完同时醒来齐发导致 429（自选股接口是并发拉全部股票的）
+let twelveDataQueue = Promise.resolve();
 
-async function twelveDataThrottle() {
-  const wait = lastTwelveDataCallAt + TWELVEDATA_MIN_INTERVAL_MS - Date.now();
-  if (wait > 0) await new Promise(r => setTimeout(r, wait));
-  lastTwelveDataCallAt = Date.now();
+function twelveDataThrottle() {
+  const turn = twelveDataQueue.then(async () => {
+    const wait = lastTwelveDataCallAt + TWELVEDATA_MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    lastTwelveDataCallAt = Date.now();
+  });
+  twelveDataQueue = turn;
+  return turn;
 }
 
 function cacheGet(key) {
   const hit = cache.get(key);
   if (!hit) return undefined;
-  if (Date.now() - hit.at > CACHE_TTL_MS) {
+  if (Date.now() - hit.at > hit.ttl) {
     cache.delete(key);
     return undefined;
   }
   return hit.value;
 }
 
-function cacheSet(key, value) {
-  cache.set(key, { at: Date.now(), value });
+function cacheSet(key, value, ttl = CACHE_TTL_MS) {
+  cache.set(key, { at: Date.now(), value, ttl });
 }
 
 /** 测试用：清空缓存并重置节流状态 */
 export function clearMarketDataCache() {
   cache.clear();
   lastTwelveDataCallAt = 0;
+  twelveDataQueue = Promise.resolve();
 }
 
 // --- 日线收盘价：升序 [{date, close}] ---
@@ -105,7 +114,7 @@ export async function getDailyCloses(symbol, startDate, endDate) {
       const closes = await fn(symbol, startDate, endDate);
       if (closes) {
         if (name !== 'yahoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
-        cacheSet(key, closes);
+        cacheSet(key, closes, CLOSES_CACHE_TTL_MS);
         return closes;
       }
     } catch (err) {
