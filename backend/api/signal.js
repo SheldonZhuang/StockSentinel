@@ -194,6 +194,18 @@ export function detectSignalChanges(prevSnapshot, current) {
     changes.push({ kind: 'bubble', reasons: current.bubbleReasons || [] });
   }
 
+  if (!prevSnapshot.sahm_lock_active && current.sahmLockActive) {
+    changes.push({ kind: 'sahmLockOn' });
+  } else if (prevSnapshot.sahm_lock_active && !current.sahmLockActive) {
+    changes.push({ kind: 'sahmLockOff' });
+  }
+
+  if (!prevSnapshot.reactive_adjustment_lock_active && current.reactiveAdjustmentLockActive) {
+    changes.push({ kind: 'reactiveAdjustmentLockOn', bp: current.reactiveAdjustmentLockTriggerBp ?? null });
+  } else if (prevSnapshot.reactive_adjustment_lock_active && !current.reactiveAdjustmentLockActive) {
+    changes.push({ kind: 'reactiveAdjustmentLockOff' });
+  }
+
   return changes;
 }
 

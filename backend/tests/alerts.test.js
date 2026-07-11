@@ -9,6 +9,8 @@ const basePrev = {
   admin_signal: 'neutral',
   ai_supply_signal: 'loose',
   ai_bubble_warning: 0,
+  sahm_lock_active: 0,
+  reactive_adjustment_lock_active: 0,
 };
 
 const baseCurrent = {
@@ -19,6 +21,8 @@ const baseCurrent = {
   aiSupply: 'loose',
   bubbleWarning: false,
   bubbleReasons: [],
+  sahmLockActive: false,
+  reactiveAdjustmentLockActive: false,
 };
 
 describe('detectSignalChanges', () => {
@@ -63,6 +67,40 @@ describe('detectSignalChanges', () => {
       bubbleWarning: true, bubbleReasons: ['modelUsage'],
     });
     expect(changes).toHaveLength(4);
+  });
+
+  it('萨姆锁 0→1 → sahmLockOn 事件', () => {
+    const changes = detectSignalChanges(basePrev, { ...baseCurrent, sahmLockActive: true });
+    expect(changes).toContainEqual({ kind: 'sahmLockOn' });
+  });
+
+  it('萨姆锁持续为1 → 不重复示警', () => {
+    const prev = { ...basePrev, sahm_lock_active: 1 };
+    expect(detectSignalChanges(prev, { ...baseCurrent, sahmLockActive: true })).toEqual([]);
+  });
+
+  it('萨姆锁 1→0 → sahmLockOff 事件', () => {
+    const prev = { ...basePrev, sahm_lock_active: 1 };
+    const changes = detectSignalChanges(prev, { ...baseCurrent, sahmLockActive: false });
+    expect(changes).toContainEqual({ kind: 'sahmLockOff' });
+  });
+
+  it('应对式调整锁 0→1 → reactiveAdjustmentLockOn 事件，附带触发幅度', () => {
+    const changes = detectSignalChanges(basePrev, {
+      ...baseCurrent, reactiveAdjustmentLockActive: true, reactiveAdjustmentLockTriggerBp: -75,
+    });
+    expect(changes).toContainEqual({ kind: 'reactiveAdjustmentLockOn', bp: -75 });
+  });
+
+  it('应对式调整锁持续为1 → 不重复示警', () => {
+    const prev = { ...basePrev, reactive_adjustment_lock_active: 1 };
+    expect(detectSignalChanges(prev, { ...baseCurrent, reactiveAdjustmentLockActive: true })).toEqual([]);
+  });
+
+  it('应对式调整锁 1→0 → reactiveAdjustmentLockOff 事件', () => {
+    const prev = { ...basePrev, reactive_adjustment_lock_active: 1 };
+    const changes = detectSignalChanges(prev, { ...baseCurrent, reactiveAdjustmentLockActive: false });
+    expect(changes).toContainEqual({ kind: 'reactiveAdjustmentLockOff' });
   });
 });
 
