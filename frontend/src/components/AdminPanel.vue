@@ -35,6 +35,31 @@
       </form>
     </section>
 
+    <!-- 衰退防守锁定应急清除 -->
+    <section class="section">
+      <h3>{{ $t('recessionLock.banner') }}</h3>
+      <p class="lock-note">{{ $t('admin.lockOverrideNote') }}</p>
+      <form @submit.prevent="clearLock" class="signal-form">
+        <div class="form-row">
+          <label>{{ $t('admin.type') }}</label>
+          <select v-model="lockForm.type" class="input">
+            <option value="sahmLock">{{ $t('admin.clearSahmLock') }}</option>
+            <option value="reactiveAdjustmentLock">{{ $t('admin.clearReactiveLock') }}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>{{ $t('admin.expiresAt') }}</label>
+          <input type="datetime-local" v-model="lockForm.expiresAt" class="input" />
+        </div>
+        <div class="form-row">
+          <label>{{ $t('admin.note') }}</label>
+          <input v-model="lockForm.note" class="input" type="text" />
+        </div>
+        <button type="submit" class="save-btn" :disabled="lockSaving">{{ $t('admin.clearLock') }}</button>
+        <span v-if="lockMsg" class="save-msg">{{ lockMsg }}</span>
+      </form>
+    </section>
+
     <!-- 当前信号位状态 -->
     <section class="section">
       <h3>当前信号位</h3>
@@ -137,6 +162,9 @@ import { api } from '../api/client.js';
 const form = ref({ type: 'ai_supply', signal: 'neutral', expiresAt: '', note: '' });
 const saving = ref(false);
 const saveMsg = ref('');
+const lockForm = ref({ type: 'sahmLock', expiresAt: '', note: '' });
+const lockSaving = ref(false);
+const lockMsg = ref('');
 const currentSignals = ref(null);
 const history = ref([]);
 const refDocs = ref([]);
@@ -161,6 +189,19 @@ async function saveSignal() {
     saveMsg.value = '✗ ' + e.message;
   } finally {
     saving.value = false;
+  }
+}
+
+async function clearLock() {
+  lockSaving.value = true;
+  lockMsg.value = '';
+  try {
+    await api.setLockOverride(lockForm.value.type, lockForm.value.expiresAt || null, lockForm.value.note || null);
+    lockMsg.value = '✓ 已清除';
+  } catch (e) {
+    lockMsg.value = '✗ ' + e.message;
+  } finally {
+    lockSaving.value = false;
   }
 }
 
@@ -217,6 +258,7 @@ onMounted(async () => {
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .section-header h3 { margin: 0; }
 
+.lock-note { font-size: var(--fs-sm); color: var(--text-4); margin: 0 0 10px 0; }
 .signal-form { display: flex; flex-direction: column; gap: 10px; }
 .form-row { display: flex; align-items: center; gap: 10px; }
 .form-row label { width: 90px; font-size: var(--fs-md); color: var(--text-3); }
