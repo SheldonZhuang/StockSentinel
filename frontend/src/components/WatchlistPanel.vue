@@ -63,7 +63,7 @@
               </span>
             </span>
           </div>
-          <div class="stock-valuation">
+          <div class="stock-valuation" :title="$t('watchlist.valuationHint')">
             <span class="val-item">
               {{ $t('watchlist.pe') }}:
               <strong>{{ stock.currentPE !== null ? stock.currentPE?.toFixed(1) : '—' }}</strong>
@@ -253,7 +253,7 @@ onMounted(loadWatchlist);
 .percentile-badge.mid { background: var(--yellow-bg); color: var(--yellow); }
 .percentile-badge.low { background: var(--green-bg); color: var(--green); }
 
-.stock-valuation { display: flex; gap: 16px; }
+.stock-valuation { display: flex; gap: 16px; cursor: help; }
 .val-item { font-size: var(--fs-sm); color: var(--text-4); }
 .val-item strong { color: var(--text-2); font-family: var(--font-num); font-weight: 600; }
 

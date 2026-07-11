@@ -66,6 +66,7 @@
     "percentileHint": "Where the current price sits among all closes in the selected range: 99% = near the range high, 10% = near the range low",
     "pe": "P/E Ratio",
     "ps": "P/S Ratio",
+    "valuationHint": "ETFs/indexes have no financial statements, so blank P/E and P/S is normal; for individual stocks, blanks usually mean a temporary data-source rate limit — refresh later",
     "currentPrice": "Current Price",
     "dateRange": "Date Range",
     "presets": "Quick Add",
