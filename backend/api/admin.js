@@ -13,6 +13,8 @@ import chainCfg from '../config/ai-chain.config.js';
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
 const VALID_TYPES = ['fiscal', 'administrative', 'ai_supply'];
+const VALID_LOCK_TYPES = ['sahmLock', 'reactiveAdjustmentLock'];
+const LOCK_CLEAR_SIGNAL = 'cleared';
 // 'auto' 为哨兵值：清除手动设定，回到按环节排名自动识别
 const VALID_STAGES = [...chainCfg.STAGE_KEYS, 'auto'];
 
@@ -46,6 +48,18 @@ router.post('/signals', requireAdmin, async (req, res) => {
 
   await setAdminSignal(type, signal, expiresAt || null, note || null, req.user.email);
   res.json({ ok: true, type, signal, expiresAt });
+});
+
+// POST /api/admin/lock-override — 应急清除萨姆锁/应对式调整锁（FRED数据异常误触发时用）
+router.post('/lock-override', requireAdmin, async (req, res) => {
+  const { type, expiresAt, note } = req.body;
+
+  if (!VALID_LOCK_TYPES.includes(type)) {
+    return res.status(400).json({ error: `type must be one of: ${VALID_LOCK_TYPES.join(', ')}` });
+  }
+
+  await setAdminSignal(type, LOCK_CLEAR_SIGNAL, expiresAt || null, note || null, req.user.email);
+  res.json({ ok: true, type, expiresAt: expiresAt || null });
 });
 
 // GET /api/admin/signal-history
