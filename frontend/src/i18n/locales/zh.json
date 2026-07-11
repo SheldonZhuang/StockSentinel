@@ -29,6 +29,7 @@
     "trimmedPce": "截尾均值PCE (6个月)",
     "trimmedPce12m": "截尾均值PCE (12个月)",
     "unemployment": "失业率",
+    "sahm": "萨姆规则",
     "fiscalDeficitTtm": "联邦财政赤字 (滚动12个月)",
     "yoyChange": "同比",
     "epuTrade": "贸易政策不确定性指数",
@@ -43,7 +44,8 @@
       "rate": "%",
       "balanceSheet": "亿美元",
       "pce": "%",
-      "unemployment": "%"
+      "unemployment": "%",
+      "sahm": "%"
     },
     "bsStatus": {
       "loose": "QE 扩张",
@@ -83,6 +85,13 @@
     "toAttack": "距进攻条件（四维全宽松）：",
     "allLoose": "四维全部宽松，进攻条件成立"
   },
+  "recessionLock": {
+    "banner": "防守锁定中",
+    "sahmReason": "萨姆规则 {value}（阈值 ≥0.5）",
+    "reactiveReason": "应对式利率调整 {bp}bp",
+    "waitCondition": "等待利率降至0-0.25%或转为小幅调整解锁",
+    "overridden": "已被管理员手动清除"
+  },
   "auth": {
     "login": "登录",
     "register": "注册",
@@ -113,7 +122,11 @@
     "bottleneck": "当前最卡脖子环节",
     "bottleneckStage": "环节",
     "bottleneckSave": "保存环节",
-    "bottleneckAuto": "自动识别（跟随环节排名）"
+    "bottleneckAuto": "自动识别（跟随环节排名）",
+    "clearLock": "清除锁定",
+    "clearSahmLock": "清除萨姆锁",
+    "clearReactiveLock": "清除应对式调整锁",
+    "lockOverrideNote": "应急阀门：若判定为数据异常导致误触发，可手动清除"
   },
   "settings": {
     "title": "设置",

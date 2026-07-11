@@ -29,6 +29,7 @@
     "trimmedPce": "Trimmed Mean PCE (6M)",
     "trimmedPce12m": "Trimmed Mean PCE (12M)",
     "unemployment": "Unemployment Rate",
+    "sahm": "Sahm Rule",
     "fiscalDeficitTtm": "Federal Deficit (TTM)",
     "yoyChange": "YoY",
     "epuTrade": "Trade Policy Uncertainty",
@@ -43,7 +44,8 @@
       "rate": "%",
       "balanceSheet": "B USD",
       "pce": "%",
-      "unemployment": "%"
+      "unemployment": "%",
+      "sahm": "%"
     },
     "bsStatus": {
       "loose": "QE Expansion",
@@ -83,6 +85,13 @@
     "toAttack": "Toward attack (all four loose):",
     "allLoose": "All four dimensions loose — attack conditions met"
   },
+  "recessionLock": {
+    "banner": "Defense Lock Active",
+    "sahmReason": "Sahm Rule {value} (threshold ≥0.5)",
+    "reactiveReason": "Reactive rate adjustment {bp}bp",
+    "waitCondition": "Waiting for rate to reach 0-0.25% or a small adjustment to unlock",
+    "overridden": "Manually cleared by admin"
+  },
   "auth": {
     "login": "Login",
     "register": "Register",
@@ -113,7 +122,11 @@
     "bottleneck": "Current Bottleneck Stage",
     "bottleneckStage": "Stage",
     "bottleneckSave": "Save Stage",
-    "bottleneckAuto": "Auto (follow stage ranking)"
+    "bottleneckAuto": "Auto (follow stage ranking)",
+    "clearLock": "Clear Lock",
+    "clearSahmLock": "Clear Sahm Lock",
+    "clearReactiveLock": "Clear Reactive Adjustment Lock",
+    "lockOverrideNote": "Emergency valve: manually clear if data anomaly caused a false trigger"
   },
   "settings": {
     "title": "Settings",
