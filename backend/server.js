@@ -21,8 +21,10 @@ import {
   deriveAiSupplySubSignals,
   deriveSubSignals,
   calcBubbleWarning,
+  calcLockActive,
   detectSignalChanges,
 } from './api/signal.js';
+import signalCfg from './config/signal.config.js';
 import {
   getLatestSnapshot,
   saveSignalSnapshot,
@@ -61,16 +63,27 @@ app.get('/api/signal', async (req, res) => {
   const snapshot = await getLatestSnapshot();
   if (!snapshot) return res.json({ status: 'loading', message: 'No data yet, cron will run soon' });
 
-  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
+  const overrides = await getAllOverrides();
+  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
 
   // 生效值 = 手动覆盖优先，否则自动判定；旧快照没有 *_auto_signal 时兜底到当时存的生效值
   const fiscalSignal = fiscalOverride?.signal || snapshot.fiscal_auto_signal || snapshot.fiscal_signal;
   const adminSignal = adminOverride?.signal || snapshot.admin_auto_signal || snapshot.admin_signal;
   const aiSupplySignal = aiSupplyOverride?.signal || snapshot.ai_supply_auto_signal || snapshot.ai_supply_signal;
 
+  const rawSahmLockActive = !!snapshot.sahm_lock_active;
+  const rawReactiveLockActive = !!snapshot.reactive_adjustment_lock_active;
+  const sahmLockOverridden = !!overrides.sahmLockClear;
+  const reactiveAdjustmentLockOverridden = !!overrides.reactiveAdjustmentLockClear;
+  const sahmLockActive = sahmLockOverridden ? false : rawSahmLockActive;
+  const reactiveAdjustmentLockActive = reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive;
+
+  const decisionTreeSignal = calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal);
+  const finalSignal = (sahmLockActive || reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+
   res.json({
-    // 读取时实时重算，避免 override 在 cron 之后变化导致与快照不一致
-    finalSignal: calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
+    // 读取时实时重算决策树，再叠加衰退防守锁定强制覆盖，避免 override 在 cron 之后变化导致与快照不一致
+    finalSignal,
     // 顺序遵循策略主线：长线看供需（AI供需），短线看政策（货币/财政/行政）
     aiSupplySignal,
     aiSupplySignalSource: aiSupplyOverride ? 'override' : 'auto',
@@ -134,6 +147,14 @@ app.get('/api/signal', async (req, res) => {
       modelUsageTrendPct: snapshot.model_usage_trend_pct,
       capexYoY: snapshot.capex_yoy,
       aiBubbleWarning: !!snapshot.ai_bubble_warning,
+      sahmValue: snapshot.sahm_value,
+      sahmPeriodDate: snapshot.sahm_period_date,
+      sahmReleaseDate: snapshot.sahm_release_date,
+      sahmLockActive,
+      reactiveAdjustmentLockActive,
+      reactiveAdjustmentLockTriggerBp: reactiveAdjustmentLockActive ? snapshot.reactive_adjustment_lock_trigger_bp : null,
+      sahmLockOverridden,
+      reactiveAdjustmentLockOverridden,
     },
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,
@@ -213,6 +234,53 @@ app.patch('/api/user/alerts', requireAuth, async (req, res) => {
   res.json({ ok: true, emailAlerts: enabled });
 });
 
+/**
+ * 根据当天 macroData 和前一条快照，计算两个锁的 effective 状态（应用管理员清锁 override 后）
+ * @returns {{sahmValue, rateDiffBp, sahmLockActive, reactiveAdjustmentLockActive, reactiveAdjustmentLockTriggerBp,
+ *            sahmLockOverridden, reactiveAdjustmentLockOverridden}}
+ */
+function computeLocks(macroData, prevSnapshot, overrides) {
+  const { currentRate, prevRate, sahmValue } = macroData;
+  const rateDiffBp = currentRate !== null && prevRate !== null
+    ? Math.round((currentRate - prevRate) * 100)
+    : null;
+
+  const prevSahmLockActive = prevSnapshot ? !!prevSnapshot.sahm_lock_active : false;
+  const prevReactiveLockActive = prevSnapshot ? !!prevSnapshot.reactive_adjustment_lock_active : false;
+  const prevTriggerBp = prevSnapshot ? prevSnapshot.reactive_adjustment_lock_trigger_bp : null;
+
+  const sahmTrigger = sahmValue !== null && sahmValue !== undefined
+    && sahmValue >= signalCfg.SAHM_TRIGGER_THRESHOLD;
+  const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= signalCfg.RATE_REACTIVE_ADJUSTMENT_BP;
+
+  const rawSahmLockActive = calcLockActive({
+    triggerToday: sahmTrigger, rateDiffBp, currentRate, prevLockActive: prevSahmLockActive,
+  });
+  const rawReactiveLockActive = calcLockActive({
+    triggerToday: reactiveTrigger, rateDiffBp, currentRate, prevLockActive: prevReactiveLockActive,
+  });
+
+  let reactiveAdjustmentLockTriggerBp = null;
+  if (reactiveTrigger) {
+    reactiveAdjustmentLockTriggerBp = rateDiffBp;
+  } else if (rawReactiveLockActive) {
+    reactiveAdjustmentLockTriggerBp = prevTriggerBp;
+  }
+
+  const sahmLockOverridden = !!overrides.sahmLockClear;
+  const reactiveAdjustmentLockOverridden = !!overrides.reactiveAdjustmentLockClear;
+
+  return {
+    sahmValue,
+    rateDiffBp,
+    sahmLockActive: sahmLockOverridden ? false : rawSahmLockActive,
+    reactiveAdjustmentLockActive: reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive,
+    reactiveAdjustmentLockTriggerBp: reactiveAdjustmentLockOverridden ? null : reactiveAdjustmentLockTriggerBp,
+    sahmLockOverridden,
+    reactiveAdjustmentLockOverridden,
+  };
+}
+
 // --- cron 任务 ---
 async function runDailyUpdate() {
   console.log('[cron] Starting daily signal update...');
@@ -238,16 +306,20 @@ async function runDailyUpdate() {
   const aiSupplyAuto = calcAiSupplySignal(policyData, bubble);
   const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
 
-  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = await getAllOverrides();
+  const overrides = await getAllOverrides();
+  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
 
   // 生效值 = 手动覆盖优先，否则自动判定（判定函数保证返回信号串）
   const fiscal = fiscalOverride?.signal || fiscalAuto;
   const admin = adminOverride?.signal || adminAuto;
   const aiSupply = aiSupplyOverride?.signal || aiSupplyAuto;
-  const finalSignal = calcFinalSignal(aiSupply, monetary, fiscal, admin);
+  const decisionTreeSignal = calcFinalSignal(aiSupply, monetary, fiscal, admin);
 
   const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
+
+  const locks = computeLocks(macroData, prevSnapshot, overrides);
+  const finalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
 
   await saveSignalSnapshot({
     date: today,
@@ -263,6 +335,7 @@ async function runDailyUpdate() {
     fredCorePce: macroData.corePce,
     fredTrimmedPce: macroData.trimmedPce,
     fredUnemployment: macroData.unemployment,
+    sahmValue: macroData.sahmValue,
     fredCorePcePrev: macroData.prevCorePce,
     fredTrimmedPcePrev: macroData.prevTrimmedPce,
     fredUnemploymentPrev: macroData.prevUnemployment,
@@ -284,6 +357,8 @@ async function runDailyUpdate() {
     trimmedPceReleaseDate: macroData.trimmedPceReleaseDate,
     unemploymentPeriodDate: macroData.unemploymentPeriodDate,
     unemploymentReleaseDate: macroData.unemploymentReleaseDate,
+    sahmPeriodDate: macroData.sahmPeriodDate,
+    sahmReleaseDate: macroData.sahmReleaseDate,
     fiscalAutoSignal: fiscalAuto,
     fiscalDeficitTtm: policyData.deficitTtm,
     fiscalDeficitTtmPrev: policyData.deficitTtmPrev,
@@ -304,6 +379,9 @@ async function runDailyUpdate() {
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
     aiBubbleWarning: bubble.warning ? 1 : 0,
+    sahmLockActive: locks.sahmLockActive ? 1 : 0,
+    reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
+    reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
   });
 
   await saveAiChainSnapshot({
@@ -331,6 +409,9 @@ async function runDailyUpdate() {
     aiSupply,
     bubbleWarning: bubble.warning,
     bubbleReasons: bubble.reasons,
+    sahmLockActive: locks.sahmLockActive,
+    reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive,
+    reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
   });
   if (changes.length > 0) {
     const subscribers = await getAlertSubscribers();
@@ -347,9 +428,8 @@ async function runDailyUpdate() {
           semiIpYoy: policyData.semiIpYoy,
           modelUsageTrendPct: chainData.modelUsageTrendPct,
           capexYoY: chainData.capexYoY,
-          rateChangeBp: macroData.currentRate !== null && macroData.prevRate !== null
-            ? Math.round((macroData.currentRate - macroData.prevRate) * 100)
-            : null,
+          rateChangeBp: locks.rateDiffBp,
+          sahmValue: macroData.sahmValue,
         },
       });
     }
