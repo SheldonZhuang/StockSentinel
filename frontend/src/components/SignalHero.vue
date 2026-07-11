@@ -24,6 +24,13 @@
         ⚠️ {{ $t('aiChain.bubbleWarning') }}
       </div>
 
+      <!-- 衰退防守锁定横幅 -->
+      <div v-if="lockInfo" class="lock-banner">
+        ⚠️ {{ $t('recessionLock.banner') }}：{{ lockInfo.reasonText }}
+        <template v-if="lockInfo.overridden"> · {{ $t('recessionLock.overridden') }}</template>
+        <div class="lock-wait">{{ $t('recessionLock.waitCondition') }}</div>
+      </div>
+
       <!-- 信号解读：为什么防守 / 距进攻还差什么 -->
       <div class="interpret">
         <div v-if="tightDims.length" class="interpret-block">
@@ -131,6 +138,24 @@ const positions = computed(() => {
 const tightDims = computed(() =>
   positions.value.filter(p => p.value === 'tight').map(p => ({ ...p, detail: dimDetail(p.key) }))
 );
+
+const lockInfo = computed(() => {
+  const ind = props.signal?.indicators;
+  if (!ind) return null;
+  if (ind.sahmLockActive) {
+    return {
+      overridden: !!ind.sahmLockOverridden,
+      reasonText: t('recessionLock.sahmReason', { value: ind.sahmValue != null ? ind.sahmValue.toFixed(2) : '—' }),
+    };
+  }
+  if (ind.reactiveAdjustmentLockActive) {
+    return {
+      overridden: !!ind.reactiveAdjustmentLockOverridden,
+      reasonText: t('recessionLock.reactiveReason', { bp: ind.reactiveAdjustmentLockTriggerBp ?? '—' }),
+    };
+  }
+  return null;
+});
 </script>
 
 <style scoped>
@@ -182,6 +207,20 @@ const tightDims = computed(() =>
   border-radius: 8px;
   padding: 8px 14px;
 }
+
+.lock-banner {
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--red);
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lock-wait { font-size: var(--fs-xs); color: var(--text-4); }
 
 .interpret {
   display: flex;
