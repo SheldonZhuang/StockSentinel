@@ -133,6 +133,12 @@ const groups = computed(() => {
           periodDate: ind.trimmedPce12mPeriodDate, releaseDate: ind.trimmedPce12mReleaseDate, periodIsMonth: true,
         },
         {
+          key: 'sahm', value: ind.sahmValue, unit: '%',
+          change: null,
+          signalBadge: ind.sahmLockActive ? 'tight' : null,
+          periodDate: ind.sahmPeriodDate, releaseDate: ind.sahmReleaseDate, periodIsMonth: true,
+        },
+        {
           key: 'unemployment', value: ind.unemployment, unit: '%',
           change: ind.unemployment !== null && ind.unemploymentPrev !== null ? ind.unemployment - ind.unemploymentPrev : null,
           periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate, periodIsMonth: true,
