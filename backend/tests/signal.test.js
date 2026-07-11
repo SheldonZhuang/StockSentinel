@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
-  calcBubbleWarning,
+  calcBubbleWarning, calcLockActive,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -323,5 +323,86 @@ describe('calcFinalSignal', () => {
 
   it('观望：AI供需观望 其余三个宽松（非全宽松）', () => {
     expect(calcFinalSignal('neutral', 'loose', 'loose', 'loose')).toBe('neutral');
+  });
+});
+
+// 衰退防守锁定判定：萨姆锁/应对式调整锁复用同一套判定逻辑
+describe('calcLockActive', () => {
+  it('触发进入锁定：萨姆值超阈值', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: 0, currentRate: 4.25, prevLockActive: false,
+    })).toBe(true);
+  });
+
+  it('触发进入锁定：大幅加息', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: 75, currentRate: 5.0, prevLockActive: false,
+    })).toBe(true);
+  });
+
+  it('触发进入锁定：大幅降息', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: -75, currentRate: 3.5, prevLockActive: false,
+    })).toBe(true);
+  });
+
+  it('锁定期间维持：触发条件当天不满足，但 prevLockActive 为真', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 0, currentRate: 4.0, prevLockActive: true,
+    })).toBe(true);
+  });
+
+  it('零利率解锁：currentRate <= 0.25 时无论其他条件如何都解锁', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: 60, currentRate: 0.25, prevLockActive: true,
+    })).toBe(false);
+  });
+
+  it('小幅调整解锁：非零且<50bp 的降息', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: -25, currentRate: 3.0, prevLockActive: true,
+    })).toBe(false);
+  });
+
+  it('小幅调整解锁：非零且<50bp 的加息（不限方向）', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 25, currentRate: 3.5, prevLockActive: true,
+    })).toBe(false);
+  });
+
+  it('rateDiffBp === 0（无决议日/暂停决议）不解锁，锁定持续', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 0, currentRate: 3.5, prevLockActive: true,
+    })).toBe(true);
+  });
+
+  it('解锁优先级：触发条件和小幅调整解锁条件同天满足时，解锁生效', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: 25, currentRate: 3.5, prevLockActive: false,
+    })).toBe(false);
+  });
+
+  it('解锁优先级：触发条件和零利率解锁同天满足时，解锁生效', () => {
+    expect(calcLockActive({
+      triggerToday: true, rateDiffBp: -60, currentRate: 0.25, prevLockActive: false,
+    })).toBe(false);
+  });
+
+  it('数据缺失：currentRate 为 null 时零利率解锁不生效', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 0, currentRate: null, prevLockActive: true,
+    })).toBe(true);
+  });
+
+  it('数据缺失：rateDiffBp 为 null 时小幅调整解锁不生效', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: null, currentRate: 3.5, prevLockActive: true,
+    })).toBe(true);
+  });
+
+  it('无锁定、无触发、无解锁 → 保持未锁定', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 0, currentRate: 4.25, prevLockActive: false,
+    })).toBe(false);
   });
 });

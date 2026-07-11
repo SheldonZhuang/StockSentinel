@@ -69,6 +69,21 @@ export function deriveBalanceSheetStatus(current, prev) {
 }
 
 /**
+ * 衰退防守锁定判定：萨姆锁 / 应对式调整锁 复用同一套逻辑
+ * 解锁优先于触发：零利率区间(<=0.25%) 或 当天发生非零小幅调整(<50bp，不限方向) 即解锁；
+ * rateDiffBp===0（无议息决议日 或 决议暂停）不触发小幅调整解锁，避免锁定被普通日子误解除
+ * @returns {boolean}
+ */
+export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLockActive }) {
+  const zeroFloorUnlock = currentRate !== null && currentRate !== undefined
+    && currentRate <= ZERO_RATE_FLOOR_PCT;
+  const smallAdjustmentUnlock = rateDiffBp !== null && rateDiffBp !== undefined && rateDiffBp !== 0
+    && Math.abs(rateDiffBp) < RATE_REACTIVE_ADJUSTMENT_BP;
+  if (zeroFloorUnlock || smallAdjustmentUnlock) return false;
+  return !!prevLockActive || !!triggerToday;
+}
+
+/**
  * 财政信号：TTM赤字同比扩大超阈值 → 宽松（财政扩张），收窄超阈值 → 收紧
  * @param {object} policyData - fetchPolicyData() 返回的对象
  */
