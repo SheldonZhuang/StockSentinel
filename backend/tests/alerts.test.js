@@ -133,4 +133,40 @@ describe('buildAlertEmail', () => {
     });
     expect(html).toContain('货币政策');
   });
+
+  it('萨姆锁触发 On → 邮件正文含衰退防守文案', () => {
+    const { html } = buildAlertEmail({
+      finalSignal: 'defense',
+      changes: [{ kind: 'sahmLockOn' }],
+      details: { monetary: 'loose', fiscal: 'loose', admin: 'loose', aiSupply: 'loose', sahmValue: 0.6 },
+    });
+    expect(html).toContain('萨姆规则');
+  });
+
+  it('萨姆锁解除 Off → 邮件正文含解除文案', () => {
+    const { html } = buildAlertEmail({
+      finalSignal: 'neutral',
+      changes: [{ kind: 'sahmLockOff' }],
+      details: { monetary: 'loose', fiscal: 'loose', admin: 'loose', aiSupply: 'loose' },
+    });
+    expect(html).toContain('解除');
+  });
+
+  it('应对式调整锁触发 On → 邮件正文含调整幅度', () => {
+    const { html } = buildAlertEmail({
+      finalSignal: 'defense',
+      changes: [{ kind: 'reactiveAdjustmentLockOn', bp: -75 }],
+      details: { monetary: 'tight', fiscal: 'loose', admin: 'loose', aiSupply: 'loose' },
+    });
+    expect(html).toContain('-75');
+  });
+
+  it('应对式调整锁解除 Off → 邮件正文含解除文案', () => {
+    const { html } = buildAlertEmail({
+      finalSignal: 'neutral',
+      changes: [{ kind: 'reactiveAdjustmentLockOff' }],
+      details: { monetary: 'loose', fiscal: 'loose', admin: 'loose', aiSupply: 'loose' },
+    });
+    expect(html).toContain('解除');
+  });
 });

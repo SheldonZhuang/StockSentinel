@@ -39,6 +39,16 @@ export function buildAlertEmail(payload) {
     } else if (c.kind === 'bubble') {
       const reasons = (c.reasons || []).map(r => BUBBLE_REASON_LABELS[r] || r).join('；');
       lines.push(`⚠️ AI泡沫预警触发 Bubble warning triggered：${reasons}`);
+    } else if (c.kind === 'sahmLockOn') {
+      const sahmStr = details.sahmValue != null ? `（当前值 ${Number(details.sahmValue).toFixed(2)}）` : '';
+      lines.push(`🔴 萨姆规则触发，进入衰退防守锁定 Sahm Rule triggered, recession defense lock activated${sahmStr}`);
+    } else if (c.kind === 'sahmLockOff') {
+      lines.push(`🟢 萨姆规则衰退防守锁定已解除 Sahm Rule recession defense lock released`);
+    } else if (c.kind === 'reactiveAdjustmentLockOn') {
+      const bpStr = c.bp != null ? `（单次调整 ${c.bp}bp）` : '';
+      lines.push(`🔴 应对式利率调整触发，进入衰退防守锁定 Reactive rate adjustment triggered, recession defense lock activated${bpStr}`);
+    } else if (c.kind === 'reactiveAdjustmentLockOff') {
+      lines.push(`🟢 应对式利率调整防守锁定已解除 Reactive rate adjustment defense lock released`);
     }
   }
 
