@@ -73,8 +73,9 @@ export async function fetchMacroData() {
   const bsStart = daysAgoET(BALANCE_SHEET_LOOKBACK_DAYS);
   const pceStart = daysAgoET(400); // PCE 月度数据，取最近数期
   const unStart = daysAgoET(400);
+  const sahmStart = daysAgoET(400);
 
-  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs] = await Promise.all([
+  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs] = await Promise.all([
     fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
     fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
     fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'),       // 同比变动百分比
@@ -82,6 +83,7 @@ export async function fetchMacroData() {
     fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE, pceStart, apiKey),       // 本身就是年化变动率
     fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_12M, pceStart, apiKey),  // 本身就是同比变动率
     fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey),
+    fetchSeries(FRED_SERIES.SAHM, sahmStart, apiKey),
   ]);
 
   const currentBalanceSheet = latestValue(bsObs);
@@ -92,12 +94,14 @@ export async function fetchMacroData() {
   const trimmedPcePeriodDate = latestDate(trimmedPceObs);
   const trimmedPce12mPeriodDate = latestDate(trimmedPce12mObs);
   const unemploymentPeriodDate = latestDate(unrateObs);
-  const [corePceReleaseDate, trimmedPce1mReleaseDate, trimmedPceReleaseDate, trimmedPce12mReleaseDate, unemploymentReleaseDate] = await Promise.all([
+  const sahmPeriodDate = latestDate(sahmObs);
+  const [corePceReleaseDate, trimmedPce1mReleaseDate, trimmedPceReleaseDate, trimmedPce12mReleaseDate, unemploymentReleaseDate, sahmReleaseDate] = await Promise.all([
     corePcePeriodDate ? fetchReleaseDate(FRED_SERIES.CORE_PCE, corePcePeriodDate, apiKey) : null,
     trimmedPce1mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_1M, trimmedPce1mPeriodDate, apiKey) : null,
     trimmedPcePeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE, trimmedPcePeriodDate, apiKey) : null,
     trimmedPce12mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_12M, trimmedPce12mPeriodDate, apiKey) : null,
     unemploymentPeriodDate ? fetchReleaseDate(FRED_SERIES.UNEMPLOYMENT, unemploymentPeriodDate, apiKey) : null,
+    sahmPeriodDate ? fetchReleaseDate(FRED_SERIES.SAHM, sahmPeriodDate, apiKey) : null,
   ]);
 
   return {
@@ -115,6 +119,7 @@ export async function fetchMacroData() {
     prevTrimmedPce12m: prevValue(trimmedPce12mObs),
     unemployment: latestValue(unrateObs),
     prevUnemployment: prevValue(unrateObs),
+    sahmValue: latestValue(sahmObs),
 
     // 议息会议决定日期（利率每日更新，真正的"决定"日以 FOMC 日历为准）
     rateDecisionDate: getLastFomcDecisionDate(),
@@ -134,5 +139,7 @@ export async function fetchMacroData() {
     trimmedPce12mReleaseDate,
     unemploymentPeriodDate,
     unemploymentReleaseDate,
+    sahmPeriodDate,
+    sahmReleaseDate,
   };
 }

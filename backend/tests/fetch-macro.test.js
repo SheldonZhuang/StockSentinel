@@ -36,6 +36,7 @@ describe('fetchMacroData', () => {
       .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
       .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
       .mockResolvedValueOnce({ data: { observations: makeObs([4.75, 4.25, 4.0]) } })
+      .mockResolvedValueOnce({ data: { observations: makeObs([0.6, 0.4, 0.2]) } })
       .mockResolvedValue({ data: { observations: [{ date: '2024-01-01', value: '4.75', realtime_start: '2024-01-15' }] } });
 
     const data = await fetchMacroData();
@@ -65,6 +66,10 @@ describe('fetchMacroData', () => {
     expect(data.trimmedPce12mReleaseDate).toBe('2024-01-15');
     expect(data.unemploymentPeriodDate).toBe('2024-01-01');
     expect(data.unemploymentReleaseDate).toBe('2024-01-15');
+    expect(data).toHaveProperty('sahmValue');
+    expect(data.sahmValue).toBe(0.6);
+    expect(data.sahmPeriodDate).toBe('2024-01-01');
+    expect(data.sahmReleaseDate).toBe('2024-01-15');
 
     expect(data.prevCorePce).toBe(4.25);
     expect(data.prevTrimmedPce1m).toBe(4.25);
