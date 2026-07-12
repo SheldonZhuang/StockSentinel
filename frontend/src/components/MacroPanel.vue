@@ -11,7 +11,7 @@
             <div class="indicator-row">
               <span :class="['ind-label', { hinted: hintFor(ind) }]">{{ $t(`indicators.${ind.key}`) }}</span>
               <span class="ind-value">
-                {{ ind.value != null ? ind.value.toFixed(2) + ind.unit : '—' }}
+                {{ ind.value != null ? (ind.signed && ind.value > 0 ? '+' : '') + ind.value.toFixed(2) + ind.unit : '—' }}
                 <span v-if="ind.change !== null" :class="['ind-change', trendClass(ind.change)]">
                   {{ trendArrow(ind.change) }}{{ Math.abs(ind.change).toFixed(2) }}{{ ind.unit }}
                   ({{ $t(`indicators.${trendKey(ind.change)}`) }})
@@ -108,24 +108,24 @@ const groups = computed(() => {
       items: [
         // 顺序=AI产业链现金流向：模型用量（源头需求）→ 云厂商资本开支 → 半导体产出 → 市场代理
         {
-          key: 'modelUsageTrend', value: ind.modelUsageTrendPct, unit: '%', change: null,
+          key: 'modelUsageTrend', signed: true, value: ind.modelUsageTrendPct, unit: '%', change: null,
           // 阈值与 backend/config/signal.config.js 保持同步：<-10% 触发泡沫预警
           signalBadge: ind.modelUsageTrendPct != null
             ? (ind.modelUsageTrendPct < -10 ? 'tight' : ind.modelUsageTrendPct >= 0 ? 'loose' : 'neutral')
             : null,
         },
         {
-          key: 'capexYoY', value: ind.capexYoY, unit: '%', change: null,
+          key: 'capexYoY', signed: true, value: ind.capexYoY, unit: '%', change: null,
           // 阈值同步 signal.config.js：<0% 触发泡沫预警
           signalBadge: ind.capexYoY != null ? (ind.capexYoY < 0 ? 'tight' : 'loose') : null,
         },
         {
-          key: 'semiIpYoy', value: ind.semiIpYoy, unit: '%', change: null,
+          key: 'semiIpYoy', signed: true, value: ind.semiIpYoy, unit: '%', change: null,
           signalBadge: ind.aiFundamentalSignal,
           periodDate: ind.semiIpPeriodDate, releaseDate: ind.semiIpReleaseDate, periodIsMonth: true,
         },
         {
-          key: 'smhSpyRelReturn', value: ind.smhSpyRelReturnPct, unit: '%', change: null,
+          key: 'smhSpyRelReturn', signed: true, value: ind.smhSpyRelReturnPct, unit: '%', change: null,
           signalBadge: ind.aiMarketSignal,
         },
       ],

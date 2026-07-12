@@ -43,6 +43,10 @@
   --yellow: #facc15;
   --yellow-bg: #2a2a1a;
   --yellow-border: #4a4215;
+  --orange: #fb923c;
+  --orange-bg: #2a1c10;
+  --orange-border: #5a3a1c;
+  --glow-orange: rgba(251, 146, 60, 0.2);
   --red: #f87171;
   --red-bg: #3a1717;
   --red-border: #4a1f1f;
@@ -92,6 +96,10 @@ html[data-theme='light'] {
   --green-bg: #dcfce7;
   --green-border: #bbf7d0;
   --yellow: #b45309;
+  --orange: #ea580c;
+  --orange-bg: #ffedd5;
+  --orange-border: #fdba74;
+  --glow-orange: rgba(234, 88, 12, 0.15);
   --yellow-bg: #fef3c7;
   --yellow-border: #fde68a;
   --red: #dc2626;

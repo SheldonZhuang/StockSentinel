@@ -8,7 +8,8 @@
     "attack": "Angriff",
     "neutral": "Abwarten",
     "defense": "Verteidigung",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "reduce": "Reduzieren"
   },
   "signalPos": {
     "monetary": "Geldpolitik",
@@ -71,7 +72,7 @@
       "epuDaily": "Regel: täglicher EPU-Index 7-Tage-Schnitt (nachrichtenbasiert; reagiert binnen Tagen auf Wenden wie Zollpausen) 10-Jahres-Perzentil >80 → restriktiv, <50 → locker; muss mit dem monatlichen Handelsindex übereinstimmen, sonst neutral",
       "oilWti": "Regel (Öl = Echtzeit-Marktpreis von Kriegsnachrichten, tagesgenau): 30-Tage-Anstieg ≥+20 % → Kriegs-/Angebotsschock, Verwaltung sofort restriktiv (erzwungene Defensive); Rückgang ≥20 % → Kriegsende/Deeskalation, sofort locker; Ölereignisse haben Vorrang vor EPU-Indizes (die Wochen nachlaufen). Innerhalb ±20 % Rückfall auf duale EPU-Beurteilung. Hinweis: locker entfernt nur das Veto dieser Dimension — Angriff erfordert weiterhin alle vier locker und keine Sperren"
     },
-    "hintGlobal": "Globale Regel: Angriff = alle vier locker (UND); Defensive = eine restriktiv (ODER); Sahm-/Reaktivsperren erzwingen Defensive",
+    "hintGlobal": "Globale Regel: Angriff = alle vier locker (UND); nur eine Dimension restriktiv = reduzieren & abwarten; zwei+ restriktiv oder Sahm-/Reaktivsperre aktiv = volle Defensive",
     "stale": "Daten verzögert",
     "staleHint": "Datenquelle vorübergehend nicht verfügbar; letzte gültige Beurteilung beibehalten",
     "epuDaily": "Politikunsicherheit (täglich)",

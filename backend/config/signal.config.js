@@ -73,10 +73,12 @@ export default {
     TIGHT: 'tight',
   },
 
-  // 最终信号档位常量
+  // 最终信号档位常量（防守分级 2026-07-12 用户拍板）：
+  // attack=四维全宽松；reduce=仅单维收紧（减仓观望）；defense=双维以上收紧或锁激活（全面防守）
   FINAL_SIGNAL: {
     ATTACK: 'attack',
     NEUTRAL: 'neutral',
+    REDUCE: 'reduce',
     DEFENSE: 'defense',
   },
 };

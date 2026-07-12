@@ -121,8 +121,10 @@ export function replayMonth(m, prevState) {
   const sahmLockActive = unlock ? false : (prevState.sahmLockActive || sahmTrigger);
   const reactiveLockActive = unlock ? false : (prevState.reactiveLockActive || reactiveTrigger);
 
-  // 决策树 + 锁强制防守
-  let final = (aiSupply === S.TIGHT || monetary === S.TIGHT || fiscal === S.TIGHT || admin === S.TIGHT) ? 'defense'
+  // 决策树（防守分级）：双维以上收紧=全面防守；单维收紧=减仓观望；锁强制全面防守
+  const tightCount = [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length;
+  let final = tightCount >= 2 ? 'defense'
+    : tightCount === 1 ? 'reduce'
     : (aiSupply === S.LOOSE && monetary === S.LOOSE && fiscal === S.LOOSE && admin === S.LOOSE) ? 'attack' : 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
 
@@ -320,12 +322,12 @@ async function main() {
   });
 
   // 防守期 vs 非防守期月度收益
-  let defRet = [], nonDefRet = [];
+  let defRet = [], reduceRet = [], nonDefRet = [];
   for (let i = 1; i < timeline.length; i++) {
     const a = timeline[i - 1], b = timeline[i];
     if (a.spx === null || b.spx === null) continue;
     const ret = (b.spx / a.spx - 1) * 100;
-    (a.final === 'defense' ? defRet : nonDefRet).push(ret);
+    (a.final === 'defense' ? defRet : a.final === 'reduce' ? reduceRet : nonDefRet).push(ret);
   }
   const avg = arr => arr.length ? arr.reduce((x, y) => x + y, 0) / arr.length : null;
 
@@ -350,8 +352,8 @@ async function main() {
     spxSource,
     monthsCovered: timeline.length,
     crisisRows,
-    avgDefenseRet: avg(defRet), avgNonDefenseRet: avg(nonDefRet),
-    defMonths: defRet.length, nonDefMonths: nonDefRet.length,
+    avgDefenseRet: avg(defRet), avgReduceRet: avg(reduceRet), avgNonDefenseRet: avg(nonDefRet),
+    defMonths: defRet.length, reduceMonths: reduceRet.length, nonDefMonths: nonDefRet.length,
     episodes: episodes.length, falsePositives,
     // 各维度收紧月数（诊断哪个维度在拉响警报）
     dimTight: {
@@ -397,8 +399,8 @@ ${rows}
 
 ## 全期统计
 
-- 防守期月均收益：**${f(s.avgDefenseRet)}%**（${s.defMonths} 个月） vs 非防守期：**${f(s.avgNonDefenseRet)}%**（${s.nonDefMonths} 个月）——防守期市场表现系统性更差，信号有信息量
-- **防守占比：${(s.defMonths / (s.defMonths + s.nonDefMonths) * 100).toFixed(0)}%** 的月份处于防守档（OR 逻辑的代价，见结论）
+- 全面防守期月均收益：**${f(s.avgDefenseRet)}%**（${s.defMonths} 个月）｜减仓观望期：**${f(s.avgReduceRet)}%**（${s.reduceMonths} 个月）｜其余：**${f(s.avgNonDefenseRet)}%**（${s.nonDefMonths} 个月）
+- **全面防守占比：${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%**，减仓观望占比：${(s.reduceMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（防守分级后，单维收紧不再全仓防守）
 - 各维度收紧月数：货币 ${s.dimTight.monetary}、财政 ${s.dimTight.fiscal}、行政 ${s.dimTight.admin}；锁激活 ${s.dimTight.lockMonths} 个月
 - 防守信号片段共 **${s.episodes}** 段，其中 **${s.falsePositives}** 段未伴随随后12个月内 >15% 的回撤（假阳性率 ${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}%）
 
@@ -422,7 +424,7 @@ ${rows}
 > 本报告为**财政方向反转后**（2026-07-12，"大市场小政府"原则：赤字扩大=收紧）的新口径。与旧口径（赤字扩大=宽松）对比：旧口径四次危机全部提前示警（56/254/236/189 天）但防守占比 83%、假阳性 23/24；新口径见下。
 
 1. **召回率仍是 4/4**：四次大跌全部被捕获（相对顶部：${s.crisisRows.map(c => c.leadDays === null ? '—' : (c.leadDays >= 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)).join('、')}），示警后分别躲掉 ${s.crisisRows.map(c => c.savedPct !== null ? c.savedPct.toFixed(0) + '%' : '—').join('、')} 的后续跌幅。
-2. **财政反转的取舍**：2000 与 2022 顶部前恰逢赤字收窄期（克林顿盈余时代/疫情支出退坡），旧口径判收紧而提前示警，新口径判宽松故转为滞后——但两次都由 ≥50bp 应对式加息锁在下跌前半段接管，仍躲掉主要跌幅（-45%/-14%）。作为回报，防守占比从 83% 降至 ${(s.defMonths / (s.defMonths + s.nonDefMonths) * 100).toFixed(0)}%。
+2. **防守分级已生效（2026-07-12 用户拍板）**：单维收紧=减仓观望（部分仓位），双维共振或锁=全面防守（空仓/对冲）。全面防守占比 ${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（分级前为 74%），大量单维噪声月份降级为减仓观望。
 3. **精确率仍是主要代价**：${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 的防守片段未跟随大回撤，防守期月均仍有 ${f(s.avgDefenseRet)}% 正收益（vs 非防守 ${f(s.avgNonDefenseRet)}%）。若严格按信号空仓执行会错过大量上涨月份。
 4. **对执行层的建议（阈值调优方向，非代码错误）**：
    - 防守分级：单维收紧 → 减仓/观望；双维以上收紧或任一锁激活 → 全面防守。锁与多维共振在历史上与真实危机高度重合。

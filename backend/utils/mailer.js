@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 const SIGNAL_LABELS = {
   attack: '🟢 进攻 Attack',
   neutral: '🟡 观望 Watch',
+  reduce: '🟠 减仓观望 Reduce',
   defense: '🔴 防守 Defense',
   loose: '宽松 Loose',
   tight: '收紧 Tight',

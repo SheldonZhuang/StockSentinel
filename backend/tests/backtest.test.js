@@ -95,9 +95,14 @@ describe('replayMonth', () => {
     expect(r.reactiveLockActive).toBe(false);
   });
 
-  it('财政赤字扩大 >5%（政府扩张）→ 收紧 → 防守', () => {
+  it('财政赤字扩大 >5%（政府扩张）→ 收紧 → 单维=减仓观望', () => {
     const r = replayMonth({ ...NEUTRAL_INPUT, fiscalChangePct: 8 }, NO_LOCK);
     expect(r.fiscal).toBe('tight');
+    expect(r.final).toBe('reduce');
+  });
+
+  it('财政+行政双维收紧 → 全面防守', () => {
+    const r = replayMonth({ ...NEUTRAL_INPUT, fiscalChangePct: 8, epuPercentile: 92 }, NO_LOCK);
     expect(r.final).toBe('defense');
   });
 
@@ -106,10 +111,10 @@ describe('replayMonth', () => {
     expect(r.fiscal).toBe('loose');
   });
 
-  it('EPU >80 分位 → 行政收紧 → 防守', () => {
+  it('EPU >80 分位 → 行政收紧 → 单维=减仓观望', () => {
     const r = replayMonth({ ...NEUTRAL_INPUT, epuPercentile: 92 }, NO_LOCK);
     expect(r.admin).toBe('tight');
-    expect(r.final).toBe('defense');
+    expect(r.final).toBe('reduce');
   });
 
   it('全部数据缺失 → 各维中性 → 观望（利率宽松但AI中性挡住进攻）', () => {

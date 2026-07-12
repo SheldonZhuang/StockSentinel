@@ -322,27 +322,27 @@ describe('calcFinalSignal', () => {
     expect(calcFinalSignal('loose', 'loose', 'loose', 'loose')).toBe('attack');
   });
 
-  it('防守：货币收紧', () => {
-    expect(calcFinalSignal('loose', 'tight', 'loose', 'loose')).toBe('defense');
+  it('减仓观望：仅货币收紧（单维=噪声容忍）', () => {
+    expect(calcFinalSignal('loose', 'tight', 'loose', 'loose')).toBe('reduce');
   });
 
-  it('防守：财政收紧', () => {
-    expect(calcFinalSignal('loose', 'loose', 'tight', 'loose')).toBe('defense');
+  it('减仓观望：仅财政收紧', () => {
+    expect(calcFinalSignal('loose', 'loose', 'tight', 'loose')).toBe('reduce');
   });
 
-  it('防守：行政收紧', () => {
-    expect(calcFinalSignal('loose', 'loose', 'loose', 'tight')).toBe('defense');
+  it('减仓观望：仅行政收紧', () => {
+    expect(calcFinalSignal('loose', 'loose', 'loose', 'tight')).toBe('reduce');
   });
 
-  it('防守：仅AI供需收紧，其余三个宽松', () => {
-    expect(calcFinalSignal('tight', 'loose', 'loose', 'loose')).toBe('defense');
+  it('减仓观望：仅AI供需收紧，其余三个宽松', () => {
+    expect(calcFinalSignal('tight', 'loose', 'loose', 'loose')).toBe('reduce');
   });
 
-  it('防守：AI供需与货币同时收紧', () => {
+  it('全面防守：AI供需与货币双维共振收紧', () => {
     expect(calcFinalSignal('tight', 'tight', 'loose', 'loose')).toBe('defense');
   });
 
-  it('防守：多个同时收紧', () => {
+  it('全面防守：多个同时收紧', () => {
     expect(calcFinalSignal('tight', 'tight', 'tight', 'tight')).toBe('defense');
   });
 

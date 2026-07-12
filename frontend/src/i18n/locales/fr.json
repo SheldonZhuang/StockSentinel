@@ -8,7 +8,8 @@
     "attack": "Attaque",
     "neutral": "Attente",
     "defense": "Défense",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "reduce": "Alléger"
   },
   "signalPos": {
     "monetary": "Politique Monétaire",
@@ -71,7 +72,7 @@
       "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre",
       "oilWti": "Règle (pétrole = pricing en temps réel des nouvelles de guerre, précision au jour) : hausse 30 j ≥+20 % → choc guerre/offre, administratif immédiatement resserré (défense forcée) ; baisse ≥20 % → fin de guerre/désescalade, immédiatement assoupli ; les événements pétroliers priment sur les indices EPU (en retard de plusieurs semaines). Dans ±20 %, retour au double proxy EPU. Note : l'assouplissement ne retire que le veto de cette dimension — l'attaque exige toujours les quatre souples et aucun verrou"
     },
-    "hintGlobal": "Règle globale : Attaque = les quatre souples (ET) ; Défense = un seul resserré (OU) ; les verrous Sahm/réactif forcent la défense",
+    "hintGlobal": "Règle globale : Attaque = les quatre souples (ET) ; une seule dimension resserrée = alléger et attendre ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
     "stale": "Données retardées",
     "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé",
     "epuDaily": "Incertitude politique (quotidien)",

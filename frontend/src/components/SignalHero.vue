@@ -79,6 +79,7 @@ const { t } = useI18n();
 const SIGNALS = [
   { key: 'attack', emoji: '🟢' },
   { key: 'neutral', emoji: '🟡' },
+  { key: 'reduce', emoji: '🟠' },
   { key: 'defense', emoji: '🔴' },
 ];
 
@@ -187,6 +188,8 @@ const lockInfo = computed(() => {
 .hero-badge.attack.active { background: var(--green-bg); box-shadow: 0 0 36px var(--glow-green); }
 .hero-badge.neutral { color: var(--yellow); border-color: var(--yellow-border); }
 .hero-badge.neutral.active { background: var(--yellow-bg); box-shadow: 0 0 36px var(--glow-yellow); }
+.hero-badge.reduce { color: var(--orange); border-color: var(--orange-border); }
+.hero-badge.reduce.active { background: var(--orange-bg); box-shadow: 0 0 36px var(--glow-orange); }
 .hero-badge.defense { color: var(--red); border-color: var(--red-border); }
 .hero-badge.defense.active {
   background: var(--red-bg);

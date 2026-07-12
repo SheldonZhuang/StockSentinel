@@ -42,7 +42,7 @@ const loading = ref(true);
 const error = ref(false);
 
 function signalEmoji(s) {
-  return s === 'attack' ? '🟢' : s === 'defense' ? '🔴' : '🟡';
+  return s === 'attack' ? '🟢' : s === 'defense' ? '🔴' : s === 'reduce' ? '🟠' : '🟡';
 }
 
 // history 按日期降序：与时间上的前一天（i+1）不同 = 信号切换节点
@@ -91,6 +91,7 @@ onMounted(load);
 .dot.big { width: 14px; height: 14px; margin-top: 2px; box-shadow: 0 0 6px var(--highlight); }
 .dot.attack { background: var(--green); }
 .dot.neutral { background: var(--yellow); }
+.dot.reduce { background: var(--orange); }
 .dot.defense { background: var(--red); }
 .line { flex: 1; width: 1px; background: var(--border-2); min-height: 12px; margin: 2px 0; }
 
@@ -108,6 +109,7 @@ onMounted(load);
 .entry-signal { font-size: var(--fs-lg); font-weight: 600; margin: 2px 0; }
 .entry-signal.attack { color: var(--green); }
 .entry-signal.neutral { color: var(--yellow); }
+.entry-signal.reduce { color: var(--orange); }
 .entry-signal.defense { color: var(--red); }
 .entry-detail { font-size: var(--fs-xs); color: var(--text-4); }
 </style>

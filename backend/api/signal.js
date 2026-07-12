@@ -236,22 +236,18 @@ export function detectSignalChanges(prevSnapshot, current) {
 }
 
 /**
- * 决策树：四个信号位 → 最终进攻/观望/防守
+ * 决策树：四个信号位 → 最终信号（防守分级，2026-07-12 回测调优后用户拍板）
  * 参数顺序遵循策略主线"长线看供需，短线看政策"：AI供需 → 货币 → 财政 → 行政
  * 进攻 = AND（四全宽松）
- * 防守 = OR（任一收紧）
+ * 全面防守 = 双维以上收紧（多维共振，历史上与真实危机高度重合；锁激活在 server 层强制）
+ * 减仓观望 = 仅单维收紧（回测显示单维收紧多为噪声，全仓防守代价过高）
  * 观望 = 其余
  */
 export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
-  // 防守：任一收紧
-  if (
-    aiSupply === SIGNAL.TIGHT ||
-    monetary === SIGNAL.TIGHT ||
-    fiscal === SIGNAL.TIGHT ||
-    admin === SIGNAL.TIGHT
-  ) {
-    return FINAL_SIGNAL.DEFENSE;
-  }
+  const tightCount = [aiSupply, monetary, fiscal, admin].filter(s => s === SIGNAL.TIGHT).length;
+
+  if (tightCount >= 2) return FINAL_SIGNAL.DEFENSE;
+  if (tightCount === 1) return FINAL_SIGNAL.REDUCE;
 
   // 进攻：四全宽松
   if (
