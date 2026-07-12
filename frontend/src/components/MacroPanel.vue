@@ -197,19 +197,6 @@ const groups = computed(() => {
       key: 'administrative',
       items: [
         {
-          key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
-          extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
-          signalBadge: epuBadge(ind.epuTradePercentile),
-          periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
-        },
-        {
-          // 日频EPU 7日均线：政策转向（如关税战暂停）数天内可见，与月度贸易专项指数一致才定档
-          key: 'epuDaily', value: ind.epuDaily, unit: '', change: null,
-          extra: ind.epuDailyPercentile != null ? `${t('indicators.percentile10y')} ${ind.epuDailyPercentile.toFixed(0)}` : null,
-          signalBadge: epuBadge(ind.epuDailyPercentile),
-          periodDate: ind.epuDailyPeriodDate,
-        },
-        {
           // 油价事件层：WTI 30天涨跌幅是战争新闻的市场实时定价（开战跳涨/停战跳水），±20%优先于EPU
           key: 'oilWti', value: ind.oilWti, unit: '', change: null,
           extra: ind.oilChange30dPct != null
@@ -219,6 +206,19 @@ const groups = computed(() => {
             ? (ind.oilChange30dPct >= 20 ? 'tight' : ind.oilChange30dPct <= -20 ? 'loose' : 'neutral')
             : null,
           periodDate: ind.oilPeriodDate,
+        },
+        {
+          // 日频EPU 7日均线：政策转向（如关税战暂停）数天内可见，与月度贸易专项指数一致才定档
+          key: 'epuDaily', value: ind.epuDaily, unit: '', change: null,
+          extra: ind.epuDailyPercentile != null ? `${t('indicators.percentile10y')} ${ind.epuDailyPercentile.toFixed(0)}` : null,
+          signalBadge: epuBadge(ind.epuDailyPercentile),
+          periodDate: ind.epuDailyPeriodDate,
+        },
+        {
+          key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
+          extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
+          signalBadge: epuBadge(ind.epuTradePercentile),
+          periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
         },
       ],
     },

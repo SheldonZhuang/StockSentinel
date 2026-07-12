@@ -76,7 +76,15 @@
     "stale": "데이터 지연",
     "staleHint": "데이터 소스가 일시적으로 불가하여 마지막 유효 판정을 유지",
     "epuDaily": "정책 불확실성 지수(일간)",
-    "oilWti": "WTI 원유 가격"
+    "oilWti": "WTI 원유 가격",
+    "short": {
+      "modelUsage": "사용량",
+      "capex": "클라우드 Capex",
+      "semiIp": "반도체 IP",
+      "deficitYoY": "적자 전년비",
+      "epuDaily": "일간 EPU",
+      "epuTrade": "무역 EPU"
+    }
   },
   "watchlist": {
     "title": "관심 종목",

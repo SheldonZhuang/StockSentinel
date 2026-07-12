@@ -76,7 +76,15 @@
     "stale": "数据延迟",
     "staleHint": "该维度数据源暂时不可用，沿用上一次有效判定",
     "epuDaily": "政策不确定性指数(日频)",
-    "oilWti": "WTI原油价格"
+    "oilWti": "WTI原油价格",
+    "short": {
+      "modelUsage": "调用量",
+      "capex": "云Capex",
+      "semiIp": "半导体IP",
+      "deficitYoY": "赤字同比",
+      "epuDaily": "日频EPU",
+      "epuTrade": "贸易EPU"
+    }
   },
   "watchlist": {
     "title": "自选股",

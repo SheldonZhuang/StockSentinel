@@ -89,27 +89,37 @@ const fmtPct = v => (v == null ? null : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`);
 function dimMetric(key) {
   const ind = props.signal?.indicators || {};
   if (key === 'aiSupply') {
+    // 按产业链现金流向排列：付费源头（模型调用量）最领先最靠前 → 云capex → 半导体产出 → 市场代理
     const parts = [];
+    if (ind.modelUsageTrendPct != null) parts.push(`${t('indicators.short.modelUsage')} ${fmtPct(ind.modelUsageTrendPct)}`);
+    if (ind.capexYoY != null) parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}`);
+    if (ind.semiIpYoy != null) parts.push(`${t('indicators.short.semiIp')} ${fmtPct(ind.semiIpYoy)}`);
     if (ind.smhSpyRelReturnPct != null) parts.push(`SMH−SPY ${fmtPct(ind.smhSpyRelReturnPct)}`);
-    if (ind.semiIpYoy != null) parts.push(`${t('indicators.semiIpYoy')} ${fmtPct(ind.semiIpYoy)}`);
     return parts.join(' · ') || null;
   }
   if (key === 'monetary') {
-    return ind.rate != null ? `${t('indicators.rate')} ${ind.rate.toFixed(2)}%` : null;
+    // 判定要素：利率 + 资产负债表状态（QE/暂停/QT）
+    const parts = [];
+    if (ind.rate != null) parts.push(`${t('indicators.rate')} ${ind.rate.toFixed(2)}%`);
+    if (ind.balanceSheetStatus) parts.push(t(`indicators.bsStatus.${ind.balanceSheetStatus}`));
+    return parts.join(' · ') || null;
   }
   if (key === 'fiscal') {
     return ind.fiscalDeficitChangePct != null
-      ? `${t('indicators.yoyChange')} ${fmtPct(ind.fiscalDeficitChangePct)}`
+      ? `${t('indicators.short.deficitYoY')} ${fmtPct(ind.fiscalDeficitChangePct)}`
       : null;
   }
   if (key === 'administrative') {
-    // 行政三层判定：油价事件层触发时优先展示油价（否则宽松徽章配高分位EPU会自相矛盾）
+    // 按判定优先级排列：油价事件层（触发时最优先）→ 日频EPU（时效）→ 月度贸易EPU（结构）
     const parts = [];
     if (ind.oilChange30dPct != null && Math.abs(ind.oilChange30dPct) >= 20) {
       parts.push(`WTI 30D ${fmtPct(ind.oilChange30dPct)}`);
     }
+    if (ind.epuDailyPercentile != null) {
+      parts.push(`${t('indicators.short.epuDaily')} P${ind.epuDailyPercentile.toFixed(0)}`);
+    }
     if (ind.epuTradePercentile != null) {
-      parts.push(`${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`);
+      parts.push(`${t('indicators.short.epuTrade')} P${ind.epuTradePercentile.toFixed(0)}`);
     }
     return parts.join(' · ') || null;
   }

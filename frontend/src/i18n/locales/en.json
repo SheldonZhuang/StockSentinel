@@ -76,7 +76,15 @@
     "stale": "Data delayed",
     "staleHint": "Data source temporarily unavailable; last valid judgment retained",
     "epuDaily": "Policy Uncertainty (Daily)",
-    "oilWti": "WTI Crude Oil"
+    "oilWti": "WTI Crude Oil",
+    "short": {
+      "modelUsage": "Usage",
+      "capex": "Cloud Capex",
+      "semiIp": "Semi IP",
+      "deficitYoY": "Deficit YoY",
+      "epuDaily": "Daily EPU",
+      "epuTrade": "Trade EPU"
+    }
   },
   "watchlist": {
     "title": "Watchlist",

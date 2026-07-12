@@ -76,7 +76,15 @@
     "stale": "Daten verzögert",
     "staleHint": "Datenquelle vorübergehend nicht verfügbar; letzte gültige Beurteilung beibehalten",
     "epuDaily": "Politikunsicherheit (täglich)",
-    "oilWti": "WTI-Rohöl"
+    "oilWti": "WTI-Rohöl",
+    "short": {
+      "modelUsage": "Nutzung",
+      "capex": "Cloud-Capex",
+      "semiIp": "Halbleiter-IP",
+      "deficitYoY": "Defizit JoJ",
+      "epuDaily": "EPU tägl.",
+      "epuTrade": "Handels-EPU"
+    }
   },
   "watchlist": {
     "title": "Beobachtungsliste",

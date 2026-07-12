@@ -76,7 +76,15 @@
     "stale": "データ遅延",
     "staleHint": "データソースが一時的に利用不可のため、直近の有効判定を維持",
     "epuDaily": "政策不確実性指数（日次）",
-    "oilWti": "WTI原油価格"
+    "oilWti": "WTI原油価格",
+    "short": {
+      "modelUsage": "利用量",
+      "capex": "クラウドCapex",
+      "semiIp": "半導体IP",
+      "deficitYoY": "赤字前年比",
+      "epuDaily": "日次EPU",
+      "epuTrade": "貿易EPU"
+    }
   },
   "watchlist": {
     "title": "ウォッチリスト",

@@ -76,7 +76,15 @@
     "stale": "Données retardées",
     "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé",
     "epuDaily": "Incertitude politique (quotidien)",
-    "oilWti": "Pétrole brut WTI"
+    "oilWti": "Pétrole brut WTI",
+    "short": {
+      "modelUsage": "Usage",
+      "capex": "Capex cloud",
+      "semiIp": "PI semi",
+      "deficitYoY": "Déficit GA",
+      "epuDaily": "EPU quot.",
+      "epuTrade": "EPU comm."
+    }
   },
   "watchlist": {
     "title": "Liste de Suivi",

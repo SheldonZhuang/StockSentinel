@@ -76,7 +76,15 @@
     "stale": "Datos retrasados",
     "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido",
     "epuDaily": "Incertidumbre política (diaria)",
-    "oilWti": "Petróleo WTI"
+    "oilWti": "Petróleo WTI",
+    "short": {
+      "modelUsage": "Uso",
+      "capex": "Capex cloud",
+      "semiIp": "PI semi",
+      "deficitYoY": "Déficit i.a.",
+      "epuDaily": "EPU diario",
+      "epuTrade": "EPU comerc."
+    }
   },
   "watchlist": {
     "title": "Lista de Seguimiento",
