@@ -87,7 +87,6 @@
     },
     "oilSource": {
       "futures": "Contrats CL=F",
-      "uso": "Proxy ETF USO",
       "spot": "Spot (différé)"
     }
   },

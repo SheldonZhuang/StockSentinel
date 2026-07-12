@@ -87,7 +87,6 @@
     },
     "oilSource": {
       "futures": "期货 CL=F",
-      "uso": "USO期货ETF代理",
       "spot": "现货(发布滞后)"
     }
   },

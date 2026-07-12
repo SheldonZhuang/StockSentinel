@@ -10,8 +10,9 @@ export default {
   STAGE_BASKETS: {
     cloud: ['MSFT', 'AMZN', 'GOOGL', 'META', 'NBIS'],
     chip: ['NVDA', 'AMD', 'AVGO', 'ARM', 'INTC'],
-    // HXSCL = SK海力士 OTC ADR；005930.KS = 三星电子(KRX，仅Yahoo源可拉，失败自动剔除等权)
-    memory: ['HXSCL', '005930.KS', 'MU', 'SNDK'],
+    // SKHY = SK海力士 NASDAQ ADR（2026-07-10上市，7/13前过渡代码SKHYV，旧OTC代码HXSCL已弃用）
+    // 005930.KS = 三星电子(KRX，仅Yahoo源可拉，失败自动剔除等权)
+    memory: ['SKHY', '005930.KS', 'MU', 'SNDK'],
     optical: ['LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'], // SIVEF = Sivers Semiconductors AB (OTC，光子学)
     packaging: ['AMAT', 'LRCX', 'TSM', 'KLAC'],
     power: ['BE'], // 用户指定只用 Bloom Energy（单一标的波动大，排名噪声已知晓）

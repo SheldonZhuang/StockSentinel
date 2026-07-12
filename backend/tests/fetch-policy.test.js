@@ -233,32 +233,6 @@ describe('fetchPolicyData', () => {
     expect(data.oilSource).toBe('futures');
   });
 
-  it('CL=F 不可用时回退 USO：只取变化率与日期，不展示ETF净值为油价', async () => {
-    mockFredBySeriesId({
-      MTSDS133FMS: fiscalObs,
-      EPUTRADE: epuObs,
-      USEPUINDXD: epuDailyObs,
-      DCOILWTICO: oilObs,
-      IPG3344S: semiIpObs,
-    });
-    yahooFinance.historical.mockImplementation(symbol => {
-      if (symbol === 'CL=F') return Promise.reject(new Error('429'));
-      if (symbol === 'USO') {
-        return Promise.resolve([
-          { date: new Date('2026-06-05'), close: 150 },
-          { date: new Date('2026-07-11'), close: 105 }, // 30天 -30%
-        ]);
-      }
-      return Promise.resolve([{ close: 100 }, { close: 100 }]);
-    });
-
-    const data = await fetchPolicyData();
-    expect(data.oilWti).toBe(null); // USO净值≠油价，不展示价格水平
-    expect(data.oilChange30dPct).toBeCloseTo(-30, 5);
-    expect(data.oilPeriodDate).toBe('2026-07-11');
-    expect(data.oilSource).toBe('uso');
-  });
-
   it('缺少 FRED_API_KEY → 全部 null，不抛错', async () => {
     delete process.env.FRED_API_KEY;
     const data = await fetchPolicyData();

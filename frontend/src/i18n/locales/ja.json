@@ -87,7 +87,6 @@
     },
     "oilSource": {
       "futures": "CL=F先物",
-      "uso": "USO先物ETF代理",
       "spot": "現物（遅延）"
     }
   },

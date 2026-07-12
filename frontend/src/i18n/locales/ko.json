@@ -87,7 +87,6 @@
     },
     "oilSource": {
       "futures": "CL=F 선물",
-      "uso": "USO 선물ETF 프록시",
       "spot": "현물(지연)"
     }
   },

@@ -87,7 +87,6 @@
     },
     "oilSource": {
       "futures": "CL=F-Futures",
-      "uso": "USO-ETF-Proxy",
       "spot": "Spot (verzögert)"
     }
   },

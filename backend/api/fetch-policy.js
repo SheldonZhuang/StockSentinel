@@ -163,29 +163,20 @@ export async function fetchAdminData(apiKey) {
       return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
     }),
     (async () => {
-      // 油价三层：① WTI期货 CL=F（真实期货价，最新交易日，仅Yahoo源支持）
-      // ② USO 原油期货ETF（备用行情源均支持，30天变化率是有效代理，但ETF净值≠油价水平故不展示价格）
-      // ③ FRED DCOILWTICO 现货（EIA编制，发布滞后3~5个工作日，最后兜底）
-      const fromMarket = async (symbol, source, exposeLevel) => {
-        const bars = await getDailyCloses(symbol, daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
+      // 油价两层（用户拍板：油价水平语义必须是真实WTI，不用ETF代理）：
+      // ① WTI期货 CL=F（真实期货价，最新交易日，战争定价第一反应）
+      // ② FRED DCOILWTICO 现货（EIA编制，发布滞后3~5个工作日，兜底并标注"现货(滞后)"）
+      try {
+        const bars = await getDailyCloses('CL=F', daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
         const obs = (bars || [])
           .map(b => ({ date: b.date, value: String(b.close) }))
           .sort((a, b) => (a.date < b.date ? 1 : -1)); // calcWindowChangePct 期望降序
         const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
-        if (latest === null || changePct === null) return null;
-        return { oilWti: exposeLevel ? latest : null, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: source };
-      };
-      try {
-        const r = await fromMarket('CL=F', 'futures', true);
-        if (r) return r;
+        if (latest !== null && changePct !== null) {
+          return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: 'futures' };
+        }
       } catch (err) {
         console.warn('[fetch-policy] CL=F futures failed:', err.message);
-      }
-      try {
-        const r = await fromMarket('USO', 'uso', false);
-        if (r) return r;
-      } catch (err) {
-        console.warn('[fetch-policy] USO proxy failed:', err.message);
       }
       const obs = await fetchSeries(FRED_SERIES.OIL_WTI, daysAgoET(cfg.OIL_LOOKBACK_DAYS), apiKey);
       const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
