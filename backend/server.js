@@ -144,6 +144,9 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
       epuTrade: snapshot.epu_trade,
       epuTradePercentile: snapshot.epu_trade_percentile,
       epuTradePeriodDate: snapshot.epu_trade_period_date,
+      epuDaily: snapshot.epu_daily,
+      epuDailyPercentile: snapshot.epu_daily_percentile,
+      epuDailyPeriodDate: snapshot.epu_daily_period_date,
       adminAutoSignal: snapshot.admin_auto_signal,
       smhSpyRelReturnPct: snapshot.smh_spy_rel_return_pct,
       semiIpYoy: snapshot.semi_ip_yoy,
@@ -322,7 +325,8 @@ async function runDailyUpdate() {
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
   const fiscalStale = policyData.deficitTtmChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
-  const adminStale = policyData.epuTradePercentile == null && !!prevSnapshot?.admin_auto_signal;
+  const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
+    && !!prevSnapshot?.admin_auto_signal;
   const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;
   const aiSupplyStale = aiDataMissing && !bubble.warning && !!prevSnapshot?.ai_supply_auto_signal;
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
@@ -389,6 +393,9 @@ async function runDailyUpdate() {
     epuTrade: policyData.epuTrade,
     epuTradePercentile: policyData.epuTradePercentile,
     epuTradePeriodDate: policyData.epuTradePeriodDate,
+    epuDaily: policyData.epuDaily,
+    epuDailyPercentile: policyData.epuDailyPercentile,
+    epuDailyPeriodDate: policyData.epuDailyPeriodDate,
     aiSupplyAutoSignal: aiSupplyAutoEff,
     aiMarketSignal: marketSignal,
     aiFundamentalSignal: fundamentalSignal,

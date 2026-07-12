@@ -236,7 +236,7 @@ onMounted(load);
 .bubble-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
 .bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
 .bubble-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
-.bubble-label.hinted { cursor: help; text-decoration: underline dotted var(--text-5); text-underline-offset: 3px; }
+.bubble-label.hinted { cursor: help; }
 .bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-family: var(--font-num); }
 .bubble-value.pos { color: var(--green); }
 .bubble-value.neg { color: var(--red); }

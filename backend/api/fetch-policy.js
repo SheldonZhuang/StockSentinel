@@ -13,7 +13,10 @@ const {
 } = cfg;
 
 const NULL_FISCAL = { deficitTtm: null, deficitTtmPrev: null, deficitTtmChangePct: null, fiscalPeriodDate: null, fiscalReleaseDate: null };
-const NULL_ADMIN = { epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null };
+const NULL_ADMIN = {
+  epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null,
+  epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null,
+};
 const NULL_AI = { smhSpyRelReturnPct: null, semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
 
 /**
@@ -84,18 +87,59 @@ export async function fetchFiscalData(apiKey) {
 }
 
 /**
- * 行政：贸易政策不确定性指数 → 近10年百分位
- * （学术编制系列，ALFRED 修订记录不可靠，不取发布日期）
+ * 日频序列 → n日移动均线序列（输入观测按日期降序，输出均线值数组升序）
+ * 日频EPU单日噪声极大（任何头条都会跳），均线平滑后再算百分位
+ */
+export function calcMaSeries(observations, n) {
+  const asc = [];
+  for (let i = observations.length - 1; i >= 0; i--) {
+    const v = parseFloat(observations[i].value);
+    if (!isNaN(v)) asc.push(v);
+  }
+  const ma = [];
+  let sum = 0;
+  for (let i = 0; i < asc.length; i++) {
+    sum += asc[i];
+    if (i >= n) sum -= asc[i - n];
+    if (i >= n - 1) ma.push(sum / n);
+  }
+  return ma;
+}
+
+/**
+ * 行政：双代理——月度贸易专项 EPUTRADE + 日频 USEPUINDXD 7日均线，各取近10年百分位
+ * 两侧独立容错：一侧失败不影响另一侧（判定函数对单边缺失有降级规则）
  */
 export async function fetchAdminData(apiKey) {
-  const obs = await fetchSeries(FRED_SERIES.EPU_TRADE, daysAgoET(EPU_LOOKBACK_DAYS), apiKey);
-  const epuTrade = latestValue(obs);
-  const values = obs.map(o => parseFloat(o.value)).filter(v => !isNaN(v));
-  return {
-    epuTrade,
-    epuTradePercentile: calcPercentile(epuTrade, values),
-    epuTradePeriodDate: latestDate(obs),
-  };
+  const [trade, daily] = await Promise.all([
+    (async () => {
+      const obs = await fetchSeries(FRED_SERIES.EPU_TRADE, daysAgoET(EPU_LOOKBACK_DAYS), apiKey);
+      const epuTrade = latestValue(obs);
+      const values = obs.map(o => parseFloat(o.value)).filter(v => !isNaN(v));
+      return {
+        epuTrade,
+        epuTradePercentile: calcPercentile(epuTrade, values),
+        epuTradePeriodDate: latestDate(obs),
+      };
+    })().catch(err => {
+      console.warn('[fetch-policy] EPU trade fetch failed:', err.message);
+      return { epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null };
+    }),
+    (async () => {
+      const obs = await fetchSeries(FRED_SERIES.EPU_DAILY, daysAgoET(EPU_LOOKBACK_DAYS), apiKey);
+      const ma = calcMaSeries(obs, cfg.EPU_DAILY_MA_DAYS);
+      const latestMa = ma.length ? ma[ma.length - 1] : null;
+      return {
+        epuDaily: latestMa,
+        epuDailyPercentile: calcPercentile(latestMa, ma),
+        epuDailyPeriodDate: latestDate(obs),
+      };
+    })().catch(err => {
+      console.warn('[fetch-policy] EPU daily fetch failed:', err.message);
+      return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
+    }),
+  ]);
+  return { ...trade, ...daily };
 }
 
 /**

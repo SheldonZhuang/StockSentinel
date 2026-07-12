@@ -108,12 +108,18 @@ describe('fetchPolicyData', () => {
 
   const fiscalObs = monthlyObs(25, i => (i < 12 ? -110 : -100));
   const epuObs = monthlyObs(120, i => 100 + i); // 最新值100为最小 → 低百分位
+  // 日频序列（desc）：最新7天都是200，之前80天都是100 → 7日均线最新=200为最大 → 100分位
+  const epuDailyObs = Array.from({ length: 87 }, (_, i) => ({
+    date: new Date(Date.UTC(2026, 4, 30) - i * 86400000).toISOString().slice(0, 10),
+    value: String(i < 7 ? 200 : 100),
+  }));
   const semiIpObs = [{ date: '2026-05-01', value: '7.2' }];
 
   it('正常返回三个维度的全部字段', async () => {
     mockFredBySeriesId({
       MTSDS133FMS: fiscalObs,
       EPUTRADE: epuObs,
+      USEPUINDXD: epuDailyObs,
       IPG3344S: semiIpObs,
     });
     yahooFinance.historical.mockImplementation(symbol =>
@@ -128,15 +134,18 @@ describe('fetchPolicyData', () => {
     expect(data.fiscalPeriodDate).toBe('2026-05-01');
     expect(data.epuTrade).toBe(100);
     expect(data.epuTradePercentile).toBeCloseTo(0.8, 1); // 1/120
+    expect(data.epuDaily).toBe(200); // 最新7天均值
+    expect(data.epuDailyPercentile).toBe(100); // 历史最高
     expect(data.smhSpyRelReturnPct).toBeCloseTo(11, 5); // 12% - 1%
     expect(data.semiIpYoy).toBe(7.2);
     expect(data.semiIpPeriodDate).toBe('2026-05-01');
   });
 
-  it('单维度失败隔离：EPUTRADE 拒绝 → 行政字段 null，财政/AI照常', async () => {
+  it('单维度失败隔离：EPUTRADE 拒绝 → 月度侧 null，日频侧与财政/AI照常', async () => {
     mockFredBySeriesId({
       MTSDS133FMS: fiscalObs,
       EPUTRADE: new Error('FRED 500'),
+      USEPUINDXD: epuDailyObs,
       IPG3344S: semiIpObs,
     });
     yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
@@ -144,6 +153,7 @@ describe('fetchPolicyData', () => {
     const data = await fetchPolicyData();
     expect(data.epuTrade).toBe(null);
     expect(data.epuTradePercentile).toBe(null);
+    expect(data.epuDailyPercentile).toBe(100); // 日频侧不受月度失败影响
     expect(data.deficitTtmChangePct).toBeCloseTo(10, 5);
     expect(data.semiIpYoy).toBe(7.2);
   });

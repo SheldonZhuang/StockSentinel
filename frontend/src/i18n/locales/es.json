@@ -64,14 +64,16 @@
       "smhSpyRelReturn": "Regla: retorno relativo SMH−SPY 90 días >+8 % → laxa, <−8 % → restrictiva; debe coincidir con el proxy fundamental, si no → neutral",
       "rate": "Regla: ajuste único ≥50 pb (reactivo, cualquier dirección) → restrictiva + bloqueo de ajuste reactivo (defensa forzada); <50 pb o pausa → laxa",
       "balanceSheet": "Regla: variación semanal >+0,25 % → QE (laxa), <−0,25 % → QT (restrictiva), entre → pausa. Monetaria = tasa laxa Y sin QT → laxa; reactivo O QT → restrictiva",
-      "sahm": "Regla: valor Sahm ≥0,5 → inicio de recesión, bloqueo Sahm (defensa forzada); se desbloquea con tasa ≤0,25 % o ajuste <50 pb",
-      "fiscalDeficitTtm": "Regla: déficit TTM interanual se amplía >5 % → laxa (expansión fiscal), se reduce >5 % → restrictiva, entre → neutral",
-      "epuTrade": "Regla: percentil de 10 años del índice de incertidumbre comercial >80 → restrictiva, <50 → laxa, 50–80 → neutral",
-      "reference": "Solo referencia, no participa en el juicio"
+      "sahm": "Regla: valor Sahm <0,5 % → laxa; ≥0,5 % → inicio de recesión, bloqueo Sahm (defensa forzada); se desbloquea con tasa ≤0,25 % o ajuste <50 pb",
+      "fiscalDeficitTtm": "Regla (principio de gobierno pequeño): déficit TTM interanual se amplía >5 % → restrictiva (gobierno en expansión, subidas de impuestos previstas); se reduce >5 % → laxa (gobierno en contracción, margen para bajar impuestos); entre → neutral",
+      "epuTrade": "Regla: índice de incertidumbre comercial (mensual, específico comercio/aranceles/tec.) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el EPU diario, si no → neutral",
+      "reference": "Solo referencia, no participa en el juicio",
+      "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral"
     },
     "hintGlobal": "Regla global: Ataque = las cuatro laxas (Y); Defensa = cualquiera restrictiva (O); los bloqueos Sahm/reactivo fuerzan defensa",
     "stale": "Datos retrasados",
-    "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido"
+    "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido",
+    "epuDaily": "Incertidumbre política (diaria)"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",
@@ -80,7 +82,7 @@
     "remove": "Eliminar",
     "empty": "Sin acciones en la lista",
     "pricePercentile": "Percentil de Precio",
-    "percentileHint": "Posición del precio actual entre todos los cierres del rango: 99% = cerca del máximo, 10% = cerca del mínimo",
+    "percentileHint": "Posición del precio actual entre todos los cierres del rango. Regla: ≥80 % alto (rojo, euforia — precaución/vender); ≤20 % bajo (verde, olvidado — vigilar compra); 20–80 % medio (amarillo, esperar). 99 % = cerca del máximo, 10 % = cerca del mínimo",
     "pe": "P/E",
     "ps": "P/S",
     "valuationHint": "Los ETF/índices no tienen estados financieros, P/E y P/S vacíos es normal; en acciones individuales, un vacío suele indicar limitación temporal de la fuente de datos — actualice más tarde",

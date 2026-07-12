@@ -84,24 +84,41 @@ export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLock
 }
 
 /**
- * 财政信号：TTM赤字同比扩大超阈值 → 宽松（财政扩张），收窄超阈值 → 收紧
+ * 财政信号（政策原则"大市场小政府"）：
+ * TTM赤字同比扩大超阈值 → 收紧（政府扩张，加税加费预期，损害市场经济）；
+ * 收窄超阈值 → 宽松（政府收缩，减税降费空间）
  * @param {object} policyData - fetchPolicyData() 返回的对象
  */
 export function calcFiscalSignal({ deficitTtmChangePct }) {
   if (deficitTtmChangePct === null || deficitTtmChangePct === undefined) return SIGNAL.NEUTRAL;
-  if (deficitTtmChangePct > FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.LOOSE;
-  if (deficitTtmChangePct < -FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.TIGHT;
+  if (deficitTtmChangePct > FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.TIGHT;
+  if (deficitTtmChangePct < -FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.LOOSE;
   return SIGNAL.NEUTRAL;
 }
 
 /**
- * 行政信号：贸易政策不确定性指数近10年百分位 >80 → 收紧，<50 → 宽松
+ * 行政子信号：百分位 → 档位（>80 收紧，<50 宽松）
  */
-export function calcAdminSignal({ epuTradePercentile }) {
-  if (epuTradePercentile === null || epuTradePercentile === undefined) return SIGNAL.NEUTRAL;
-  if (epuTradePercentile > EPU_PERCENTILE_TIGHT) return SIGNAL.TIGHT;
-  if (epuTradePercentile < EPU_PERCENTILE_LOOSE) return SIGNAL.LOOSE;
+function epuPercentileSignal(percentile) {
+  if (percentile === null || percentile === undefined) return null;
+  if (percentile > EPU_PERCENTILE_TIGHT) return SIGNAL.TIGHT;
+  if (percentile < EPU_PERCENTILE_LOOSE) return SIGNAL.LOOSE;
   return SIGNAL.NEUTRAL;
+}
+
+/**
+ * 行政信号：双代理一致才定档（与AI供需同模式）——
+ * 月度贸易专项 EPUTRADE（结构性）+ 日频EPU 7日均线（时效性，政策转向数天内反应）。
+ * 两者都有数据时一致才定档，不一致→观望；单边缺失用可用侧；全缺→观望
+ */
+export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile }) {
+  const tradeSignal = epuPercentileSignal(epuTradePercentile);
+  const dailySignal = epuPercentileSignal(epuDailyPercentile);
+
+  if (tradeSignal !== null && dailySignal !== null) {
+    return tradeSignal === dailySignal ? tradeSignal : SIGNAL.NEUTRAL;
+  }
+  return tradeSignal ?? dailySignal ?? SIGNAL.NEUTRAL;
 }
 
 /**

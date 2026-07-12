@@ -59,7 +59,15 @@ function formatMonth(dateStr) {
 }
 
 // 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
-const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade']);
+const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade', 'epuDaily']);
+
+// EPU 百分位 → 子档位徽章（阈值同步 signal.config.js：>80 收紧 / <50 宽松）
+function epuBadge(percentile) {
+  if (percentile == null) return null;
+  if (percentile > 80) return 'tight';
+  if (percentile < 50) return 'loose';
+  return 'neutral';
+}
 
 function hintFor(ind) {
   if (JUDGED_KEYS.has(ind.key)) {
@@ -158,7 +166,10 @@ const groups = computed(() => {
         {
           key: 'sahm', value: ind.sahmValue, unit: '%',
           change: null,
-          signalBadge: ind.sahmLockActive ? 'tight' : null,
+          // 阈值同步 signal.config.js：≥0.5 触发萨姆锁
+          extra: ind.sahmValue != null ? '(< 0.5%)' : null,
+          signalBadge: ind.sahmLockActive ? 'tight'
+            : ind.sahmValue != null ? (ind.sahmValue >= 0.5 ? 'tight' : 'loose') : null,
           periodDate: ind.sahmPeriodDate, releaseDate: ind.sahmReleaseDate, periodIsMonth: true,
         },
         {
@@ -188,8 +199,15 @@ const groups = computed(() => {
         {
           key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
           extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
-          signalBadge: ind.adminAutoSignal,
+          signalBadge: epuBadge(ind.epuTradePercentile),
           periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
+        },
+        {
+          // 日频EPU 7日均线：政策转向（如关税战暂停）数天内可见，与月度贸易专项指数一致才定档
+          key: 'epuDaily', value: ind.epuDaily, unit: '', change: null,
+          extra: ind.epuDailyPercentile != null ? `${t('indicators.percentile10y')} ${ind.epuDailyPercentile.toFixed(0)}` : null,
+          signalBadge: epuBadge(ind.epuDailyPercentile),
+          periodDate: ind.epuDailyPeriodDate,
         },
       ],
     },
@@ -224,8 +242,8 @@ const groups = computed(() => {
 }
 
 .ind-label { color: var(--text-3); font-weight: 500; }
-/* 有悬浮提示的指标标签加虚线下划线，提示可悬停 */
-.ind-label.hinted { cursor: help; text-decoration: underline dotted var(--text-5); text-underline-offset: 3px; }
+/* 有悬浮提示的指标标签用帮助光标提示可悬停 */
+.ind-label.hinted { cursor: help; }
 .ind-value { color: var(--text-2); font-family: var(--font-num); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .ind-change { font-size: var(--fs-xs); margin-left: 6px; }
 .ind-change.up { color: var(--red); }

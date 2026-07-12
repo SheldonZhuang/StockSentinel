@@ -64,14 +64,16 @@
       "smhSpyRelReturn": "Regel: SMH−SPY 90-Tage-Relativrendite >+8 % → locker, <−8 % → restriktiv; muss mit Fundamental-Proxy übereinstimmen, sonst neutral",
       "rate": "Regel: Einzelanpassung ≥50 Bp (reaktiv, beliebige Richtung) → restriktiv + reaktive Anpassungssperre (erzwungene Defensive); <50 Bp oder Pause → locker",
       "balanceSheet": "Regel: WoW >+0,25 % → QE (locker), <−0,25 % → QT (restriktiv), dazwischen → Pause. Geldpolitik = Zins locker UND kein QT → locker; reaktiv ODER QT → restriktiv",
-      "sahm": "Regel: Sahm-Wert ≥0,5 → Rezessionsbeginn, Sahm-Sperre (erzwungene Defensive); Entsperrung bei Zins ≤0,25 % oder <50-Bp-Anpassung",
-      "fiscalDeficitTtm": "Regel: TTM-Defizit JoJ weitet sich >5 % aus → locker (Fiskalexpansion), schrumpft >5 % → restriktiv, dazwischen → neutral",
-      "epuTrade": "Regel: 10-Jahres-Perzentil des Handelspolitik-Unsicherheitsindex >80 → restriktiv, <50 → locker, 50–80 → neutral",
-      "reference": "Nur zur Referenz, fließt nicht in die Beurteilung ein"
+      "sahm": "Regel: Sahm-Wert <0,5 % → locker; ≥0,5 % → Rezessionsbeginn, Sahm-Sperre (erzwungene Defensive); Entsperrung bei Zins ≤0,25 % oder <50-Bp-Anpassung",
+      "fiscalDeficitTtm": "Regel (Kleiner-Staat-Prinzip): TTM-Defizit JoJ weitet sich >5 % aus → restriktiv (Staat expandiert, Steuererhöhungen zu erwarten); schrumpft >5 % → locker (Staat schrumpft, Spielraum für Steuersenkungen); dazwischen → neutral",
+      "epuTrade": "Regel: Handelspolitik-Unsicherheitsindex (monatlich, spezifisch Handel/Zölle/Tech) 10-Jahres-Perzentil >80 → restriktiv, <50 → locker; muss mit dem täglichen EPU übereinstimmen, sonst neutral",
+      "reference": "Nur zur Referenz, fließt nicht in die Beurteilung ein",
+      "epuDaily": "Regel: täglicher EPU-Index 7-Tage-Schnitt (nachrichtenbasiert; reagiert binnen Tagen auf Wenden wie Zollpausen) 10-Jahres-Perzentil >80 → restriktiv, <50 → locker; muss mit dem monatlichen Handelsindex übereinstimmen, sonst neutral"
     },
     "hintGlobal": "Globale Regel: Angriff = alle vier locker (UND); Defensive = eine restriktiv (ODER); Sahm-/Reaktivsperren erzwingen Defensive",
     "stale": "Daten verzögert",
-    "staleHint": "Datenquelle vorübergehend nicht verfügbar; letzte gültige Beurteilung beibehalten"
+    "staleHint": "Datenquelle vorübergehend nicht verfügbar; letzte gültige Beurteilung beibehalten",
+    "epuDaily": "Politikunsicherheit (täglich)"
   },
   "watchlist": {
     "title": "Beobachtungsliste",
@@ -80,7 +82,7 @@
     "remove": "Entfernen",
     "empty": "Keine Aktien in der Liste",
     "pricePercentile": "Preis-Perzentile",
-    "percentileHint": "Position des aktuellen Kurses unter allen Schlusskursen des Zeitraums: 99% = nahe Hoch, 10% = nahe Tief",
+    "percentileHint": "Position des aktuellen Kurses innerhalb aller Schlusskurse des Zeitraums. Regel: ≥80 % hoch (rot, Euphorie — Vorsicht/Verkauf erwägen); ≤20 % tief (grün, unbeachtet — Kaufchance beobachten); 20–80 % Mitte (gelb, abwarten). 99 % = nahe Hoch, 10 % = nahe Tief",
     "pe": "KGV",
     "ps": "KUV",
     "valuationHint": "ETFs/Indizes haben keine Finanzberichte, leere KGV/KUV sind normal; bei Einzelaktien deutet ein leerer Wert meist auf eine vorübergehende Drosselung der Datenquelle hin — später aktualisieren",

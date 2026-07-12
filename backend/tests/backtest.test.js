@@ -95,10 +95,15 @@ describe('replayMonth', () => {
     expect(r.reactiveLockActive).toBe(false);
   });
 
-  it('财政赤字收窄 >5% → 收紧 → 防守', () => {
-    const r = replayMonth({ ...NEUTRAL_INPUT, fiscalChangePct: -8 }, NO_LOCK);
+  it('财政赤字扩大 >5%（政府扩张）→ 收紧 → 防守', () => {
+    const r = replayMonth({ ...NEUTRAL_INPUT, fiscalChangePct: 8 }, NO_LOCK);
     expect(r.fiscal).toBe('tight');
     expect(r.final).toBe('defense');
+  });
+
+  it('财政赤字收窄 >5%（政府收缩）→ 宽松', () => {
+    const r = replayMonth({ ...NEUTRAL_INPUT, fiscalChangePct: -8 }, NO_LOCK);
+    expect(r.fiscal).toBe('loose');
   });
 
   it('EPU >80 分位 → 行政收紧 → 防守', () => {

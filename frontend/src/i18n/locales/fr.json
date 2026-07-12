@@ -64,14 +64,16 @@
       "smhSpyRelReturn": "Règle : rendement relatif SMH−SPY 90 j >+8 % → assouplissement, <−8 % → resserrement ; doit concorder avec le proxy fondamental, sinon neutre",
       "rate": "Règle : ajustement unique ≥50 pb (réactif, toute direction) → resserrement + verrou d’ajustement réactif (défense forcée) ; <50 pb ou pause → assouplissement",
       "balanceSheet": "Règle : variation hebdo >+0,25 % → QE (assouplissement), <−0,25 % → QT (resserrement), entre → pause. Monétaire = taux souple ET pas de QT → souple ; réactif OU QT → resserré",
-      "sahm": "Règle : valeur Sahm ≥0,5 → début de récession, verrou Sahm (défense forcée) ; déverrouillage à taux ≤0,25 % ou ajustement <50 pb",
-      "fiscalDeficitTtm": "Règle : déficit TTM en GA s’élargit >5 % → assouplissement, se réduit >5 % → resserrement, entre → neutre",
-      "epuTrade": "Règle : percentile 10 ans de l’indice d’incertitude commerciale >80 → resserrement, <50 → assouplissement, 50–80 → neutre",
-      "reference": "Affichage indicatif, ne participe pas au jugement"
+      "sahm": "Règle : valeur Sahm <0,5 % → souple ; ≥0,5 % → début de récession, verrou Sahm (défense forcée) ; déverrouillage à taux ≤0,25 % ou ajustement <50 pb",
+      "fiscalDeficitTtm": "Règle (principe du petit gouvernement) : déficit TTM en GA s’élargit >5 % → resserrement (État en expansion, hausses d’impôts attendues) ; se réduit >5 % → assouplissement (État en contraction, marge de baisses d’impôts) ; entre → neutre",
+      "epuTrade": "Règle : indice d’incertitude commerciale (mensuel, spécifique commerce/tarifs/tech) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’EPU quotidien, sinon neutre",
+      "reference": "Affichage indicatif, ne participe pas au jugement",
+      "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre"
     },
     "hintGlobal": "Règle globale : Attaque = les quatre souples (ET) ; Défense = un seul resserré (OU) ; les verrous Sahm/réactif forcent la défense",
     "stale": "Données retardées",
-    "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé"
+    "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé",
+    "epuDaily": "Incertitude politique (quotidien)"
   },
   "watchlist": {
     "title": "Liste de Suivi",
@@ -80,7 +82,7 @@
     "remove": "Supprimer",
     "empty": "Aucune action dans la liste",
     "pricePercentile": "Percentile Prix",
-    "percentileHint": "Position du prix actuel parmi toutes les clôtures de la période : 99% = proche du plus haut, 10% = proche du plus bas",
+    "percentileHint": "Position du prix actuel parmi toutes les clôtures de la période. Règle : ≥80 % haut (rouge, euphorie — prudence/vente) ; ≤20 % bas (vert, délaissé — surveiller l’achat) ; 20–80 % milieu (jaune, attendre). 99 % = proche du plus haut, 10 % = proche du plus bas",
     "pe": "P/E",
     "ps": "P/S",
     "valuationHint": "Les ETF/indices n'ont pas d'états financiers, un P/E et P/S vides sont normaux ; pour les actions, un vide indique généralement une limitation temporaire de la source de données — actualisez plus tard",

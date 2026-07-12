@@ -135,14 +135,14 @@ describe('deriveBalanceSheetStatus', () => {
   });
 });
 
-// 财政信号：TTM赤字同比变化（阈值 ±5%）
+// 财政信号：TTM赤字同比变化（阈值 ±5%，"大市场小政府"原则：赤字扩大=政府扩张=收紧）
 describe('calcFiscalSignal', () => {
-  it('宽松：赤字同比扩大超过阈值', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: 12.3 })).toBe('loose');
+  it('收紧：赤字同比扩大超过阈值（政府扩张，加税加费预期）', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: 12.3 })).toBe('tight');
   });
 
-  it('收紧：赤字同比收窄超过阈值', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: -8.1 })).toBe('tight');
+  it('宽松：赤字同比收窄超过阈值（政府收缩，减税降费空间）', () => {
+    expect(calcFiscalSignal({ deficitTtmChangePct: -8.1 })).toBe('loose');
   });
 
   it('观望：变化在阈值内', () => {
@@ -161,14 +161,28 @@ describe('calcFiscalSignal', () => {
   });
 });
 
-// 行政信号：贸易政策不确定性指数10年百分位（>80 tight，<50 loose）
+// 行政信号：双代理（月度EPUTRADE + 日频EPU 7日均线）10年百分位，>80 tight / <50 loose，一致才定档
 describe('calcAdminSignal', () => {
-  it('收紧：百分位 > 80', () => {
+  it('单边（仅月度）：百分位 > 80 → 收紧', () => {
     expect(calcAdminSignal({ epuTradePercentile: 92.5 })).toBe('tight');
   });
 
-  it('宽松：百分位 < 50', () => {
+  it('单边（仅月度）：百分位 < 50 → 宽松', () => {
     expect(calcAdminSignal({ epuTradePercentile: 33 })).toBe('loose');
+  });
+
+  it('单边（仅日频）：百分位 < 50 → 宽松（月度缺失用可用侧）', () => {
+    expect(calcAdminSignal({ epuTradePercentile: null, epuDailyPercentile: 30 })).toBe('loose');
+  });
+
+  it('双边一致 → 定档', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 88 })).toBe('tight');
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20 })).toBe('loose');
+  });
+
+  it('双边不一致 → 观望（月度仍高压但日频已回落=政策转向初期）', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 40 })).toBe('neutral');
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 90 })).toBe('neutral');
   });
 
   it('观望：百分位在 50~80 之间', () => {
@@ -180,8 +194,8 @@ describe('calcAdminSignal', () => {
     expect(calcAdminSignal({ epuTradePercentile: 50 })).toBe('neutral');
   });
 
-  it('观望：数据缺失', () => {
-    expect(calcAdminSignal({ epuTradePercentile: null })).toBe('neutral');
+  it('观望：数据全缺失', () => {
+    expect(calcAdminSignal({ epuTradePercentile: null, epuDailyPercentile: null })).toBe('neutral');
     expect(calcAdminSignal({})).toBe('neutral');
   });
 });

@@ -95,10 +95,10 @@ export function replayMonth(m, prevState) {
   const monetary = (rateSignal === S.LOOSE && bsSignal !== S.TIGHT) ? S.LOOSE
     : (rateSignal === S.TIGHT || bsSignal === S.TIGHT) ? S.TIGHT : S.NEUTRAL;
 
-  // 财政 ±5%
+  // 财政 ±5%（"大市场小政府"：赤字扩大=政府扩张→tight，收窄→loose）
   const fiscal = m.fiscalChangePct === null ? S.NEUTRAL
-    : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE
-    : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT : S.NEUTRAL;
+    : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT
+    : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
 
   // 行政：EPUTRADE 前视安全10年百分位 >80/<50
   const admin = m.epuPercentile === null ? S.NEUTRAL
@@ -148,7 +148,25 @@ async function fredSeries(id, apiKey, extra = '') {
     .filter(o => !isNaN(o.value));
 }
 
+const SPX_CACHE = path.join(__dirname, 'spx-cache.json');
+
 async function fetchSpx() {
+  const result = await fetchSpxLive();
+  // 成功拉到全历史 → 落盘缓存；全部源失败/只拿到短历史 → 用缓存兜底（省 Tiingo 配额）
+  const coversHistory = result.bars.length && result.bars[0].date <= '1998-01-01';
+  if (coversHistory) {
+    fs.writeFileSync(SPX_CACHE, JSON.stringify(result));
+    return result;
+  }
+  if (fs.existsSync(SPX_CACHE)) {
+    const cached = JSON.parse(fs.readFileSync(SPX_CACHE, 'utf8'));
+    console.warn(`[backtest] live sources incomplete, using cached ${cached.source} (${cached.bars.length} bars)`);
+    return { ...cached, source: `${cached.source}（本地缓存）` };
+  }
+  return result;
+}
+
+async function fetchSpxLive() {
   // 优先 stooq ^spx 日线 CSV（无需key，但对部分IP有JS盾）
   try {
     const res = await axios.get('https://stooq.com/q/d/l/?s=^spx&i=d', { timeout: 30000, responseType: 'text' });

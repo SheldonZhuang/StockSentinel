@@ -24,7 +24,8 @@ export default {
     UNEMPLOYMENT: 'UNRATE',
     SAHM: 'SAHMREALTIME',           // 萨姆规则实时值（圣路易斯联储官方计算）
     FISCAL_DEFICIT: 'MTSDS133FMS',  // 联邦财政盈余/赤字（月度，百万美元，赤字为负）
-    EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度）
+    EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度，贸易专项，结构性）
+    EPU_DAILY: 'USEPUINDXD',        // 经济政策不确定性指数（日频，新闻编制，时效性——政策转向数天内可见）
     SEMI_IP: 'IPG3344S',            // 半导体及电子元件工业产出指数（月度）
   },
 
@@ -32,14 +33,17 @@ export default {
   SAHM_TRIGGER_THRESHOLD: 0.5,
 
   // 财政信号：滚动12月(TTM)赤字总额 vs 一年前TTM，变化超过阈值(%)才判定方向
-  // 赤字扩大 > 阈值 → loose（财政扩张），收窄 > 阈值 → tight
+  // 政策原则"大市场小政府"：赤字扩大 > 阈值 → tight（政府扩张，加税加费预期，损害市场经济），
+  // 收窄 > 阈值 → loose（政府收缩，减税降费空间，利好市场经济）
   FISCAL_TTM_CHANGE_THRESHOLD_PCT: 5,
   FISCAL_LOOKBACK_DAYS: 800, // 需要约25个月观测（12+12+缓冲）
 
-  // 行政信号：EPUTRADE 最新值在近10年观测中的百分位
-  EPU_PERCENTILE_TIGHT: 80,  // >80 分位 → tight（贸易政策高压）
+  // 行政信号：双代理一致才定档（与AI供需同模式）——
+  // 月度 EPUTRADE（贸易专项）与 日频EPU 7日均线（全政策、日级响应）各取近10年百分位
+  EPU_PERCENTILE_TIGHT: 80,  // >80 分位 → tight（政策高压）
   EPU_PERCENTILE_LOOSE: 50,  // <50 分位 → loose（政策环境平静）
   EPU_LOOKBACK_DAYS: 3660,   // 10年
+  EPU_DAILY_MA_DAYS: 7,      // 日频指数噪声大，取7日均线再算百分位
 
   // AI供需信号：市场代理（SMH vs SPY 相对收益）+ 基本面代理（半导体IP同比），两者一致才定档
   AI_MARKET_SYMBOLS: { SEMI: 'SMH', BENCH: 'SPY' },
