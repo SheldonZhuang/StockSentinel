@@ -409,13 +409,16 @@ ${rows}
 
 ## 结论与建议
 
-1. **召回率满分**：四次大跌全部在市场顶部之前进入防守（提前 ${s.crisisRows.map(c => c.leadDays).filter(v => v !== null).join('/')} 天），示警后分别躲掉了 ${s.crisisRows.map(c => c.savedPct !== null ? c.savedPct.toFixed(0) + '%' : '—').join('、')} 的后续跌幅。"宁可错杀"的防守端设计达成了它的首要目标：**没有漏掉任何一次危机**。
-2. **精确率是代价**：${(s.defMonths / (s.defMonths + s.nonDefMonths) * 100).toFixed(0)}% 的时间处于防守、${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 的防守片段未跟随大回撤。若严格按信号空仓执行，会错过防守期内的大量上涨月份（防守期月均仍有 ${f(s.avgDefenseRet)}% 正收益）。
-3. **对执行层的建议（阈值调优方向，非代码错误）**：
+> 本报告为**财政方向反转后**（2026-07-12，"大市场小政府"原则：赤字扩大=收紧）的新口径。与旧口径（赤字扩大=宽松）对比：旧口径四次危机全部提前示警（56/254/236/189 天）但防守占比 83%、假阳性 23/24；新口径见下。
+
+1. **召回率仍是 4/4**：四次大跌全部被捕获（相对顶部：${s.crisisRows.map(c => c.leadDays === null ? '—' : (c.leadDays >= 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)).join('、')}），示警后分别躲掉 ${s.crisisRows.map(c => c.savedPct !== null ? c.savedPct.toFixed(0) + '%' : '—').join('、')} 的后续跌幅。
+2. **财政反转的取舍**：2000 与 2022 顶部前恰逢赤字收窄期（克林顿盈余时代/疫情支出退坡），旧口径判收紧而提前示警，新口径判宽松故转为滞后——但两次都由 ≥50bp 应对式加息锁在下跌前半段接管，仍躲掉主要跌幅（-45%/-14%）。作为回报，防守占比从 83% 降至 ${(s.defMonths / (s.defMonths + s.nonDefMonths) * 100).toFixed(0)}%。
+3. **精确率仍是主要代价**：${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 的防守片段未跟随大回撤，防守期月均仍有 ${f(s.avgDefenseRet)}% 正收益（vs 非防守 ${f(s.avgNonDefenseRet)}%）。若严格按信号空仓执行会错过大量上涨月份。
+4. **对执行层的建议（阈值调优方向，非代码错误）**：
    - 防守分级：单维收紧 → 减仓/观望；双维以上收紧或任一锁激活 → 全面防守。锁与多维共振在历史上与真实危机高度重合。
    - 财政/行政维度可考虑从"OR 即触发"降级为"确认性信号"（需与货币或供需共振才触发防守）。
    - 任何阈值修改后应重跑本回测（\`node backtest/run-backtest.js\`）对比防守占比与召回率的变化。
-4. **下一步**：AI供需维度用半导体IP同比（1997年起可得）代理回测 2000 年科网泡沫，检验"供需维度能否比政策维度更早示警"。
+5. **下一步**：AI供需维度用半导体IP同比（1997年起可得）代理回测 2000 年科网泡沫，检验"供需维度能否比政策维度更早示警"。
 `;
   fs.writeFileSync(path.join(__dirname, '../../docs/backtest-report.md'), md);
 }
