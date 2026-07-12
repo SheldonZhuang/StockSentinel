@@ -87,6 +87,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'epu_daily REAL',
   'epu_daily_percentile REAL',
   'epu_daily_period_date TEXT',
+  'oil_wti REAL',
+  'oil_change_30d_pct REAL',
+  'oil_period_date TEXT',
 ];
 
 function migrateSchema() {
@@ -329,8 +332,9 @@ export async function saveSignalSnapshot(data) {
      sahm_value, sahm_period_date, sahm_release_date,
      sahm_lock_active, reactive_adjustment_lock_active, reactive_adjustment_lock_trigger_bp,
      fiscal_stale, admin_stale, ai_supply_stale,
-     epu_daily, epu_daily_percentile, epu_daily_period_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     epu_daily, epu_daily_percentile, epu_daily_period_date,
+     oil_wti, oil_change_30d_pct, oil_period_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -351,6 +355,7 @@ export async function saveSignalSnapshot(data) {
     data.sahmLockActive, data.reactiveAdjustmentLockActive, data.reactiveAdjustmentLockTriggerBp,
     data.fiscalStale ? 1 : 0, data.adminStale ? 1 : 0, data.aiSupplyStale ? 1 : 0,
     data.epuDaily, data.epuDailyPercentile, data.epuDailyPeriodDate,
+    data.oilWti, data.oilChange30dPct, data.oilPeriodDate,
   ]);
 }
 

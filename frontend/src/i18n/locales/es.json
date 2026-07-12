@@ -68,12 +68,14 @@
       "fiscalDeficitTtm": "Regla (principio de gobierno pequeño): déficit TTM interanual se amplía >5 % → restrictiva (gobierno en expansión, subidas de impuestos previstas); se reduce >5 % → laxa (gobierno en contracción, margen para bajar impuestos); entre → neutral",
       "epuTrade": "Regla: índice de incertidumbre comercial (mensual, específico comercio/aranceles/tec.) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el EPU diario, si no → neutral",
       "reference": "Solo referencia, no participa en el juicio",
-      "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral"
+      "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral",
+      "oilWti": "Regla (petróleo = precio de mercado en tiempo real de las noticias de guerra, precisión diaria): subida 30 días ≥+20 % → choque bélico/de oferta, administrativa inmediatamente restrictiva (defensa forzada); caída ≥20 % → fin de guerra/desescalada, inmediatamente laxa; los eventos del petróleo priman sobre los índices EPU (que se retrasan semanas). Dentro de ±20 % se vuelve al doble proxy EPU. Nota: laxa solo retira el veto de esta dimensión — el ataque sigue exigiendo las cuatro laxas y sin bloqueos"
     },
     "hintGlobal": "Regla global: Ataque = las cuatro laxas (Y); Defensa = cualquiera restrictiva (O); los bloqueos Sahm/reactivo fuerzan defensa",
     "stale": "Datos retrasados",
     "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido",
-    "epuDaily": "Incertidumbre política (diaria)"
+    "epuDaily": "Incertidumbre política (diaria)",
+    "oilWti": "Petróleo WTI"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",

@@ -100,8 +100,12 @@ export function replayMonth(m, prevState) {
     : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT
     : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
 
-  // 行政：EPUTRADE 前视安全10年百分位 >80/<50
-  const admin = m.epuPercentile === null ? S.NEUTRAL
+  // 行政：油价事件层（月环比±20%≈30天窗口）优先，其次 EPUTRADE 前视安全10年百分位
+  const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
+    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT ? S.TIGHT : m.oilChangePct <= -cfg.OIL_SHOCK_PCT ? S.LOOSE : null)
+    : null;
+  const admin = oilEvent !== null ? oilEvent
+    : m.epuPercentile === null ? S.NEUTRAL
     : m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT ? S.TIGHT
     : m.epuPercentile < cfg.EPU_PERCENTILE_LOOSE ? S.LOOSE : S.NEUTRAL;
 
@@ -226,13 +230,14 @@ async function main() {
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
     fredSeries('MTSDS133FMS', apiKey),
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
+    fredSeries('DCOILWTICO', apiKey),
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -242,10 +247,11 @@ async function main() {
   const fiscalM = sampleMonthEnd(fiscal); // 月度序列，月末采样=原值
   const epuM = sampleMonthEnd(epu);
   const sahmM = sampleMonthEnd(sahm);
+  const oilM = sampleMonthEnd(oil);
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
-  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), spxMap = byMonth(spxM);
+  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
 
   // 重放：2000-01 起（此前36个月做 EPU/财政窗口热身）
   const months = rateM.map(o => o.month).filter(m => m >= '2000-01');
@@ -269,6 +275,10 @@ async function main() {
       walcl: walclV, prevWalcl,
       fiscalChangePct: ttmDeficitChangePct(fiscalHist),
       epuPercentile: epuLatest !== null ? percentileAsOf(epuLatest, epuHist.map(o => o.value)) : null,
+      oilChangePct: (() => {
+        const cur = oilMap.get(month), prev = timeline.length ? oilMap.get(timeline[timeline.length - 1].month) : null;
+        return cur != null && prev != null && prev !== 0 ? (cur - prev) / prev * 100 : null;
+      })(),
       sahm: sahmMap.get(month) ?? null,
     }, state);
     state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };

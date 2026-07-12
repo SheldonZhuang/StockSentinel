@@ -16,6 +16,7 @@ const NULL_FISCAL = { deficitTtm: null, deficitTtmPrev: null, deficitTtmChangePc
 const NULL_ADMIN = {
   epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null,
   epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null,
+  oilWti: null, oilChange30dPct: null, oilPeriodDate: null,
 };
 const NULL_AI = { smhSpyRelReturnPct: null, semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
 
@@ -107,11 +108,34 @@ export function calcMaSeries(observations, n) {
 }
 
 /**
- * 行政：双代理——月度贸易专项 EPUTRADE + 日频 USEPUINDXD 7日均线，各取近10年百分位
- * 两侧独立容错：一侧失败不影响另一侧（判定函数对单边缺失有降级规则）
+ * 窗口涨跌幅：最新观测 vs 约 windowDays 天前的观测（%）
+ * @param {Array} observations - FRED 观测（日期降序），值可能含无效"."
+ * @returns {{latest: number|null, changePct: number|null, latestDate: string|null}}
+ */
+export function calcWindowChangePct(observations, windowDays) {
+  const valid = (observations || [])
+    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
+    .filter(o => !isNaN(o.value));
+  if (!valid.length) return { latest: null, changePct: null, latestDate: null };
+  const latest = valid[0];
+  const target = new Date(new Date(latest.date + 'T00:00:00Z').getTime() - windowDays * 86400000)
+    .toISOString().slice(0, 10);
+  // 降序找第一个日期 <= 目标日的观测（最接近30天前的交易日）
+  const base = valid.find(o => o.date <= target);
+  if (!base || base.value === 0) return { latest: latest.value, changePct: null, latestDate: latest.date };
+  return {
+    latest: latest.value,
+    changePct: (latest.value - base.value) / base.value * 100,
+    latestDate: latest.date,
+  };
+}
+
+/**
+ * 行政：油价事件层（WTI 30天涨跌幅，战争冲击实时代理）+ EPU双代理（月度贸易专项 + 日频7日均线）
+ * 三侧独立容错：任一失败不影响其余（判定函数对缺失有降级规则）
  */
 export async function fetchAdminData(apiKey) {
-  const [trade, daily] = await Promise.all([
+  const [trade, daily, oil] = await Promise.all([
     (async () => {
       const obs = await fetchSeries(FRED_SERIES.EPU_TRADE, daysAgoET(EPU_LOOKBACK_DAYS), apiKey);
       const epuTrade = latestValue(obs);
@@ -138,8 +162,16 @@ export async function fetchAdminData(apiKey) {
       console.warn('[fetch-policy] EPU daily fetch failed:', err.message);
       return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
     }),
+    (async () => {
+      const obs = await fetchSeries(FRED_SERIES.OIL_WTI, daysAgoET(cfg.OIL_LOOKBACK_DAYS), apiKey);
+      const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
+      return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d };
+    })().catch(err => {
+      console.warn('[fetch-policy] oil fetch failed:', err.message);
+      return { oilWti: null, oilChange30dPct: null, oilPeriodDate: null };
+    }),
   ]);
-  return { ...trade, ...daily };
+  return { ...trade, ...daily, ...oil };
 }
 
 /**

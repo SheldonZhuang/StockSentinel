@@ -10,6 +10,7 @@ import {
   calcTtmDeficitChange,
   calcPercentile,
   calcRelativeReturn,
+  calcWindowChangePct,
   fetchPolicyData,
 } from '../api/fetch-policy.js';
 
@@ -64,6 +65,32 @@ describe('calcPercentile', () => {
   });
 });
 
+describe('calcWindowChangePct', () => {
+  it('最新值 vs 约30天前观测的涨跌幅', () => {
+    const obs = [
+      { date: '2026-07-10', value: '96' },
+      { date: '2026-06-25', value: '90' },
+      { date: '2026-06-09', value: '80' }, // 第一个 <= 30天前(6/10)的观测
+      { date: '2026-05-01', value: '70' },
+    ];
+    const r = calcWindowChangePct(obs, 30);
+    expect(r.latest).toBe(96);
+    expect(r.changePct).toBeCloseTo(20, 5); // 96 vs 80
+    expect(r.latestDate).toBe('2026-07-10');
+  });
+
+  it('窗口前无观测 → changePct null 但 latest 保留', () => {
+    const r = calcWindowChangePct([{ date: '2026-07-10', value: '96' }], 30);
+    expect(r.latest).toBe(96);
+    expect(r.changePct).toBe(null);
+  });
+
+  it('空序列/全无效值 → 全 null', () => {
+    expect(calcWindowChangePct([], 30)).toEqual({ latest: null, changePct: null, latestDate: null });
+    expect(calcWindowChangePct([{ date: '2026-07-10', value: '.' }], 30)).toEqual({ latest: null, changePct: null, latestDate: null });
+  });
+});
+
 describe('calcRelativeReturn', () => {
   it('SMH 涨 20%，SPY 涨 5% → 相对收益 +15%', () => {
     const smh = [{ close: 100 }, { close: 110 }, { close: 120 }];
@@ -113,6 +140,11 @@ describe('fetchPolicyData', () => {
     date: new Date(Date.UTC(2026, 4, 30) - i * 86400000).toISOString().slice(0, 10),
     value: String(i < 7 ? 200 : 100),
   }));
+  // 油价（desc）：最新96，30天前80 → +20% 恰好触发战争冲击收紧
+  const oilObs = [
+    { date: '2026-05-30', value: '96' },
+    { date: '2026-04-28', value: '80' },
+  ];
   const semiIpObs = [{ date: '2026-05-01', value: '7.2' }];
 
   it('正常返回三个维度的全部字段', async () => {
@@ -120,6 +152,7 @@ describe('fetchPolicyData', () => {
       MTSDS133FMS: fiscalObs,
       EPUTRADE: epuObs,
       USEPUINDXD: epuDailyObs,
+      DCOILWTICO: oilObs,
       IPG3344S: semiIpObs,
     });
     yahooFinance.historical.mockImplementation(symbol =>
@@ -139,6 +172,9 @@ describe('fetchPolicyData', () => {
     expect(data.smhSpyRelReturnPct).toBeCloseTo(11, 5); // 12% - 1%
     expect(data.semiIpYoy).toBe(7.2);
     expect(data.semiIpPeriodDate).toBe('2026-05-01');
+    expect(data.oilWti).toBe(96);
+    expect(data.oilChange30dPct).toBeCloseTo(20, 5);
+    expect(data.oilPeriodDate).toBe('2026-05-30');
   });
 
   it('单维度失败隔离：EPUTRADE 拒绝 → 月度侧 null，日频侧与财政/AI照常', async () => {
@@ -146,6 +182,7 @@ describe('fetchPolicyData', () => {
       MTSDS133FMS: fiscalObs,
       EPUTRADE: new Error('FRED 500'),
       USEPUINDXD: epuDailyObs,
+      DCOILWTICO: oilObs,
       IPG3344S: semiIpObs,
     });
     yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);

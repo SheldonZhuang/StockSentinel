@@ -68,12 +68,14 @@
       "fiscalDeficitTtm": "Rule (small-government principle): TTM deficit YoY expands >5% → tight (government expanding, tax/fee hikes expected, harmful to markets); shrinks >5% → loose (government shrinking, room for tax cuts); between → neutral",
       "epuTrade": "Rule: trade policy uncertainty index (monthly, trade/tariff/tech-war specific) 10-year percentile >80 → tight, <50 → loose; must agree with daily EPU, else neutral",
       "reference": "Reference only, not part of signal judgment",
-      "epuDaily": "Rule: daily economic policy uncertainty index 7-day MA (news-based; reacts within days to policy pivots like tariff pauses) 10-year percentile >80 → tight, <50 → loose; must agree with the monthly trade index, else neutral"
+      "epuDaily": "Rule: daily economic policy uncertainty index 7-day MA (news-based; reacts within days to policy pivots like tariff pauses) 10-year percentile >80 → tight, <50 → loose; must agree with the monthly trade index, else neutral",
+      "oilWti": "Rule (oil = real-time market pricing of war news, day-level precision): 30-day gain ≥+20% → war/supply shock, admin immediately tight (forced defense); drop ≥20% → war end/de-escalation, admin immediately loose; oil events take priority over EPU indices (which lag by weeks). Within ±20% falls back to dual-EPU judgment. Note: admin loose only removes this dimension's veto — attack still requires all four loose and no locks"
     },
     "hintGlobal": "Global rule: Attack = all four loose (AND); Defense = any one tight (OR); Sahm/reactive locks force defense when active",
     "stale": "Data delayed",
     "staleHint": "Data source temporarily unavailable; last valid judgment retained",
-    "epuDaily": "Policy Uncertainty (Daily)"
+    "epuDaily": "Policy Uncertainty (Daily)",
+    "oilWti": "WTI Crude Oil"
   },
   "watchlist": {
     "title": "Watchlist",

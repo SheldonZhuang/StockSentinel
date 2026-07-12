@@ -6,7 +6,7 @@ const {
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
   AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
-  SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT,
+  SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
 } = cfg;
 
 /**
@@ -107,11 +107,20 @@ function epuPercentileSignal(percentile) {
 }
 
 /**
- * 行政信号：双代理一致才定档（与AI供需同模式）——
- * 月度贸易专项 EPUTRADE（结构性）+ 日频EPU 7日均线（时效性，政策转向数天内反应）。
+ * 行政信号：油价事件层优先，其次EPU双代理一致才定档。
+ * 油价事件（WTI 30天涨跌幅≥±20%）= 战争/地缘冲突的市场实时定价，精确到日：
+ *   飙升 → 战争/供给冲击 → 立即收紧（经OR强制防守）；
+ *   暴跌 → 战争结束/对抗降级 → 立即宽松（EPU指数滞后数周，此时以油价为准）。
+ * 注意：行政宽松只撤掉本维度的否决票，进攻仍需四维全宽松且无锁（战争结束但衰退锁激活时不进攻）。
+ * EPU双代理：月度贸易专项 EPUTRADE（结构性）+ 日频EPU 7日均线（时效性）。
  * 两者都有数据时一致才定档，不一致→观望；单边缺失用可用侧；全缺→观望
  */
-export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile }) {
+export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct }) {
+  if (oilChange30dPct !== null && oilChange30dPct !== undefined) {
+    if (oilChange30dPct >= OIL_SHOCK_PCT) return SIGNAL.TIGHT;
+    if (oilChange30dPct <= -OIL_SHOCK_PCT) return SIGNAL.LOOSE;
+  }
+
   const tradeSignal = epuPercentileSignal(epuTradePercentile);
   const dailySignal = epuPercentileSignal(epuDailyPercentile);
 

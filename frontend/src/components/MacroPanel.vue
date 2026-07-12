@@ -59,7 +59,7 @@ function formatMonth(dateStr) {
 }
 
 // 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
-const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade', 'epuDaily']);
+const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade', 'epuDaily', 'oilWti']);
 
 // EPU 百分位 → 子档位徽章（阈值同步 signal.config.js：>80 收紧 / <50 宽松）
 function epuBadge(percentile) {
@@ -208,6 +208,17 @@ const groups = computed(() => {
           extra: ind.epuDailyPercentile != null ? `${t('indicators.percentile10y')} ${ind.epuDailyPercentile.toFixed(0)}` : null,
           signalBadge: epuBadge(ind.epuDailyPercentile),
           periodDate: ind.epuDailyPeriodDate,
+        },
+        {
+          // 油价事件层：WTI 30天涨跌幅是战争新闻的市场实时定价（开战跳涨/停战跳水），±20%优先于EPU
+          key: 'oilWti', value: ind.oilWti, unit: '', change: null,
+          extra: ind.oilChange30dPct != null
+            ? `30D ${ind.oilChange30dPct > 0 ? '+' : ''}${ind.oilChange30dPct.toFixed(1)}%`
+            : null,
+          signalBadge: ind.oilChange30dPct != null
+            ? (ind.oilChange30dPct >= 20 ? 'tight' : ind.oilChange30dPct <= -20 ? 'loose' : 'neutral')
+            : null,
+          periodDate: ind.oilPeriodDate,
         },
       ],
     },

@@ -147,6 +147,9 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
       epuDaily: snapshot.epu_daily,
       epuDailyPercentile: snapshot.epu_daily_percentile,
       epuDailyPeriodDate: snapshot.epu_daily_period_date,
+      oilWti: snapshot.oil_wti,
+      oilChange30dPct: snapshot.oil_change_30d_pct,
+      oilPeriodDate: snapshot.oil_period_date,
       adminAutoSignal: snapshot.admin_auto_signal,
       smhSpyRelReturnPct: snapshot.smh_spy_rel_return_pct,
       semiIpYoy: snapshot.semi_ip_yoy,
@@ -326,7 +329,7 @@ async function runDailyUpdate() {
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
   const fiscalStale = policyData.deficitTtmChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
-    && !!prevSnapshot?.admin_auto_signal;
+    && policyData.oilChange30dPct == null && !!prevSnapshot?.admin_auto_signal;
   const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;
   const aiSupplyStale = aiDataMissing && !bubble.warning && !!prevSnapshot?.ai_supply_auto_signal;
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
@@ -396,6 +399,9 @@ async function runDailyUpdate() {
     epuDaily: policyData.epuDaily,
     epuDailyPercentile: policyData.epuDailyPercentile,
     epuDailyPeriodDate: policyData.epuDailyPeriodDate,
+    oilWti: policyData.oilWti,
+    oilChange30dPct: policyData.oilChange30dPct,
+    oilPeriodDate: policyData.oilPeriodDate,
     aiSupplyAutoSignal: aiSupplyAutoEff,
     aiMarketSignal: marketSignal,
     aiFundamentalSignal: fundamentalSignal,

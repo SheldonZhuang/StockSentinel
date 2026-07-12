@@ -198,6 +198,25 @@ describe('calcAdminSignal', () => {
     expect(calcAdminSignal({ epuTradePercentile: null, epuDailyPercentile: null })).toBe('neutral');
     expect(calcAdminSignal({})).toBe('neutral');
   });
+
+  // 油价事件层：战争冲击的市场实时定价，优先于EPU百分位
+  it('油价30天+20%以上（战争/供给冲击）→ 立即收紧，无视EPU低分位', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: 25 })).toBe('tight');
+    expect(calcAdminSignal({ oilChange30dPct: 20 })).toBe('tight'); // 恰好20%含边界
+  });
+
+  it('油价30天-20%以上（战争结束/对抗降级）→ 立即宽松，无视EPU高分位滞后', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: -24 })).toBe('loose');
+  });
+
+  it('油价波动在±20%以内 → 回落到EPU双代理判定', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 88, oilChange30dPct: 5 })).toBe('tight');
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: -10 })).toBe('loose');
+  });
+
+  it('油价缺失 → EPU双代理判定不受影响', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 88, oilChange30dPct: null })).toBe('tight');
+  });
 });
 
 // AI供需子信号（市场：SMH-SPY相对收益 ±8%；基本面：半导体IP同比 >5% / <0%）

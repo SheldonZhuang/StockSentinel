@@ -26,6 +26,7 @@ export default {
     FISCAL_DEFICIT: 'MTSDS133FMS',  // 联邦财政盈余/赤字（月度，百万美元，赤字为负）
     EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度，贸易专项，结构性）
     EPU_DAILY: 'USEPUINDXD',        // 经济政策不确定性指数（日频，新闻编制，时效性——政策转向数天内可见）
+    OIL_WTI: 'DCOILWTICO',          // WTI原油现货价（日频）——战争/地缘冲击的市场实时定价代理
     SEMI_IP: 'IPG3344S',            // 半导体及电子元件工业产出指数（月度）
   },
 
@@ -44,6 +45,14 @@ export default {
   EPU_PERCENTILE_LOOSE: 50,  // <50 分位 → loose（政策环境平静）
   EPU_LOOKBACK_DAYS: 3660,   // 10年
   EPU_DAILY_MA_DAYS: 7,      // 日频指数噪声大，取7日均线再算百分位
+
+  // 行政信号·油价事件层（优先于EPU百分位）：WTI 30天涨跌幅是战争新闻的市场实时定价，
+  // 开战/冲突升级当天油价即跳涨，停战/和谈喊话当天即跳水——精确到日，不等指数编制
+  // +20%以上 → 战争/供给冲击 → 行政立即收紧（经OR强制防守）；
+  // -20%以上 → 战争结束/对抗降级 → 行政立即宽松（若其余三维宽松且无锁，进攻随即成立）
+  OIL_SHOCK_WINDOW_DAYS: 30,
+  OIL_SHOCK_PCT: 20,
+  OIL_LOOKBACK_DAYS: 60,     // 拉60天日线保证能找到30天前的交易日观测
 
   // AI供需信号：市场代理（SMH vs SPY 相对收益）+ 基本面代理（半导体IP同比），两者一致才定档
   AI_MARKET_SYMBOLS: { SEMI: 'SMH', BENCH: 'SPY' },
