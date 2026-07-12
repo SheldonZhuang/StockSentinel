@@ -216,14 +216,17 @@ describe('fetchPolicyData', () => {
       DCOILWTICO: oilObs, // FRED 兜底值 96/+20%，若走了兜底则断言会失败
       IPG3344S: semiIpObs,
     });
-    yahooFinance.historical.mockImplementation(symbol => {
-      if (symbol === 'CL=F') {
-        return Promise.resolve([
-          { date: new Date('2026-06-05'), close: 100 },
-          { date: new Date('2026-07-10'), close: 70 }, // 30天 -30%，且日期比FRED新4天
-        ]);
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    // 油价期货走 Yahoo 原始 chart 接口（axios直连），在 series_id 分发之外单独拦截
+    const fredImpl = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url, ...rest) => {
+      if (url.includes('/v8/finance/chart/CL%3DF')) {
+        return Promise.resolve({ data: { chart: { result: [{
+          timestamp: [Date.UTC(2026, 5, 5) / 1000, Date.UTC(2026, 6, 10) / 1000],
+          indicators: { quote: [{ close: [100, 70] }] }, // 30天 -30%，且日期比FRED新4天
+        }] } } });
       }
-      return Promise.resolve([{ close: 100 }, { close: 100 }]);
+      return fredImpl(url, ...rest);
     });
 
     const data = await fetchPolicyData();

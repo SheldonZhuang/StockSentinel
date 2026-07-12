@@ -1,3 +1,4 @@
+import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { fetchSeries, fetchReleaseDate, latestValue, latestDate } from './fetch-macro.js';
 import { getDailyCloses } from './market-data.js';
@@ -131,6 +132,24 @@ export function calcWindowChangePct(observations, windowDays) {
 }
 
 /**
+ * Yahoo 原始 chart API 直连拉日线（绕开 yahoo-finance2 库的 cookie/crumb 握手端点——
+ * 该端点对部分 IP 持续 429，而原始 chart 接口不受影响，期货 CL=F 实测可用）
+ * @returns {Array<{date, close:number}>|null} 升序
+ */
+export async function fetchYahooChartCloses(symbol, rangeDays) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${rangeDays}d&interval=1d`;
+  const res = await axios.get(url, { timeout: 15000 });
+  const result = res.data?.chart?.result?.[0];
+  const ts = result?.timestamp;
+  const closes = result?.indicators?.quote?.[0]?.close;
+  if (!ts || !closes) return null;
+  const bars = ts
+    .map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] }))
+    .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
+  return bars.length ? bars : null;
+}
+
+/**
  * 行政：油价事件层（WTI 30天涨跌幅，战争冲击实时代理）+ EPU双代理（月度贸易专项 + 日频7日均线）
  * 三侧独立容错：任一失败不影响其余（判定函数对缺失有降级规则）
  */
@@ -164,10 +183,10 @@ export async function fetchAdminData(apiKey) {
     }),
     (async () => {
       // 油价两层（用户拍板：油价水平语义必须是真实WTI，不用ETF代理）：
-      // ① WTI期货 CL=F（真实期货价，最新交易日，战争定价第一反应）
+      // ① WTI期货 CL=F（原始chart接口直连，最新交易日，战争定价第一反应）
       // ② FRED DCOILWTICO 现货（EIA编制，发布滞后3~5个工作日，兜底并标注"现货(滞后)"）
       try {
-        const bars = await getDailyCloses('CL=F', daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
+        const bars = await fetchYahooChartCloses('CL=F', cfg.OIL_LOOKBACK_DAYS);
         const obs = (bars || [])
           .map(b => ({ date: b.date, value: String(b.close) }))
           .sort((a, b) => (a.date < b.date ? 1 : -1)); // calcWindowChangePct 期望降序

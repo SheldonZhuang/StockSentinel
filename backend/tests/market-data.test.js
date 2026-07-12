@@ -32,21 +32,43 @@ describe('getDailyCloses 三层回退', () => {
     expect(axios.get).not.toHaveBeenCalled();
   });
 
-  it('Yahoo 挂 → Tiingo 接管（adjClose 优先，日期截断）', async () => {
+  it('Yahoo 挂（库+chart直连都挂）→ Tiingo 接管（adjClose 优先，日期截断）', async () => {
     yahooFinance.historical.mockRejectedValue(new Error('429'));
-    axios.get.mockResolvedValue({
-      data: [
-        { date: '2026-07-01T00:00:00.000Z', close: 99, adjClose: 100 },
-        { date: '2026-07-02T00:00:00.000Z', close: 100.5, adjClose: 101 },
-      ],
+    axios.get.mockImplementation(url => {
+      if (url.includes('finance.yahoo.com')) return Promise.reject(new Error('429'));
+      return Promise.resolve({
+        data: [
+          { date: '2026-07-01T00:00:00.000Z', close: 99, adjClose: 100 },
+          { date: '2026-07-02T00:00:00.000Z', close: 100.5, adjClose: 101 },
+        ],
+      });
     });
     const closes = await getDailyCloses('SPY', '2026-07-01', '2026-07-02');
     expect(closes).toEqual([
       { date: '2026-07-01', close: 100 },
       { date: '2026-07-02', close: 101 },
     ]);
-    expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(axios.get.mock.calls[0][0]).toContain('tiingo.com');
+    const tiingoCalls = axios.get.mock.calls.filter(c => c[0].includes('tiingo.com'));
+    expect(tiingoCalls.length).toBe(1);
+  });
+
+  it('Yahoo 库挂但 chart 直连可用 → 不消耗备用源配额', async () => {
+    yahooFinance.historical.mockRejectedValue(new Error('429'));
+    axios.get.mockImplementation(url => {
+      if (url.includes('finance.yahoo.com')) {
+        return Promise.resolve({ data: { chart: { result: [{
+          timestamp: [Date.UTC(2026, 6, 1) / 1000, Date.UTC(2026, 6, 2) / 1000],
+          indicators: { adjclose: [{ adjclose: [100, 101] }], quote: [{ close: [99, 100.5] }] },
+        }] } } });
+      }
+      return Promise.reject(new Error('should not reach backup providers'));
+    });
+    const closes = await getDailyCloses('SPY', '2026-07-01', '2026-07-02');
+    expect(closes).toEqual([
+      { date: '2026-07-01', close: 100 },
+      { date: '2026-07-02', close: 101 },
+    ]);
+    expect(axios.get.mock.calls.every(c => c[0].includes('finance.yahoo.com'))).toBe(true);
   });
 
   it('Yahoo+Tiingo 挂 → TwelveData 接管（降序反转、字符串解析）', async () => {
@@ -84,12 +106,14 @@ describe('getDailyCloses 三层回退', () => {
     expect(await getDailyCloses('SPY', '2026-07-01', '2026-07-02')).toBe(null);
   });
 
-  it('备用源无 key 时跳过：Yahoo 挂且无备用 key → null，不调 axios', async () => {
+  it('备用源无 key 时跳过：Yahoo（库+chart）挂且无备用 key → null，不调备用源', async () => {
     delete process.env.TIINGO_API_KEY;
     delete process.env.TWELVEDATA_API_KEY;
     yahooFinance.historical.mockRejectedValue(new Error('429'));
+    axios.get.mockRejectedValue(new Error('429')); // chart 直连也挂
     expect(await getDailyCloses('SPY', '2026-07-01', '2026-07-02')).toBe(null);
-    expect(axios.get).not.toHaveBeenCalled();
+    // 只有 yahoo chart 直连的调用，没有备用源调用
+    expect(axios.get.mock.calls.every(c => c[0].includes('finance.yahoo.com'))).toBe(true);
   });
 
   it('缓存命中不重复请求', async () => {
@@ -187,6 +211,7 @@ describe('TwelveData 并发节流', () => {
       yahooFinance.quote.mockRejectedValue(new Error('429'));
       const tdCallTimes = [];
       axios.get.mockImplementation(url => {
+        if (url.includes('finance.yahoo.com')) return Promise.reject(new Error('429'));
         if (url.includes('tiingo')) return Promise.reject(new Error('403'));
         tdCallTimes.push(Date.now());
         return Promise.resolve({ data: { price: '100' } });

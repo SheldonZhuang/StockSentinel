@@ -70,9 +70,33 @@ function dedupe(key, fn) {
 // --- 日线收盘价：升序 [{date, close}] ---
 
 async function closesFromYahoo(symbol, startDate, endDate) {
-  const bars = await yahooFinance.historical(symbol, { period1: startDate, period2: endDate });
-  const closes = (bars || [])
-    .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.close }))
+  try {
+    const bars = await yahooFinance.historical(symbol, { period1: startDate, period2: endDate });
+    const closes = (bars || [])
+      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.close }))
+      .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
+    if (closes.length) return closes;
+  } catch (err) {
+    // yahoo-finance2 库走的 cookie/crumb 握手端点对部分 IP 持续 429；
+    // 原始 chart 接口不受影响（实测同机可用），降级直连再试一次
+    console.warn(`[market-data] yahoo lib closes(${symbol}) failed, trying raw chart:`, err.message.slice(0, 80));
+  }
+  return closesFromYahooChart(symbol, startDate, endDate);
+}
+
+/** Yahoo 原始 chart API 直连（绕开库端点限流），升序 [{date, close}]，取复权价 */
+async function closesFromYahooChart(symbol, startDate, endDate) {
+  const period1 = Math.floor(new Date(startDate + 'T00:00:00Z').getTime() / 1000);
+  const period2 = Math.floor(new Date(endDate + 'T00:00:00Z').getTime() / 1000) + 86400;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${period1}&period2=${period2}&interval=1d`;
+  const res = await axios.get(url, { timeout: 15000 });
+  const result = res.data?.chart?.result?.[0];
+  const ts = result?.timestamp;
+  if (!ts) return null;
+  const adj = result?.indicators?.adjclose?.[0]?.adjclose;
+  const raw = result?.indicators?.quote?.[0]?.close;
+  const closes = ts
+    .map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), close: adj?.[i] ?? raw?.[i] }))
     .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
   return closes.length ? closes : null;
 }
@@ -144,7 +168,24 @@ export async function getDailyCloses(symbol, startDate, endDate) {
 // --- 实时报价 ---
 
 async function quoteFromYahoo(symbol) {
-  const q = await yahooFinance.quote(symbol);
+  let q;
+  try {
+    q = await yahooFinance.quote(symbol);
+  } catch (err) {
+    // 库端点限流时降级原始 chart 接口的 meta（只有价格，估值字段交给后续 FMP 补全）
+    console.warn(`[market-data] yahoo lib quote(${symbol}) failed, trying raw chart:`, err.message.slice(0, 80));
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
+    const res = await axios.get(url, { timeout: 15000 });
+    const meta = res.data?.chart?.result?.[0]?.meta;
+    if (meta?.regularMarketPrice === null || meta?.regularMarketPrice === undefined) return null;
+    return {
+      price: meta.regularMarketPrice,
+      trailingPE: null,
+      forwardPE: null,
+      priceToSales: null,
+      priceToBook: null,
+    };
+  }
   if (q?.regularMarketPrice === null || q?.regularMarketPrice === undefined) return null;
   return {
     price: q.regularMarketPrice,
