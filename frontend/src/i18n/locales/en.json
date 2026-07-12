@@ -84,6 +84,11 @@
       "deficitYoY": "Deficit YoY",
       "epuDaily": "Daily EPU",
       "epuTrade": "Trade EPU"
+    },
+    "oilSource": {
+      "futures": "CL=F futures",
+      "uso": "USO futures-ETF proxy",
+      "spot": "Spot (delayed)"
     }
   },
   "watchlist": {
@@ -217,9 +222,10 @@
       "model": "AI Foundation Models",
       "cloud": "Cloud Providers",
       "chip": "AI Chips",
-      "memory": "Memory / Optical Modules",
+      "memory": "Memory",
       "packaging": "Equipment / Packaging / Testing",
-      "power": "Power & Energy"
+      "power": "Power & Energy",
+      "optical": "Optical Modules"
     }
   },
   "footer": {

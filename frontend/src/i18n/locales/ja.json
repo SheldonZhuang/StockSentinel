@@ -84,6 +84,11 @@
       "deficitYoY": "赤字前年比",
       "epuDaily": "日次EPU",
       "epuTrade": "貿易EPU"
+    },
+    "oilSource": {
+      "futures": "CL=F先物",
+      "uso": "USO先物ETF代理",
+      "spot": "現物（遅延）"
     }
   },
   "watchlist": {
@@ -210,9 +215,10 @@
       "model": "AI大規模モデル",
       "cloud": "クラウドプロバイダー",
       "chip": "AIチップ",
-      "memory": "メモリ／光モジュール",
+      "memory": "メモリ",
       "packaging": "設備／パッケージング／テスト",
-      "power": "電力エネルギー"
+      "power": "電力エネルギー",
+      "optical": "光モジュール"
     }
   },
   "recessionLock": {

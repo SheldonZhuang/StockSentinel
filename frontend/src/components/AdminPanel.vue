@@ -174,7 +174,7 @@ const refLoading = ref(false);
 const refCategory = ref('ai_supply');
 
 // 'auto' = 清除手动设定，回到按环节排名自动识别
-const bottleneckStages = ['auto', 'model', 'cloud', 'chip', 'memory', 'packaging', 'power'];
+const bottleneckStages = ['auto', 'model', 'cloud', 'chip', 'memory', 'optical', 'packaging', 'power'];
 const bottleneckForm = ref({ stage: 'packaging', note: '' });
 const bottleneckSaving = ref(false);
 const bottleneckMsg = ref('');

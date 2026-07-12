@@ -84,6 +84,11 @@
       "deficitYoY": "赤字同比",
       "epuDaily": "日频EPU",
       "epuTrade": "贸易EPU"
+    },
+    "oilSource": {
+      "futures": "期货 CL=F",
+      "uso": "USO期货ETF代理",
+      "spot": "现货(发布滞后)"
     }
   },
   "watchlist": {
@@ -217,9 +222,10 @@
       "model": "AI大模型",
       "cloud": "云厂商",
       "chip": "AI芯片",
-      "memory": "存储/光模块",
+      "memory": "存储",
       "packaging": "设备/封装/测试",
-      "power": "电力能源"
+      "power": "电力能源",
+      "optical": "光模块"
     }
   },
   "footer": {

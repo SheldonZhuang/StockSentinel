@@ -201,6 +201,7 @@ const groups = computed(() => {
           key: 'oilWti', value: ind.oilWti, unit: '', change: null,
           extra: ind.oilChange30dPct != null
             ? `30D ${ind.oilChange30dPct > 0 ? '+' : ''}${ind.oilChange30dPct.toFixed(1)}%`
+              + (ind.oilSource ? ` · ${t(`indicators.oilSource.${ind.oilSource}`)}` : '')
             : null,
           signalBadge: ind.oilChange30dPct != null
             ? (ind.oilChange30dPct >= 20 ? 'tight' : ind.oilChange30dPct <= -20 ? 'loose' : 'neutral')

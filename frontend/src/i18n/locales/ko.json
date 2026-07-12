@@ -84,6 +84,11 @@
       "deficitYoY": "적자 전년비",
       "epuDaily": "일간 EPU",
       "epuTrade": "무역 EPU"
+    },
+    "oilSource": {
+      "futures": "CL=F 선물",
+      "uso": "USO 선물ETF 프록시",
+      "spot": "현물(지연)"
     }
   },
   "watchlist": {
@@ -210,9 +215,10 @@
       "model": "AI 대형 모델",
       "cloud": "클라우드 제공업체",
       "chip": "AI 칩",
-      "memory": "메모리 / 광모듈",
+      "memory": "메모리",
       "packaging": "장비 / 패키징 / 테스트",
-      "power": "전력 에너지"
+      "power": "전력 에너지",
+      "optical": "광모듈"
     }
   },
   "recessionLock": {

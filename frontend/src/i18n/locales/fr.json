@@ -84,6 +84,11 @@
       "deficitYoY": "Déficit GA",
       "epuDaily": "EPU quot.",
       "epuTrade": "EPU comm."
+    },
+    "oilSource": {
+      "futures": "Contrats CL=F",
+      "uso": "Proxy ETF USO",
+      "spot": "Spot (différé)"
     }
   },
   "watchlist": {
@@ -210,9 +215,10 @@
       "model": "Modèles IA",
       "cloud": "Fournisseurs Cloud",
       "chip": "Puces IA",
-      "memory": "Mémoire / Modules Optiques",
+      "memory": "Mémoire",
       "packaging": "Équipement / Packaging / Test",
-      "power": "Énergie"
+      "power": "Énergie",
+      "optical": "Modules Optiques"
     }
   },
   "recessionLock": {

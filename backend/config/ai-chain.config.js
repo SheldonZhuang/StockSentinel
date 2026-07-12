@@ -2,14 +2,17 @@
 // STAGE_BASKETS 需与 frontend/src/data/aiChain.js 的可交易标的保持同步
 export default {
   // 链条顺序，同时是 admin 卡点设定的合法值来源
-  STAGE_KEYS: ['model', 'cloud', 'chip', 'memory', 'packaging', 'power'],
+  // memory 与 optical 为同层并列环节（前端1行2列展示）
+  STAGE_KEYS: ['model', 'cloud', 'chip', 'memory', 'optical', 'packaging', 'power'],
 
   // 'model' 环节无纯正上市标的（Anthropic/OpenAI未上市），不参与价格排名，
   // 其健康度由 OpenRouter 模型调用量趋势代表
   STAGE_BASKETS: {
     cloud: ['MSFT', 'AMZN', 'GOOGL', 'META', 'NBIS'],
     chip: ['NVDA', 'AMD', 'AVGO', 'ARM', 'INTC'],
-    memory: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'], // SIVEF = Sivers Semiconductors AB (OTC，光子学)
+    // HXSCL = SK海力士 OTC ADR；005930.KS = 三星电子(KRX，仅Yahoo源可拉，失败自动剔除等权)
+    memory: ['HXSCL', '005930.KS', 'MU', 'SNDK'],
+    optical: ['LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'], // SIVEF = Sivers Semiconductors AB (OTC，光子学)
     packaging: ['AMAT', 'LRCX', 'TSM', 'KLAC'],
     power: ['BE'], // 用户指定只用 Bloom Energy（单一标的波动大，排名噪声已知晓）
   },

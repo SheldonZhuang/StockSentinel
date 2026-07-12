@@ -3,7 +3,7 @@
 // tickers 说明：
 // - 未上市公司用公司名展示（如 'Anthropic'、'OpenAI'），不是股票代码，不可用于行情/自选股接口
 // - 可交易标的篮子须与 backend/config/ai-chain.config.js 的 STAGE_BASKETS 保持同步（后端用它做环节相对强弱排名）
-// - memory 环节的 SK海力士/三星电子无流动性好的美股上市渠道，用 MU/SNDK 作为存储代理
+// - memory 环节：HXSCL = SK海力士 OTC ADR，005930.KS = 三星电子（KRX，Yahoo源）
 // - 同一代码可能出现在多个环节（如 'GOOGL' 同时在 model 和 cloud，因为 Google 既做AI大模型也做云服务），这是有意为之，不是重复错误
 export const AI_CHAIN_STAGES = [
   {
@@ -20,7 +20,11 @@ export const AI_CHAIN_STAGES = [
   },
   {
     key: 'memory',
-    tickers: ['MU', 'SNDK', 'LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'],
+    tickers: ['HXSCL', '005930.KS', 'MU', 'SNDK'],
+  },
+  {
+    key: 'optical',
+    tickers: ['LITE', 'COHR', 'GLW', 'MRVL', 'AAOI', 'SIVEF'],
   },
   {
     key: 'packaging',

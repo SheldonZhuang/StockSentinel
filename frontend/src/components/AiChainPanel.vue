@@ -6,37 +6,41 @@
       <button class="retry-btn" @click="load">{{ $t('error.retry') }}</button>
     </div>
     <div class="chain-flow">
-      <div
-        v-for="(stage, idx) in stages"
-        :key="stage.key"
-        :class="['chain-stage', { bottleneck: bottleneck.stage === stage.key }]"
-      >
-        <div class="stage-header">
-          <span class="stage-name">
-            {{ $t(`aiChain.stages.${stage.key}`) }}
-            <span v-if="stage.rank" class="rank-badge">#{{ stage.rank }}</span>
-          </span>
-          <span class="stage-metrics">
-            <span v-if="stage.key === 'model' && bubble.modelUsageTrendPct != null"
-              :class="['rel-return', bubble.modelUsageTrendPct >= 0 ? 'pos' : 'neg']">
-              {{ formatPct(bubble.modelUsageTrendPct) }}
-            </span>
-            <span v-else-if="stage.relReturnPct != null"
-              :class="['rel-return', stage.relReturnPct >= 0 ? 'pos' : 'neg']"
-              :title="$t('aiChain.relReturnLabel')">
-              {{ formatPct(stage.relReturnPct) }}
-            </span>
-            <span v-if="bottleneck.stage === stage.key" class="bottleneck-tag">
-              🔥 {{ $t('aiChain.currentBottleneck') }} ·
-              {{ $t(bottleneck.source === 'manual' ? 'aiChain.sourceManual' : 'aiChain.sourceAuto') }}
-            </span>
-          </span>
+      <template v-for="(row, ri) in stageRows" :key="row[0].key">
+        <div :class="['stage-row', { paired: row.length > 1 }]">
+          <div
+            v-for="stage in row"
+            :key="stage.key"
+            :class="['chain-stage', { bottleneck: bottleneck.stage === stage.key }]"
+          >
+            <div class="stage-header">
+              <span class="stage-name">
+                {{ $t(`aiChain.stages.${stage.key}`) }}
+                <span v-if="stage.rank" class="rank-badge">#{{ stage.rank }}</span>
+              </span>
+              <span class="stage-metrics">
+                <span v-if="stage.key === 'model' && bubble.modelUsageTrendPct != null"
+                  :class="['rel-return', bubble.modelUsageTrendPct >= 0 ? 'pos' : 'neg']">
+                  {{ formatPct(bubble.modelUsageTrendPct) }}
+                </span>
+                <span v-else-if="stage.relReturnPct != null"
+                  :class="['rel-return', stage.relReturnPct >= 0 ? 'pos' : 'neg']"
+                  :title="$t('aiChain.relReturnLabel')">
+                  {{ formatPct(stage.relReturnPct) }}
+                </span>
+                <span v-if="bottleneck.stage === stage.key" class="bottleneck-tag">
+                  🔥 {{ $t('aiChain.currentBottleneck') }} ·
+                  {{ $t(bottleneck.source === 'manual' ? 'aiChain.sourceManual' : 'aiChain.sourceAuto') }}
+                </span>
+              </span>
+            </div>
+            <div class="stage-tickers">
+              <span v-for="ticker in stage.tickers" :key="ticker" class="ticker-chip">{{ ticker }}</span>
+            </div>
+          </div>
         </div>
-        <div class="stage-tickers">
-          <span v-for="ticker in stage.tickers" :key="ticker" class="ticker-chip">{{ ticker }}</span>
-        </div>
-        <div v-if="idx < stages.length - 1" class="stage-arrow">↓</div>
-      </div>
+        <div v-if="ri < stageRows.length - 1" class="stage-arrow">↓</div>
+      </template>
     </div>
 
     <!-- 泡沫监测：调用量/资本开支/半导体产出（下降 → 防守预警） -->
@@ -97,6 +101,21 @@ const bubble = computed(() => chainData.value?.bubble || {});
 const stages = computed(() => {
   const metrics = new Map((chainData.value?.stages || []).map(s => [s.key, s]));
   return AI_CHAIN_STAGES.map(s => ({ ...s, ...(metrics.get(s.key) || {}) }));
+});
+
+// 现金流同层的并列环节（1行2列展示）：存储 与 光模块
+const PAIRED_KEYS = new Set(['memory', 'optical']);
+const stageRows = computed(() => {
+  const rows = [];
+  for (const s of stages.value) {
+    const last = rows[rows.length - 1];
+    if (PAIRED_KEYS.has(s.key) && last && last.length === 1 && PAIRED_KEYS.has(last[0].key)) {
+      last.push(s);
+    } else {
+      rows.push([s]);
+    }
+  }
+  return rows;
 });
 
 function formatPct(v) {
@@ -171,6 +190,12 @@ onMounted(load);
 }
 
 .chain-flow { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+.stage-row { width: 100%; max-width: 480px; display: flex; gap: 10px; }
+.stage-row .chain-stage { max-width: none; flex: 1; min-width: 0; }
+@media (max-width: 600px) {
+  .stage-row.paired { flex-direction: column; }
+}
 
 .chain-stage {
   width: 100%;

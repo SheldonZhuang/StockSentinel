@@ -84,6 +84,11 @@
       "deficitYoY": "Defizit JoJ",
       "epuDaily": "EPU tägl.",
       "epuTrade": "Handels-EPU"
+    },
+    "oilSource": {
+      "futures": "CL=F-Futures",
+      "uso": "USO-ETF-Proxy",
+      "spot": "Spot (verzögert)"
     }
   },
   "watchlist": {
@@ -210,9 +215,10 @@
       "model": "KI-Modelle",
       "cloud": "Cloud-Anbieter",
       "chip": "KI-Chips",
-      "memory": "Speicher / Optische Module",
+      "memory": "Speicher",
       "packaging": "Ausrüstung / Packaging / Test",
-      "power": "Energie"
+      "power": "Energie",
+      "optical": "Optische Module"
     }
   },
   "recessionLock": {

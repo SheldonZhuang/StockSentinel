@@ -16,7 +16,7 @@ const NULL_FISCAL = { deficitTtm: null, deficitTtmPrev: null, deficitTtmChangePc
 const NULL_ADMIN = {
   epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null,
   epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null,
-  oilWti: null, oilChange30dPct: null, oilPeriodDate: null,
+  oilWti: null, oilChange30dPct: null, oilPeriodDate: null, oilSource: null,
 };
 const NULL_AI = { smhSpyRelReturnPct: null, semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
 
@@ -163,26 +163,36 @@ export async function fetchAdminData(apiKey) {
       return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
     }),
     (async () => {
-      // 优先 WTI 期货 CL=F（行情三层回退源，最新交易日）——战争定价期货比现货快；
-      // FRED DCOILWTICO 为 EIA 现货序列，发布滞后3~5个工作日，仅作兜底
-      try {
-        const bars = await getDailyCloses('CL=F', daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
+      // 油价三层：① WTI期货 CL=F（真实期货价，最新交易日，仅Yahoo源支持）
+      // ② USO 原油期货ETF（备用行情源均支持，30天变化率是有效代理，但ETF净值≠油价水平故不展示价格）
+      // ③ FRED DCOILWTICO 现货（EIA编制，发布滞后3~5个工作日，最后兜底）
+      const fromMarket = async (symbol, source, exposeLevel) => {
+        const bars = await getDailyCloses(symbol, daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
         const obs = (bars || [])
           .map(b => ({ date: b.date, value: String(b.close) }))
           .sort((a, b) => (a.date < b.date ? 1 : -1)); // calcWindowChangePct 期望降序
         const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
-        if (latest !== null && changePct !== null) {
-          return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d };
-        }
+        if (latest === null || changePct === null) return null;
+        return { oilWti: exposeLevel ? latest : null, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: source };
+      };
+      try {
+        const r = await fromMarket('CL=F', 'futures', true);
+        if (r) return r;
       } catch (err) {
-        console.warn('[fetch-policy] CL=F futures fetch failed, fallback to FRED spot:', err.message);
+        console.warn('[fetch-policy] CL=F futures failed:', err.message);
+      }
+      try {
+        const r = await fromMarket('USO', 'uso', false);
+        if (r) return r;
+      } catch (err) {
+        console.warn('[fetch-policy] USO proxy failed:', err.message);
       }
       const obs = await fetchSeries(FRED_SERIES.OIL_WTI, daysAgoET(cfg.OIL_LOOKBACK_DAYS), apiKey);
       const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
-      return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d };
+      return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: latest !== null ? 'spot' : null };
     })().catch(err => {
       console.warn('[fetch-policy] oil fetch failed:', err.message);
-      return { oilWti: null, oilChange30dPct: null, oilPeriodDate: null };
+      return { oilWti: null, oilChange30dPct: null, oilPeriodDate: null, oilSource: null };
     }),
   ]);
   return { ...trade, ...daily, ...oil };
