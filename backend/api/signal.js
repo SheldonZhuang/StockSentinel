@@ -70,16 +70,22 @@ export function deriveBalanceSheetStatus(current, prev) {
 
 /**
  * 衰退防守锁定判定：萨姆锁 / 应对式调整锁 复用同一套逻辑
- * 解锁优先于触发：零利率区间(<=0.25%) 或 当天发生非零小幅调整(<50bp，不限方向) 即解锁；
- * rateDiffBp===0（无议息决议日 或 决议暂停）不触发小幅调整解锁，避免锁定被普通日子误解除
+ * 解锁条件：零利率区间(<=0.25%，联储降到底=框架内的进攻时刻，无条件解锁)；
+ * 或 当天发生非零小幅调整(<50bp，不限方向)——但仅在当天没有触发条件时生效：
+ * 萨姆触发是水平型条件（值≥0.5会持续数月），若小幅调整能在萨姆仍触发时解锁，
+ * 次日会立即重新锁定，产生"单日解锁→次日重锁"翻转和一对方向相反的示警邮件。
+ * rateDiffBp===0（无议息决议日 或 决议暂停）不触发小幅调整解锁
  * @returns {boolean}
  */
 export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLockActive }) {
   const zeroFloorUnlock = currentRate !== null && currentRate !== undefined
     && currentRate <= ZERO_RATE_FLOOR_PCT;
+  if (zeroFloorUnlock) return false;
+
   const smallAdjustmentUnlock = rateDiffBp !== null && rateDiffBp !== undefined && rateDiffBp !== 0
     && Math.abs(rateDiffBp) < RATE_REACTIVE_ADJUSTMENT_BP;
-  if (zeroFloorUnlock || smallAdjustmentUnlock) return false;
+  if (smallAdjustmentUnlock && !triggerToday) return false;
+
   return !!prevLockActive || !!triggerToday;
 }
 

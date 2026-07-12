@@ -117,12 +117,16 @@ export function replayMonth(m, prevState) {
   // 锁：calcLockActive 语义（触发锁存；零利率≤0.25% 或 非零<50bp 小幅调整解锁）
   const zeroUnlock = m.rate !== null && m.rate <= cfg.ZERO_RATE_FLOOR_PCT;
   const smallAdjUnlock = rateDiffBp !== null && rateDiffBp !== 0 && Math.abs(rateDiffBp) < cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-  const unlock = zeroUnlock || smallAdjUnlock;
 
   const sahmTrigger = m.sahm !== null && m.sahm >= cfg.SAHM_TRIGGER_THRESHOLD;
   const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-  const sahmLockActive = unlock ? false : (prevState.sahmLockActive || sahmTrigger);
-  const reactiveLockActive = unlock ? false : (prevState.reactiveLockActive || reactiveTrigger);
+  // 与线上 calcLockActive 一致：零利率无条件解锁；小幅调整只在当期无触发时解锁（防单期解锁下期重锁翻转）
+  const sahmLockActive = zeroUnlock ? false
+    : (smallAdjUnlock && !sahmTrigger) ? false
+    : (prevState.sahmLockActive || sahmTrigger);
+  const reactiveLockActive = zeroUnlock ? false
+    : (smallAdjUnlock && !reactiveTrigger) ? false
+    : (prevState.reactiveLockActive || reactiveTrigger);
 
   // 决策树（防守分级）：双维以上收紧=全面防守；单维收紧=减仓观望；锁强制全面防守
   const tightCount = [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length;
@@ -262,18 +266,26 @@ async function main() {
   const months = rateM.map(o => o.month).filter(m => m >= '2000-01');
   const timeline = [];
   let state = { sahmLockActive: false, reactiveLockActive: false };
-  let prevRate = null;
+  // 首月利率变动用 1999-12 播种，避免首月恒 null
+  let prevRate = rateMap.get('1999-12') ?? null;
+  // 月度指标发布滞后建模：MTSDS133FMS 次月中旬发布、SAHMREALTIME 次月初随非农、EPUTRADE 月后编制，
+  // M 月末决策时只能看到 M-1 月的观测（利率/WALCL/油价为日频/周频实时序列，不移位）
+  const prevMonthOf = m => {
+    const [y, mo] = m.split('-').map(Number);
+    return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
+  };
 
   for (const month of months) {
     const rate = rateMap.get(month) ?? null;
     const walclV = walclMap.get(month) ?? null;
     const prevWalcl = timeline.length ? (walclMap.get(timeline[timeline.length - 1].month) ?? null) : null;
 
-    // 财政：截至当月的月度值序列
-    const fiscalHist = fiscalM.filter(o => o.month <= month).map(o => o.value);
-    // 行政：EPU 截至当月近10年（120个月）窗口百分位 —— 无前视
-    const epuHist = epuM.filter(o => o.month <= month).slice(-120);
-    const epuLatest = epuHist.length && epuHist[epuHist.length - 1].month === month ? epuHist[epuHist.length - 1].value : null;
+    const asOf = prevMonthOf(month); // 发布滞后：只用 M-1 月及更早的月度观测
+    // 财政：截至 M-1 月的月度值序列
+    const fiscalHist = fiscalM.filter(o => o.month <= asOf).map(o => o.value);
+    // 行政：EPU 截至 M-1 月近10年（120个月）窗口百分位 —— 无前视且建模发布滞后
+    const epuHist = epuM.filter(o => o.month <= asOf).slice(-120);
+    const epuLatest = epuHist.length && epuHist[epuHist.length - 1].month === asOf ? epuHist[epuHist.length - 1].value : null;
 
     const r = replayMonth({
       rate, prevRate,
@@ -284,7 +296,7 @@ async function main() {
         const cur = oilMap.get(month), prev = timeline.length ? oilMap.get(timeline[timeline.length - 1].month) : null;
         return cur != null && prev != null && prev !== 0 ? (cur - prev) / prev * 100 : null;
       })(),
-      sahm: sahmMap.get(month) ?? null,
+      sahm: sahmMap.get(asOf) ?? null,
     }, state);
     state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };
     prevRate = rate;
@@ -383,12 +395,12 @@ function writeReport(s, timeline) {
 
   const md = `# 股哨兵决策树历史回测报告
 
-生成时间：2026-07-11 ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSDS133FMS、EPUTRADE、SAHMREALTIME）｜ 标普500：${s.spxSource}
+生成时间：${new Date().toISOString().slice(0, 10)} ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSDS133FMS、EPUTRADE、SAHMREALTIME）｜ 标普500：${s.spxSource}
 
 ## 方法论
 
 - **重放粒度**：月末采样，${s.monthsCovered} 个月（2000-01 起），逐月用与线上完全一致的阈值（\`signal.config.js\`）重算四维信号、萨姆锁/应对式调整锁与最终信号。
-- **前视偏差规避**：EPUTRADE 百分位只用"截至当月"的近120个月窗口；财政 TTM 同比只用截至当月的24个月；锁状态按时间顺序锁存演进，不回看。
+- **前视偏差规避 + 发布滞后建模**：月度指标（财政/萨姆/EPUTRADE）在 M 月末决策时只用 M-1 月及更早的观测（模拟真实发布时点：财政次月中旬、萨姆次月初、EPU月后编制）；EPU 百分位只用截至当时的近120个月窗口；锁状态按时间顺序锁存演进，不回看。残余局限：FRED 只存最新修订版而非当时 vintage（萨姆/EPU 均受影响，见"局限"）。
 - **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。
 - **AI供需维度**：历史上无意义，全程置为观望（neutral）——见"局限"。
 
@@ -419,7 +431,7 @@ ${rows}
 1. **AI供需维度缺席**：四维只剩三维参与，历史上"进攻"档几乎不出现（进攻要求四全宽松），本报告聚焦防守端评估。
 2. **WALCL 2002-12 前缺失**：2000 年危机的货币维度只有利率子信号。
 3. **月度重放粒度**：线上按日运行且利率基线用快照差，月度差分会把相邻小幅调整合并成"应对式"，高估锁的锁存时长；提前/滞后天数有 ±30 天误差带。
-4. **EPUTRADE 为学术编制指数**，FRED 仅存最新修订版本，与当时实时值可能有出入。
+4. **修订版 vs vintage**：SAHMREALTIME/EPUTRADE 用的是 FRED 最新修订版而非当时可见的原始值，与实时决策存在残余偏差。
 5. **SPY 代理 SPX**：ETF 价格与指数走势一致，顶部/底部日期可能相差1个交易日以内。
 
 ## 结论与建议

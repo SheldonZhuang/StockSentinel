@@ -27,6 +27,9 @@ async function initDb() {
   } else {
     db = new SQL.Database();
     initSchema();
+    // 新库同样补列：CREATE TABLE 与 SIGNAL_SNAPSHOT_NEW_COLUMNS 双源一旦不同步，
+    // 否则 saveSignalSnapshot 的 INSERT 会因缺列在全新环境必然失败（迁移幂等，多跑无害）
+    migrateSchema();
     persist();
   }
   return db;
@@ -192,6 +195,15 @@ function initSchema() {
       sahm_lock_active INTEGER,
       reactive_adjustment_lock_active INTEGER,
       reactive_adjustment_lock_trigger_bp REAL,
+      fiscal_stale INTEGER,
+      admin_stale INTEGER,
+      ai_supply_stale INTEGER,
+      epu_daily REAL,
+      epu_daily_percentile REAL,
+      epu_daily_period_date TEXT,
+      oil_wti REAL,
+      oil_change_30d_pct REAL,
+      oil_period_date TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);

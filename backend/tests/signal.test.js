@@ -422,9 +422,15 @@ describe('calcLockActive', () => {
     })).toBe(true);
   });
 
-  it('解锁优先级：触发条件和小幅调整解锁条件同天满足时，解锁生效', () => {
+  it('触发优先于小幅调整解锁：萨姆仍触发时25bp微调不解锁（避免单日解锁次日重锁翻转）', () => {
     expect(calcLockActive({
       triggerToday: true, rateDiffBp: 25, currentRate: 3.5, prevLockActive: false,
+    })).toBe(true);
+  });
+
+  it('小幅调整解锁：触发条件已消失（如萨姆回落<0.5）时25bp微调解锁', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 25, currentRate: 3.5, prevLockActive: true,
     })).toBe(false);
   });
 
