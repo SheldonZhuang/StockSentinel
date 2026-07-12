@@ -205,8 +205,21 @@ describe('calcAdminSignal', () => {
     expect(calcAdminSignal({ oilChange30dPct: 20 })).toBe('tight'); // 恰好20%含边界
   });
 
-  it('油价30天-20%以上（战争结束/对抗降级）→ 立即宽松，无视EPU高分位滞后', () => {
-    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: -24 })).toBe('loose');
+  it('油价30天-20%以上（战争结束/对抗降级）→ 立即宽松：日频EPU未处高位时', () => {
+    // 月度92滞后高位，但日频已回落到40 → 缓和型暴跌 → 宽松（月度指数滞后不挡）
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 40, oilChange30dPct: -24 })).toBe('loose');
+  });
+
+  it('油价暴跌但日频EPU仍处高位（>80）→ 危机需求型暴跌，不判宽松，回落EPU判定', () => {
+    // 2025-04关税战场景：油价因需求恐慌暴跌，EPU同时飙升 → 双高位一致 → 收紧
+    expect(calcAdminSignal({ epuTradePercentile: 95, epuDailyPercentile: 96, oilChange30dPct: -24 })).toBe('tight');
+  });
+
+  it('油价暴跌且日频缺失时用月度做护栏', () => {
+    // 月度高位 → 不判宽松，回落单边月度 → 收紧
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: null, oilChange30dPct: -24 })).toBe('tight');
+    // 月度低位 → 缓和型 → 宽松
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: null, oilChange30dPct: -24 })).toBe('loose');
   });
 
   it('油价波动在±20%以内 → 回落到EPU双代理判定', () => {

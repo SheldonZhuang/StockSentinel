@@ -70,7 +70,7 @@
       "epuTrade": "Rule: trade policy uncertainty index (monthly, trade/tariff/tech-war specific) 10-year percentile >80 → tight, <50 → loose; must agree with daily EPU, else neutral",
       "reference": "Reference only, not part of signal judgment",
       "epuDaily": "Rule: daily economic policy uncertainty index 7-day MA (news-based; reacts within days to policy pivots like tariff pauses) 10-year percentile >80 → tight, <50 → loose; must agree with the monthly trade index, else neutral",
-      "oilWti": "Rule (oil = real-time market pricing of war news, day-level precision): 30-day gain ≥+20% → war/supply shock, admin immediately tight (forced defense); drop ≥20% → war end/de-escalation, admin immediately loose; oil events take priority over EPU indices (which lag by weeks). Within ±20% falls back to dual-EPU judgment. Note: admin loose only removes this dimension's veto — attack still requires all four loose and no locks"
+      "oilWti": "Rule (oil = real-time market pricing of war news, day-level): 30-day gain ≥+20% → war/supply shock, admin immediately tight; drop ≥20% AND uncertainty not elevated (daily EPU ≤80th pct, monthly as fallback) → war end/de-escalation, admin immediately loose; if EPU is simultaneously high, the crash is crisis/demand-driven (e.g. Apr-2025 tariff panic) — no loose, falls back to dual-EPU judgment. Within ±20% also falls back to EPU. Note: admin loose only removes this dimension's veto — attack still requires all four loose and no locks"
     },
     "hintGlobal": "Global rule: Attack = all four loose (AND); one dimension tight = reduce & watch; two+ tight or Sahm/reactive lock active = full defense",
     "stale": "Data delayed",

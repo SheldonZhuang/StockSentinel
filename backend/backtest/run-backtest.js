@@ -101,8 +101,11 @@ export function replayMonth(m, prevState) {
     : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
 
   // 行政：油价事件层（月环比±20%≈30天窗口）优先，其次 EPUTRADE 前视安全10年百分位
+  // 护栏：暴跌只在EPU未处高位时判宽松（危机需求型暴跌如2008-10不误判宽松）
+  const epuHigh = m.epuPercentile !== null && m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT;
   const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
-    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT ? S.TIGHT : m.oilChangePct <= -cfg.OIL_SHOCK_PCT ? S.LOOSE : null)
+    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT ? S.TIGHT
+      : (m.oilChangePct <= -cfg.OIL_SHOCK_PCT && !epuHigh) ? S.LOOSE : null)
     : null;
   const admin = oilEvent !== null ? oilEvent
     : m.epuPercentile === null ? S.NEUTRAL

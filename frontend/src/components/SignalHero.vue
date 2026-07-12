@@ -103,9 +103,15 @@ function dimMetric(key) {
       : null;
   }
   if (key === 'administrative') {
-    return ind.epuTradePercentile != null
-      ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`
-      : null;
+    // 行政三层判定：油价事件层触发时优先展示油价（否则宽松徽章配高分位EPU会自相矛盾）
+    const parts = [];
+    if (ind.oilChange30dPct != null && Math.abs(ind.oilChange30dPct) >= 20) {
+      parts.push(`WTI 30D ${fmtPct(ind.oilChange30dPct)}`);
+    }
+    if (ind.epuTradePercentile != null) {
+      parts.push(`${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`);
+    }
+    return parts.join(' · ') || null;
   }
   return null;
 }
