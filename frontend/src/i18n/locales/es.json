@@ -49,9 +49,9 @@
       "sahm": "%"
     },
     "bsStatus": {
-      "loose": "Expansión QE",
-      "neutral": "Pausa / Estable",
-      "tight": "Contracción QT"
+      "loose": "QE (expansión)",
+      "neutral": "Balance en pausa",
+      "tight": "QT (contracción)"
     },
     "trendUp": "Subida",
     "trendFlat": "Estable",
@@ -221,5 +221,9 @@
     "reactiveReason": "Ajuste de tasa reactivo {bp}bp",
     "waitCondition": "Esperando que la tasa llegue a 0-0.25% o un ajuste menor para desbloquear",
     "overridden": "Borrado manualmente por el administrador"
+  },
+  "footer": {
+    "sources": "Datos: FRED · SEC EDGAR · OpenRouter · Datos de mercado",
+    "disclaimer": "Solo para referencia de investigación. No es asesoramiento de inversión."
   }
 }

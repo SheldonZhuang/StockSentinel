@@ -208,6 +208,30 @@ describe('fetchPolicyData', () => {
     expect(data.semiIpYoy).toBe(7.2);
   });
 
+  it('油价优先用 CL=F 期货（最新交易日），FRED 现货仅兜底', async () => {
+    mockFredBySeriesId({
+      MTSDS133FMS: fiscalObs,
+      EPUTRADE: epuObs,
+      USEPUINDXD: epuDailyObs,
+      DCOILWTICO: oilObs, // FRED 兜底值 96/+20%，若走了兜底则断言会失败
+      IPG3344S: semiIpObs,
+    });
+    yahooFinance.historical.mockImplementation(symbol => {
+      if (symbol === 'CL=F') {
+        return Promise.resolve([
+          { date: new Date('2026-06-05'), close: 100 },
+          { date: new Date('2026-07-10'), close: 70 }, // 30天 -30%，且日期比FRED新4天
+        ]);
+      }
+      return Promise.resolve([{ close: 100 }, { close: 100 }]);
+    });
+
+    const data = await fetchPolicyData();
+    expect(data.oilWti).toBe(70);
+    expect(data.oilChange30dPct).toBeCloseTo(-30, 5);
+    expect(data.oilPeriodDate).toBe('2026-07-10');
+  });
+
   it('缺少 FRED_API_KEY → 全部 null，不抛错', async () => {
     delete process.env.FRED_API_KEY;
     const data = await fetchPolicyData();

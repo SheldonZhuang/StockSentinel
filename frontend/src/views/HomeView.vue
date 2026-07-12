@@ -5,10 +5,16 @@
       <SignalHero :signal="signal" />
     </div>
 
-    <!-- 主线区：AI产业链（长线看供需）+ 参考指标（短线看政策数据） -->
+    <!-- 主线区：左列 AI产业链+信号历史（长线看供需）+ 右列参考指标（短线看政策数据）
+         信号历史放左列填充两列高度差，避免左下大片空白 -->
     <div class="main-grid">
-      <div class="panel">
-        <AiChainPanel />
+      <div class="main-col">
+        <div class="panel">
+          <AiChainPanel />
+        </div>
+        <div class="panel">
+          <SignalTimeline />
+        </div>
       </div>
       <div class="panel">
         <MacroPanel :signal="signal" />
@@ -20,10 +26,12 @@
       <WatchlistPanel />
     </div>
 
-    <!-- 信号历史时间轴 -->
-    <div class="panel">
-      <SignalTimeline />
-    </div>
+    <!-- 页脚：数据源与免责声明 -->
+    <footer class="page-footer">
+      <span>{{ $t('footer.sources') }}</span>
+      <span class="footer-divider">·</span>
+      <span>{{ $t('footer.disclaimer') }}</span>
+    </footer>
   </div>
 </template>
 
@@ -77,6 +85,20 @@ onMounted(async () => {
   gap: 20px;
   align-items: start;
 }
+
+.main-col { display: flex; flex-direction: column; gap: 20px; }
+
+.page-footer {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--text-4);
+  padding: 8px 0 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.footer-divider { color: var(--text-5); }
 
 @media (max-width: 900px) {
   .main-grid { grid-template-columns: 1fr; }

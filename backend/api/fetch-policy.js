@@ -163,6 +163,20 @@ export async function fetchAdminData(apiKey) {
       return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
     }),
     (async () => {
+      // 优先 WTI 期货 CL=F（行情三层回退源，最新交易日）——战争定价期货比现货快；
+      // FRED DCOILWTICO 为 EIA 现货序列，发布滞后3~5个工作日，仅作兜底
+      try {
+        const bars = await getDailyCloses('CL=F', daysAgoET(cfg.OIL_LOOKBACK_DAYS), todayET());
+        const obs = (bars || [])
+          .map(b => ({ date: b.date, value: String(b.close) }))
+          .sort((a, b) => (a.date < b.date ? 1 : -1)); // calcWindowChangePct 期望降序
+        const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
+        if (latest !== null && changePct !== null) {
+          return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d };
+        }
+      } catch (err) {
+        console.warn('[fetch-policy] CL=F futures fetch failed, fallback to FRED spot:', err.message);
+      }
       const obs = await fetchSeries(FRED_SERIES.OIL_WTI, daysAgoET(cfg.OIL_LOOKBACK_DAYS), apiKey);
       const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
       return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d };

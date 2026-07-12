@@ -50,7 +50,7 @@
     },
     "bsStatus": {
       "loose": "QE拡大",
-      "neutral": "停止・横ばい",
+      "neutral": "B/S据え置き",
       "tight": "QT縮小"
     },
     "trendUp": "上昇",
@@ -221,5 +221,9 @@
     "reactiveReason": "対応的利率調整 {bp}bp",
     "waitCondition": "利率が0-0.25%に達するか、小幅調整でロック解除を待機中",
     "overridden": "管理者により手動解除済み"
+  },
+  "footer": {
+    "sources": "データ：FRED · SEC EDGAR · OpenRouter · 市場データ",
+    "disclaimer": "本ツールは研究参考用であり、投資助言ではありません"
   }
 }

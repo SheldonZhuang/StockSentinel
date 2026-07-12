@@ -50,7 +50,7 @@
     },
     "bsStatus": {
       "loose": "QE 확대",
-      "neutral": "일시정지·보합",
+      "neutral": "B/S 동결",
       "tight": "QT 축소"
     },
     "trendUp": "상승",
@@ -221,5 +221,9 @@
     "reactiveReason": "대응적 금리 조정 {bp}bp",
     "waitCondition": "금리가 0-0.25%에 도달하거나 소폭 조정으로 잠금이 해제될 때까지 대기 중",
     "overridden": "관리자에 의해 수동으로 해제됨"
+  },
+  "footer": {
+    "sources": "데이터: FRED · SEC EDGAR · OpenRouter · 시장 데이터",
+    "disclaimer": "본 도구는 연구 참고용이며 투자 조언이 아닙니다"
   }
 }

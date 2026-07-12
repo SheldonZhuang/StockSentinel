@@ -49,9 +49,9 @@
       "sahm": "%"
     },
     "bsStatus": {
-      "loose": "QE-Expansion",
-      "neutral": "Pausiert / Stabil",
-      "tight": "QT-Kontraktion"
+      "loose": "QE-Ausweitung",
+      "neutral": "Bilanz pausiert",
+      "tight": "QT-Abbau"
     },
     "trendUp": "Anstieg",
     "trendFlat": "Stabil",
@@ -221,5 +221,9 @@
     "reactiveReason": "Reaktive Zinsanpassung {bp}bp",
     "waitCondition": "Warten, bis der Zinssatz 0-0.25% erreicht oder eine kleine Anpassung entsperrt",
     "overridden": "Manuell vom Administrator aufgehoben"
+  },
+  "footer": {
+    "sources": "Daten: FRED · SEC EDGAR · OpenRouter · Marktdaten",
+    "disclaimer": "Nur zu Forschungszwecken. Keine Anlageberatung."
   }
 }

@@ -49,9 +49,9 @@
       "sahm": "%"
     },
     "bsStatus": {
-      "loose": "QE Expansion",
-      "neutral": "Paused / Flat",
-      "tight": "QT Contraction"
+      "loose": "QE expansion",
+      "neutral": "B/S on pause",
+      "tight": "QT contraction"
     },
     "trendUp": "Up",
     "trendFlat": "Flat",
@@ -221,5 +221,9 @@
       "packaging": "Equipment / Packaging / Testing",
       "power": "Power & Energy"
     }
+  },
+  "footer": {
+    "sources": "Data: FRED · SEC EDGAR · OpenRouter · Market feeds",
+    "disclaimer": "For research reference only. Not investment advice."
   }
 }

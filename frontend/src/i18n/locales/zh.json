@@ -49,9 +49,9 @@
       "sahm": "%"
     },
     "bsStatus": {
-      "loose": "QE 扩张",
-      "neutral": "暂停·持平",
-      "tight": "QT 收缩"
+      "loose": "QE 扩表",
+      "neutral": "扩缩表暂停",
+      "tight": "QT 缩表"
     },
     "trendUp": "上升",
     "trendFlat": "持平",
@@ -221,5 +221,9 @@
       "packaging": "设备/封装/测试",
       "power": "电力能源"
     }
+  },
+  "footer": {
+    "sources": "数据源：FRED · SEC EDGAR · OpenRouter · 市场行情",
+    "disclaimer": "本工具仅供研究参考，不构成投资建议"
   }
 }
