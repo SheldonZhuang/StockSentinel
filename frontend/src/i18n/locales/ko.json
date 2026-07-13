@@ -175,7 +175,22 @@
       "sahmLock": "삼 룰 잠금",
       "reactiveAdjustmentLock": "대응형 조정 잠금"
     },
-    "signalCleared": "해제됨"
+    "signalCleared": "해제됨",
+    "apiKeys": {
+      "title": "오픈 API 키",
+      "namePlaceholder": "라벨(예: 고객 이메일)",
+      "perDay": "일",
+      "create": "키 발급",
+      "createdTip": "새 키(한 번만 표시, 즉시 복사): ",
+      "colName": "라벨",
+      "colKey": "키",
+      "colTier": "플랜",
+      "colStatus": "상태",
+      "active": "활성",
+      "disabled": "비활성",
+      "enable": "활성화",
+      "disable": "비활성화"
+    }
   },
   "settings": {
     "title": "설정",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "데이터: FRED · SEC EDGAR · OpenRouter · 시장 데이터",
     "disclaimer": "본 도구는 연구 참고용이며 투자 조언이 아닙니다"
+  },
+  "track": {
+    "navLink": "시그널 기록",
+    "title": "공개 시그널 기록",
+    "subtitle": "매일의 시그널 단계를 변조 불가능하게 보관하며 누구나 검증할 수 있습니다. 백테스트 방법론: GitHub 저장소의 docs/backtest-report.md. 연구 참고용이며 투자 조언이 아닙니다.",
+    "stratCagr": "전략 CAGR(전면 방어 시에만 이탈)",
+    "bhCagr": "바이앤홀드 CAGR",
+    "stratMdd": "전략 최대 낙폭",
+    "bhMdd": "B&H 최대 낙폭",
+    "btNote": "{years}년 월간 리플레이 백테스트 기준. 과거 성과가 미래를 보장하지 않습니다.",
+    "archiveTitle": "일일 시그널 기록(최근 365일)",
+    "colDate": "날짜",
+    "colFinal": "최종 시그널"
+  },
+  "dailyReport": {
+    "title": "AI 데일리 브리프"
   }
 }

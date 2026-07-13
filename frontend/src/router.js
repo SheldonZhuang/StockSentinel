@@ -8,6 +8,11 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    // 公开信号存档（track record）：无需登录，供任何人验证信号历史
+    path: '/track-record',
+    component: () => import('./views/TrackRecordView.vue'),
+  },
+  {
     path: '/login',
     component: () => import('./views/LoginView.vue'),
   },

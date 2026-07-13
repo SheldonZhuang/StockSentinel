@@ -175,7 +175,22 @@
       "sahmLock": "Bloqueo Sahm",
       "reactiveAdjustmentLock": "Bloqueo de ajuste reactivo"
     },
-    "signalCleared": "Borrado"
+    "signalCleared": "Borrado",
+    "apiKeys": {
+      "title": "Claves API abiertas",
+      "namePlaceholder": "Etiqueta (p. ej. email del cliente)",
+      "perDay": "día",
+      "create": "Emitir",
+      "createdTip": "Nueva clave (se muestra una sola vez): ",
+      "colName": "Etiqueta",
+      "colKey": "Clave",
+      "colTier": "Nivel",
+      "colStatus": "Estado",
+      "active": "Activa",
+      "disabled": "Desactivada",
+      "enable": "Activar",
+      "disable": "Desactivar"
+    }
   },
   "settings": {
     "title": "Configuración",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "Datos: FRED · SEC EDGAR · OpenRouter · Datos de mercado",
     "disclaimer": "Solo para referencia de investigación. No es asesoramiento de inversión."
+  },
+  "track": {
+    "navLink": "Historial",
+    "title": "Historial público de señales",
+    "subtitle": "Los niveles diarios se archivan aquí de forma inmutable y verificable. Metodología del backtest: docs/backtest-report.md del repositorio GitHub. Solo referencia de investigación, no asesoramiento de inversión.",
+    "stratCagr": "CAGR estrategia (salida solo en defensa total)",
+    "bhCagr": "CAGR Buy & Hold",
+    "stratMdd": "Drawdown máx. estrategia",
+    "bhMdd": "Drawdown máx. Buy & Hold",
+    "btNote": "Backtest de repetición mensual de {years} años; el rendimiento pasado no garantiza el futuro.",
+    "archiveTitle": "Archivo diario (últimos 365 días)",
+    "colDate": "Fecha",
+    "colFinal": "Señal final"
+  },
+  "dailyReport": {
+    "title": "Resumen diario IA"
   }
 }

@@ -175,7 +175,22 @@
       "sahmLock": "Verrou Sahm",
       "reactiveAdjustmentLock": "Verrou d’ajustement réactif"
     },
-    "signalCleared": "Effacé"
+    "signalCleared": "Effacé",
+    "apiKeys": {
+      "title": "Clés API ouvertes",
+      "namePlaceholder": "Libellé (ex. email client)",
+      "perDay": "jour",
+      "create": "Émettre",
+      "createdTip": "Nouvelle clé (affichée une seule fois) : ",
+      "colName": "Libellé",
+      "colKey": "Clé",
+      "colTier": "Palier",
+      "colStatus": "Statut",
+      "active": "Active",
+      "disabled": "Désactivée",
+      "enable": "Activer",
+      "disable": "Désactiver"
+    }
   },
   "settings": {
     "title": "Paramètres",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "Données : FRED · SEC EDGAR · OpenRouter · Flux de marché",
     "disclaimer": "Outil à but de recherche uniquement. Pas un conseil en investissement."
+  },
+  "track": {
+    "navLink": "Historique",
+    "title": "Historique public des signaux",
+    "subtitle": "Les paliers quotidiens sont archivés ici de façon immuable et vérifiable. Méthodologie du backtest : docs/backtest-report.md du dépôt GitHub. À but de recherche uniquement, pas un conseil en investissement.",
+    "stratCagr": "CAGR stratégie (sortie en défense totale)",
+    "bhCagr": "CAGR Buy & Hold",
+    "stratMdd": "Drawdown max stratégie",
+    "bhMdd": "Drawdown max Buy & Hold",
+    "btNote": "Backtest en rejeu mensuel sur {years} ans ; les performances passées ne préjugent pas de l’avenir.",
+    "archiveTitle": "Archive quotidienne (365 derniers jours)",
+    "colDate": "Date",
+    "colFinal": "Signal final"
+  },
+  "dailyReport": {
+    "title": "Brief quotidien IA"
   }
 }

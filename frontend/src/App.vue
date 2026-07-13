@@ -10,6 +10,7 @@
         </span>
       </router-link>
       <div class="nav-right">
+        <router-link to="/track-record" class="nav-link">{{ $t('track.navLink') }}</router-link>
         <!-- 主题切换 -->
         <button class="nav-btn" :title="$t('app.theme')" @click="toggleTheme">
           {{ theme === 'dark' ? '🌙' : '☀️' }}

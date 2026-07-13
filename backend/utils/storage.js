@@ -259,6 +259,28 @@ function initSchema() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      name TEXT,
+      tier TEXT NOT NULL DEFAULT 'free',
+      disabled INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS daily_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      content_zh TEXT,
+      content_en TEXT,
+      model TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS ai_chain_snapshots (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -518,6 +540,42 @@ export async function saveAiChainSnapshot(data) {
 export async function getLatestAiChainSnapshot() {
   await getDb();
   return get('SELECT * FROM ai_chain_snapshots ORDER BY date DESC, id DESC LIMIT 1');
+}
+
+// --- API Keys（开放API计费/限流基础）---
+
+export async function createApiKey(key, name, tier) {
+  await getDb();
+  run('INSERT INTO api_keys (key, name, tier) VALUES (?, ?, ?)', [key, name || null, tier || 'free']);
+  return get('SELECT * FROM api_keys WHERE key = ?', [key]);
+}
+
+export async function getApiKeyRecord(key) {
+  await getDb();
+  return get('SELECT * FROM api_keys WHERE key = ? AND disabled = 0', [key]);
+}
+
+export async function listApiKeys() {
+  await getDb();
+  return all('SELECT id, key, name, tier, disabled, created_at FROM api_keys ORDER BY id DESC');
+}
+
+export async function setApiKeyDisabled(id, disabled) {
+  await getDb();
+  run('UPDATE api_keys SET disabled = ? WHERE id = ?', [disabled ? 1 : 0, id]);
+}
+
+// --- AI 日报 ---
+
+export async function saveDailyReport(data) {
+  await getDb();
+  run('INSERT INTO daily_reports (date, content_zh, content_en, model) VALUES (?, ?, ?, ?)',
+    [data.date, data.contentZh, data.contentEn, data.model]);
+}
+
+export async function getLatestDailyReport() {
+  await getDb();
+  return get('SELECT * FROM daily_reports ORDER BY date DESC, id DESC LIMIT 1');
 }
 
 export { getDb, persist };

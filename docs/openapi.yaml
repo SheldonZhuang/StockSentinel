@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Stock Sentinel Open API
+  version: "1.0"
+  description: |
+    美股进攻/防守信号系统的开放API。四维信号（AI供需/货币/财政/行政）全数据驱动，
+    决策树四档输出：attack（进攻）/ neutral（观望）/ reduce（减仓观望）/ defense（全面防守）。
+
+    **鉴权**：请求头 `X-API-Key`（或查询参数 `api_key`）。无 key 可试用（每日25次/IP）。
+    档位：free 250次/日，pro 10000次/日。获取 key：联系管理员。
+
+    **免责声明**：所有数据仅供研究参考，不构成投资建议。
+    For research reference only. Not investment advice.
+servers:
+  - url: https://YOUR-BACKEND-DOMAIN/v1
+security:
+  - ApiKeyHeader: []
+  - {}
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    SignalTier:
+      type: string
+      enum: [attack, neutral, reduce, defense]
+    DimSignal:
+      type: string
+      enum: [loose, neutral, tight]
+paths:
+  /signal:
+    get:
+      operationId: getCurrentSignal
+      summary: 当前进攻/防守信号（四档）+ 四维明细 + 全部参考指标
+      responses:
+        "200":
+          description: 当前信号
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  finalSignal: { $ref: "#/components/schemas/SignalTier" }
+                  aiSupplySignal: { $ref: "#/components/schemas/DimSignal" }
+                  monetarySignal: { $ref: "#/components/schemas/DimSignal" }
+                  fiscalSignal: { $ref: "#/components/schemas/DimSignal" }
+                  adminSignal: { $ref: "#/components/schemas/DimSignal" }
+                  indicators:
+                    type: object
+                    description: 全部参考指标（利率/资产负债表/萨姆/联邦支出/EPU/油价/AI链等）
+                  dataDate: { type: string, example: "2026-07-13" }
+                  disclaimer: { type: string }
+        "429": { description: 超出当日请求额度 }
+        "503": { description: 服务预热中（尚无快照） }
+  /signal/history:
+    get:
+      operationId: getSignalHistory
+      summary: 信号历史（公开可验证的 track record）
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 90, maximum: 365 }
+      responses:
+        "200":
+          description: 按日期倒序的信号档位历史
+  /ai-chain:
+    get:
+      operationId: getAiChain
+      summary: AI产业链环节排名 + 当前卡点 + 泡沫监测（调用量/云capex/半导体产出）
+      responses:
+        "200": { description: 产业链状态 }
+  /stock/{symbol}:
+    get:
+      operationId: getStockPercentile
+      summary: 个股/ETF 价格历史百分位 + 真实 P/E、P/S（SEC EDGAR 口径）
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema: { type: string, example: NVDA }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200": { description: 个股数据 }
+        "400": { description: 非法代码 }
+  /backtest/summary:
+    get:
+      operationId: getBacktestSummary
+      summary: 最近一次历史回测核心结论（26年月度重放，6场危机+8段牛市检验）
+      responses:
+        "200": { description: 回测摘要 }
+        "404": { description: 本部署尚未跑过回测 }
+  /daily-report:
+    get:
+      operationId: getDailyReport
+      summary: AI 生成的每日信号解读（中英双语）
+      responses:
+        "200": { description: 最新日报 }
+        "404": { description: 尚未生成 }

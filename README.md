@@ -98,6 +98,21 @@ npm run dev       # http://localhost:5173，代理 /api 到 localhost:3001
 npm run build
 ```
 
+
+## 面向 AI 时代：开放API / MCP / Skill
+
+本项目已全面 AI 化，任何 AI 客户端或第三方开发者都可以调用信号系统：
+
+| 通道 | 位置 | 说明 |
+|---|---|---|
+| **开放 REST API** | `/v1/*`（[OpenAPI 规范](docs/openapi.yaml)） | `X-API-Key` 鉴权；免key试用 25次/日/IP，free 250/日，pro 10000/日；密钥在管理后台签发 |
+| **MCP Server** | [`mcp/`](mcp/) | Claude Desktop/Cursor 等一行配置接入，6个工具（当前信号/历史/产业链/个股/回测/日报） |
+| **Claude Skill** | [`skills/stock-sentinel/`](skills/stock-sentinel/SKILL.md) | 教 AI 正确理解四维框架与解读规范 |
+| **AI 日报** | `/v1/daily-report` | 每日 cron 后 LLM 自动生成中英双语信号解读（经 OpenRouter，可配 `AI_REPORT_MODEL`） |
+| **公开 Track Record** | 网站 `/track-record` | 每日信号档位不可篡改存档 + 回测成绩，供任何人验证 |
+
+> 所有输出均附免责声明：仅供研究参考，不构成投资建议。
+
 ## 当前状态
 
 MVP 已完成：信号计算、鉴权、自选股、后台管理、邮件提醒、多语言 UI，27/27 测试通过。

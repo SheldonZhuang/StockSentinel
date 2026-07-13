@@ -5,6 +5,12 @@
       <SignalHero :signal="signal" />
     </div>
 
+    <!-- AI 日报：LLM 基于当日快照生成的双语解读 -->
+    <div v-if="report" class="panel report-panel">
+      <div class="section-title">🤖 {{ $t('dailyReport.title') }} · {{ report.date }}</div>
+      <p class="report-text">{{ locale === 'zh' ? report.zh : report.en }}</p>
+    </div>
+
     <!-- 主线区：左列 AI产业链+信号历史（长线看供需）+ 右列参考指标（短线看政策数据）
          信号历史放左列填充两列高度差，避免左下大片空白 -->
     <div class="main-grid">
@@ -37,6 +43,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import SignalHero from '../components/SignalHero.vue';
 import MacroPanel from '../components/MacroPanel.vue';
 import WatchlistPanel from '../components/WatchlistPanel.vue';
@@ -44,8 +51,11 @@ import SignalTimeline from '../components/SignalTimeline.vue';
 import AiChainPanel from '../components/AiChainPanel.vue';
 import { api } from '../api/client.js';
 
+const { locale } = useI18n();
+
 // /api/signal 只拉一次，下发给 Hero 与指标明细
 const signal = ref(null);
+const report = ref(null);
 
 onMounted(async () => {
   try {
@@ -55,6 +65,10 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load signal', e);
   }
+  try {
+    const r = await api.getDailyReport();
+    if (r?.date) report.value = r;
+  } catch { /* 日报是增值内容，失败不打扰 */ }
 });
 </script>
 
@@ -78,6 +92,10 @@ onMounted(async () => {
 }
 
 .hero-section { padding: 28px 20px; }
+
+.report-panel { padding: 16px 20px; }
+.report-panel .section-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 8px; }
+.report-text { margin: 0; font-size: var(--fs-md); color: var(--text-2); line-height: 1.7; }
 
 .main-grid {
   display: grid;

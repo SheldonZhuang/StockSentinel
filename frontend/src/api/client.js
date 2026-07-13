@@ -23,6 +23,7 @@ async function request(path, options = {}) {
 export const api = {
   // Signal
   getSignal: () => request('/signal'),
+  getDailyReport: () => request('/daily-report'),
   getSignalHistory: (limit = 90) => request(`/signal/history?limit=${limit}`),
 
   // Auth
@@ -46,6 +47,11 @@ export const api = {
   setAdminSignal: (type, signal, expiresAt, note) =>
     request('/admin/signals', { method: 'POST', body: JSON.stringify({ type, signal, expiresAt, note }) }),
   getAdminHistory: () => request('/admin/signal-history'),
+  adminListApiKeys: () => request('/admin/api-keys'),
+  adminCreateApiKey: (name, tier) =>
+    request('/admin/api-keys', { method: 'POST', body: JSON.stringify({ name, tier }) }),
+  adminToggleApiKey: (id, disabled) =>
+    request(`/admin/api-keys/${id}`, { method: 'PATCH', body: JSON.stringify({ disabled }) }),
   getReference: (category) => request(`/admin/reference?category=${category}`),
   setLockOverride: (type, expiresAt, note) =>
     request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),

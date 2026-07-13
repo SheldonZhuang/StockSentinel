@@ -175,7 +175,22 @@
       "sahmLock": "サームロック",
       "reactiveAdjustmentLock": "対応型調整ロック"
     },
-    "signalCleared": "解除済み"
+    "signalCleared": "解除済み",
+    "apiKeys": {
+      "title": "オープンAPIキー",
+      "namePlaceholder": "ラベル（顧客メール等）",
+      "perDay": "日",
+      "create": "キー発行",
+      "createdTip": "新しいキー（一度だけ表示、今すぐコピー）：",
+      "colName": "ラベル",
+      "colKey": "キー",
+      "colTier": "プラン",
+      "colStatus": "状態",
+      "active": "有効",
+      "disabled": "無効",
+      "enable": "有効化",
+      "disable": "無効化"
+    }
   },
   "settings": {
     "title": "設定",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "データ：FRED · SEC EDGAR · OpenRouter · 市場データ",
     "disclaimer": "本ツールは研究参考用であり、投資助言ではありません"
+  },
+  "track": {
+    "navLink": "シグナル記録",
+    "title": "公開シグナル記録",
+    "subtitle": "毎日のシグナル段階を改ざん不能な形で記録し、誰でも検証できます。バックテスト手法：GitHubリポジトリの docs/backtest-report.md。研究参考用であり投資助言ではありません。",
+    "stratCagr": "戦略CAGR（全面防御時のみ退出）",
+    "bhCagr": "バイ&ホールドCAGR",
+    "stratMdd": "戦略最大ドローダウン",
+    "bhMdd": "B&H最大ドローダウン",
+    "btNote": "{years}年間の月次リプレイに基づくバックテスト。過去の成績は将来を保証しません。",
+    "archiveTitle": "日次シグナル記録（直近365日）",
+    "colDate": "日付",
+    "colFinal": "最終シグナル"
+  },
+  "dailyReport": {
+    "title": "AIデイリーブリーフ"
   }
 }

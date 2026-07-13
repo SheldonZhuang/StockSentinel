@@ -182,7 +182,22 @@
       "sahmLock": "Sahm Lock",
       "reactiveAdjustmentLock": "Reactive Adjustment Lock"
     },
-    "signalCleared": "Cleared"
+    "signalCleared": "Cleared",
+    "apiKeys": {
+      "title": "Open API Keys",
+      "namePlaceholder": "Label (e.g. client email)",
+      "perDay": "day",
+      "create": "Issue Key",
+      "createdTip": "New key (shown once, copy now): ",
+      "colName": "Label",
+      "colKey": "Key",
+      "colTier": "Tier",
+      "colStatus": "Status",
+      "active": "Active",
+      "disabled": "Disabled",
+      "enable": "Enable",
+      "disable": "Disable"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "Data: FRED · SEC EDGAR · OpenRouter · Market feeds",
     "disclaimer": "For research reference only. Not investment advice."
+  },
+  "track": {
+    "navLink": "Track Record",
+    "title": "Public Signal Track Record",
+    "subtitle": "Daily signal tiers are archived here immutably for anyone to verify. Backtest methodology and full report: docs/backtest-report.md in the GitHub repo. For research reference only, not investment advice.",
+    "stratCagr": "Strategy CAGR (exit on full defense only)",
+    "bhCagr": "Buy & Hold CAGR",
+    "stratMdd": "Strategy Max Drawdown",
+    "bhMdd": "Buy & Hold Max Drawdown",
+    "btNote": "Based on a {years}-year monthly-replay backtest; past performance does not guarantee future results.",
+    "archiveTitle": "Daily Signal Archive (last 365 days)",
+    "colDate": "Date",
+    "colFinal": "Final Signal"
+  },
+  "dailyReport": {
+    "title": "AI Daily Brief"
   }
 }

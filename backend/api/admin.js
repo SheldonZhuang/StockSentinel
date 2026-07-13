@@ -1,10 +1,14 @@
 import express from 'express';
 import { requireAdmin } from './auth.js';
+import crypto from 'crypto';
 import {
   setAdminSignal,
   getActiveAdminSignal,
   getAdminSignalHistory,
   setBottleneck,
+  createApiKey,
+  listApiKeys,
+  setApiKeyDisabled,
 } from '../utils/storage.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
 import { fetchAiSupplyNews } from './fetch-rss.js';
@@ -111,6 +115,30 @@ router.post('/bottleneck', requireAdmin, asyncRoute(async (req, res) => {
   }
   await setBottleneck(stage, note || null, req.user.email);
   res.json({ ok: true, stage, note: note || null });
+}));
+
+// --- 开放API密钥管理（变现基础）---
+
+// GET /api/admin/api-keys — 全部密钥
+router.get('/api-keys', requireAdmin, asyncRoute(async (req, res) => {
+  res.json(await listApiKeys());
+}));
+
+// POST /api/admin/api-keys {name, tier} — 签发新密钥
+router.post('/api-keys', requireAdmin, asyncRoute(async (req, res) => {
+  const { name, tier } = req.body || {};
+  if (tier && !['free', 'pro'].includes(tier)) return res.status(400).json({ error: 'tier must be free|pro' });
+  const key = 'sk_ss_' + crypto.randomBytes(24).toString('hex');
+  const record = await createApiKey(key, typeof name === 'string' ? name.slice(0, 100) : null, tier || 'free');
+  res.json(record);
+}));
+
+// PATCH /api/admin/api-keys/:id {disabled} — 启用/禁用
+router.patch('/api-keys/:id', requireAdmin, asyncRoute(async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'bad id' });
+  await setApiKeyDisabled(id, !!req.body?.disabled);
+  res.json({ ok: true });
 }));
 
 export default router;

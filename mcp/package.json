@@ -1,0 +1,26 @@
+{
+  "name": "stock-sentinel-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Stock Sentinel — US stock attack/defense signal system (4-dimension macro framework). For research reference only, not investment advice.",
+  "type": "module",
+  "bin": {
+    "stock-sentinel-mcp": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "stocks",
+    "macro",
+    "signals",
+    "investing-research"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^4.4.3"
+  }
+}

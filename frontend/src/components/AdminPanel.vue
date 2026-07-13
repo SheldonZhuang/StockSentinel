@@ -153,6 +153,46 @@
       </table>
     </section>
   </div>
+    <!-- 开放API密钥管理（变现基础） -->
+    <section class="admin-section">
+      <h3 class="block-title">{{ $t('admin.apiKeys.title') }}</h3>
+      <div class="key-form">
+        <input v-model="keyName" class="key-input" :placeholder="$t('admin.apiKeys.namePlaceholder')" />
+        <select v-model="keyTier" class="key-select">
+          <option value="free">free（250/{{ $t('admin.apiKeys.perDay') }}）</option>
+          <option value="pro">pro（10000/{{ $t('admin.apiKeys.perDay') }}）</option>
+        </select>
+        <button class="key-btn" @click="createKey">{{ $t('admin.apiKeys.create') }}</button>
+      </div>
+      <div v-if="newKey" class="new-key-tip">
+        {{ $t('admin.apiKeys.createdTip') }}<code class="key-code">{{ newKey }}</code>
+      </div>
+      <table v-if="apiKeys.length" class="key-table">
+        <thead>
+          <tr>
+            <th>{{ $t('admin.apiKeys.colName') }}</th>
+            <th>{{ $t('admin.apiKeys.colKey') }}</th>
+            <th>{{ $t('admin.apiKeys.colTier') }}</th>
+            <th>{{ $t('admin.apiKeys.colStatus') }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="k in apiKeys" :key="k.id">
+            <td>{{ k.name || '—' }}</td>
+            <td class="key-code">{{ k.key.slice(0, 12) }}…{{ k.key.slice(-4) }}</td>
+            <td>{{ k.tier }}</td>
+            <td>{{ k.disabled ? $t('admin.apiKeys.disabled') : $t('admin.apiKeys.active') }}</td>
+            <td>
+              <button class="key-btn small" @click="toggleKey(k)">
+                {{ k.disabled ? $t('admin.apiKeys.enable') : $t('admin.apiKeys.disable') }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
 </template>
 
 <script setup>
@@ -255,7 +295,34 @@ onMounted(async () => {
   await loadData();
   await loadRef('ai_supply');
   currentBottleneck.value = await api.getBottleneck().catch(() => null);
+  loadApiKeys();
 });
+
+// --- 开放API密钥管理（变现基础）---
+const apiKeys = ref([]);
+const keyName = ref('');
+const keyTier = ref('free');
+const newKey = ref('');
+
+async function loadApiKeys() {
+  try { apiKeys.value = await api.adminListApiKeys(); } catch { /* 旧后端无此端点时静默 */ }
+}
+
+async function createKey() {
+  try {
+    const rec = await api.adminCreateApiKey(keyName.value.trim() || null, keyTier.value);
+    newKey.value = rec.key;
+    keyName.value = '';
+    await loadApiKeys();
+  } catch (e) { alert(e.message); }
+}
+
+async function toggleKey(k) {
+  try {
+    await api.adminToggleApiKey(k.id, !k.disabled);
+    await loadApiKeys();
+  } catch (e) { alert(e.message); }
+}
 </script>
 
 <style scoped>
@@ -303,4 +370,24 @@ onMounted(async () => {
 .history-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .history-table th { color: var(--text-4); font-weight: normal; padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border-2); }
 .history-table td { color: var(--text-3); padding: 6px 8px; border-bottom: 1px solid var(--border-1); }
+
+.key-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.key-input, .key-select {
+  background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px;
+  color: var(--text-2); padding: 6px 10px; font-size: var(--fs-sm);
+}
+.key-btn {
+  background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px;
+  color: var(--text-2); padding: 6px 14px; cursor: pointer; font-size: var(--fs-sm);
+}
+.key-btn:hover { border-color: var(--blue); }
+.key-btn.small { padding: 2px 10px; font-size: var(--fs-xs); }
+.new-key-tip {
+  font-size: var(--fs-sm); color: var(--green); background: var(--green-bg);
+  border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; word-break: break-all;
+}
+.key-code { font-family: var(--font-num); font-size: var(--fs-xs); }
+.key-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.key-table th { text-align: left; color: var(--text-4); font-size: var(--fs-xs); padding: 4px 8px; border-bottom: 1px solid var(--border-2); }
+.key-table td { padding: 4px 8px; border-bottom: 1px solid var(--border-1); color: var(--text-2); }
 </style>

@@ -175,7 +175,22 @@
       "sahmLock": "Sahm-Sperre",
       "reactiveAdjustmentLock": "Reaktive Anpassungssperre"
     },
-    "signalCleared": "Aufgehoben"
+    "signalCleared": "Aufgehoben",
+    "apiKeys": {
+      "title": "Offene API-Schlüssel",
+      "namePlaceholder": "Bezeichnung (z. B. Kunden-E-Mail)",
+      "perDay": "Tag",
+      "create": "Ausstellen",
+      "createdTip": "Neuer Schlüssel (nur einmal sichtbar): ",
+      "colName": "Bezeichnung",
+      "colKey": "Schlüssel",
+      "colTier": "Stufe",
+      "colStatus": "Status",
+      "active": "Aktiv",
+      "disabled": "Deaktiviert",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren"
+    }
   },
   "settings": {
     "title": "Einstellungen",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "Daten: FRED · SEC EDGAR · OpenRouter · Marktdaten",
     "disclaimer": "Nur zu Forschungszwecken. Keine Anlageberatung."
+  },
+  "track": {
+    "navLink": "Signalarchiv",
+    "title": "Öffentliches Signalarchiv",
+    "subtitle": "Tägliche Signalstufen werden hier unveränderlich archiviert und sind für jeden überprüfbar. Backtest-Methodik: docs/backtest-report.md im GitHub-Repo. Nur zu Forschungszwecken, keine Anlageberatung.",
+    "stratCagr": "Strategie-CAGR (Ausstieg nur bei voller Defensive)",
+    "bhCagr": "Buy-&-Hold-CAGR",
+    "stratMdd": "Max. Drawdown Strategie",
+    "bhMdd": "Max. Drawdown Buy & Hold",
+    "btNote": "Basierend auf {years} Jahren monatlichem Replay-Backtest; vergangene Ergebnisse garantieren keine Zukunft.",
+    "archiveTitle": "Tägliches Archiv (letzte 365 Tage)",
+    "colDate": "Datum",
+    "colFinal": "Endsignal"
+  },
+  "dailyReport": {
+    "title": "KI-Tagesbriefing"
   }
 }

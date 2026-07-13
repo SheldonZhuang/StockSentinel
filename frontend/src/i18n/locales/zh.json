@@ -182,7 +182,22 @@
       "sahmLock": "萨姆锁",
       "reactiveAdjustmentLock": "应对式调整锁"
     },
-    "signalCleared": "已清除"
+    "signalCleared": "已清除",
+    "apiKeys": {
+      "title": "开放API密钥",
+      "namePlaceholder": "备注名（如客户邮箱）",
+      "perDay": "日",
+      "create": "签发密钥",
+      "createdTip": "新密钥（只显示这一次，请立即复制）：",
+      "colName": "备注",
+      "colKey": "密钥",
+      "colTier": "档位",
+      "colStatus": "状态",
+      "active": "启用中",
+      "disabled": "已禁用",
+      "enable": "启用",
+      "disable": "禁用"
+    }
   },
   "settings": {
     "title": "设置",
@@ -232,5 +247,21 @@
   "footer": {
     "sources": "数据源：FRED · SEC EDGAR · OpenRouter · 市场行情",
     "disclaimer": "本工具仅供研究参考，不构成投资建议"
+  },
+  "track": {
+    "navLink": "信号存档",
+    "title": "公开信号存档 Track Record",
+    "subtitle": "每日信号档位不可篡改地存档于此，供任何人回验。回测方法与完整报告见 GitHub 仓库 docs/backtest-report.md。仅供研究参考，不构成投资建议。",
+    "stratCagr": "策略年化（仅全面防守离场）",
+    "bhCagr": "买入持有年化",
+    "stratMdd": "策略最大回撤",
+    "bhMdd": "买入持有最大回撤",
+    "btNote": "基于 {years} 年月度重放的历史回测；历史表现不代表未来。",
+    "archiveTitle": "每日信号存档（最近365天）",
+    "colDate": "日期",
+    "colFinal": "最终信号"
+  },
+  "dailyReport": {
+    "title": "AI 每日解读"
   }
 }
