@@ -133,7 +133,7 @@ describe('fetchPolicyData', () => {
     });
   }
 
-  const fiscalObs = monthlyObs(25, i => (i < 12 ? -110 : -100));
+  const fiscalObs = monthlyObs(25, i => (i < 12 ? 110 : 100)); // 支出：最近12月110 vs 之前100 → +10%
   const epuObs = monthlyObs(120, i => 100 + i); // 最新值100为最小 → 低百分位
   // 日频序列（desc）：最新7天都是200，之前80天都是100 → 7日均线最新=200为最大 → 100分位
   const epuDailyObs = Array.from({ length: 87 }, (_, i) => ({
@@ -149,7 +149,7 @@ describe('fetchPolicyData', () => {
 
   it('正常返回三个维度的全部字段', async () => {
     mockFredBySeriesId({
-      MTSDS133FMS: fiscalObs,
+      MTSO133FMS: fiscalObs,
       EPUTRADE: epuObs,
       USEPUINDXD: epuDailyObs,
       DCOILWTICO: oilObs,
@@ -162,8 +162,8 @@ describe('fetchPolicyData', () => {
     );
 
     const data = await fetchPolicyData();
-    expect(data.deficitTtm).toBe(-1320);
-    expect(data.deficitTtmChangePct).toBeCloseTo(10, 5);
+    expect(data.outlaysTtm).toBe(1320);
+    expect(data.outlaysChangePct).toBeCloseTo(10, 5);
     expect(data.fiscalPeriodDate).toBe('2026-05-01');
     expect(data.epuTrade).toBe(100);
     expect(data.epuTradePercentile).toBeCloseTo(0.8, 1); // 1/120
@@ -179,7 +179,7 @@ describe('fetchPolicyData', () => {
 
   it('单维度失败隔离：EPUTRADE 拒绝 → 月度侧 null，日频侧与财政/AI照常', async () => {
     mockFredBySeriesId({
-      MTSDS133FMS: fiscalObs,
+      MTSO133FMS: fiscalObs,
       EPUTRADE: new Error('FRED 500'),
       USEPUINDXD: epuDailyObs,
       DCOILWTICO: oilObs,
@@ -191,13 +191,13 @@ describe('fetchPolicyData', () => {
     expect(data.epuTrade).toBe(null);
     expect(data.epuTradePercentile).toBe(null);
     expect(data.epuDailyPercentile).toBe(100); // 日频侧不受月度失败影响
-    expect(data.deficitTtmChangePct).toBeCloseTo(10, 5);
+    expect(data.outlaysChangePct).toBeCloseTo(10, 5);
     expect(data.semiIpYoy).toBe(7.2);
   });
 
   it('Yahoo 失败隔离：市场指标 null，但半导体IP仍有值', async () => {
     mockFredBySeriesId({
-      MTSDS133FMS: fiscalObs,
+      MTSO133FMS: fiscalObs,
       EPUTRADE: epuObs,
       IPG3344S: semiIpObs,
     });
@@ -210,7 +210,7 @@ describe('fetchPolicyData', () => {
 
   it('油价优先用 CL=F 期货（最新交易日），FRED 现货仅兜底', async () => {
     mockFredBySeriesId({
-      MTSDS133FMS: fiscalObs,
+      MTSO133FMS: fiscalObs,
       EPUTRADE: epuObs,
       USEPUINDXD: epuDailyObs,
       DCOILWTICO: oilObs, // FRED 兜底值 96/+20%，若走了兜底则断言会失败
@@ -239,7 +239,7 @@ describe('fetchPolicyData', () => {
   it('缺少 FRED_API_KEY → 全部 null，不抛错', async () => {
     delete process.env.FRED_API_KEY;
     const data = await fetchPolicyData();
-    expect(data.deficitTtmChangePct).toBe(null);
+    expect(data.outlaysChangePct).toBe(null);
     expect(data.epuTradePercentile).toBe(null);
     expect(data.smhSpyRelReturnPct).toBe(null);
     expect(data.semiIpYoy).toBe(null);

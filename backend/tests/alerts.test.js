@@ -115,7 +115,7 @@ describe('buildAlertEmail', () => {
       ],
       details: {
         monetary: 'loose', fiscal: 'tight', admin: 'tight', aiSupply: 'loose',
-        fiscalDeficitChangePct: -16.7, epuTradePercentile: 85.7, semiIpYoy: 14.4,
+        fiscalOutlaysChangePct: -16.7, epuTradePercentile: 85.7, semiIpYoy: 14.4,
       },
     });
     expect(subject).toContain('防守');

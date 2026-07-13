@@ -13,7 +13,7 @@ const {
   AI_SEMI_IP_LOOKBACK_DAYS,
 } = cfg;
 
-const NULL_FISCAL = { deficitTtm: null, deficitTtmPrev: null, deficitTtmChangePct: null, fiscalPeriodDate: null, fiscalReleaseDate: null };
+const NULL_FISCAL = { outlaysTtm: null, outlaysTtmPrev: null, outlaysChangePct: null, fiscalPeriodDate: null, fiscalReleaseDate: null };
 const NULL_ADMIN = {
   epuTrade: null, epuTradePercentile: null, epuTradePeriodDate: null,
   epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null,
@@ -70,19 +70,37 @@ export function calcRelativeReturn(semiBars, benchBars) {
 }
 
 /**
- * 财政：联邦月度赤字 → TTM同比变化
+ * 正值月度序列的 TTM 同比（联邦支出用）：最近12月合计 vs 此前12月合计
+ * @param {Array} observations - FRED 观测（日期降序）
+ */
+export function calcTtmChange(observations) {
+  const values = [];
+  for (const obs of observations) {
+    const v = parseFloat(obs.value);
+    if (!isNaN(v)) values.push(v);
+    if (values.length === 24) break;
+  }
+  if (values.length < 24) return { ttmCurrent: null, ttmPrevYear: null, changePct: null };
+  const ttmCurrent = values.slice(0, 12).reduce((a, b) => a + b, 0);
+  const ttmPrevYear = values.slice(12, 24).reduce((a, b) => a + b, 0);
+  if (ttmPrevYear === 0) return { ttmCurrent, ttmPrevYear, changePct: null };
+  return { ttmCurrent, ttmPrevYear, changePct: (ttmCurrent / ttmPrevYear - 1) * 100 };
+}
+
+/**
+ * 财政：联邦月度支出 → TTM同比变化（支出=政府规模，"大市场小政府"原则的直接度量）
  */
 export async function fetchFiscalData(apiKey) {
-  const obs = await fetchSeries(FRED_SERIES.FISCAL_DEFICIT, daysAgoET(FISCAL_LOOKBACK_DAYS), apiKey);
-  const { ttmCurrent, ttmPrevYear, changePct } = calcTtmDeficitChange(obs);
+  const obs = await fetchSeries(FRED_SERIES.FISCAL_OUTLAYS, daysAgoET(FISCAL_LOOKBACK_DAYS), apiKey);
+  const { ttmCurrent, ttmPrevYear, changePct } = calcTtmChange(obs);
   const fiscalPeriodDate = latestDate(obs);
   const fiscalReleaseDate = fiscalPeriodDate
-    ? await fetchReleaseDate(FRED_SERIES.FISCAL_DEFICIT, fiscalPeriodDate, apiKey).catch(() => null)
+    ? await fetchReleaseDate(FRED_SERIES.FISCAL_OUTLAYS, fiscalPeriodDate, apiKey).catch(() => null)
     : null;
   return {
-    deficitTtm: ttmCurrent,
-    deficitTtmPrev: ttmPrevYear,
-    deficitTtmChangePct: changePct,
+    outlaysTtm: ttmCurrent,
+    outlaysTtmPrev: ttmPrevYear,
+    outlaysChangePct: changePct,
     fiscalPeriodDate,
     fiscalReleaseDate,
   };

@@ -31,7 +31,6 @@
     "trimmedPce12m": "PCE Écrêté (12M)",
     "unemployment": "Chômage",
     "sahm": "Règle de Sahm",
-    "fiscalDeficitTtm": "Déficit Fédéral (12M glissants)",
     "yoyChange": "En glissement annuel",
     "epuTrade": "Incertitude Politique Commerciale",
     "percentile10y": "Percentile 10 ans",
@@ -66,11 +65,11 @@
       "rate": "Règle : ajustement unique ≥50 pb (réactif, toute direction) → resserrement + verrou d’ajustement réactif (défense forcée) ; <50 pb ou pause → assouplissement",
       "balanceSheet": "Règle : variation hebdo >+0,25 % → QE (assouplissement), <−0,25 % → QT (resserrement), entre → pause. Monétaire = taux souple ET pas de QT → souple ; réactif OU QT → resserré",
       "sahm": "Règle : valeur Sahm <0,5 % → souple ; ≥0,5 % → début de récession, verrou Sahm (défense forcée) ; déverrouillage à taux ≤0,25 % ou ajustement <50 pb",
-      "fiscalDeficitTtm": "Règle (principe du petit gouvernement) : déficit TTM en GA s’élargit >5 % → resserrement (État en expansion, hausses d’impôts attendues) ; se réduit >5 % → assouplissement (État en contraction, marge de baisses d’impôts) ; entre → neutre",
       "epuTrade": "Règle : indice d’incertitude commerciale (mensuel, spécifique commerce/tarifs/tech) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’EPU quotidien, sinon neutre",
       "reference": "Affichage indicatif, ne participe pas au jugement",
       "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre",
-      "oilWti": "Règle (pétrole = pricing en temps réel des nouvelles de guerre, au jour) : hausse 30 j ≥+20 % → choc guerre/offre, resserrement immédiat ; baisse ≥20 % ET incertitude non élevée (EPU quotidien ≤80e pct, mensuel en secours) → fin de guerre/désescalade, assouplissement immédiat ; si l'EPU est simultanément élevé, la chute est de type crise/demande (ex. panique tarifaire avr. 2025) — pas d'assouplissement, retour au double proxy EPU. Dans ±20 % retour à l'EPU. Note : l'assouplissement ne retire que le veto de cette dimension — l'attaque exige les quatre souples et aucun verrou"
+      "oilWti": "Règle (pétrole = pricing en temps réel des nouvelles de guerre, au jour) : hausse 30 j ≥+20 % → choc guerre/offre, resserrement immédiat ; baisse ≥20 % ET incertitude non élevée (EPU quotidien ≤80e pct, mensuel en secours) → fin de guerre/désescalade, assouplissement immédiat ; si l'EPU est simultanément élevé, la chute est de type crise/demande (ex. panique tarifaire avr. 2025) — pas d'assouplissement, retour au double proxy EPU. Dans ±20 % retour à l'EPU. Note : l'assouplissement ne retire que le veto de cette dimension — l'attaque exige les quatre souples et aucun verrou",
+      "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement"
     },
     "hintGlobal": "Règle globale : Attaque = les quatre souples (ET) ; une seule dimension resserrée = alléger et attendre ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
     "stale": "Données retardées",
@@ -81,14 +80,15 @@
       "modelUsage": "Usage",
       "capex": "Capex cloud",
       "semiIp": "PI semi",
-      "deficitYoY": "Déficit GA",
       "epuDaily": "EPU quot.",
-      "epuTrade": "EPU comm."
+      "epuTrade": "EPU comm.",
+      "outlaysYoY": "Dépenses GA"
     },
     "oilSource": {
       "futures": "Contrats CL=F",
       "spot": "Spot (différé)"
-    }
+    },
+    "fiscalOutlaysTtm": "Dépenses fédérales (12 mois)"
   },
   "watchlist": {
     "title": "Liste de Suivi",

@@ -59,7 +59,7 @@ function formatMonth(dateStr) {
 }
 
 // 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
-const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalDeficitTtm', 'epuTrade', 'epuDaily', 'oilWti']);
+const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalOutlaysTtm', 'epuTrade', 'epuDaily', 'oilWti']);
 
 // EPU 百分位 → 子档位徽章（阈值同步 signal.config.js：>80 收紧 / <50 宽松）
 function epuBadge(percentile) {
@@ -183,10 +183,10 @@ const groups = computed(() => {
       key: 'fiscal',
       items: [
         {
-          // 存的是盈余/赤字（赤字为负，百万美元），展示为"赤字规模"（十亿美元）
-          key: 'fiscalDeficitTtm', value: ind.fiscalDeficitTtm != null ? -ind.fiscalDeficitTtm / 1000 : null, unit: 'B', change: null,
-          extra: ind.fiscalDeficitChangePct != null
-            ? `${t('indicators.yoyChange')} ${ind.fiscalDeficitChangePct > 0 ? '+' : ''}${ind.fiscalDeficitChangePct.toFixed(1)}%`
+          // 联邦支出TTM（百万美元）展示为十亿美元；判定指标=支出同比（政府规模变化）
+          key: 'fiscalOutlaysTtm', value: ind.fiscalOutlaysTtm != null ? ind.fiscalOutlaysTtm / 1000 : null, unit: 'B', change: null,
+          extra: ind.fiscalOutlaysChangePct != null
+            ? `${t('indicators.yoyChange')} ${ind.fiscalOutlaysChangePct > 0 ? '+' : ''}${ind.fiscalOutlaysChangePct.toFixed(1)}%`
             : null,
           signalBadge: ind.fiscalAutoSignal,
           periodDate: ind.fiscalPeriodDate, releaseDate: ind.fiscalReleaseDate, periodIsMonth: true,

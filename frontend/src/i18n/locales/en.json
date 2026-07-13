@@ -31,7 +31,6 @@
     "trimmedPce12m": "Trimmed Mean PCE (12M)",
     "unemployment": "Unemployment Rate",
     "sahm": "Sahm Rule",
-    "fiscalDeficitTtm": "Federal Deficit (TTM)",
     "yoyChange": "YoY",
     "epuTrade": "Trade Policy Uncertainty",
     "percentile10y": "10-yr percentile",
@@ -66,11 +65,11 @@
       "rate": "Rule: single adjustment ≥50bp (reactive, either direction) → tight and triggers reactive adjustment lock (forced defense); <50bp or pause → loose",
       "balanceSheet": "Rule: WoW >+0.25% → QE (loose), <−0.25% → QT (tight), between → pause. Monetary = rate loose AND no QT → loose; reactive move OR QT → tight",
       "sahm": "Rule: Sahm value <0.5% → loose; ≥0.5% → early recession, triggers Sahm lock (forced defense); unlocks at rate ≤0.25% or a <50bp small adjustment",
-      "fiscalDeficitTtm": "Rule (small-government principle): TTM deficit YoY expands >5% → tight (government expanding, tax/fee hikes expected, harmful to markets); shrinks >5% → loose (government shrinking, room for tax cuts); between → neutral",
       "epuTrade": "Rule: trade policy uncertainty index (monthly, trade/tariff/tech-war specific) 10-year percentile >80 → tight, <50 → loose; must agree with daily EPU, else neutral",
       "reference": "Reference only, not part of signal judgment",
       "epuDaily": "Rule: daily economic policy uncertainty index 7-day MA (news-based; reacts within days to policy pivots like tariff pauses) 10-year percentile >80 → tight, <50 → loose; must agree with the monthly trade index, else neutral",
-      "oilWti": "Rule (oil = real-time market pricing of war news, day-level): 30-day gain ≥+20% → war/supply shock, admin immediately tight; drop ≥20% AND uncertainty not elevated (daily EPU ≤80th pct, monthly as fallback) → war end/de-escalation, admin immediately loose; if EPU is simultaneously high, the crash is crisis/demand-driven (e.g. Apr-2025 tariff panic) — no loose, falls back to dual-EPU judgment. Within ±20% also falls back to EPU. Note: admin loose only removes this dimension's veto — attack still requires all four loose and no locks"
+      "oilWti": "Rule (oil = real-time market pricing of war news, day-level): 30-day gain ≥+20% → war/supply shock, admin immediately tight; drop ≥20% AND uncertainty not elevated (daily EPU ≤80th pct, monthly as fallback) → war end/de-escalation, admin immediately loose; if EPU is simultaneously high, the crash is crisis/demand-driven (e.g. Apr-2025 tariff panic) — no loose, falls back to dual-EPU judgment. Within ±20% also falls back to EPU. Note: admin loose only removes this dimension's veto — attack still requires all four loose and no locks",
+      "fiscalOutlaysTtm": "Rule (small-government): TTM federal outlays YoY expands >5% → tight (government growing, harmful to markets); shrinks >5% → loose (government slimming). Why outlays not deficit: deficit mixes in the revenue side — tax-cut-driven deficits (e.g. 2017) fit the low-tax principle and should not read as tight"
     },
     "hintGlobal": "Global rule: Attack = all four loose (AND); one dimension tight = reduce & watch; two+ tight or Sahm/reactive lock active = full defense",
     "stale": "Data delayed",
@@ -81,14 +80,15 @@
       "modelUsage": "Usage",
       "capex": "Cloud Capex",
       "semiIp": "Semi IP",
-      "deficitYoY": "Deficit YoY",
       "epuDaily": "Daily EPU",
-      "epuTrade": "Trade EPU"
+      "epuTrade": "Trade EPU",
+      "outlaysYoY": "Outlays YoY"
     },
     "oilSource": {
       "futures": "CL=F futures",
       "spot": "Spot (delayed)"
-    }
+    },
+    "fiscalOutlaysTtm": "Federal Outlays (TTM)"
   },
   "watchlist": {
     "title": "Watchlist",

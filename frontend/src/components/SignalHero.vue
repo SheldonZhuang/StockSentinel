@@ -105,8 +105,8 @@ function dimMetric(key) {
     return parts.join(' · ') || null;
   }
   if (key === 'fiscal') {
-    return ind.fiscalDeficitChangePct != null
-      ? `${t('indicators.short.deficitYoY')} ${fmtPct(ind.fiscalDeficitChangePct)}`
+    return ind.fiscalOutlaysChangePct != null
+      ? `${t('indicators.short.outlaysYoY')} ${fmtPct(ind.fiscalOutlaysChangePct)}`
       : null;
   }
   if (key === 'administrative') {
@@ -129,8 +129,8 @@ function dimMetric(key) {
 // 收紧维度附带的关键数据（解读块）
 function dimDetail(key) {
   const ind = props.signal?.indicators || {};
-  if (key === 'fiscal' && ind.fiscalDeficitChangePct != null) {
-    return `${t('indicators.fiscalDeficitTtm')} ${t('indicators.yoyChange')} ${fmtPct(ind.fiscalDeficitChangePct)}`;
+  if (key === 'fiscal' && ind.fiscalOutlaysChangePct != null) {
+    return `${t('indicators.fiscalOutlaysTtm')} ${t('indicators.yoyChange')} ${fmtPct(ind.fiscalOutlaysChangePct)}`;
   }
   if (key === 'administrative' && ind.epuTradePercentile != null) {
     return `${t('indicators.epuTrade')} ${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`;

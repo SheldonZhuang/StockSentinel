@@ -3,7 +3,7 @@ import {
   spliceRateSeries,
   sampleMonthEnd,
   percentileAsOf,
-  ttmDeficitChangePct,
+  ttmChangePct,
   replayMonth,
   findPeakTrough,
 } from '../backtest/run-backtest.js';
@@ -52,15 +52,15 @@ describe('percentileAsOf（前视安全）', () => {
   });
 });
 
-describe('ttmDeficitChangePct', () => {
-  it('赤字扩大（更负）→ 正百分比', () => {
-    // 前12月每月 -100，后12月每月 -110 → 赤字扩大10%
-    const values = [...Array(12).fill(-100), ...Array(12).fill(-110)];
-    expect(ttmDeficitChangePct(values)).toBeCloseTo(10, 5);
+describe('ttmChangePct', () => {
+  it('联邦支出扩大 → 正百分比', () => {
+    // 前12月每月 100，后12月每月 110 → 支出扩大10%
+    const values = [...Array(12).fill(100), ...Array(12).fill(110)];
+    expect(ttmChangePct(values)).toBeCloseTo(10, 5);
   });
 
   it('不足24个月 → null', () => {
-    expect(ttmDeficitChangePct(Array(23).fill(-100))).toBe(null);
+    expect(ttmChangePct(Array(23).fill(100))).toBe(null);
   });
 });
 

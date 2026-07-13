@@ -94,6 +94,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'oil_change_30d_pct REAL',
   'oil_period_date TEXT',
   'oil_source TEXT',
+  'fiscal_outlays_ttm REAL',
+  'fiscal_outlays_ttm_prev REAL',
+  'fiscal_outlays_change_pct REAL',
 ];
 
 function migrateSchema() {
@@ -206,6 +209,9 @@ function initSchema() {
       oil_change_30d_pct REAL,
       oil_period_date TEXT,
       oil_source TEXT,
+      fiscal_outlays_ttm REAL,
+      fiscal_outlays_ttm_prev REAL,
+      fiscal_outlays_change_pct REAL,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -288,7 +294,8 @@ function get(sql, params = []) {
 }
 
 function run(sql, params = []) {
-  db.run(sql, params);
+  // sql.js 对 undefined 抛 "unknown type"——统一归一为 null（字段演进期新旧键名并存时的防护）
+  db.run(sql, params.map(p => (p === undefined ? null : p)));
   persist();
 }
 
@@ -347,8 +354,9 @@ export async function saveSignalSnapshot(data) {
      sahm_lock_active, reactive_adjustment_lock_active, reactive_adjustment_lock_trigger_bp,
      fiscal_stale, admin_stale, ai_supply_stale,
      epu_daily, epu_daily_percentile, epu_daily_period_date,
-     oil_wti, oil_change_30d_pct, oil_period_date, oil_source)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     oil_wti, oil_change_30d_pct, oil_period_date, oil_source,
+     fiscal_outlays_ttm, fiscal_outlays_ttm_prev, fiscal_outlays_change_pct)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -370,6 +378,7 @@ export async function saveSignalSnapshot(data) {
     data.fiscalStale ? 1 : 0, data.adminStale ? 1 : 0, data.aiSupplyStale ? 1 : 0,
     data.epuDaily, data.epuDailyPercentile, data.epuDailyPeriodDate,
     data.oilWti, data.oilChange30dPct, data.oilPeriodDate, data.oilSource,
+    data.fiscalOutlaysTtm, data.fiscalOutlaysTtmPrev, data.fiscalOutlaysChangePct,
   ]);
 }
 

@@ -23,7 +23,8 @@ export default {
     TRIMMED_MEAN_PCE_12M: 'PCETRIM12M159SFRBDAL',
     UNEMPLOYMENT: 'UNRATE',
     SAHM: 'SAHMREALTIME',           // 萨姆规则实时值（圣路易斯联储官方计算）
-    FISCAL_DEFICIT: 'MTSDS133FMS',  // 联邦财政盈余/赤字（月度，百万美元，赤字为负）
+    FISCAL_OUTLAYS: 'MTSO133FMS',   // 联邦月度支出（百万美元）——"大市场小政府"原则的直接度量：
+                                    // 支出=政府规模；赤字混入收入端，减税型赤字会被误判收紧（2017实证）
     EPU_TRADE: 'EPUTRADE',          // 贸易政策不确定性指数（月度，贸易专项，结构性）
     EPU_DAILY: 'USEPUINDXD',        // 经济政策不确定性指数（日频，新闻编制，时效性——政策转向数天内可见）
     OIL_WTI: 'DCOILWTICO',          // WTI原油现货价（日频）——战争/地缘冲击的市场实时定价代理
@@ -33,9 +34,10 @@ export default {
   // 萨姆规则：值 >= 阈值 视为经济进入衰退初期，触发衰退防守锁
   SAHM_TRIGGER_THRESHOLD: 0.5,
 
-  // 财政信号：滚动12月(TTM)赤字总额 vs 一年前TTM，变化超过阈值(%)才判定方向
-  // 政策原则"大市场小政府"：赤字扩大 > 阈值 → tight（政府扩张，加税加费预期，损害市场经济），
-  // 收窄 > 阈值 → loose（政府收缩，减税降费空间，利好市场经济）
+  // 财政信号：滚动12月(TTM)联邦支出 vs 一年前TTM，变化超过阈值(%)才判定方向
+  // 政策原则"大市场小政府"：支出扩大 > 阈值 → tight（政府变大），收缩 > 阈值 → loose（政府瘦身）
+  // 回测依据(2026-07-13)：赤字口径把2017减税型赤字误判收紧压制牛市；支出口径 2018+2.1%中性/
+  // 2020+41%强收紧/2024-5.6%宽松，与原则和市场事实同构
   FISCAL_TTM_CHANGE_THRESHOLD_PCT: 5,
   FISCAL_LOOKBACK_DAYS: 800, // 需要约25个月观测（12+12+缓冲）
 

@@ -31,7 +31,6 @@
     "trimmedPce12m": "Gekürzter PCE (12M)",
     "unemployment": "Arbeitslosigkeit",
     "sahm": "Sahm-Regel",
-    "fiscalDeficitTtm": "Bundesdefizit (rollierende 12M)",
     "yoyChange": "ggü. Vorjahr",
     "epuTrade": "Handelspolitische Unsicherheit",
     "percentile10y": "10-Jahres-Perzentil",
@@ -66,11 +65,11 @@
       "rate": "Regel: Einzelanpassung ≥50 Bp (reaktiv, beliebige Richtung) → restriktiv + reaktive Anpassungssperre (erzwungene Defensive); <50 Bp oder Pause → locker",
       "balanceSheet": "Regel: WoW >+0,25 % → QE (locker), <−0,25 % → QT (restriktiv), dazwischen → Pause. Geldpolitik = Zins locker UND kein QT → locker; reaktiv ODER QT → restriktiv",
       "sahm": "Regel: Sahm-Wert <0,5 % → locker; ≥0,5 % → Rezessionsbeginn, Sahm-Sperre (erzwungene Defensive); Entsperrung bei Zins ≤0,25 % oder <50-Bp-Anpassung",
-      "fiscalDeficitTtm": "Regel (Kleiner-Staat-Prinzip): TTM-Defizit JoJ weitet sich >5 % aus → restriktiv (Staat expandiert, Steuererhöhungen zu erwarten); schrumpft >5 % → locker (Staat schrumpft, Spielraum für Steuersenkungen); dazwischen → neutral",
       "epuTrade": "Regel: Handelspolitik-Unsicherheitsindex (monatlich, spezifisch Handel/Zölle/Tech) 10-Jahres-Perzentil >80 → restriktiv, <50 → locker; muss mit dem täglichen EPU übereinstimmen, sonst neutral",
       "reference": "Nur zur Referenz, fließt nicht in die Beurteilung ein",
       "epuDaily": "Regel: täglicher EPU-Index 7-Tage-Schnitt (nachrichtenbasiert; reagiert binnen Tagen auf Wenden wie Zollpausen) 10-Jahres-Perzentil >80 → restriktiv, <50 → locker; muss mit dem monatlichen Handelsindex übereinstimmen, sonst neutral",
-      "oilWti": "Regel (Öl = Echtzeit-Marktpreis von Kriegsnachrichten, tagesgenau): 30-Tage-Anstieg ≥+20 % → Kriegs-/Angebotsschock, sofort restriktiv; Rückgang ≥20 % UND Unsicherheit nicht erhöht (täglicher EPU ≤80. Perzentil, monatlich als Fallback) → Kriegsende/Deeskalation, sofort locker; ist der EPU gleichzeitig hoch, ist der Einbruch krisen-/nachfragegetrieben (z. B. Zollpanik Apr. 2025) — kein locker, Rückfall auf duale EPU-Beurteilung. Innerhalb ±20 % ebenfalls EPU. Hinweis: locker entfernt nur das Veto dieser Dimension — Angriff erfordert alle vier locker und keine Sperren"
+      "oilWti": "Regel (Öl = Echtzeit-Marktpreis von Kriegsnachrichten, tagesgenau): 30-Tage-Anstieg ≥+20 % → Kriegs-/Angebotsschock, sofort restriktiv; Rückgang ≥20 % UND Unsicherheit nicht erhöht (täglicher EPU ≤80. Perzentil, monatlich als Fallback) → Kriegsende/Deeskalation, sofort locker; ist der EPU gleichzeitig hoch, ist der Einbruch krisen-/nachfragegetrieben (z. B. Zollpanik Apr. 2025) — kein locker, Rückfall auf duale EPU-Beurteilung. Innerhalb ±20 % ebenfalls EPU. Hinweis: locker entfernt nur das Veto dieser Dimension — Angriff erfordert alle vier locker und keine Sperren",
+      "fiscalOutlaysTtm": "Regel (kleiner Staat): TTM-Bundesausgaben JoJ >+5 % → restriktiv (Staat wächst); <−5 % → locker (Staat schrumpft). Warum Ausgaben statt Defizit: Das Defizit mischt die Einnahmenseite — steuersenkungsbedingte Defizite (2017) entsprechen dem Prinzip und dürfen nicht als restriktiv gelten"
     },
     "hintGlobal": "Globale Regel: Angriff = alle vier locker (UND); nur eine Dimension restriktiv = reduzieren & abwarten; zwei+ restriktiv oder Sahm-/Reaktivsperre aktiv = volle Defensive",
     "stale": "Daten verzögert",
@@ -81,14 +80,15 @@
       "modelUsage": "Nutzung",
       "capex": "Cloud-Capex",
       "semiIp": "Halbleiter-IP",
-      "deficitYoY": "Defizit JoJ",
       "epuDaily": "EPU tägl.",
-      "epuTrade": "Handels-EPU"
+      "epuTrade": "Handels-EPU",
+      "outlaysYoY": "Ausgaben JoJ"
     },
     "oilSource": {
       "futures": "CL=F-Futures",
       "spot": "Spot (verzögert)"
-    }
+    },
+    "fiscalOutlaysTtm": "Bundesausgaben (TTM)"
   },
   "watchlist": {
     "title": "Beobachtungsliste",

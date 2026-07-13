@@ -17,17 +17,20 @@ const {
 export function calcMonetarySignal(macroData) {
   const { rateSignal, balanceSheetSignal } = deriveSubSignals(macroData);
 
-  // 宽松：利率暂停/降息 AND 资产负债表不收缩
+  // 收紧：仅应对式调整(≥50bp，事件型危机信号)。
+  // QT不再单票定罪——回测实证：QT是环境收紧而非危机信号（2017/2023等QT年份市场大涨，
+  // 六次危机的捕获全部由应对式锁或多维共振触发，无一由QT单独触发），
+  // QT单票收紧曾把2016-18与2023-24两轮牛市压在防守里（捕获率28%/42%）
+  if (rateSignal === 'tight') {
+    return SIGNAL.TIGHT;
+  }
+
+  // 宽松：利率暂停/降息 AND 资产负债表不收缩（QT仍拦截宽松评级）
   if (rateSignal === 'loose' && balanceSheetSignal !== 'tight') {
     return SIGNAL.LOOSE;
   }
 
-  // 收紧：应对式加息(>=50bp) OR QT收缩
-  if (rateSignal === 'tight' || balanceSheetSignal === 'tight') {
-    return SIGNAL.TIGHT;
-  }
-
-  // 其余（预防式加息<50bp 等混合情况）
+  // 其余（利率宽松+QT、预防式加息等混合情况）
   return SIGNAL.NEUTRAL;
 }
 
@@ -91,14 +94,15 @@ export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLock
 
 /**
  * 财政信号（政策原则"大市场小政府"）：
- * TTM赤字同比扩大超阈值 → 收紧（政府扩张，加税加费预期，损害市场经济）；
- * 收窄超阈值 → 宽松（政府收缩，减税降费空间）
+ * TTM联邦支出同比扩大超阈值 → 收紧（政府变大，损害市场经济）；
+ * 收缩超阈值 → 宽松（政府瘦身，利好市场经济）。
+ * 用支出而非赤字：赤字混入收入端——减税型赤字（如2017）符合"轻徭薄赋"不应判收紧
  * @param {object} policyData - fetchPolicyData() 返回的对象
  */
-export function calcFiscalSignal({ deficitTtmChangePct }) {
-  if (deficitTtmChangePct === null || deficitTtmChangePct === undefined) return SIGNAL.NEUTRAL;
-  if (deficitTtmChangePct > FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.TIGHT;
-  if (deficitTtmChangePct < -FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.LOOSE;
+export function calcFiscalSignal({ outlaysChangePct }) {
+  if (outlaysChangePct === null || outlaysChangePct === undefined) return SIGNAL.NEUTRAL;
+  if (outlaysChangePct > FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.TIGHT;
+  if (outlaysChangePct < -FISCAL_TTM_CHANGE_THRESHOLD_PCT) return SIGNAL.LOOSE;
   return SIGNAL.NEUTRAL;
 }
 

@@ -43,13 +43,13 @@ describe('calcMonetarySignal', () => {
     })).toBe('tight');
   });
 
-  it('收紧：资产负债表 QT 收缩（即使利率暂停）', () => {
+  it('观望：利率暂停 + QT收缩——QT只拦截宽松不定罪收紧（环境收紧≠危机信号）', () => {
     expect(calcMonetarySignal({
       currentRate: 4.25,
       prevRate: 4.25,
       currentBalanceSheet: 7000,
       prevBalanceSheet: 7200,
-    })).toBe('tight');
+    })).toBe('neutral');
   });
 
   it('收紧：应对式加息 + QT 同时发生', () => {
@@ -70,13 +70,13 @@ describe('calcMonetarySignal', () => {
     })).toBe('loose');
   });
 
-  it('中性：降息 + QT 同时发生（互相抵消）', () => {
+  it('观望：小幅降息 + QT 同时发生（QT拦截宽松评级）', () => {
     expect(calcMonetarySignal({
       currentRate: 4.0,
       prevRate: 4.25,
       currentBalanceSheet: 7000,
       prevBalanceSheet: 7200,
-    })).toBe('tight'); // QT 触发 OR 收紧
+    })).toBe('neutral');
   });
 });
 
@@ -135,28 +135,28 @@ describe('deriveBalanceSheetStatus', () => {
   });
 });
 
-// 财政信号：TTM赤字同比变化（阈值 ±5%，"大市场小政府"原则：赤字扩大=政府扩张=收紧）
+// 财政信号：TTM联邦支出同比变化（阈值 ±5%，"大市场小政府"：支出扩大=政府变大=收紧）
 describe('calcFiscalSignal', () => {
-  it('收紧：赤字同比扩大超过阈值（政府扩张，加税加费预期）', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: 12.3 })).toBe('tight');
+  it('收紧：支出同比扩大超过阈值（政府变大）', () => {
+    expect(calcFiscalSignal({ outlaysChangePct: 12.3 })).toBe('tight');
   });
 
-  it('宽松：赤字同比收窄超过阈值（政府收缩，减税降费空间）', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: -8.1 })).toBe('loose');
+  it('宽松：支出同比收缩超过阈值（政府瘦身）', () => {
+    expect(calcFiscalSignal({ outlaysChangePct: -8.1 })).toBe('loose');
   });
 
   it('观望：变化在阈值内', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: 3.2 })).toBe('neutral');
-    expect(calcFiscalSignal({ deficitTtmChangePct: -4.9 })).toBe('neutral');
+    expect(calcFiscalSignal({ outlaysChangePct: 3.2 })).toBe('neutral');
+    expect(calcFiscalSignal({ outlaysChangePct: -4.9 })).toBe('neutral');
   });
 
   it('观望：恰好等于阈值（边界不触发）', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: 5 })).toBe('neutral');
-    expect(calcFiscalSignal({ deficitTtmChangePct: -5 })).toBe('neutral');
+    expect(calcFiscalSignal({ outlaysChangePct: 5 })).toBe('neutral');
+    expect(calcFiscalSignal({ outlaysChangePct: -5 })).toBe('neutral');
   });
 
   it('观望：数据缺失', () => {
-    expect(calcFiscalSignal({ deficitTtmChangePct: null })).toBe('neutral');
+    expect(calcFiscalSignal({ outlaysChangePct: null })).toBe('neutral');
     expect(calcFiscalSignal({})).toBe('neutral');
   });
 });

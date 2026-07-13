@@ -60,16 +60,16 @@ export function percentileAsOf(latest, historyValues) {
 }
 
 /**
- * TTM赤字同比（与线上 calcTtmDeficitChange 同口径）：values 为按月升序的赤字值（负=赤字）
- * 取末尾24个月：后12月 vs 前12月，changePct>0 = 赤字扩大
+ * TTM同比（联邦支出等正值月度序列，与线上 calcTtmChange 同口径）：values 按月升序
+ * 取末尾24个月：后12月 vs 前12月，changePct>0 = 支出扩大（政府变大）
  */
-export function ttmDeficitChangePct(monthlyValues) {
+export function ttmChangePct(monthlyValues) {
   if (monthlyValues.length < 24) return null;
   const last24 = monthlyValues.slice(-24);
   const prev = last24.slice(0, 12).reduce((a, b) => a + b, 0);
   const curr = last24.slice(12).reduce((a, b) => a + b, 0);
   if (prev === 0) return null;
-  return ((-curr) - (-prev)) / Math.abs(prev) * 100;
+  return (curr / prev - 1) * 100;
 }
 
 /**
@@ -92,10 +92,11 @@ export function replayMonth(m, prevState) {
     bsSignal = chg > cfg.BALANCE_SHEET_PAUSE_THRESHOLD_PCT ? S.LOOSE
       : chg < -cfg.BALANCE_SHEET_PAUSE_THRESHOLD_PCT ? S.TIGHT : S.NEUTRAL;
   }
-  const monetary = (rateSignal === S.LOOSE && bsSignal !== S.TIGHT) ? S.LOOSE
-    : (rateSignal === S.TIGHT || bsSignal === S.TIGHT) ? S.TIGHT : S.NEUTRAL;
+  // QT只拦截宽松不定罪收紧（与线上 calcMonetarySignal 同口径）
+  const monetary = rateSignal === S.TIGHT ? S.TIGHT
+    : (rateSignal === S.LOOSE && bsSignal !== S.TIGHT) ? S.LOOSE : S.NEUTRAL;
 
-  // 财政 ±5%（"大市场小政府"：赤字扩大=政府扩张→tight，收窄→loose）
+  // 财政 ±5%（"大市场小政府"：联邦支出扩大=政府变大→tight，收缩→loose）
   const fiscal = m.fiscalChangePct === null ? S.NEUTRAL
     : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT
     : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
@@ -232,6 +233,20 @@ const CRISES = [
   { name: '2008 金融危机', searchStart: '2007-01-01', searchEnd: '2009-06-30', peakWindow: ['2007-01-01', '2008-03-31'] },
   { name: '2020 新冠崩盘', searchStart: '2019-06-01', searchEnd: '2020-09-30', peakWindow: ['2019-06-01', '2020-03-01'] },
   { name: '2022 加息熊市', searchStart: '2021-06-01', searchEnd: '2023-01-31', peakWindow: ['2021-06-01', '2022-02-28'] },
+  { name: '2025 关税战', searchStart: '2024-12-01', searchEnd: '2025-12-31', peakWindow: ['2024-12-01', '2025-03-31'] },
+  { name: '2026 美伊战争', searchStart: '2025-11-01', searchEnd: '2026-07-31', peakWindow: ['2025-11-01', '2026-02-28'] },
+];
+
+// 大规模上涨期：检验"该赚钱时策略有没有挡路"（防守分级合理性的另一半）
+const BULL_RUNS = [
+  { name: '2003-07 复苏牛', start: '2003-04', end: '2007-10' },
+  { name: '2009-11 QE牛', start: '2009-04', end: '2011-04' },
+  { name: '2012-15 慢牛', start: '2012-01', end: '2015-05' },
+  { name: '2016-18 特朗普牛', start: '2016-07', end: '2018-01' },
+  { name: '2020-21 疫后牛', start: '2020-05', end: '2021-12' },
+  { name: '2023-24 AI牛', start: '2023-01', end: '2024-12' },
+  { name: '2025 关税战后反弹', start: '2025-05', end: '2025-12' },
+  { name: '2026 战后反弹', start: '2026-04', end: '2026-07' },
 ];
 
 async function main() {
@@ -243,7 +258,7 @@ async function main() {
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
-    fredSeries('MTSDS133FMS', apiKey),
+    fredSeries('MTSO133FMS', apiKey),
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
     fredSeries('DCOILWTICO', apiKey),
@@ -290,7 +305,7 @@ async function main() {
     const r = replayMonth({
       rate, prevRate,
       walcl: walclV, prevWalcl,
-      fiscalChangePct: ttmDeficitChangePct(fiscalHist),
+      fiscalChangePct: ttmChangePct(fiscalHist),
       epuPercentile: epuLatest !== null ? percentileAsOf(epuLatest, epuHist.map(o => o.value)) : null,
       oilChangePct: (() => {
         const cur = oilMap.get(month), prev = timeline.length ? oilMap.get(timeline[timeline.length - 1].month) : null;
@@ -363,8 +378,49 @@ async function main() {
     if ((minPx / startPx - 1) * 100 > -15) falsePositives++;
   }
 
+  // ---- 牛市检验：各上涨期的档位占比 + "仅全面防守离场"策略捕获率 ----
+  const inWindow = (t, w) => t.month >= w.start && t.month <= w.end;
+  const bullRows = BULL_RUNS.map(w => {
+    const months = timeline.filter(t => inWindow(t, w) && t.spx !== null);
+    if (months.length < 2) return { name: w.name, months: 0 };
+    const tiers = { attack: 0, neutral: 0, reduce: 0, defense: 0 };
+    for (const t of months) tiers[t.final] = (tiers[t.final] || 0) + 1;
+    const buyHold = (months[months.length - 1].spx / months[0].spx - 1) * 100;
+    // 曝险规则：上月为全面防守→本月空仓；其余满仓（reduce=减仓由用户执行层决定，这里按持有计）
+    let nav = 1;
+    for (let i = 1; i < months.length; i++) {
+      const ret = months[i].spx / months[i - 1].spx;
+      nav *= months[i - 1].final === 'defense' ? 1 : ret;
+    }
+    const strat = (nav - 1) * 100;
+    return {
+      name: w.name, months: months.length, tiers,
+      buyHold, strat,
+      capture: buyHold > 0 ? (strat / buyHold) * 100 : null,
+    };
+  });
+
+  // ---- 全期策略模拟：仅全面防守离场 vs 买入持有 ----
+  const withPx = timeline.filter(t => t.spx !== null);
+  let navS = 1, navB = 1, peakS = 1, peakB = 1, mddS = 0, mddB = 0;
+  for (let i = 1; i < withPx.length; i++) {
+    const ret = withPx[i].spx / withPx[i - 1].spx;
+    navB *= ret;
+    navS *= withPx[i - 1].final === 'defense' ? 1 : ret;
+    peakB = Math.max(peakB, navB); mddB = Math.min(mddB, navB / peakB - 1);
+    peakS = Math.max(peakS, navS); mddS = Math.min(mddS, navS / peakS - 1);
+  }
+  const years = (withPx.length - 1) / 12;
+  const overall = {
+    years,
+    buyHoldTotal: (navB - 1) * 100, buyHoldCagr: (Math.pow(navB, 1 / years) - 1) * 100, buyHoldMdd: mddB * 100,
+    stratTotal: (navS - 1) * 100, stratCagr: (Math.pow(navS, 1 / years) - 1) * 100, stratMdd: mddS * 100,
+  };
+
   const summary = {
     spxSource,
+    bullRows,
+    overall,
     monthsCovered: timeline.length,
     crisisRows,
     avgDefenseRet: avg(defRet), avgReduceRet: avg(reduceRet), avgNonDefenseRet: avg(nonDefRet),
@@ -383,6 +439,12 @@ async function main() {
   writeReport(summary, timeline);
   console.log('[backtest] done. report → docs/backtest-report.md');
   console.table(crisisRows);
+  console.table(bullRows.map(b => ({
+    区间: b.name, 月数: b.months,
+    进攻: b.tiers?.attack ?? 0, 观望: b.tiers?.neutral ?? 0, 减仓: b.tiers?.reduce ?? 0, 防守: b.tiers?.defense ?? 0,
+    买入持有: b.buyHold?.toFixed(1) + '%', 策略: b.strat?.toFixed(1) + '%', 捕获率: b.capture?.toFixed(0) + '%',
+  })));
+  console.log(`全期(${summary.overall.years.toFixed(1)}年) 买入持有 年化${summary.overall.buyHoldCagr.toFixed(1)}% 最大回撤${summary.overall.buyHoldMdd.toFixed(0)}% | 策略 年化${summary.overall.stratCagr.toFixed(1)}% 最大回撤${summary.overall.stratMdd.toFixed(0)}%`);
   console.log(`防守期均月收益 ${summary.avgDefenseRet?.toFixed(2)}% (${summary.defMonths}月) vs 非防守 ${summary.avgNonDefenseRet?.toFixed(2)}% (${summary.nonDefMonths}月)`);
   console.log(`防守片段 ${summary.episodes} 段，其中假阳性（未伴随>15%回撤）${summary.falsePositives} 段`);
 }

@@ -25,7 +25,7 @@ const BUBBLE_REASON_LABELS = {
  * 生成示警邮件的主题与正文（导出供单测）
  * @param {object} payload - { finalSignal, changes, details }
  *   changes: detectSignalChanges() 的输出
- *   details: { monetary, fiscal, admin, aiSupply, fiscalDeficitChangePct, epuTradePercentile,
+ *   details: { monetary, fiscal, admin, aiSupply, fiscalOutlaysChangePct, epuTradePercentile,
  *              smhSpyRelReturnPct, semiIpYoy, modelUsageTrendPct, capexYoY }
  */
 export function buildAlertEmail(payload) {
@@ -58,7 +58,7 @@ export function buildAlertEmail(payload) {
   const statusRows = [
     ['AI供需 AI Supply/Demand', details.aiSupply, details.semiIpYoy !== undefined ? `半导体产出 Semi IP ${fmt(details.semiIpYoy)}` : ''],
     ['货币政策 Monetary', details.monetary],
-    ['财政政策 Fiscal', details.fiscal, details.fiscalDeficitChangePct !== undefined ? `赤字TTM同比 Deficit YoY ${fmt(details.fiscalDeficitChangePct)}` : ''],
+    ['财政政策 Fiscal', details.fiscal, details.fiscalOutlaysChangePct != null ? `联邦支出TTM同比 Outlays YoY ${fmt(details.fiscalOutlaysChangePct)}` : ''],
     ['行政政策 Administrative', details.admin, [
       details.oilChange30dPct != null && Math.abs(details.oilChange30dPct) >= 20 ? `WTI 30D ${fmt(details.oilChange30dPct)}` : null,
       details.epuTradePercentile != null ? `贸易不确定性 EPU P${Number(details.epuTradePercentile).toFixed(0)}` : null,
@@ -96,7 +96,7 @@ export function buildAlertEmail(payload) {
 function dimDetail(dim, d) {
   const fmt = v => (v === null || v === undefined ? null : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
   let s = null;
-  if (dim === 'fiscal') s = fmt(d.fiscalDeficitChangePct) && `赤字TTM同比 ${fmt(d.fiscalDeficitChangePct)}`;
+  if (dim === 'fiscal') s = fmt(d.fiscalOutlaysChangePct) && `联邦支出TTM同比 ${fmt(d.fiscalOutlaysChangePct)}`;
   if (dim === 'admin') {
     // 油价事件层触发时优先展示触发源，否则展示EPU百分位（与前端维度卡同语义）
     if (d.oilChange30dPct != null && Math.abs(d.oilChange30dPct) >= 20) {

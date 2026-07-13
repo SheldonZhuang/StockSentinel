@@ -138,9 +138,8 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
       unemploymentPrev: snapshot.fred_unemployment_prev,
       unemploymentPeriodDate: snapshot.unemployment_period_date,
       unemploymentReleaseDate: snapshot.unemployment_release_date,
-      fiscalDeficitTtm: snapshot.fiscal_deficit_ttm,
-      fiscalDeficitTtmPrev: snapshot.fiscal_deficit_ttm_prev,
-      fiscalDeficitChangePct: snapshot.fiscal_deficit_change_pct,
+      fiscalOutlaysTtm: snapshot.fiscal_outlays_ttm,
+      fiscalOutlaysChangePct: snapshot.fiscal_outlays_change_pct,
       fiscalPeriodDate: snapshot.fiscal_period_date,
       fiscalReleaseDate: snapshot.fiscal_release_date,
       fiscalAutoSignal: snapshot.fiscal_auto_signal,
@@ -331,7 +330,7 @@ async function runDailyUpdate() {
 
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
-  const fiscalStale = policyData.deficitTtmChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
+  const fiscalStale = policyData.outlaysChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
   // 行政 stale：EPU双路全黑，且油价拿不到或未触发事件层（即没有任何一路能给出数据驱动结论）
   const oilInconclusive = policyData.oilChange30dPct == null || Math.abs(policyData.oilChange30dPct) < 20;
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
@@ -393,9 +392,9 @@ async function runDailyUpdate() {
     sahmPeriodDate: macroData.sahmPeriodDate,
     sahmReleaseDate: macroData.sahmReleaseDate,
     fiscalAutoSignal: fiscalAutoEff,
-    fiscalDeficitTtm: policyData.deficitTtm,
-    fiscalDeficitTtmPrev: policyData.deficitTtmPrev,
-    fiscalDeficitChangePct: policyData.deficitTtmChangePct,
+    fiscalOutlaysTtm: policyData.outlaysTtm,
+    fiscalOutlaysTtmPrev: policyData.outlaysTtmPrev,
+    fiscalOutlaysChangePct: policyData.outlaysChangePct,
     fiscalPeriodDate: policyData.fiscalPeriodDate,
     fiscalReleaseDate: policyData.fiscalReleaseDate,
     adminAutoSignal: adminAutoEff,
@@ -475,7 +474,7 @@ async function runDailyUpdate() {
         changes,
         details: {
           monetary, fiscal, admin, aiSupply,
-          fiscalDeficitChangePct: policyData.deficitTtmChangePct,
+          fiscalOutlaysChangePct: policyData.outlaysChangePct,
           epuTradePercentile: policyData.epuTradePercentile,
           epuDailyPercentile: policyData.epuDailyPercentile,
           oilChange30dPct: policyData.oilChange30dPct,

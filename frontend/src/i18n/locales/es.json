@@ -31,7 +31,6 @@
     "trimmedPce12m": "PCE Recortado (12M)",
     "unemployment": "Desempleo",
     "sahm": "Regla de Sahm",
-    "fiscalDeficitTtm": "Déficit Federal (12M móviles)",
     "yoyChange": "Interanual",
     "epuTrade": "Incertidumbre Política Comercial",
     "percentile10y": "Percentil 10 años",
@@ -66,11 +65,11 @@
       "rate": "Regla: ajuste único ≥50 pb (reactivo, cualquier dirección) → restrictiva + bloqueo de ajuste reactivo (defensa forzada); <50 pb o pausa → laxa",
       "balanceSheet": "Regla: variación semanal >+0,25 % → QE (laxa), <−0,25 % → QT (restrictiva), entre → pausa. Monetaria = tasa laxa Y sin QT → laxa; reactivo O QT → restrictiva",
       "sahm": "Regla: valor Sahm <0,5 % → laxa; ≥0,5 % → inicio de recesión, bloqueo Sahm (defensa forzada); se desbloquea con tasa ≤0,25 % o ajuste <50 pb",
-      "fiscalDeficitTtm": "Regla (principio de gobierno pequeño): déficit TTM interanual se amplía >5 % → restrictiva (gobierno en expansión, subidas de impuestos previstas); se reduce >5 % → laxa (gobierno en contracción, margen para bajar impuestos); entre → neutral",
       "epuTrade": "Regla: índice de incertidumbre comercial (mensual, específico comercio/aranceles/tec.) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el EPU diario, si no → neutral",
       "reference": "Solo referencia, no participa en el juicio",
       "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral",
-      "oilWti": "Regla (petróleo = precio de mercado en tiempo real de noticias de guerra, precisión diaria): subida 30 días ≥+20 % → choque bélico/oferta, restrictiva inmediata; caída ≥20 % Y incertidumbre no elevada (EPU diario ≤percentil 80, mensual como respaldo) → fin de guerra/desescalada, laxa inmediata; si el EPU está simultáneamente alto, la caída es de tipo crisis/demanda (p. ej. pánico arancelario abr-2025) — sin laxa, vuelve al doble proxy EPU. Dentro de ±20 % también vuelve al EPU. Nota: laxa solo retira el veto de esta dimensión — el ataque sigue exigiendo las cuatro laxas y sin bloqueos"
+      "oilWti": "Regla (petróleo = precio de mercado en tiempo real de noticias de guerra, precisión diaria): subida 30 días ≥+20 % → choque bélico/oferta, restrictiva inmediata; caída ≥20 % Y incertidumbre no elevada (EPU diario ≤percentil 80, mensual como respaldo) → fin de guerra/desescalada, laxa inmediata; si el EPU está simultáneamente alto, la caída es de tipo crisis/demanda (p. ej. pánico arancelario abr-2025) — sin laxa, vuelve al doble proxy EPU. Dentro de ±20 % también vuelve al EPU. Nota: laxa solo retira el veto de esta dimensión — el ataque sigue exigiendo las cuatro laxas y sin bloqueos",
+      "fiscalOutlaysTtm": "Regla (gobierno pequeño): gasto federal TTM interanual >+5 % → restrictiva (el gobierno crece); <−5 % → laxa (el gobierno adelgaza). Por qué gasto y no déficit: el déficit mezcla el lado de ingresos — un déficit por recortes de impuestos (2017) cumple el principio y no debe leerse como restrictivo"
     },
     "hintGlobal": "Regla global: Ataque = las cuatro laxas (Y); solo una dimensión restrictiva = reducir y esperar; dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total",
     "stale": "Datos retrasados",
@@ -81,14 +80,15 @@
       "modelUsage": "Uso",
       "capex": "Capex cloud",
       "semiIp": "PI semi",
-      "deficitYoY": "Déficit i.a.",
       "epuDaily": "EPU diario",
-      "epuTrade": "EPU comerc."
+      "epuTrade": "EPU comerc.",
+      "outlaysYoY": "Gasto i.a."
     },
     "oilSource": {
       "futures": "Futuros CL=F",
       "spot": "Spot (retrasado)"
-    }
+    },
+    "fiscalOutlaysTtm": "Gasto federal (TTM)"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",
