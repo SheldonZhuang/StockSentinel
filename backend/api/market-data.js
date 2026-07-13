@@ -32,8 +32,11 @@ const SYMBOL_ALIASES = {
   '.NDX': '^NDX',
   'NDX': '^NDX',
   '.DJI': '^DJI',
+  // 公司名误输入 → 正确代码（自选股历史数据兼容）
+  'NEBIUS': 'NBIS',
+  '海力士': 'SKHY',
 };
-const normalizeSymbol = s => SYMBOL_ALIASES[String(s || '').toUpperCase()] || s;
+export const normalizeSymbol = s => SYMBOL_ALIASES[String(s || '').toUpperCase()] || s;
 
 const cache = new Map();
 // in-flight 去重：同 key 并发请求共享同一次拉取，避免重复烧备用源配额（TwelveData 8次/分钟最紧）
@@ -204,6 +207,8 @@ async function quoteFromYahoo(symbol) {
       forwardPE: null,
       priceToSales: null,
       priceToBook: null,
+      shortName: meta.shortName ?? null,
+      source: 'yahoo-chart',
     };
   }
   if (q?.regularMarketPrice === null || q?.regularMarketPrice === undefined) return null;
@@ -247,6 +252,25 @@ async function quoteFromFmp(symbol) {
   const price = row?.price ?? null;
   if (price === null || isNaN(price)) return null;
   return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: row.name ?? null, source: 'fmp' };
+}
+
+/**
+ * Yahoo quoteSummary 补全估值字段（覆盖全部美股与ETF；本机库端点偶发429，静默跳过）
+ */
+async function fillFundamentalsFromYahooSummary(symbol, quote) {
+  if (quote.trailingPE !== null && quote.priceToSales !== null) return quote;
+  try {
+    const s = await yahooFinance.quoteSummary(symbol, { modules: ['summaryDetail'] });
+    const d = s?.summaryDetail;
+    if (!d) return quote;
+    return {
+      ...quote,
+      trailingPE: quote.trailingPE ?? (d.trailingPE > 0 ? d.trailingPE : null) ?? null,
+      priceToSales: quote.priceToSales ?? d.priceToSalesTrailing12Months ?? null,
+    };
+  } catch {
+    return quote;
+  }
 }
 
 /**
@@ -300,6 +324,7 @@ export async function getQuote(symbol) {
         if (quote) {
           if (name !== 'yahoo') console.warn(`[market-data] ${symbol} quote via fallback: ${name}`);
           quote = await fillFundamentalsFromFmp(symbol, quote);
+          quote = await fillFundamentalsFromYahooSummary(symbol, quote);
           cacheSet(key, quote);
           return quote;
         }

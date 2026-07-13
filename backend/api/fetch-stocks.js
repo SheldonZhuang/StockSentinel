@@ -1,4 +1,5 @@
-import { getDailyCloses, getQuote } from './market-data.js';
+import { getDailyCloses, getQuote, normalizeSymbol } from './market-data.js';
+import { getPsFromEdgar } from './fundamentals.js';
 
 /**
  * 拉取股票数据：价格历史百分位 + 当前 P/E 和 P/S
@@ -17,6 +18,10 @@ export async function fetchStockData(symbol, startDate, endDate) {
   const closes = (bars || []).map(b => b.close);
   const currentPrice = quote?.price ?? closes[closes.length - 1] ?? null;
 
+  // 报价链无P/S（FMP免费层只盖大盘股、Yahoo summary端点限流）→ EDGAR XBRL 计算真实P/S
+  const currentPS = quote?.priceToSales
+    ?? await getPsFromEdgar(normalizeSymbol(symbol), currentPrice);
+
   const percentile = calcPricePercentile(currentPrice, closes);
 
   return {
@@ -27,7 +32,7 @@ export async function fetchStockData(symbol, startDate, endDate) {
     endDate,
     dataPointCount: closes.length,
     currentPE: quote?.trailingPE ?? null,
-    currentPS: quote?.priceToSales ?? null, // 真实P/S来自FMP ratios-ttm；ETF/指数无财报为null属正常
+    currentPS, // FMP/EDGAR双路真实P/S；ETF/指数无财报为null属正常
     trailingPE: quote?.trailingPE ?? null,
     forwardPE: quote?.forwardPE ?? null,
     shortName: quote?.shortName ?? symbol,

@@ -89,9 +89,11 @@ export async function quoteFromMoomoo(symbol) {
   const snap = res?.s2c?.snapshotList?.[0];
   const price = snap?.basic?.curPrice;
   if (price === null || price === undefined || !price) return null;
+  const pe = snap?.equityExData?.peTTMRate ?? snap?.equityExData?.peRate ?? null;
   return {
     price,
-    trailingPE: snap?.equityExData?.peTTMRate ?? snap?.equityExData?.peRate ?? null,
+    // 亏损公司PE为负，按行业惯例视为"无PE"（与Yahoo口径一致）
+    trailingPE: pe !== null && pe > 0 ? pe : null,
     forwardPE: null,
     priceToSales: null, // moomoo 快照无P/S，由 FMP ratios 补全
     priceToBook: snap?.equityExData?.pbRate ?? null,
