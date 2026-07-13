@@ -112,7 +112,9 @@
   "timeline": {
     "title": "Historial de Señales",
     "noHistory": "Sin historial",
-    "changed": "Cambio de señal"
+    "changed": "Cambio de señal",
+    "expand": "Historial completo ({n})",
+    "collapse": "Contraer"
   },
   "interpret": {
     "title": "Interpretación de la Señal",

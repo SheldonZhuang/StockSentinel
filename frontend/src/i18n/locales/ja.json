@@ -112,7 +112,9 @@
   "timeline": {
     "title": "シグナル履歴",
     "noHistory": "履歴なし",
-    "changed": "シグナル変更"
+    "changed": "シグナル変更",
+    "expand": "全履歴を表示 ({n})",
+    "collapse": "折りたたむ"
   },
   "interpret": {
     "title": "シグナル解説",

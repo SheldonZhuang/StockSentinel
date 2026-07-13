@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { closesFromMoomoo, quoteFromMoomoo, moomooEnabled } from './moomoo-data.js';
 import yahooFinance from 'yahoo-finance2';
 
 // 统一行情入口：Yahoo → Tiingo → Twelve Data 三层回退
@@ -145,6 +146,8 @@ export async function getDailyCloses(symbol, startDate, endDate) {
     if (cachedAgain !== undefined) return cachedAgain;
 
     const providers = [
+      // moomoo OpenD 本地网关（美股LV3，仅 MOOMOO_WS_PORT 配置时参与；失败静默回落）
+      ...(moomooEnabled() ? [['moomoo', closesFromMoomoo]] : []),
       ['yahoo', closesFromYahoo],
       ['tiingo', closesFromTiingo],
       ['twelvedata', closesFromTwelveData],
@@ -153,7 +156,7 @@ export async function getDailyCloses(symbol, startDate, endDate) {
       try {
         const closes = await fn(symbol, startDate, endDate);
         if (closes) {
-          if (name !== 'yahoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
+          if (name !== 'yahoo' && name !== 'moomoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
           cacheSet(key, closes, CLOSES_CACHE_TTL_MS);
           return closes;
         }
@@ -267,6 +270,7 @@ export async function getQuote(symbol) {
     if (cachedAgain !== undefined) return cachedAgain;
 
     const providers = [
+      ...(moomooEnabled() ? [['moomoo', quoteFromMoomoo]] : []),
       ['yahoo', quoteFromYahoo],
       ['tiingo', quoteFromTiingo],
       ['twelvedata', quoteFromTwelveData],

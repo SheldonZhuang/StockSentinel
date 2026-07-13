@@ -112,7 +112,9 @@
   "timeline": {
     "title": "信号历史",
     "noHistory": "暂无历史记录",
-    "changed": "信号变更"
+    "changed": "信号变更",
+    "expand": "展开完整历史 ({n})",
+    "collapse": "收起"
   },
   "interpret": {
     "title": "信号解读",

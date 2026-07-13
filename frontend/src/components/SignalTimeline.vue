@@ -8,10 +8,10 @@
     </div>
     <div v-else-if="history.length === 0" class="empty">{{ $t('timeline.noHistory') }}</div>
     <div v-else class="entries">
-      <div v-for="(item, i) in history" :key="item.id" :class="['entry', { changed: isChangePoint(i) }]">
+      <div v-for="(item, i) in visibleHistory" :key="item.id" :class="['entry', { changed: isChangePoint(i) }]">
         <div class="entry-dot-col">
           <div :class="['dot', item.final_signal, { big: isChangePoint(i) }]"></div>
-          <div v-if="i < history.length - 1" class="line"></div>
+          <div v-if="i < visibleHistory.length - 1" class="line"></div>
         </div>
         <div class="entry-content">
           <div class="entry-date">
@@ -29,17 +29,23 @@
           </div>
         </div>
       </div>
+      <button v-if="history.length > 1" class="toggle-btn" @click="expanded = !expanded">
+        {{ expanded ? $t('timeline.collapse') : $t('timeline.expand', { n: history.length - 1 }) }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { api } from '../api/client.js';
 
 const history = ref([]);
 const loading = ref(true);
 const error = ref(false);
+// 默认折叠：只显示最新一条（含其变更标记），点击展开完整历史，不浪费版面
+const expanded = ref(false);
+const visibleHistory = computed(() => (expanded.value ? history.value : history.value.slice(0, 1)));
 
 function signalEmoji(s) {
   return s === 'attack' ? '🟢' : s === 'defense' ? '🔴' : s === 'reduce' ? '🟠' : '🟡';
@@ -82,6 +88,19 @@ onMounted(load);
   font-size: var(--fs-sm);
 }
 .retry-btn:hover { border-color: var(--blue); }
+
+.toggle-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: none;
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  color: var(--text-3);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: var(--fs-xs);
+}
+.toggle-btn:hover { border-color: var(--blue); color: var(--text-2); }
 
 .entries { display: flex; flex-direction: column; }
 .entry { display: flex; gap: 12px; }

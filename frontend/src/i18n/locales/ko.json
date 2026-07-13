@@ -112,7 +112,9 @@
   "timeline": {
     "title": "신호 히스토리",
     "noHistory": "히스토리 없음",
-    "changed": "신호 변경"
+    "changed": "신호 변경",
+    "expand": "전체 기록 보기 ({n})",
+    "collapse": "접기"
   },
   "interpret": {
     "title": "신호 해석",

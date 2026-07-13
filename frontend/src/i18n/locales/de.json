@@ -112,7 +112,9 @@
   "timeline": {
     "title": "Signalverlauf",
     "noHistory": "Kein Verlauf",
-    "changed": "Signalwechsel"
+    "changed": "Signalwechsel",
+    "expand": "Vollständiger Verlauf ({n})",
+    "collapse": "Einklappen"
   },
   "interpret": {
     "title": "Signal-Interpretation",
