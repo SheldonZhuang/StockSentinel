@@ -116,6 +116,14 @@ describe('getDailyCloses 三层回退', () => {
     expect(axios.get.mock.calls.every(c => c[0].includes('finance.yahoo.com'))).toBe(true);
   });
 
+  it('符号别名：US10Y/.VIX 归一化为 Yahoo 惯例 ^TNX/^VIX', async () => {
+    yahooFinance.historical.mockResolvedValue([{ date: new Date('2026-07-01'), close: 4.24 }]);
+    await getDailyCloses('US10Y', '2026-07-01', '2026-07-02');
+    expect(yahooFinance.historical.mock.calls[0][0]).toBe('^TNX');
+    await getDailyCloses('.VIX', '2026-07-01', '2026-07-02');
+    expect(yahooFinance.historical.mock.calls[1][0]).toBe('^VIX');
+  });
+
   it('缓存命中不重复请求', async () => {
     yahooFinance.historical.mockResolvedValue([{ date: new Date('2026-07-01'), close: 100 }]);
     await getDailyCloses('SPY', '2026-07-01', '2026-07-02');

@@ -19,6 +19,22 @@ const fmpKey = () => process.env.FMP_API_KEY || process.env.financialmodelingpre
 // TwelveData 免费层 8次/分钟：全局最小调用间隔，超频会返回 status:error 白白烧掉调用
 const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
+// 指数/收益率的常见写法（TradingView风格等）→ Yahoo 符号惯例
+// ^ 前缀符号自动跳过 moomoo 层（用户账户美股指数无权限），走 Yahoo chart 直连
+const SYMBOL_ALIASES = {
+  'US10Y': '^TNX',  // 10年期美债收益率
+  'US30Y': '^TYX',
+  'US5Y': '^FVX',
+  '.VIX': '^VIX',
+  'VIX': '^VIX',
+  '.SPX': '^GSPC',
+  'SPX': '^GSPC',
+  '.NDX': '^NDX',
+  'NDX': '^NDX',
+  '.DJI': '^DJI',
+};
+const normalizeSymbol = s => SYMBOL_ALIASES[String(s || '').toUpperCase()] || s;
+
 const cache = new Map();
 // in-flight 去重：同 key 并发请求共享同一次拉取，避免重复烧备用源配额（TwelveData 8次/分钟最紧）
 const inFlight = new Map();
@@ -137,6 +153,7 @@ async function closesFromTwelveData(symbol, startDate, endDate) {
  * @returns {Array<{date: string, close: number}>|null} 升序；全部失败 → null
  */
 export async function getDailyCloses(symbol, startDate, endDate) {
+  symbol = normalizeSymbol(symbol);
   const key = `closes:${symbol}:${startDate}:${endDate}`;
   const cached = cacheGet(key);
   if (cached !== undefined) return cached;
@@ -261,6 +278,7 @@ async function fillFundamentalsFromFmp(symbol, quote) {
  * @returns {{price, trailingPE, forwardPE, priceToSales, priceToBook, shortName, source}|null}
  */
 export async function getQuote(symbol) {
+  symbol = normalizeSymbol(symbol);
   const key = `quote:${symbol}`;
   const cached = cacheGet(key);
   if (cached !== undefined) return cached;
