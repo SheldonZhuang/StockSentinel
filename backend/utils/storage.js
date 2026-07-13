@@ -438,6 +438,11 @@ export async function addToWatchlist(userId, symbol) {
   run('INSERT OR IGNORE INTO watchlist (user_id, symbol) VALUES (?, ?)', [userId, symbol.toUpperCase()]);
 }
 
+export async function getAllWatchlistSymbols() {
+  await getDb();
+  return all('SELECT DISTINCT symbol FROM watchlist').map(r => r.symbol);
+}
+
 export async function removeFromWatchlist(userId, symbol) {
   await getDb();
   run('DELETE FROM watchlist WHERE user_id = ? AND symbol = ?', [userId, symbol.toUpperCase()]);

@@ -54,18 +54,23 @@ async function tickerToCik(symbol) {
 }
 
 /**
- * 从 units.USD 事实数组求 TTM 营收（纯函数）：
- * 优先季度口径（duration 80~100天）最近4季求和；不足4季时退回最近年报口径
- * （duration 350~380天，覆盖 20-F 外国发行人只报年度的情形）。
+ * 从 units.USD 事实数组求 TTM 营收（纯函数）。
+ * 关键背景：SEC 2021 年废除 Item 302 后 10-K 只报全年，Q4 单季事实普遍缺失——
+ * "直接取最近4个季度事实求和"会混入去年同期季度导致 TTM 系统性失真（NVDA 实证偏差>10%）。
+ * 算法（按优先级）：
+ *   ① 最近4个季度严格连续（相邻 start≈上季end+1天，容差7天）→ 直接求和
+ *   ② 标准TTM = 最新年报 + 年报后各季度 − 去年同期对应季度（对应期按 end≈-365天匹配，容差10天）
+ *   ③ 仅有新鲜年报（20-F 外国发行人只报年度）→ 年报值
  * 最新报告期距今超过400天（数据陈旧）→ null
  * @param {Array<{start, end, val, form}>} facts
  * @param {string} today - YYYY-MM-DD（可注入便于测试）
  */
 export function sumTtmRevenue(facts, today = new Date().toISOString().slice(0, 10)) {
   const nowMs = new Date(today + 'T00:00:00Z').getTime();
+  const ms = d => new Date(d + 'T00:00:00Z').getTime();
   const withDuration = (facts || [])
     .filter(f => f.start && f.end && f.val != null && !isNaN(f.val))
-    .map(f => ({ ...f, days: (new Date(f.end) - new Date(f.start)) / DAY_MS }));
+    .map(f => ({ ...f, days: (ms(f.end) - ms(f.start)) / DAY_MS }));
 
   // 同一报告期可能被多次披露（原报+重述），按 end 去重取最新披露
   const dedupe = arr => {
@@ -74,14 +79,36 @@ export function sumTtmRevenue(facts, today = new Date().toISOString().slice(0, 1
     return [...byEnd.values()].sort((a, b) => (a.end < b.end ? 1 : -1));
   };
 
-  const quarters = dedupe(withDuration.filter(f => f.days >= 80 && f.days <= 100));
-  if (quarters.length >= 4 && nowMs - new Date(quarters[0].end).getTime() <= 400 * DAY_MS) {
-    return quarters.slice(0, 4).reduce((s, f) => s + f.val, 0);
+  const quarters = dedupe(withDuration.filter(f => f.days >= 80 && f.days <= 100)); // 降序
+  const annuals = dedupe(withDuration.filter(f => f.days >= 350 && f.days <= 380));
+  const fresh = end => nowMs - ms(end) <= 400 * DAY_MS;
+
+  // ① 4季严格连续
+  if (quarters.length >= 4 && fresh(quarters[0].end)) {
+    const four = quarters.slice(0, 4);
+    const contiguous = four.every((q, i) =>
+      i === 3 || Math.abs(ms(four[i + 1].end) + DAY_MS - ms(q.start)) <= 7 * DAY_MS);
+    if (contiguous) return four.reduce((sum, f) => sum + f.val, 0);
   }
 
-  const annuals = dedupe(withDuration.filter(f => f.days >= 350 && f.days <= 380));
-  if (annuals.length && nowMs - new Date(annuals[0].end).getTime() <= 400 * DAY_MS) {
-    return annuals[0].val;
+  // ② 年报 + 年报后季度 − 去年同期季度
+  if (annuals.length) {
+    const annual = annuals[0];
+    const postQ = quarters.filter(q => ms(q.end) > ms(annual.end)).sort((a, b) => (a.end < b.end ? -1 : 1));
+    const latestEnd = postQ.length ? postQ[postQ.length - 1].end : annual.end;
+    if (fresh(latestEnd)) {
+      let ttm = annual.val;
+      let ok = true;
+      for (const q of postQ) {
+        const target = ms(q.end) - 365 * DAY_MS;
+        const yearAgo = quarters.find(p => Math.abs(ms(p.end) - target) <= 10 * DAY_MS);
+        if (!yearAgo) { ok = false; break; } // 缺同期无法校正，退回③
+        ttm += q.val - yearAgo.val;
+      }
+      if (ok && postQ.length) return ttm;
+      // ③ 仅年报（无年报后季度，或同期缺失）——年报本身需新鲜
+      if (fresh(annual.end)) return annual.val;
+    }
   }
   return null;
 }
@@ -110,35 +137,50 @@ async function fetchSharesOutstanding(cik) {
   }
 }
 
-const psCache = new Map(); // symbol → {value, at}（null 结果也缓存，ETF/无财报标的不反复打EDGAR）
+// symbol → {revenue, shares, at}：缓存基本面而非最终P/S，价格用调用时实时价现算
+// （null 结果也缓存，ETF/无财报标的不反复打EDGAR）
+const fundamentalsCache = new Map();
 
-/**
- * EDGAR 计算真实 P/S；拿不到（ETF/指数/外国发行人无XBRL）→ null，全程静默不抛
- */
-export async function getPsFromEdgar(symbol, price) {
-  if (!symbol || /^\^/.test(symbol) || price == null || !price) return null;
-  const cached = psCache.get(symbol);
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.value;
-
-  let value = null;
+async function getFundamentals(symbol) {
+  const cached = fundamentalsCache.get(symbol);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached;
+  const entry = { revenue: null, shares: null, at: Date.now() };
   try {
     const cik = await tickerToCik(symbol);
     if (cik) {
-      const [revenue, shares] = [await fetchRevenueTtm(cik), await fetchSharesOutstanding(cik)];
-      if (revenue && shares) {
-        const ps = (price * shares) / revenue;
-        if (ps > 0 && ps < 10000) value = ps;
-      }
+      entry.revenue = await fetchRevenueTtm(cik);
+      entry.shares = entry.revenue ? await fetchSharesOutstanding(cik) : null;
     }
   } catch (err) {
-    console.warn(`[fundamentals] EDGAR PS(${symbol}) failed:`, err.message);
+    console.warn(`[fundamentals] EDGAR(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
   }
-  psCache.set(symbol, { value, at: Date.now() });
-  return value;
+  fundamentalsCache.set(symbol, entry);
+  return entry;
+}
+
+/**
+ * EDGAR 计算真实 P/S；拿不到（ETF/指数/无XBRL）→ null，全程静默不抛。
+ * 已知口径边界：ADS:普通股 ≠ 1:1 的美元报账外国发行人（如 AZN 为 1:0.5）会失真——
+ * XBRL 无法可靠取得 ADS 比例；以 KRW/TWD 等本币报账的（SKHY/TSM）units.USD 缺失自然为 null（安全）。
+ */
+export async function getPsFromEdgar(symbol, price) {
+  if (!symbol || /^\^/.test(symbol) || price == null || !price) return null;
+  const { revenue, shares } = await getFundamentals(symbol);
+  if (!revenue || !shares) return null;
+  const ps = (price * shares) / revenue;
+  return ps > 0 && ps < 10000 ? ps : null;
+}
+
+/** 每日 cron 预热：把 EDGAR 串行队列的成本移出用户请求路径 */
+export async function prewarmFundamentals(symbols) {
+  for (const s of symbols || []) {
+    if (/^\^/.test(s)) continue;
+    await getFundamentals(s).catch(() => {});
+  }
 }
 
 export function clearFundamentalsCache() {
-  psCache.clear();
+  fundamentalsCache.clear();
   cikMap = null;
   cikMapAt = 0;
 }

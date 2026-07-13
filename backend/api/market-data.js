@@ -21,6 +21,7 @@ const TWELVEDATA_MIN_INTERVAL_MS = 8000;
 
 // 指数/收益率的常见写法（TradingView风格等）→ Yahoo 符号惯例
 // ^ 前缀符号自动跳过 moomoo 层（用户账户美股指数无权限），走 Yahoo chart 直连
+// 注意：裸词别名（VIX/SPX/NDX）当前无同名真实上市代码；若未来出现同名新股会被此表吞掉，加别名前先查证
 const SYMBOL_ALIASES = {
   'US10Y': '^TNX',  // 10年期美债收益率
   'US30Y': '^TYX',
@@ -181,7 +182,7 @@ export async function getDailyCloses(symbol, startDate, endDate) {
           return closes;
         }
       } catch (err) {
-        console.warn(`[market-data] ${name} closes(${symbol}) failed:`, err.message);
+        console.warn(`[market-data] ${name} closes(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
       }
     }
     return null; // 全失败不缓存，下次调用重试
@@ -292,7 +293,7 @@ async function fillFundamentalsFromFmp(symbol, quote) {
       priceToBook: quote.priceToBook ?? r.priceToBookRatioTTM ?? null,
     };
   } catch (err) {
-    console.warn(`[market-data] fmp ratios(${symbol}) failed:`, err.message);
+    console.warn(`[market-data] fmp ratios(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
     return quote;
   }
 }
@@ -329,7 +330,7 @@ export async function getQuote(symbol) {
           return quote;
         }
       } catch (err) {
-        console.warn(`[market-data] ${name} quote(${symbol}) failed:`, err.message);
+        console.warn(`[market-data] ${name} quote(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
       }
     }
     return null;

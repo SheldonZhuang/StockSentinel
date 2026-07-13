@@ -26,22 +26,39 @@ let ws = null;
 let loginPromise = null;
 let unavailableUntil = 0; // 连接失败后的冷却窗口，避免每次请求都等超时
 
+// futu-api 在断线/空包两条路径上的请求 Promise 永不 settle（rejectAll 的 for...in 遍历bug +
+// 超时回调被 promisePool 整体替换跳过）→ 必须外包硬超时保证 provider 有限时间返回，
+// 否则 market-data 的 inFlight 去重会对该 key 永久挂起
+const CALL_TIMEOUT_MS = 8000;
+function withTimeout(promise) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('moomoo call timeout')), CALL_TIMEOUT_MS); }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 function connect() {
   if (Date.now() < unavailableUntil) return Promise.resolve(null);
   if (loginPromise) return loginPromise;
 
   loginPromise = new Promise(resolve => {
     const sock = new ftWebsocket();
+    let discarded = false;
     const timer = setTimeout(() => {
+      discarded = true;
       unavailableUntil = Date.now() + 60_000;
       loginPromise = null;
+      // stop() 只反注册回调不关socket，底层每1秒无限重连会累积僵尸实例——必须关底层连接
       try { sock.stop(); } catch { /* noop */ }
+      try { if (sock.websock) { sock.websock.state.closing = true; sock.websock.close(); } } catch { /* noop */ }
       console.warn('[moomoo] OpenD WebSocket 连接超时（检查 OpenD 设置中的 WebSocket 端口开关）');
       resolve(null);
     }, 4000);
 
     sock.onlogin = ret => {
       clearTimeout(timer);
+      if (discarded) return; // 已被超时弃置的实例迟到登录，不得改写模块级 ws
       if (!ret) {
         unavailableUntil = Date.now() + 60_000;
         loginPromise = null;
@@ -63,13 +80,13 @@ export async function closesFromMoomoo(symbol, startDate, endDate) {
   if (!moomooEnabled() || !isUsSymbol(symbol)) return null;
   const sock = ws || await connect();
   if (!sock) return null;
-  const res = await sock.RequestHistoryKL({ c2s: {
+  const res = await withTimeout(sock.RequestHistoryKL({ c2s: {
     rehabType: Qot_Common.RehabType.RehabType_Forward,
     klType: Qot_Common.KLType.KLType_Day,
     security: { market: US, code: symbol },
     beginTime: startDate,
     endTime: endDate,
-  } });
+  } }));
   const closes = (res?.s2c?.klList || [])
     .map(k => ({ date: String(k.time).slice(0, 10), close: k.closePrice }))
     .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
@@ -83,9 +100,9 @@ export async function quoteFromMoomoo(symbol) {
   if (!moomooEnabled() || !isUsSymbol(symbol)) return null;
   const sock = ws || await connect();
   if (!sock) return null;
-  const res = await sock.GetSecuritySnapshot({ c2s: {
+  const res = await withTimeout(sock.GetSecuritySnapshot({ c2s: {
     securityList: [{ market: US, code: symbol }],
-  } });
+  } }));
   const snap = res?.s2c?.snapshotList?.[0];
   const price = snap?.basic?.curPrice;
   if (price === null || price === undefined || !price) return null;

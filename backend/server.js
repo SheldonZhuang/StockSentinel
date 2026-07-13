@@ -36,8 +36,11 @@ import {
   getAllOverrides,
   getUserById,
   updateUserAlerts,
+  getAllWatchlistSymbols,
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
+import { prewarmFundamentals } from './api/fundamentals.js';
+import { normalizeSymbol } from './api/market-data.js';
 import { todayET } from './utils/datetime.js';
 import { asyncRoute } from './utils/async-route.js';
 
@@ -439,6 +442,16 @@ async function runDailyUpdate() {
   });
 
   console.log(`[cron] Signal updated: aiSupply=${aiSupply}, monetary=${monetary}, fiscal=${fiscal}, admin=${admin} → final=${finalSignal}`);
+
+  // 预热自选股 EDGAR 基本面（24h缓存）：串行队列约每标的1~3秒，
+  // 移到 cron 里跑，用户打开自选股页面时命中缓存不再叠加冷加载延时
+  try {
+    const symbols = await getAllWatchlistSymbols();
+    await prewarmFundamentals(symbols.map(normalizeSymbol));
+    console.log(`[cron] fundamentals prewarmed for ${symbols.length} watchlist symbols`);
+  } catch (err) {
+    console.warn('[cron] fundamentals prewarm failed:', err.message);
+  }
 
   // 示警：最终信号变化 / 任一维度转收紧 / 泡沫预警触发（用户策略：任一收紧=立即防守，必须果断）
   const changes = detectSignalChanges(prevSnapshot, {
