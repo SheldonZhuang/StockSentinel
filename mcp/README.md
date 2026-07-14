@@ -26,7 +26,7 @@
       "command": "npx",
       "args": ["-y", "stock-sentinel-mcp"],
       "env": {
-        "STOCKSENTINEL_API_URL": "https://你的后端域名",
+        "STOCKSENTINEL_API_URL": "https://stocksentinel-production-55ed.up.railway.app",
         "STOCKSENTINEL_API_KEY": "sk_ss_xxx（可选，提升额度）"
       }
     }

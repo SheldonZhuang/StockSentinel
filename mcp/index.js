@@ -4,13 +4,13 @@
 // 判定引擎单一来源，不在客户端侧复制任何逻辑。
 //
 // 环境变量：
-//   STOCKSENTINEL_API_URL  后端地址（默认 http://localhost:3001）
+//   STOCKSENTINEL_API_URL  后端地址（默认生产环境；本地开发设为 http://localhost:3001）
 //   STOCKSENTINEL_API_KEY  可选，提升每日请求额度
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-const API_URL = (process.env.STOCKSENTINEL_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+const API_URL = (process.env.STOCKSENTINEL_API_URL || 'https://stocksentinel-production-55ed.up.railway.app').replace(/\/$/, '');
 const API_KEY = process.env.STOCKSENTINEL_API_KEY || '';
 
 async function callApi(path) {

@@ -1,6 +1,6 @@
 {
   "name": "stock-sentinel-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for Stock Sentinel — US stock attack/defense signal system (4-dimension macro framework). For research reference only, not investment advice.",
   "type": "module",
   "bin": {
