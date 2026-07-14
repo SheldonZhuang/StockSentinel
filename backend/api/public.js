@@ -6,7 +6,7 @@ import cors from 'cors';
 import { asyncRoute } from '../utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
-import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport } from '../utils/storage.js';
+import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage } from '../utils/storage.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,6 +21,44 @@ router.use(cors({ origin: '*' }));
 const TIER_DAILY_LIMITS = { keyless: 25, free: 250, pro: 10000 };
 
 const usage = new Map(); // identifier → { day, count }
+
+// 用量持久化：进程重启不清零（限流公平性 + 计费对账底账）。
+// 写路径批量化：内存实时计数，60秒脏刷盘，避免每请求整库 persist
+let usageLoadedDay = null;
+let usageDirty = false;
+
+async function ensureUsageLoaded(day) {
+  if (usageLoadedDay === day) return;
+  try {
+    const rows = await loadApiUsage(day);
+    for (const r of rows) {
+      const cur = usage.get(r.identifier);
+      if (!cur || cur.day !== day || cur.count < r.count) {
+        usage.set(r.identifier, { day, count: r.count });
+      }
+    }
+  } catch (err) {
+    console.warn('[public-api] usage load failed:', err.message);
+  }
+  usageLoadedDay = day;
+}
+
+const flushTimer = setInterval(async () => {
+  if (!usageDirty) return;
+  usageDirty = false;
+  const day = new Date().toISOString().slice(0, 10);
+  const entries = [...usage.entries()]
+    .filter(([, v]) => v.day === day)
+    .map(([identifier, v]) => ({ identifier, count: v.count }));
+  if (!entries.length) return;
+  try {
+    await upsertApiUsage(day, entries);
+  } catch (err) {
+    usageDirty = true; // 下轮重试
+    console.warn('[public-api] usage flush failed:', err.message);
+  }
+}, 60_000);
+flushTimer.unref(); // 不阻塞进程退出
 const keyCache = new Map(); // key → { record, at }
 const KEY_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -45,6 +83,7 @@ async function rateLimit(req, res, next) {
   }
   const limit = TIER_DAILY_LIMITS[resolved.tier];
   const day = new Date().toISOString().slice(0, 10);
+  await ensureUsageLoaded(day);
   const entry = usage.get(resolved.id);
   const count = entry && entry.day === day ? entry.count : 0;
 
@@ -57,6 +96,7 @@ async function rateLimit(req, res, next) {
     });
   }
   usage.set(resolved.id, { day, count: count + 1 });
+  usageDirty = true;
   res.set('X-RateLimit-Limit', String(limit));
   res.set('X-RateLimit-Remaining', String(limit - count - 1));
   next();

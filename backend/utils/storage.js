@@ -270,6 +270,15 @@ function initSchema() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS api_usage (
+      day TEXT NOT NULL,
+      identifier TEXT NOT NULL,
+      count INTEGER NOT NULL,
+      PRIMARY KEY (day, identifier)
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS daily_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT NOT NULL,
@@ -563,6 +572,25 @@ export async function listApiKeys() {
 export async function setApiKeyDisabled(id, disabled) {
   await getDb();
   run('UPDATE api_keys SET disabled = ? WHERE id = ?', [disabled ? 1 : 0, id]);
+}
+
+// --- 开放API用量（限流持久化 + 计费对账底账）---
+
+export async function loadApiUsage(day) {
+  await getDb();
+  return all('SELECT identifier, count FROM api_usage WHERE day = ?', [day]);
+}
+
+/** 批量落盘当日计数（整表覆盖式 upsert，一次 persist） */
+export async function upsertApiUsage(day, entries) {
+  await getDb();
+  for (const e of entries) {
+    db.run(
+      'INSERT INTO api_usage (day, identifier, count) VALUES (?, ?, ?) ON CONFLICT(day, identifier) DO UPDATE SET count = excluded.count',
+      [day, e.identifier, e.count]
+    );
+  }
+  persist();
 }
 
 // --- AI 日报 ---

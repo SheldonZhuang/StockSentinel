@@ -110,9 +110,9 @@ function dimMetric(key) {
       : null;
   }
   if (key === 'administrative') {
-    // 按判定优先级排列：油价事件层（触发时最优先）→ 日频EPU（时效）→ 月度贸易EPU（结构）
+    // 按判定优先级排列：油价（事件层第一优先，常显）→ 日频EPU（时效）→ 月度贸易EPU（结构）
     const parts = [];
-    if (ind.oilChange30dPct != null && Math.abs(ind.oilChange30dPct) >= 20) {
+    if (ind.oilChange30dPct != null) {
       parts.push(`WTI 30D ${fmtPct(ind.oilChange30dPct)}`);
     }
     if (ind.epuDailyPercentile != null) {
