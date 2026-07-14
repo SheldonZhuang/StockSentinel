@@ -1,6 +1,6 @@
 {
   "name": "stock-sentinel-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP server for Stock Sentinel — US stock attack/defense signal system (4-dimension macro framework). For research reference only, not investment advice.",
   "type": "module",
   "bin": {
@@ -26,5 +26,5 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "mcpName": "io.github.sheldonzhuang/stock-sentinel"
+  "mcpName": "io.github.SheldonZhuang/stock-sentinel"
 }
