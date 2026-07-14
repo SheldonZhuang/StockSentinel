@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.json",
+  "name": "io.github.sheldonzhuang/stock-sentinel",
+  "description": "US stock attack/defense macro signal system: 4-dimension framework (AI supply chain / monetary / fiscal / administrative), 4-tier output, 26-year backtested, daily AI briefs. For research reference only, not investment advice.",
+  "repository": {
+    "url": "https://github.com/SheldonZhuang/StockSentinel",
+    "source": "github"
+  },
+  "version": "1.0.2",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "identifier": "stock-sentinel-mcp",
+      "version": "1.0.2",
+      "transport": { "type": "stdio" },
+      "environment_variables": [
+        {
+          "name": "STOCKSENTINEL_API_KEY",
+          "description": "Optional API key for higher daily limits (default trial: 25 req/day)",
+          "is_required": false,
+          "is_secret": true
+        }
+      ]
+    }
+  ]
+}
