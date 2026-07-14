@@ -47,6 +47,7 @@ import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import publicRouter from './api/public.js';
 import { generateDailyReport } from './api/daily-report.js';
+import { backupDatabase } from './utils/backup.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -323,6 +324,9 @@ async function runDailyUpdate() {
 
   // AI 日报（增值内容，失败静默）：基于刚保存的快照生成中英双语解读
   await generateDailyReport(await buildSignalPayload().catch(() => null));
+
+  // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
+  await backupDatabase();
 
   // 示警：最终信号变化 / 任一维度转收紧 / 泡沫预警触发（用户策略：任一收紧=立即防守，必须果断）
   const changes = detectSignalChanges(prevSnapshot, {

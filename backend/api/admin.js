@@ -117,6 +117,12 @@ router.post('/bottleneck', requireAdmin, asyncRoute(async (req, res) => {
   res.json({ ok: true, stage, note: note || null });
 }));
 
+// POST /api/admin/backup — 手动触发数据库备份（验证 GitHub 备份链路）
+router.post('/backup', requireAdmin, asyncRoute(async (req, res) => {
+  const { backupDatabase } = await import('../utils/backup.js');
+  res.json(await backupDatabase());
+}));
+
 // --- 开放API密钥管理（变现基础）---
 
 // GET /api/admin/api-keys — 全部密钥
