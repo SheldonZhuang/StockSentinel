@@ -5,7 +5,7 @@
 
 ---
 
-## 第一步：发布 MCP 包到 npm（约10分钟，一次性）
+## 第一步：发布 MCP 包到 npm ✅ 已完成（v1.0.3）
 
 包名 `stock-sentinel-mcp` 已确认未被占用。
 
@@ -29,7 +29,7 @@
 
 ---
 
-## 第二步：找到 Railway 后端域名并告诉 Claude（约3分钟）
+## 第二步：Railway 域名接入 ✅ 已完成（stocksentinel-production-55ed.up.railway.app）
 
 1. 浏览器打开 https://railway.app → 登录 → 进入 StockSentinel 后端项目
 2. 点后端服务卡片 → **Settings** 标签 → **Networking / Public Networking** 区域
@@ -43,17 +43,17 @@
 
 ## 第三步：提交三个分发渠道（每个约15~30分钟）
 
-### 3a. MCP 目录（免费流量，最对口的用户群）
+### 3a. 官方 MCP Registry ✅ 已完成（2026-07-15）
 
-- **Smithery**（最大的MCP目录）：打开 https://smithery.ai → 右上角 GitHub 登录 →
-  "Add Server" → 填 GitHub 仓库地址 `https://github.com/SheldonZhuang/StockSentinel`（子目录 mcp/）
-  和 npm 包名 `stock-sentinel-mcp` → 提交等审核
-- **官方社区列表**：打开 https://github.com/modelcontextprotocol/servers → 点 `README.md` →
-  右上角铅笔图标（Fork并编辑）→ 在 Community Servers 区按字母序加一行：
-  ```
-  - [Stock Sentinel](https://github.com/SheldonZhuang/StockSentinel/tree/main/mcp) - US stock attack/defense macro signal system (4-dimension framework, backtested)
-  ```
-  → 页面底部 "Propose changes" → "Create pull request"，等维护者合并
+已发布：`io.github.SheldonZhuang/stock-sentinel` v1.0.3，registry.modelcontextprotocol.io 可搜索。
+（原"官方社区列表 README PR"模式已被官方废弃，Registry 是其正式替代。）
+以后更新版本：改代码 → package.json 与 server.json 版本号同步+1 → npm publish →
+`mcp-publisher login github && mcp-publisher publish`
+
+### 3a-2. Smithery（第三方MCP目录，可选加分项）
+
+Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手动加速：
+打开 https://smithery.ai → GitHub 登录 → Add Server → 填仓库地址与包名 stock-sentinel-mcp
 
 ### 3b. RapidAPI（API 市场，自带计费系统！）
 
@@ -89,8 +89,7 @@
 
 触发条件：有人真的来问付费了。到时两条路选其一：
 - **省事路线**：直接用 RapidAPI 的内置计费（3b已配好，平台抽成约20%）
-- **自营路线**：Stripe Payment Links（不用写代码：Stripe后台建一个订阅链接，
-  用户付款后你在管理后台给他签发 pro key）。真到量大了再做自动化。
+- **自营路线**：Stripe Payment Links（不用写代码：Stripe后台建一个订阅链接，用户付款后你在管理后台给他签发 pro key）。真到量大了再做自动化。
 
 ---
 
