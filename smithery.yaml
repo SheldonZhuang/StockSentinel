@@ -1,0 +1,18 @@
+# Smithery 目录配置 — 告诉 smithery.ai 如何运行本仓库的 MCP 服务器
+# 格式参考: https://smithery.ai/docs/build/project-config/smithery.yaml
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required: []
+    properties:
+      stocksentinelApiKey:
+        type: string
+        description: Optional Stock Sentinel API key (sent as X-API-Key). Leave empty for the free trial tier (25 requests/day per IP).
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'stock-sentinel-mcp'],
+      env: config.stocksentinelApiKey ? { STOCKSENTINEL_API_KEY: config.stocksentinelApiKey } : {}
+    })
+  exampleConfig: {}
