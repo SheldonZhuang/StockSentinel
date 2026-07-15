@@ -46,6 +46,7 @@ import { todayET } from './utils/datetime.js';
 import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import publicRouter from './api/public.js';
+import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
 import { backupDatabase } from './utils/backup.js';
 
@@ -68,6 +69,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/watchlist', watchlistRouter);
 // 开放API（面向AI客户端/第三方开发者）：独立CORS+key限流，见 docs/openapi.yaml
 app.use('/v1', publicRouter);
+// 远程 MCP 端点（Streamable HTTP）：claude.ai/Smithery 等 URL 型客户端直连，见 backend/api/mcp.js
+app.use('/mcp', mcpRouter);
 
 // GET /api/signal — 当前宏观信号 + 各信号位明细
 app.get('/api/signal', asyncRoute(async (req, res) => {

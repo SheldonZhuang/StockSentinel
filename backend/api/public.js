@@ -76,7 +76,7 @@ async function resolveTier(req) {
   return { id: `key:${key}`, tier: record.tier in TIER_DAILY_LIMITS ? record.tier : 'free' };
 }
 
-async function rateLimit(req, res, next) {
+export async function rateLimit(req, res, next) {
   const resolved = await resolveTier(req);
   if (!resolved) {
     return res.status(401).json({ error: 'invalid_api_key', message: 'API key is invalid or disabled' });
