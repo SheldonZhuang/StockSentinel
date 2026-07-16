@@ -2,11 +2,9 @@ import cfg from '../config/signal.config.js';
 
 const {
   SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_ADJUSTMENT_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
-  REAL_RATE_RESTRICTIVE_PCT,
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
   AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
-  AI_MARKET_OVERHEAT_PCT,
   AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
 } = cfg;
@@ -19,52 +17,41 @@ const {
 export function calcMonetarySignal(macroData) {
   const { rateSignal, balanceSheetSignal } = deriveSubSignals(macroData);
 
-  // 收紧：仅应对式调整(≥50bp，事件型危机信号)。
-  // QT不再单票定罪——回测实证：QT是环境收紧而非危机信号（2017/2023等QT年份市场大涨，
-  // 六次危机的捕获全部由应对式锁或多维共振触发，无一由QT单独触发），
-  // QT单票收紧曾把2016-18与2023-24两轮牛市压在防守里（捕获率28%/42%）
+  // 收紧：任何加息（rateSignal=tight，含渐进25bp——加息即资金成本升高，利空）。
+  // 单次≥50bp 另经应对式锁强制全面防守（server 层）；QT 不单票定罪收紧——
+  // 回测实证：QT是环境收紧而非危机信号（2017/2023等QT年份市场大涨，六次危机
+  // 的捕获全部由应对式锁或多维共振触发，无一由QT单独触发）
   if (rateSignal === 'tight') {
     return SIGNAL.TIGHT;
   }
 
-  // 宽松：利率暂停/降息 AND 资产负债表不收缩（QT仍拦截宽松评级）
+  // 宽松：降息/暂停 AND 资产负债表不收缩（QT仍拦截宽松评级）
   if (rateSignal === 'loose' && balanceSheetSignal !== 'tight') {
     return SIGNAL.LOOSE;
   }
 
-  // 其余（利率宽松+QT、预防式加息等混合情况）
+  // 其余（降息/暂停 + QT，或利率数据缺失）
   return SIGNAL.NEUTRAL;
 }
 
 /**
  * 分解利率和资产负债表子信号
+ *
+ * 利率方向规则（2026-07-16 用户拍板，纯方向）：加息=资金成本升高=利空=收紧；降息/暂停=放松。
+ *   - 任何加息（Δ>0，含渐进25bp）→ tight（覆盖"温水煮青蛙"，渐进加息周期全程收紧）
+ *   - 降息或暂停（Δ≤0）→ loose
+ *   - 单次 |Δ|≥50bp（不论方向）另触发应对式利率锁 → 强制防守（在 server 层/computeLocks 处理）
+ *     ≥50bp 降息虽方向上是 loose，但锁会强制防守（应对式降息=危机中的紧急降息）
  */
 export function deriveSubSignals(macroData) {
-  const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet, trimmedPce12m } = macroData;
+  const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet } = macroData;
 
-  // 利率方向判断：按调整幅度绝对值统一处理，加息/降息对称
   let rateSignal;
-  if (currentRate === null || prevRate === null) {
+  if (currentRate === null || prevRate === null || currentRate === undefined || prevRate === undefined) {
     rateSignal = 'neutral';
   } else {
-    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 转换为 bp，正=加息，负=降息
-    if (Math.abs(rateDiffBp) >= RATE_REACTIVE_ADJUSTMENT_BP) {
-      rateSignal = 'tight'; // 应对式加息 或 应对式降息
-    } else {
-      rateSignal = 'loose'; // 暂停、预防式加息/降息（幅度<50bp，含加息减缓）
-    }
-  }
-
-  // 实际利率门控：政策立场已明显紧缩（实际利率 > 阈值）时，渐进加息不得投宽松票。
-  // 修复"连续25bp加息周期被判宽松"——冲量步长小 ≠ 政策宽松，累计紧缩才是市场承压来源。
-  // 实际利率 = 名义利率上限 − 12月截尾均值PCE同比（数据缺失则跳过门控，保持原行为）
-  if (rateSignal === 'loose'
-    && currentRate !== null && currentRate !== undefined
-    && trimmedPce12m !== null && trimmedPce12m !== undefined) {
-    const realRate = currentRate - trimmedPce12m;
-    if (realRate > REAL_RATE_RESTRICTIVE_PCT) {
-      rateSignal = 'neutral'; // 立场偏紧，不投宽松票（但也非应对式收紧，故 neutral）
-    }
+    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 正=加息，负=降息
+    rateSignal = rateDiffBp > 0 ? 'tight' : 'loose'; // 加息→收紧；降息/暂停→宽松
   }
 
   const balanceSheetSignal = deriveBalanceSheetStatus(currentBalanceSheet, prevBalanceSheet);
@@ -178,19 +165,13 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
 
 /**
  * AI供需子信号：市场（SMH-SPY相对收益）与基本面（半导体IP同比）
+ * 用户框架：供不应求=宽松（越跑赢越宽松，不封顶）；防守靠"供过于求(长线转弱)+货币收紧"双维共振
  */
 export function deriveAiSupplySubSignals({ smhSpyRelReturnPct, semiIpYoy }) {
   let marketSignal = SIGNAL.NEUTRAL;
   if (smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined) {
-    if (smhSpyRelReturnPct > AI_MARKET_OVERHEAT_PCT) {
-      // 过热截断（修复顺周期缺陷）：半导体极端跑赢大盘=拥挤/泡沫化，不是"供需健康"。
-      // 2000-03顶部SOX极端跑赢时旧逻辑会投宽松票，恰在最危险处助攻进攻。截为neutral
-      marketSignal = SIGNAL.NEUTRAL;
-    } else if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) {
-      marketSignal = SIGNAL.LOOSE;
-    } else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) {
-      marketSignal = SIGNAL.TIGHT;
-    }
+    if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.LOOSE;
+    else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.TIGHT;
   }
 
   let fundamentalSignal = SIGNAL.NEUTRAL;

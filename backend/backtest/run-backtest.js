@@ -79,16 +79,13 @@ export function ttmChangePct(monthlyValues) {
  */
 export function replayMonth(m, prevState) {
   const S = cfg.SIGNAL;
-  // 货币：月度利率变动 ≥50bp 应对式→tight；资产负债表 ±0.25%
+  // 货币方向规则（与线上 deriveSubSignals 同口径）：任何加息→tight；降息/暂停→loose。
+  // 单次|Δ|≥50bp 另触发应对式利率锁（下方）。资产负债表 ±0.25%
   let rateSignal = S.NEUTRAL;
   let rateDiffBp = null;
   if (m.rate !== null && m.prevRate !== null) {
     rateDiffBp = Math.round((m.rate - m.prevRate) * 100);
-    rateSignal = Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP ? S.TIGHT : S.LOOSE;
-  }
-  // 实际利率门控（与线上 deriveSubSignals 同口径）：立场偏紧时渐进加息不投宽松票
-  if (rateSignal === S.LOOSE && m.rate !== null && m.pce12m !== null && m.pce12m !== undefined) {
-    if (m.rate - m.pce12m > cfg.REAL_RATE_RESTRICTIVE_PCT) rateSignal = S.NEUTRAL;
+    rateSignal = rateDiffBp > 0 ? S.TIGHT : S.LOOSE; // 加息→收紧；降息/暂停→宽松
   }
   let bsSignal = S.NEUTRAL; // WALCL 2002-12 前缺失 → neutral
   if (m.walcl !== null && m.prevWalcl !== null && m.prevWalcl !== 0) {
@@ -260,7 +257,7 @@ async function main() {
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pce12m] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
@@ -268,7 +265,6 @@ async function main() {
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
     fredSeries('DCOILWTICO', apiKey),
-    fredSeries('PCETRIM12M159SFRBDAL', apiKey), // 12月截尾均值PCE同比，供实际利率门控
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -279,11 +275,10 @@ async function main() {
   const epuM = sampleMonthEnd(epu);
   const sahmM = sampleMonthEnd(sahm);
   const oilM = sampleMonthEnd(oil);
-  const pceM = sampleMonthEnd(pce12m);
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
-  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM), pceMap = byMonth(pceM);
+  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
   // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
   const spxDateMap = new Map(spxM.map(o => [o.month, o.date]));
 
@@ -322,7 +317,6 @@ async function main() {
         return cur != null && prev != null && prev !== 0 ? (cur - prev) / prev * 100 : null;
       })(),
       sahm: sahmMap.get(asOf) ?? null,
-      pce12m: pceMap.get(asOf) ?? null, // 发布滞后：实际利率门控用 M-1 月PCE
     }, state);
     state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };
     prevRate = rate;

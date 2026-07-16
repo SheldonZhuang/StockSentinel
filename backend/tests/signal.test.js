@@ -61,13 +61,13 @@ describe('calcMonetarySignal', () => {
     })).toBe('tight');
   });
 
-  it('宽松：预防式加息 <50bp（小幅加息/加息减缓）+ 资产负债表暂停', () => {
+  it('收紧：任何加息（含小幅25bp）——加息=资金成本升高=利空', () => {
     expect(calcMonetarySignal({
       currentRate: 4.5,
       prevRate: 4.25,
       currentBalanceSheet: 7200,
       prevBalanceSheet: 7200,
-    })).toBe('loose');
+    })).toBe('tight');
   });
 
   it('观望：小幅降息 + QT 同时发生（QT拦截宽松评级）', () => {
@@ -79,18 +79,18 @@ describe('calcMonetarySignal', () => {
     })).toBe('neutral');
   });
 
-  it('观望：渐进加息到高位（实际利率门控，修复#1）——立场偏紧不再判宽松', () => {
-    // 2023：5.5%利率、25bp本次加息、通胀2.5% → 实际利率3% → 货币维从loose降为neutral
+  it('收紧：渐进加息到高位（纯方向规则）——连续25bp加息全程收紧，不再误判宽松', () => {
+    // 2023场景：本次仅25bp加息，但加息即收紧（覆盖"温水煮青蛙"）
     expect(calcMonetarySignal({
-      currentRate: 5.5, prevRate: 5.25, trimmedPce12m: 2.5,
+      currentRate: 5.5, prevRate: 5.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
-    })).toBe('neutral');
+    })).toBe('tight');
   });
 });
 
-// 测试 bp 换算
+// 利率方向规则：任何加息→tight；降息/暂停→loose
 describe('deriveSubSignals', () => {
-  it('恰好 50bp 加息视为应对式 tight', () => {
+  it('恰好 50bp 加息 → tight', () => {
     const { rateSignal } = deriveSubSignals({
       currentRate: 4.75, prevRate: 4.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
@@ -98,15 +98,15 @@ describe('deriveSubSignals', () => {
     expect(rateSignal).toBe('tight');
   });
 
-  it('49bp 加息视为预防式 loose', () => {
+  it('小幅加息（25bp）→ tight（加息即收紧，覆盖温水煮青蛙）', () => {
     const { rateSignal } = deriveSubSignals({
-      currentRate: 4.74, prevRate: 4.25,
+      currentRate: 4.5, prevRate: 4.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
-    expect(rateSignal).toBe('loose');
+    expect(rateSignal).toBe('tight');
   });
 
-  it('49bp 降息视为预防式 loose（对称）', () => {
+  it('小幅降息（49bp）→ loose', () => {
     const { rateSignal } = deriveSubSignals({
       currentRate: 3.76, prevRate: 4.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
@@ -114,38 +114,28 @@ describe('deriveSubSignals', () => {
     expect(rateSignal).toBe('loose');
   });
 
-  it('恰好 50bp 降息视为应对式 tight（对称）', () => {
+  it('利率暂停（Δ=0）→ loose', () => {
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 4.25, prevRate: 4.25,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('loose');
+  });
+
+  it('大幅降息（50bp）→ loose（方向仍是宽松；应对式锁另在server层强制防守）', () => {
     const { rateSignal } = deriveSubSignals({
       currentRate: 3.75, prevRate: 4.25,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
-    expect(rateSignal).toBe('tight');
+    expect(rateSignal).toBe('loose');
   });
 
-  it('实际利率门控（修复#1）：立场偏紧时渐进加息不投宽松票', () => {
-    // 2023场景：加息到5.5%但本次仅25bp，通胀(trimmedPce12m)约2.5% → 实际利率3% > 1% → neutral
+  it('利率数据缺失 → neutral', () => {
     const { rateSignal } = deriveSubSignals({
-      currentRate: 5.5, prevRate: 5.25, trimmedPce12m: 2.5,
+      currentRate: null, prevRate: null,
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
     expect(rateSignal).toBe('neutral');
-  });
-
-  it('实际利率门控：实际利率为负（宽松环境）时渐进调整仍是 loose', () => {
-    // 2021场景：利率0.25%、通胀5% → 实际利率-4.75% → 保持loose
-    const { rateSignal } = deriveSubSignals({
-      currentRate: 0.25, prevRate: 0.25, trimmedPce12m: 5.0,
-      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
-    });
-    expect(rateSignal).toBe('loose');
-  });
-
-  it('实际利率门控：PCE数据缺失时跳过门控（保持原loose行为）', () => {
-    const { rateSignal } = deriveSubSignals({
-      currentRate: 5.5, prevRate: 5.25, // 无 trimmedPce12m
-      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
-    });
-    expect(rateSignal).toBe('loose');
   });
 });
 
@@ -288,11 +278,9 @@ describe('deriveAiSupplySubSignals', () => {
     expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 3, semiIpYoy: null }).marketSignal).toBe('neutral');
   });
 
-  it('过热截断（修复#6）：相对收益 >+25%（极端跑赢=拥挤）→ neutral，不投宽松票', () => {
-    // 2000-03泡沫顶部SOX极端跑赢场景：旧逻辑投loose助攻进攻，修复后截为neutral
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 30, semiIpYoy: null }).marketSignal).toBe('neutral');
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 25, semiIpYoy: null }).marketSignal).toBe('loose'); // 恰好25%含边界仍loose
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 25.1, semiIpYoy: null }).marketSignal).toBe('neutral');
+  it('供不应求越极端越宽松（无过热截断）：相对收益+30%仍是loose', () => {
+    // 用户框架：供不应求=宽松不封顶；防守靠"供过于求(长线转弱)+货币收紧"双维共振
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 30, semiIpYoy: null }).marketSignal).toBe('loose');
   });
 
   it('基本面子信号：同比 >+5% → loose，<0% → tight，0~5% → neutral', () => {
