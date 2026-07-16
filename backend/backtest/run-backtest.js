@@ -181,30 +181,8 @@ async function fetchSpx() {
 }
 
 async function fetchSpxLive() {
-  // 优先 stooq ^spx 日线 CSV（无需key，但对部分IP有JS盾）
-  try {
-    const res = await axios.get('https://stooq.com/q/d/l/?s=^spx&i=d', { timeout: 30000, responseType: 'text' });
-    const lines = res.data.trim().split('\n').slice(1);
-    const bars = lines.map(l => {
-      const [date, , , , close] = l.split(',');
-      return { date, close: parseFloat(close) };
-    }).filter(b => b.date >= '1997-01-01' && !isNaN(b.close));
-    if (bars.length > 1000) return { bars, source: 'stooq ^spx' };
-  } catch (e) {
-    console.warn('[backtest] stooq failed:', e.message);
-  }
-  // 降级1：Yahoo ^GSPC 全历史
-  try {
-    const { default: yahooFinance } = await import('yahoo-finance2');
-    const raw = await yahooFinance.historical('^GSPC', { period1: '1997-01-01', period2: new Date().toISOString().slice(0, 10) });
-    const bars = (raw || [])
-      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.close }))
-      .filter(b => !isNaN(b.close));
-    if (bars.length > 1000) return { bars, source: 'Yahoo ^GSPC' };
-  } catch (e) {
-    console.warn('[backtest] yahoo failed:', e.message);
-  }
-  // 降级2：Tiingo SPY 全历史（1993年上市的标普500 ETF，走势与SPX一致）
+  // 首选 Tiingo SPY adjClose（唯一的总回报口径：含股息复权）——策略回测衡量"投资者实际到手收益"，
+  // 必须用总回报；指数序列(^SPX/^GSPC)按定义是价格指数、不含股息，会系统性低估约1.9%/年
   try {
     const token = process.env.TIINGO_API_KEY;
     if (token) {
@@ -213,12 +191,35 @@ async function fetchSpxLive() {
         timeout: 60000,
       });
       const bars = (res.data || [])
-        .map(r => ({ date: String(r.date).slice(0, 10), close: r.close }))
+        .map(r => ({ date: String(r.date).slice(0, 10), close: r.adjClose ?? r.close }))
         .filter(b => !isNaN(b.close));
-      if (bars.length > 1000) return { bars, source: 'Tiingo SPY（标普500 ETF 代理）' };
+      if (bars.length > 1000) return { bars, source: 'Tiingo SPY 总回报（adjClose，含股息复权）' };
     }
   } catch (e) {
     console.warn('[backtest] tiingo failed:', e.message);
+  }
+  // 降级1：stooq ^spx 日线 CSV（无需key，但对部分IP有JS盾）——价格指数，不含股息（口径次优）
+  try {
+    const res = await axios.get('https://stooq.com/q/d/l/?s=^spx&i=d', { timeout: 30000, responseType: 'text' });
+    const lines = res.data.trim().split('\n').slice(1);
+    const bars = lines.map(l => {
+      const [date, , , , close] = l.split(',');
+      return { date, close: parseFloat(close) };
+    }).filter(b => b.date >= '1997-01-01' && !isNaN(b.close));
+    if (bars.length > 1000) return { bars, source: 'stooq ^spx（价格指数，不含股息）' };
+  } catch (e) {
+    console.warn('[backtest] stooq failed:', e.message);
+  }
+  // 降级2：Yahoo ^GSPC 全历史——价格指数，不含股息
+  try {
+    const { default: yahooFinance } = await import('yahoo-finance2');
+    const raw = await yahooFinance.historical('^GSPC', { period1: '1997-01-01', period2: new Date().toISOString().slice(0, 10) });
+    const bars = (raw || [])
+      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.close }))
+      .filter(b => !isNaN(b.close));
+    if (bars.length > 1000) return { bars, source: 'Yahoo ^GSPC（价格指数，不含股息）' };
+  } catch (e) {
+    console.warn('[backtest] yahoo failed:', e.message);
   }
   // 降级3：FRED SP500（只覆盖近10年，2000/2008 无法评估，报告中注明）
   const apiKey = process.env.FRED_API_KEY;
