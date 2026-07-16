@@ -276,6 +276,8 @@ async function main() {
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
   const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
+  // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
+  const spxDateMap = new Map(spxM.map(o => [o.month, o.date]));
 
   // 重放：2000-01 起（此前36个月做 EPU/财政窗口热身）
   const months = rateM.map(o => o.month).filter(m => m >= '2000-01');
@@ -315,7 +317,7 @@ async function main() {
     }, state);
     state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };
     prevRate = rate;
-    timeline.push({ month, spx: spxMap.get(month) ?? null, ...r });
+    timeline.push({ month, spx: spxMap.get(month) ?? null, spxDate: spxDateMap.get(month) ?? null, ...r });
   }
 
   // ---- 评估 ----
@@ -330,7 +332,8 @@ async function main() {
     // 首次防守：危机搜索期开始起第一个 defense 月
     const defMonths = timeline.filter(t => t.month >= c.searchStart.slice(0, 7) && t.month <= c.searchEnd.slice(0, 7));
     const firstDef = defMonths.find(t => t.final === 'defense');
-    const firstDefDate = firstDef ? `${firstDef.month}-28` : null; // 月末信号，按月底算
+    // 用该月真实月末交易日（timeline 已带 spxDate），而非硬编码 "-28"（后者系统性多算0-3天提前量）
+    const firstDefDate = firstDef ? (firstDef.spxDate ?? `${firstDef.month}-28`) : null;
     const leadDays = firstDefDate ? dayDiff(firstDefDate, peak.date) : null; // 正=提前于顶部
 
     // 防守发出时点价格（用当月SPX月末价）
@@ -373,8 +376,11 @@ async function main() {
   for (const ep of episodes) {
     const startPx = spxMap.get(ep.start);
     if (!startPx) continue;
-    const horizon = timeline.filter(t => t.month >= ep.start).slice(0, 12);
-    const minPx = Math.min(...horizon.map(t => t.spx ?? Infinity));
+    // 信号后12个月（含信号月自身共13个采样点），只取有效 spx，缺失月不参与 min（旧代码用 Infinity 会污染）
+    const horizon = timeline.filter(t => t.month >= ep.start).slice(0, 13)
+      .map(t => t.spx).filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (!horizon.length) continue;
+    const minPx = Math.min(...horizon);
     if ((minPx / startPx - 1) * 100 > -15) falsePositives++;
   }
 
@@ -400,13 +406,20 @@ async function main() {
     };
   });
 
-  // ---- 全期策略模拟：仅全面防守离场 vs 买入持有 ----
+  // ---- 全期策略模拟：仅全面防守离场（防守月计现金利息）vs 买入持有 ----
+  // 防守期资金不是零收益：停在货币基金/短债，按当时联邦基金利率(rateMap，年化)月化计息。
+  // 防守期与高利率期高度重合（2000/2007/2022-23），忽略现金利息会系统性低估策略收益。
   const withPx = timeline.filter(t => t.spx !== null);
   let navS = 1, navB = 1, peakS = 1, peakB = 1, mddS = 0, mddB = 0;
   for (let i = 1; i < withPx.length; i++) {
     const ret = withPx[i].spx / withPx[i - 1].spx;
     navB *= ret;
-    navS *= withPx[i - 1].final === 'defense' ? 1 : ret;
+    if (withPx[i - 1].final === 'defense') {
+      const annualRatePct = rateMap.get(withPx[i - 1].month) ?? 0;
+      navS *= 1 + (annualRatePct / 100) / 12; // 月化现金利息
+    } else {
+      navS *= ret;
+    }
     peakB = Math.max(peakB, navB); mddB = Math.min(mddB, navB / peakB - 1);
     peakS = Math.max(peakS, navS); mddS = Math.min(mddS, navS / peakS - 1);
   }
@@ -466,13 +479,14 @@ function writeReport(s, timeline) {
 - **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。
 - **AI供需维度**：历史上无意义，全程置为观望（neutral）——见"局限"。
 
-## 四次危机明细
+## 危机明细
 
 | 危机 | 市场顶部 | 市场底部 | 最大回撤 | 首次防守信号 | 相对顶部 | 示警时距顶部 | 示警后躲掉 | 恢复非防守 | 触发来源 |
 |---|---|---|---|---|---|---|---|---|---|
 ${rows}
 
 > "示警时距顶部"为负表示信号发出时已从顶部回落该幅度（错过的部分）；"示警后躲掉"为负表示防守后市场继续下跌的幅度（保护住的部分）。
+> 提前捕获的严格定义：首次防守信号发出日早于市场顶部日（leadDays > 0）。仅"窗口内出现过防守月"不计为提前捕获。
 
 ## 全期统计
 
@@ -500,9 +514,9 @@ ${rows}
 
 > 本报告为**财政方向反转后**（2026-07-12，"大市场小政府"原则：赤字扩大=收紧）的新口径。与旧口径（赤字扩大=宽松）对比：旧口径四次危机全部提前示警（56/254/236/189 天）但防守占比 83%、假阳性 23/24；新口径见下。
 
-1. **召回率仍是 4/4**：四次大跌全部被捕获（相对顶部：${s.crisisRows.map(c => c.leadDays === null ? '—' : (c.leadDays >= 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)).join('、')}），示警后分别躲掉 ${s.crisisRows.map(c => c.savedPct !== null ? c.savedPct.toFixed(0) + '%' : '—').join('、')} 的后续跌幅。
+1. **捕获情况**：${s.crisisRows.filter(c => c.firstDefMonth).length}/${s.crisisRows.length} 场危机触发防守信号，其中 ${s.crisisRows.filter(c => c.leadDays !== null && c.leadDays > 0).length} 场为提前捕获（信号早于顶部）、${s.crisisRows.filter(c => c.leadDays !== null && c.leadDays <= 0).length} 场为滞后捕获（相对顶部：${s.crisisRows.map(c => c.leadDays === null ? '—' : (c.leadDays > 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)).join('、')}）。滞后捕获多由应对式利率锁在危机演进中接管。
 2. **防守分级已生效（2026-07-12 用户拍板）**：单维收紧=减仓观望（部分仓位），双维共振或锁=全面防守（空仓/对冲）。全面防守占比 ${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（分级前为 74%），大量单维噪声月份降级为减仓观望。
-3. **精确率仍是主要代价**：${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 的防守片段未跟随大回撤，防守期月均仍有 ${f(s.avgDefenseRet)}% 正收益（vs 非防守 ${f(s.avgNonDefenseRet)}%）。若严格按信号空仓执行会错过大量上涨月份。
+3. **精确率仍是主要代价**：${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 的防守片段未跟随大回撤，防守期月均收益 ${f(s.avgDefenseRet)}%（${s.avgDefenseRet >= 0 ? '仍为正，说明防守期常有踏空成本' : '为负，防守有效规避了下跌'}；vs 非防守 ${f(s.avgNonDefenseRet)}%）。若严格按信号空仓执行会错过部分上涨月份。
 4. **对执行层的建议（阈值调优方向，非代码错误）**：
    - 防守分级：单维收紧 → 减仓/观望；双维以上收紧或任一锁激活 → 全面防守。锁与多维共振在历史上与真实危机高度重合。
    - 财政/行政维度可考虑从"OR 即触发"降级为"确认性信号"（需与货币或供需共振才触发防守）。

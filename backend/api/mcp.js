@@ -14,6 +14,7 @@ import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getLatestDailyReport } from '../utils/storage.js';
 import { rateLimit } from './public.js';
+import { ipRateLimit } from '../utils/ip-rate-limit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -111,9 +112,19 @@ router.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'X-API-Key', 'mcp-session-id', 'mcp-protocol-version'],
 }));
 
+// 按 IP 保底限流（发现流程免业务额度，但仍需防匿名高频打满资源；与日额度计费正交）
+router.use(ipRateLimit({ max: 60 }));
+
+// JSON-RPC 请求体可能是单对象或批量数组；判断是否含 tools/call 决定是否计入每日额度。
+// 修复：旧逻辑只看 req.body.method，数组批量时该字段为 undefined → 绕过限流与计费。
+function bodyHasToolCall(body) {
+  if (Array.isArray(body)) return body.some(m => m?.method === 'tools/call');
+  return body?.method === 'tools/call';
+}
+
 router.post('/', (req, res, next) => {
   // 仅工具调用计入每日额度；握手与能力发现免费（Smithery/客户端扫描不吃配额）
-  if (req.body?.method === 'tools/call') return rateLimit(req, res, next).catch(next);
+  if (bodyHasToolCall(req.body)) return rateLimit(req, res, next).catch(next);
   next();
 }, (req, res, next) => {
   (async () => {

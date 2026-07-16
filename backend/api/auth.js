@@ -3,9 +3,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createUser, getUserByEmail } from '../utils/storage.js';
 import { asyncRoute } from '../utils/async-route.js';
+import { ipRateLimit } from '../utils/ip-rate-limit.js';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
+
+// 固定 dummy hash：登录时对不存在的用户也跑一次等价 bcrypt.compare，消除"邮箱是否注册"的时序差
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing-safety', SALT_ROUNDS);
+
+// bcrypt 是 CPU 密集操作，注册/登录不限流会被匿名高频请求打满 CPU 拖垮信号主链路
+const authLimiter = ipRateLimit({ max: 20 });
+router.use(['/register', '/login'], authLimiter);
 
 function signToken(user) {
   return jwt.sign(
@@ -41,10 +49,11 @@ router.post('/login', asyncRoute(async (req, res) => {
   }
 
   const user = await getUserByEmail(email);
-  if (!user) return res.status(401).json({ error: 'invalid credentials' });
-
-  const match = await bcrypt.compare(password, user.password_hash);
-  if (!match) return res.status(401).json({ error: 'invalid credentials' });
+  // 对不存在的用户也跑一次 bcrypt.compare（对比 dummy hash），消除时序差导致的用户枚举
+  const match = user
+    ? await bcrypt.compare(password, user.password_hash)
+    : (await bcrypt.compare(password, DUMMY_HASH), false);
+  if (!user || !match) return res.status(401).json({ error: 'invalid credentials' });
 
   const token = signToken(user);
   res.json({ token, user: { id: user.id, email: user.email } });
@@ -62,7 +71,7 @@ export function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'unauthorized' });
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     next();
   } catch {
     res.status(401).json({ error: 'invalid or expired token' });

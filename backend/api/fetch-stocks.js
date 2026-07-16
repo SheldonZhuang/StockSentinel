@@ -16,13 +16,17 @@ export async function fetchStockData(symbol, startDate, endDate) {
   ]);
 
   const closes = (bars || []).map(b => b.close);
-  const currentPrice = quote?.price ?? closes[closes.length - 1] ?? null;
+  const lastClose = closes[closes.length - 1] ?? null;
+  const currentPrice = quote?.price ?? lastClose;
 
   // 报价链无P/S（FMP免费层只盖大盘股、Yahoo summary端点限流）→ EDGAR XBRL 计算真实P/S
   const currentPS = quote?.priceToSales
     ?? await getPsFromEdgar(normalizeSymbol(symbol), currentPrice);
 
-  const percentile = calcPricePercentile(currentPrice, closes);
+  // 百分位必须在同一价格序列内部比较：历史 bar 走分红复权收盘（adjClose），
+  // 而 quote.price 是未复权实时价——两者混用会把高股息股的当前百分位系统性抬高。
+  // 故用同序列的最后一根 close 参与排位；quote.price 仅用于展示与估值。
+  const percentile = calcPricePercentile(lastClose, closes);
 
   return {
     symbol: symbol.toUpperCase(),

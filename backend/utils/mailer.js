@@ -111,15 +111,18 @@ function dimDetail(dim, d) {
 }
 
 /**
- * 向所有订阅用户发送示警邮件
+ * 向所有订阅用户发送示警邮件。失败重试：转防守/转收紧是产品最贵的一类通知，
+ * Resend 瞬时抖动不应导致永久漏报（快照已落库，次日 detectSignalChanges 不会再报同一变化）。
+ * 对失败的收件人做有限次退避重试；全部失败时以 error 级别记录（可被日志告警捕获）。
  * @param {Array<{email: string}>} subscribers
  * @param {object} payload - 见 buildAlertEmail
+ * @returns {Promise<{sent:number, failed:number}>}
  */
 export async function sendSignalAlert(subscribers, payload) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || apiKey.startsWith('re_placeholder')) {
     console.warn('[mailer] RESEND_API_KEY not configured, skipping email alerts');
-    return;
+    return { sent: 0, failed: 0 };
   }
 
   const resend = new Resend(apiKey);
@@ -128,14 +131,30 @@ export async function sendSignalAlert(subscribers, payload) {
   // 验证域名后改回自有域，如 alerts@stocksentinel.app
   const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
 
-  const results = await Promise.allSettled(
-    subscribers.map(sub =>
-      resend.emails.send({ from, to: sub.email, subject, html })
-    )
-  );
-
-  const failed = results.filter(r => r.status === 'rejected').length;
-  if (failed > 0) {
-    console.warn(`[mailer] ${failed}/${subscribers.length} emails failed to send`);
+  let pending = subscribers.slice();
+  let sent = 0;
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length; attempt++) {
+    const results = await Promise.allSettled(
+      pending.map(sub => resend.emails.send({ from, to: sub.email, subject, html }))
+    );
+    const stillFailing = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') sent++;
+      else stillFailing.push(pending[i]);
+    });
+    pending = stillFailing;
+    if (pending.length && attempt < MAX_ATTEMPTS) {
+      const backoffMs = 1000 * attempt; // 1s, 2s 退避，跨过 Resend 短时抖动
+      await new Promise(res => setTimeout(res, backoffMs));
+    }
   }
+
+  const failed = pending.length;
+  if (failed === subscribers.length && subscribers.length > 0) {
+    console.error(`[mailer] ALL ${subscribers.length} alert emails failed after ${MAX_ATTEMPTS} attempts — signal change may go unnotified`);
+  } else if (failed > 0) {
+    console.warn(`[mailer] ${failed}/${subscribers.length} emails still failed after retries`);
+  }
+  return { sent, failed };
 }

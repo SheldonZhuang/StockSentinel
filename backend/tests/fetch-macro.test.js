@@ -10,7 +10,7 @@ vi.mock('axios', () => {
 });
 
 import axios from 'axios';
-import { fetchMacroData } from '../api/fetch-macro.js';
+import { fetchMacroData, calcRateSteps } from '../api/fetch-macro.js';
 
 function makeObs(values) {
   return values.map((v, i) => ({
@@ -98,5 +98,60 @@ describe('fetchMacroData', () => {
   it('FRED_API_KEY 未设置时抛错', async () => {
     delete process.env.FRED_API_KEY;
     await expect(fetchMacroData()).rejects.toThrow('FRED_API_KEY not set');
+  });
+
+  it('元数据（发布日期）拉取失败不击穿管道，核心字段仍返回', async () => {
+    // 前2次核心序列（利率/资产负债表）成功；其余序列成功；发布日期查询全部 reject
+    let call = 0;
+    axios.get.mockImplementation(() => {
+      call++;
+      if (call <= 8) return Promise.resolve({ data: { observations: makeObs([4.75, 4.25, 4.0]) } });
+      return Promise.reject(new Error('429 rate limited')); // fetchReleaseDate 全挂
+    });
+    const data = await fetchMacroData();
+    expect(data.currentRate).toBe(4.75); // 核心字段不受影响
+    expect(data.corePceReleaseDate).toBeNull(); // 元数据降级为 null
+  });
+
+  it('非核心序列（SAHM）拉取失败降级为 null，不影响利率', async () => {
+    let call = 0;
+    axios.get.mockImplementation(() => {
+      call++;
+      if (call === 8) return Promise.reject(new Error('timeout')); // 第8个是 SAHM
+      if (call <= 8) return Promise.resolve({ data: { observations: makeObs([4.75, 4.25, 4.0]) } });
+      return Promise.resolve({ data: { observations: [{ date: '2024-01-01', value: '4.75', realtime_start: '2024-01-15' }] } });
+    });
+    const data = await fetchMacroData();
+    expect(data.currentRate).toBe(4.75);
+    expect(data.sahmValue).toBeNull(); // SAHM 降级
+  });
+});
+
+describe('calcRateSteps', () => {
+  it('降序观测 → 逐笔非零台阶（date=新值生效日）', () => {
+    const obs = [
+      { date: '2024-03-01', value: '4.00' },
+      { date: '2024-02-01', value: '4.25' },
+      { date: '2024-01-01', value: '4.25' }, // 无变动，不产生台阶
+      { date: '2023-12-01', value: '4.50' },
+    ];
+    expect(calcRateSteps(obs)).toEqual([
+      { date: '2024-03-01', diffBp: -25 },
+      { date: '2024-01-01', diffBp: -25 },
+    ]);
+  });
+
+  it('跳过无效值，空/单元素返回空', () => {
+    expect(calcRateSteps([])).toEqual([]);
+    expect(calcRateSteps([{ date: '2024-01-01', value: '4.5' }])).toEqual([]);
+    expect(calcRateSteps(null)).toEqual([]);
+  });
+
+  it('一次50bp调整产生单笔台阶', () => {
+    const obs = [
+      { date: '2024-02-01', value: '4.50' },
+      { date: '2024-01-01', value: '5.00' },
+    ];
+    expect(calcRateSteps(obs)).toEqual([{ date: '2024-02-01', diffBp: -50 }]);
   });
 });

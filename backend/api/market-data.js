@@ -14,6 +14,12 @@ const FMP_QUOTE_URL = 'https://financialmodelingprep.com/stable/quote';
 const FMP_RATIOS_URL = 'https://financialmodelingprep.com/stable/ratios-ttm';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10分钟：省备用源配额（TwelveData 8次/分钟最紧）并提速自选股页面
 const CLOSES_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 历史日线盘中不变，12小时缓存大幅降低备用源配额消耗
+const CLOSES_TODAY_TTL_MS = 10 * 60 * 1000; // 含当日的序列：最后一根是盘中跳动的半根bar，不能缓存12h当收盘价用
+
+// UTC 今日（与各 provider 的 chart period2 口径一致，用于判断序列是否含"今天"这根未定盘的 bar）
+function utcToday() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const fmpKey = () => process.env.FMP_API_KEY || process.env.financialmodelingprep_API_KEY;
 // TwelveData 免费层 8次/分钟：全局最小调用间隔，超频会返回 status:error 白白烧掉调用
@@ -178,7 +184,9 @@ export async function getDailyCloses(symbol, startDate, endDate) {
         const closes = await fn(symbol, startDate, endDate);
         if (closes) {
           if (name !== 'yahoo' && name !== 'moomoo') console.warn(`[market-data] ${symbol} closes via fallback: ${name}`);
-          cacheSet(key, closes, CLOSES_CACHE_TTL_MS);
+          // endDate 覆盖到今天：最后一根 bar 是盘中实时价（非收盘），用短 TTL 避免把它当收盘价缓存一整天
+          const ttl = endDate >= utcToday() ? CLOSES_TODAY_TTL_MS : CLOSES_CACHE_TTL_MS;
+          cacheSet(key, closes, ttl);
           return closes;
         }
       } catch (err) {

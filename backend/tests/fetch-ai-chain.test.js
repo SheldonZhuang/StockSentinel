@@ -96,6 +96,21 @@ describe('calcCapexYoY', () => {
   it('全部公司数据不足 → 全 null', () => {
     expect(calcCapexYoY({ MSFT: q([-100, -100]) })).toEqual({ capexYoY: null, capexTtm: null, capexPrevTtm: null });
   });
+
+  it('最新季度过期（>400天，如换XBRL标签致数据冻结）→ 该公司剔除', () => {
+    const dated = (latestEnd, vals) => vals.map((v, i) => {
+      const d = new Date(latestEnd);
+      d.setMonth(d.getMonth() - i * 3); // 每季往前3个月
+      return { date: d.toISOString().slice(0, 10), capitalExpenditure: v };
+    });
+    const quarters = {
+      FRESH: dated('2026-06-30', [-110, -110, -110, -110, -100, -100, -100, -100]),
+      STALE: dated('2024-01-31', [-999, -999, -999, -999, -1, -1, -1, -1]), // 最新季>400天前 → 剔除
+    };
+    const r = calcCapexYoY(quarters);
+    expect(r.capexYoY).toBeCloseTo(10, 5); // 只算 FRESH，STALE 不污染
+    expect(r.capexTtm).toBe(440);
+  });
 });
 
 // SEC XBRL facts → 离散季度值（10-Q 现金流按财年累计披露，需相邻相减）
@@ -149,7 +164,7 @@ describe('deriveQuarterlyCapex', () => {
 });
 
 describe('calcStageRelReturns / rankStages', () => {
-  const bars = closes => closes.map(c => ({ close: c }));
+  const bars = closes => closes.map((c, i) => ({ date: `2024-01-0${i + 1}`, close: c }));
   const bench = bars([100, 100]); // SPY 0%
 
   it('等权平均；无效标的剔除；全无效环节 → null', () => {
@@ -201,8 +216,8 @@ describe('fetchAiChainData', () => {
     delete process.env.TWELVEDATA_API_KEY;
   });
 
-  const flatBars = [{ close: 100 }, { close: 100 }];
-  const upBars = [{ close: 100 }, { close: 110 }];
+  const flatBars = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 100 }];
+  const upBars = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 110 }];
   const orRows = (() => {
     // 35个完整天，前28天100、近7天110（相对昨天为止）
     const rows = [];

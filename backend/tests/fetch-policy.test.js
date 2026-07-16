@@ -92,21 +92,34 @@ describe('calcWindowChangePct', () => {
 });
 
 describe('calcRelativeReturn', () => {
-  it('SMH 涨 20%，SPY 涨 5% → 相对收益 +15%', () => {
-    const smh = [{ close: 100 }, { close: 110 }, { close: 120 }];
-    const spy = [{ close: 200 }, { close: 205 }, { close: 210 }];
+  it('SMH 涨 20%，SPY 涨 5% → 相对收益 +15%（同区间对齐）', () => {
+    const smh = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 110 }, { date: '2024-01-03', close: 120 }];
+    const spy = [{ date: '2024-01-01', close: 200 }, { date: '2024-01-02', close: 205 }, { date: '2024-01-03', close: 210 }];
     expect(calcRelativeReturn(smh, spy)).toBeCloseTo(15, 5);
   });
 
   it('缺失 close 的 bar 被跳过', () => {
-    const smh = [{ close: null }, { close: 100 }, { close: 120 }];
-    const spy = [{ close: 200 }, { close: 200 }];
+    const smh = [{ date: '2024-01-01', close: null }, { date: '2024-01-02', close: 100 }, { date: '2024-01-03', close: 120 }];
+    const spy = [{ date: '2024-01-02', close: 200 }, { date: '2024-01-03', close: 200 }];
     expect(calcRelativeReturn(smh, spy)).toBeCloseTo(20, 5);
   });
 
   it('有效数据点不足2个 → null', () => {
-    expect(calcRelativeReturn([{ close: 100 }], [{ close: 200 }, { close: 210 }])).toBe(null);
-    expect(calcRelativeReturn(null, [{ close: 200 }, { close: 210 }])).toBe(null);
+    expect(calcRelativeReturn([{ date: '2024-01-01', close: 100 }], [{ date: '2024-01-01', close: 200 }, { date: '2024-01-02', close: 210 }])).toBe(null);
+    expect(calcRelativeReturn(null, [{ date: '2024-01-01', close: 200 }, { date: '2024-01-02', close: 210 }])).toBe(null);
+  });
+
+  it('窗口不等长时对齐到共同区间，避免新标的被系统性误判', () => {
+    // semi 只覆盖后半段（如新 IPO），bench 覆盖全程 → 只比共同区间 [01-02, 01-03]
+    const semi = [{ date: '2024-01-02', close: 100 }, { date: '2024-01-03', close: 110 }]; // 共同区间 +10%
+    const bench = [{ date: '2024-01-01', close: 200 }, { date: '2024-01-02', close: 200 }, { date: '2024-01-03', close: 210 }]; // 共同区间 +5%
+    expect(calcRelativeReturn(semi, bench)).toBeCloseTo(5, 5);
+  });
+
+  it('无重叠区间 → null（不可比）', () => {
+    const semi = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 110 }];
+    const bench = [{ date: '2024-03-01', close: 200 }, { date: '2024-03-02', close: 210 }];
+    expect(calcRelativeReturn(semi, bench)).toBe(null);
   });
 });
 
@@ -157,8 +170,8 @@ describe('fetchPolicyData', () => {
     });
     yahooFinance.historical.mockImplementation(symbol =>
       Promise.resolve(symbol === 'SMH'
-        ? [{ close: 100 }, { close: 112 }]
-        : [{ close: 200 }, { close: 202 }])
+        ? [{ date: new Date('2024-01-01'), close: 100 }, { date: new Date('2024-01-02'), close: 112 }]
+        : [{ date: new Date('2024-01-01'), close: 200 }, { date: new Date('2024-01-02'), close: 202 }])
     );
 
     const data = await fetchPolicyData();

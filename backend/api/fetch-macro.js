@@ -62,6 +62,23 @@ export function prevValue(observations) {
 }
 
 /**
+ * 利率台阶扫描：相邻有效观测间的每次变动（降序输入 → 降序输出 {date, diffBp}，date=新值生效日）。
+ * 供锁触发判定用：端点差会把停机窗口内两次 25bp 聚合成假 50bp"应对式"，
+ * 逐笔台阶还能补检"触发日 cron 失败"错过的调整事件（只要仍在回看窗口内）。
+ */
+export function calcRateSteps(observations) {
+  const valid = (observations || [])
+    .map(o => ({ date: o.date, v: parseFloat(o.value) }))
+    .filter(o => !isNaN(o.v));
+  const steps = [];
+  for (let i = 0; i + 1 < valid.length; i++) {
+    const diffBp = Math.round((valid[i].v - valid[i + 1].v) * 100);
+    if (diffBp !== 0) steps.push({ date: valid[i].date, diffBp });
+  }
+  return steps;
+}
+
+/**
  * 拉取所有 FRED 指标，返回结构化对象
  * @returns {object} macroData
  */
@@ -75,15 +92,22 @@ export async function fetchMacroData() {
   const unStart = daysAgoET(400);
   const sahmStart = daysAgoET(400);
 
+  // 利率与资产负债表是货币信号的必要输入，失败即 throw（调用方整体降级）；
+  // 其余序列各自独立降级为空数组——SAHM/失业率/PCE 任一瞬时 429 不应击穿整条每日管道
+  const degraded = (promise, label) => promise.catch(err => {
+    console.warn(`[fetch-macro] ${label} fetch failed (degraded to null):`, err.message);
+    return [];
+  });
+
   const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs] = await Promise.all([
     fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
     fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
-    fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'),       // 同比变动百分比
-    fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_1M, pceStart, apiKey),   // 本身就是年化变动率
-    fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE, pceStart, apiKey),       // 本身就是年化变动率
-    fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_12M, pceStart, apiKey),  // 本身就是同比变动率
-    fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey),
-    fetchSeries(FRED_SERIES.SAHM, sahmStart, apiKey),
+    degraded(fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'), 'CORE_PCE'),       // 同比变动百分比
+    degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_1M, pceStart, apiKey), 'TRIMMED_PCE_1M'),   // 本身就是年化变动率
+    degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE, pceStart, apiKey), 'TRIMMED_PCE'),       // 本身就是年化变动率
+    degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_12M, pceStart, apiKey), 'TRIMMED_PCE_12M'),  // 本身就是同比变动率
+    degraded(fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey), 'UNEMPLOYMENT'),
+    degraded(fetchSeries(FRED_SERIES.SAHM, sahmStart, apiKey), 'SAHM'),
   ]);
 
   const currentBalanceSheet = latestValue(bsObs);
@@ -95,18 +119,26 @@ export async function fetchMacroData() {
   const trimmedPce12mPeriodDate = latestDate(trimmedPce12mObs);
   const unemploymentPeriodDate = latestDate(unrateObs);
   const sahmPeriodDate = latestDate(sahmObs);
+  // 发布日期是纯展示性元数据：任一失败不得击穿管道（曾因无 catch 导致整个 runDailyUpdate 中止）
+  const releaseDateSafe = (seriesId, periodDate) => periodDate
+    ? fetchReleaseDate(seriesId, periodDate, apiKey).catch(err => {
+        console.warn(`[fetch-macro] release date for ${seriesId} failed (display-only, ignored):`, err.message);
+        return null;
+      })
+    : null;
   const [corePceReleaseDate, trimmedPce1mReleaseDate, trimmedPceReleaseDate, trimmedPce12mReleaseDate, unemploymentReleaseDate, sahmReleaseDate] = await Promise.all([
-    corePcePeriodDate ? fetchReleaseDate(FRED_SERIES.CORE_PCE, corePcePeriodDate, apiKey) : null,
-    trimmedPce1mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_1M, trimmedPce1mPeriodDate, apiKey) : null,
-    trimmedPcePeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE, trimmedPcePeriodDate, apiKey) : null,
-    trimmedPce12mPeriodDate ? fetchReleaseDate(FRED_SERIES.TRIMMED_MEAN_PCE_12M, trimmedPce12mPeriodDate, apiKey) : null,
-    unemploymentPeriodDate ? fetchReleaseDate(FRED_SERIES.UNEMPLOYMENT, unemploymentPeriodDate, apiKey) : null,
-    sahmPeriodDate ? fetchReleaseDate(FRED_SERIES.SAHM, sahmPeriodDate, apiKey) : null,
+    releaseDateSafe(FRED_SERIES.CORE_PCE, corePcePeriodDate),
+    releaseDateSafe(FRED_SERIES.TRIMMED_MEAN_PCE_1M, trimmedPce1mPeriodDate),
+    releaseDateSafe(FRED_SERIES.TRIMMED_MEAN_PCE, trimmedPcePeriodDate),
+    releaseDateSafe(FRED_SERIES.TRIMMED_MEAN_PCE_12M, trimmedPce12mPeriodDate),
+    releaseDateSafe(FRED_SERIES.UNEMPLOYMENT, unemploymentPeriodDate),
+    releaseDateSafe(FRED_SERIES.SAHM, sahmPeriodDate),
   ]);
 
   return {
     currentRate: latestValue(rateObs),
     prevRate: prevValue(rateObs),
+    rateSteps: calcRateSteps(rateObs),
     currentBalanceSheet,
     prevBalanceSheet,
     corePce: latestValue(corePceObs),

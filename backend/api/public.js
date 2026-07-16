@@ -7,6 +7,7 @@ import { asyncRoute } from '../utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage } from '../utils/storage.js';
+import { ipRateLimit } from '../utils/ip-rate-limit.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,6 +17,9 @@ const router = express.Router();
 
 // 公开API对所有来源开放（区别于内部 /api/* 的白名单CORS）
 router.use(cors({ origin: '*' }));
+
+// 按 IP 保底限流：无效 key / keyless 走 401 路径不计日额度，需此闸防止匿名高频刷 DB 与烧配额
+router.use(ipRateLimit({ max: 120 }));
 
 // 每日请求额度（UTC日）：keyless 试用 / free / pro
 const TIER_DAILY_LIMITS = { keyless: 25, free: 250, pro: 10000 };
@@ -61,15 +65,32 @@ const flushTimer = setInterval(async () => {
 flushTimer.unref(); // 不阻塞进程退出
 const keyCache = new Map(); // key → { record, at }
 const KEY_CACHE_TTL_MS = 5 * 60 * 1000;
+const KEY_CACHE_MAX = 5000; // 上限防投毒：轮换随机无效 key 会让缓存无界增长直至 OOM
+
+// 管理员禁用 key 后调用，立即失效缓存——否则被盗刷的 key 在"禁用"后仍可用最长 5 分钟，
+// 恰是应急止损最关键的时刻。按 id 反查不便，直接清空（缓存重建成本极低）。
+export function invalidateKeyCache() {
+  keyCache.clear();
+}
 
 async function resolveTier(req) {
-  const key = req.get('X-API-Key') || req.query.api_key;
+  // 只认 X-API-Key 请求头：查询参数 ?api_key= 会泄漏到代理/平台日志、浏览器历史、Referer，
+  // 等于把长期有效的付费密钥写进多处明文日志，已移除该支持
+  const key = req.get('X-API-Key');
   if (!key) return { id: `ip:${req.ip}`, tier: 'keyless' };
 
   const cached = keyCache.get(key);
   let record = cached && Date.now() - cached.at < KEY_CACHE_TTL_MS ? cached.record : undefined;
   if (record === undefined) {
     record = await getApiKeyRecord(key).catch(() => null);
+    // 容量上限：超限先清过期项，仍超则清空——防止轮换随机无效 key 撑爆内存
+    if (keyCache.size >= KEY_CACHE_MAX) {
+      const now = Date.now();
+      for (const [k, v] of keyCache) {
+        if (now - v.at >= KEY_CACHE_TTL_MS) keyCache.delete(k);
+      }
+      if (keyCache.size >= KEY_CACHE_MAX) keyCache.clear();
+    }
     keyCache.set(key, { record, at: Date.now() });
   }
   if (!record) return null; // 无效或已禁用的 key

@@ -14,6 +14,7 @@ import { fetchFederalRegister } from './fetch-federal-register.js';
 import { fetchAiSupplyNews } from './fetch-rss.js';
 import chainCfg from '../config/ai-chain.config.js';
 import { asyncRoute } from '../utils/async-route.js';
+import { invalidateKeyCache } from './public.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
@@ -144,6 +145,7 @@ router.patch('/api-keys/:id', requireAdmin, asyncRoute(async (req, res) => {
   const id = parseInt(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'bad id' });
   await setApiKeyDisabled(id, !!req.body?.disabled);
+  invalidateKeyCache(); // 立即失效缓存，禁用即时生效（否则最长 5 分钟仍可用）
   res.json({ ok: true });
 }));
 

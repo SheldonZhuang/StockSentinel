@@ -53,6 +53,11 @@ import { backupDatabase } from './utils/backup.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// 部署在 Railway：只信任最外层一跳代理，使 req.ip 取到真实客户端 IP（而非代理层 IP，
+// 否则所有匿名用户塌缩进同一个 keyless 桶，任一人 25 次即耗尽全网免费额度）。
+// 不用 true（信任全链）——那样 X-Forwarded-For 可被客户端完全伪造以刷额度。
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
   'http://localhost:5173',
   'https://stock-sentinel-eight.vercel.app',
@@ -61,7 +66,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '256kb' })); // 限制请求体，防超大 JSON 打满内存
 
 // --- 路由 ---
 app.use('/api/auth', authRouter);
@@ -129,13 +134,25 @@ app.patch('/api/user/alerts', requireAuth, asyncRoute(async (req, res) => {
  *            sahmLockOverridden, reactiveAdjustmentLockOverridden}}
  */
 function computeLocks(macroData, prevSnapshot, overrides) {
-  const { currentRate, prevRate, sahmValue } = macroData;
+  const { currentRate, prevRate, sahmValue, rateSteps } = macroData;
   // 利率变动基线优先用上一快照：FRED 序列相邻观测差只在变动次日非零，
   // 当天 cron 恰好缺跑就永久漏检；快照差跨任意天数仍能捕捉调整事件（首次运行退回序列前值）
   const baselineRate = prevSnapshot?.fred_rate ?? prevRate;
-  const rateDiffBp = currentRate !== null && baselineRate !== null && baselineRate !== undefined
+  const endpointDiffBp = currentRate !== null && baselineRate !== null && baselineRate !== undefined
     ? Math.round((currentRate - baselineRate) * 100)
     : null;
+
+  // 调整事件判定优先用 FRED 序列在 (上次快照日, 今天] 内的逐笔台阶：
+  // 端点差会把停机窗口内两次渐进 25bp 聚合成一次假 50bp"应对式"触发；
+  // 台阶扫描保留每次调整的真实幅度（取窗口内幅度最大的一笔）。
+  // 首跑（无快照）只看最近一笔台阶（与旧行为等价）；
+  // 序列回看窗口覆盖不到快照日或无台阶时，退回端点差兜底。
+  const sinceDate = prevSnapshot?.date ?? null;
+  const allSteps = rateSteps || [];
+  const stepsSince = sinceDate ? allSteps.filter(s => s.date > sinceDate) : allSteps.slice(0, 1);
+  const rateDiffBp = stepsSince.length
+    ? stepsSince.reduce((a, b) => (Math.abs(b.diffBp) > Math.abs(a.diffBp) ? b : a)).diffBp
+    : endpointDiffBp;
 
   const prevSahmLockActive = prevSnapshot ? !!prevSnapshot.sahm_lock_active : false;
   const prevReactiveLockActive = prevSnapshot ? !!prevSnapshot.reactive_adjustment_lock_active : false;
@@ -191,21 +208,29 @@ async function runDailyUpdate() {
   const policyData = await fetchPolicyData();
   // AI产业链数据串行在 policy 之后拉取，避免与其他 Yahoo 调用并发触发限流
   const chainData = await fetchAiChainData();
-  const bubble = calcBubbleWarning(chainData);
+
+  const today = todayET();
+  const prevSnapshot = await getLatestSnapshot();
+
+  // 泡沫预警 stale-keep：调用量与 capex 双双为 null（=数据通道故障，OpenRouter/EDGAR 独立于行情源）
+  // 时无法区分"预警解除"与"拉取失败"，沿用上一快照的预警状态——
+  // 防止故障日静默撤销强制收紧、发出假"转好"邮件，数据恢复日又重复发一封预警
+  const bubbleAuto = calcBubbleWarning(chainData);
+  const bubbleDataMissing = chainData.modelUsageTrendPct == null && chainData.capexYoY == null;
+  const bubbleStale = bubbleDataMissing && !bubbleAuto.warning && !!prevSnapshot?.ai_bubble_warning;
+  const bubble = bubbleStale ? { warning: true, reasons: ['stale-keep'] } : bubbleAuto;
 
   const fiscalAuto = calcFiscalSignal(policyData);
   const adminAuto = calcAdminSignal(policyData);
   const aiSupplyAuto = calcAiSupplySignal(policyData, bubble);
   const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
 
-  const today = todayET();
-  const prevSnapshot = await getLatestSnapshot();
-
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
   const fiscalStale = policyData.outlaysChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
   // 行政 stale：EPU双路全黑，且油价拿不到或未触发事件层（即没有任何一路能给出数据驱动结论）
-  const oilInconclusive = policyData.oilChange30dPct == null || Math.abs(policyData.oilChange30dPct) < 20;
+  const oilInconclusive = policyData.oilChange30dPct == null
+    || Math.abs(policyData.oilChange30dPct) < signalCfg.OIL_SHOCK_PCT;
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
     && oilInconclusive && !!prevSnapshot?.admin_auto_signal;
   const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;

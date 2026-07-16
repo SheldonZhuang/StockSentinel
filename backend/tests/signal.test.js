@@ -222,6 +222,12 @@ describe('calcAdminSignal', () => {
     expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: null, oilChange30dPct: -24 })).toBe('loose');
   });
 
+  it('油价暴跌但EPU双路全缺失 → 护栏fail-closed，不判宽松（危机日常伴数据故障）', () => {
+    // 无法区分缓和型vs危机需求型暴跌 → 不走宽松，回落EPU判定（全缺→观望）
+    expect(calcAdminSignal({ epuTradePercentile: null, epuDailyPercentile: null, oilChange30dPct: -24 })).toBe('neutral');
+    expect(calcAdminSignal({ oilChange30dPct: -30 })).toBe('neutral');
+  });
+
   it('油价波动在±20%以内 → 回落到EPU双代理判定', () => {
     expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 88, oilChange30dPct: 5 })).toBe('tight');
     expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: -10 })).toBe('loose');

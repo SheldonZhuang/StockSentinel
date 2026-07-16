@@ -54,17 +54,34 @@ export function calcPercentile(latest, values) {
 }
 
 /**
- * 两个日线序列的区间收益差（首个有效close → 最后有效close），单位 %
+ * 两个日线序列的区间收益差，单位 %。
+ * 先对齐到两序列的共同日期区间（交集的首末交易日），避免窗口不等长导致的失真：
+ * 新上市标的（AI 篮子常有新 IPO）或跨 provider 回退（Yahoo 全量 vs TwelveData 截断历史）时，
+ * 一方只覆盖 40 天、另一方 90 天，直接比首末 close 会把该标的系统性误判为跑输/跑赢。
+ * 共同交易日不足 minOverlap 则返回 null（数据不可比，交由上层降级）。
  * @returns {number|null} semiRet - benchRet
  */
-export function calcRelativeReturn(semiBars, benchBars) {
-  const ret = bars => {
-    const closes = (bars || []).map(b => b.close).filter(v => v !== null && v !== undefined && !isNaN(v));
-    if (closes.length < 2) return null;
-    return (closes[closes.length - 1] / closes[0] - 1) * 100;
+export function calcRelativeReturn(semiBars, benchBars, minOverlap = 2) {
+  const clean = bars => (bars || [])
+    .filter(b => b && b.date && b.close !== null && b.close !== undefined && !isNaN(b.close));
+  const semi = clean(semiBars);
+  const bench = clean(benchBars);
+  if (semi.length < minOverlap || bench.length < minOverlap) return null;
+
+  // 对齐到共同区间 [max(首日), min(末日)]，各自取该区间内首末有效 close
+  const lo = semi[0].date > bench[0].date ? semi[0].date : bench[0].date;
+  const semiHi = semi[semi.length - 1].date;
+  const benchHi = bench[bench.length - 1].date;
+  const hi = semiHi < benchHi ? semiHi : benchHi;
+  if (lo >= hi) return null;
+
+  const windowRet = bars => {
+    const win = bars.filter(b => b.date >= lo && b.date <= hi);
+    if (win.length < minOverlap) return null;
+    return (win[win.length - 1].close / win[0].close - 1) * 100;
   };
-  const semiRet = ret(semiBars);
-  const benchRet = ret(benchBars);
+  const semiRet = windowRet(semi);
+  const benchRet = windowRet(bench);
   if (semiRet === null || benchRet === null) return null;
   return semiRet - benchRet;
 }

@@ -88,11 +88,16 @@ export function calcCapexYoY(quartersBySymbol) {
   let ttm = 0;
   let prevTtm = 0;
   let qualified = 0;
+  const staleBeforeMs = Date.now() - 400 * 86400000; // 最新季度需在400天内，防某公司换XBRL标签后旧数据冻结
   for (const quarters of Object.values(quartersBySymbol || {})) {
-    const values = (quarters || [])
-      .map(q => parseFloat(q.capitalExpenditure))
-      .filter(v => !isNaN(v));
-    if (values.length < 8) continue;
+    const valid = (quarters || [])
+      .filter(q => !isNaN(parseFloat(q.capitalExpenditure)));
+    if (valid.length < 8) continue;
+    // 新鲜度校验：某公司改 capex 科目命名会让旧标签数据停在历史某季，
+    // 与其他公司的当季数据加总会静默污染同比。最新季度过期则整体剔除（口径同 sumTtmRevenue）
+    const latestEnd = valid[0].date;
+    if (latestEnd && new Date(latestEnd).getTime() < staleBeforeMs) continue;
+    const values = valid.map(q => parseFloat(q.capitalExpenditure));
     qualified++;
     ttm += Math.abs(values.slice(0, 4).reduce((a, b) => a + b, 0));
     prevTtm += Math.abs(values.slice(4, 8).reduce((a, b) => a + b, 0));

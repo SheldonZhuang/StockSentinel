@@ -119,7 +119,11 @@ async function fetchRevenueTtm(cik) {
       const res = await edgarGet(conceptUrl(cik, taxonomy, concept));
       const ttm = sumTtmRevenue(res.data?.units?.USD);
       if (ttm) return ttm;
-    } catch { /* 科目不存在(404)属正常，试下一个 */ }
+    } catch (err) {
+      // 404 = 该科目不存在，属正常，试下一个；其它（超时/5xx/断网）向上抛，
+      // 让 getFundamentals 区分"真无财报"与"拉取失败"，避免把瞬时故障负缓存24小时
+      if (err?.response?.status !== 404) throw err;
+    }
   }
   return null;
 }
@@ -151,10 +155,13 @@ async function getFundamentals(symbol) {
       entry.revenue = await fetchRevenueTtm(cik);
       entry.shares = entry.revenue ? await fetchSharesOutstanding(cik) : null;
     }
+    // 只有确定拉通（含"确认无财报"）才缓存：null 缓存本意是给 ETF/无财报标的，
+    // 不能把瞬时网络故障也钉死 24 小时（否则故障日 watchlist 全 P/S=null 且当天不再重试）
+    fundamentalsCache.set(symbol, entry);
   } catch (err) {
-    console.warn(`[fundamentals] EDGAR(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
+    console.warn(`[fundamentals] EDGAR(${symbol}) failed (not cached, will retry):`, err?.message || String(err).slice(0, 120));
+    // 不写缓存 → 下次访问重试；返回本次的空 entry 供当次请求降级
   }
-  fundamentalsCache.set(symbol, entry);
   return entry;
 }
 

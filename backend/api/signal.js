@@ -131,8 +131,11 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
   if (oilChange30dPct !== null && oilChange30dPct !== undefined) {
     if (oilChange30dPct >= OIL_SHOCK_PCT) return SIGNAL.TIGHT;
     const guardPct = epuDailyPercentile ?? epuTradePercentile; // 优先用更新鲜的日频做护栏
-    const uncertaintyHigh = guardPct !== null && guardPct !== undefined && guardPct > EPU_PERCENTILE_TIGHT;
-    if (oilChange30dPct <= -OIL_SHOCK_PCT && !uncertaintyHigh) return SIGNAL.LOOSE;
+    // 护栏 fail-closed：EPU 双路全缺时无法区分"缓和型暴跌"与"危机需求崩塌型暴跌"，
+    // 不判宽松，落回下方 EPU 双代理判定（全缺→观望）。危机日恰恰最容易伴随数据源故障。
+    const guardKnown = guardPct !== null && guardPct !== undefined;
+    const uncertaintyHigh = guardKnown && guardPct > EPU_PERCENTILE_TIGHT;
+    if (oilChange30dPct <= -OIL_SHOCK_PCT && guardKnown && !uncertaintyHigh) return SIGNAL.LOOSE;
   }
 
   const tradeSignal = epuPercentileSignal(epuTradePercentile);
