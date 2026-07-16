@@ -105,11 +105,39 @@ export function calcTtmChange(observations) {
 }
 
 /**
- * 财政：联邦月度支出 → TTM同比变化（支出=政府规模，"大市场小政府"原则的直接度量）
+ * 财政：联邦月度支出 → 实际(剔除通胀)TTM同比变化（支出=政府规模，"大市场小政府"原则的直接度量）
+ * 用实际支出而非名义：名义支出自然增速≈名义GDP≈5%，卡在阈值上会让财政约一半时间预挂收紧
+ * （假警报主因）。剔除通胀后，实际同比围绕零漂移，阈值只在政府真实扩张/收缩时触发。
+ * 实际同比 ≈ 名义TTM同比 − 同期TTM平均PCE通胀
  */
 export async function fetchFiscalData(apiKey) {
   const obs = await fetchSeries(FRED_SERIES.FISCAL_OUTLAYS, daysAgoET(FISCAL_LOOKBACK_DAYS), apiKey);
-  const { ttmCurrent, ttmPrevYear, changePct } = calcTtmChange(obs);
+  const { ttmCurrent, ttmPrevYear, changePct: nominalChangePct } = calcTtmChange(obs);
+
+  // 同期通胀：PCE价格指数近12月均值 vs 前12月均值的同比（与支出TTM窗口对齐）
+  let inflationPct = null;
+  try {
+    const pceObs = await fetchSeries(FRED_SERIES.PCE_PRICE_INDEX, daysAgoET(FISCAL_LOOKBACK_DAYS), apiKey);
+    const pceVals = [];
+    for (const o of pceObs) {
+      const v = parseFloat(o.value);
+      if (!isNaN(v)) pceVals.push(v);
+      if (pceVals.length === 24) break;
+    }
+    if (pceVals.length >= 24) {
+      const avgCur = pceVals.slice(0, 12).reduce((a, b) => a + b, 0) / 12;
+      const avgPrev = pceVals.slice(12, 24).reduce((a, b) => a + b, 0) / 12;
+      if (avgPrev !== 0) inflationPct = (avgCur / avgPrev - 1) * 100;
+    }
+  } catch (err) {
+    console.warn('[fetch-policy] PCE price index fetch failed, fiscal falls back to nominal:', err.message);
+  }
+
+  // 实际支出同比 = 名义同比 − 通胀（通胀拉取失败则退回名义，保持可用）
+  const realChangePct = (nominalChangePct !== null && inflationPct !== null)
+    ? nominalChangePct - inflationPct
+    : nominalChangePct;
+
   const fiscalPeriodDate = latestDate(obs);
   const fiscalReleaseDate = fiscalPeriodDate
     ? await fetchReleaseDate(FRED_SERIES.FISCAL_OUTLAYS, fiscalPeriodDate, apiKey).catch(() => null)
@@ -117,7 +145,9 @@ export async function fetchFiscalData(apiKey) {
   return {
     outlaysTtm: ttmCurrent,
     outlaysTtmPrev: ttmPrevYear,
-    outlaysChangePct: changePct,
+    outlaysChangePct: realChangePct,       // 实际同比（信号判定用）
+    outlaysNominalChangePct: nominalChangePct, // 名义同比（展示/诊断用）
+    fiscalInflationPct: inflationPct,
     fiscalPeriodDate,
     fiscalReleaseDate,
   };

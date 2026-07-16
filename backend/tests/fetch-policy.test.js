@@ -146,7 +146,9 @@ describe('fetchPolicyData', () => {
     });
   }
 
-  const fiscalObs = monthlyObs(25, i => (i < 12 ? 110 : 100)); // 支出：最近12月110 vs 之前100 → +10%
+  const fiscalObs = monthlyObs(25, i => (i < 12 ? 110 : 100)); // 支出：最近12月110 vs 之前100 → 名义+10%
+  // PCEPI（desc）：近12月均值102 vs 前12月均值100 → 通胀≈2% → 实际支出同比≈10%−2%=8%
+  const pcepiObs = monthlyObs(25, i => (i < 12 ? 102 : 100));
   const epuObs = monthlyObs(120, i => 100 + i); // 最新值100为最小 → 低百分位
   // 日频序列（desc）：最新7天都是200，之前80天都是100 → 7日均线最新=200为最大 → 100分位
   const epuDailyObs = Array.from({ length: 87 }, (_, i) => ({
@@ -163,6 +165,7 @@ describe('fetchPolicyData', () => {
   it('正常返回三个维度的全部字段', async () => {
     mockFredBySeriesId({
       MTSO133FMS: fiscalObs,
+      PCEPI: pcepiObs,
       EPUTRADE: epuObs,
       USEPUINDXD: epuDailyObs,
       DCOILWTICO: oilObs,
@@ -176,7 +179,9 @@ describe('fetchPolicyData', () => {
 
     const data = await fetchPolicyData();
     expect(data.outlaysTtm).toBe(1320);
-    expect(data.outlaysChangePct).toBeCloseTo(10, 5);
+    expect(data.outlaysNominalChangePct).toBeCloseTo(10, 5); // 名义同比
+    expect(data.fiscalInflationPct).toBeCloseTo(2, 1);       // 通胀≈2%
+    expect(data.outlaysChangePct).toBeCloseTo(8, 1);         // 实际同比=名义−通胀≈8%
     expect(data.fiscalPeriodDate).toBe('2026-05-01');
     expect(data.epuTrade).toBe(100);
     expect(data.epuTradePercentile).toBeCloseTo(0.8, 1); // 1/120

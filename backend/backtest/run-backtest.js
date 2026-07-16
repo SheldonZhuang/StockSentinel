@@ -97,7 +97,8 @@ export function replayMonth(m, prevState) {
   const monetary = rateSignal === S.TIGHT ? S.TIGHT
     : (rateSignal === S.LOOSE && bsSignal !== S.TIGHT) ? S.LOOSE : S.NEUTRAL;
 
-  // 财政 ±5%（"大市场小政府"：联邦支出扩大=政府变大→tight，收缩→loose）
+  // 财政：实际支出同比（名义TTM同比 − 同期TTM通胀），与线上 fetchFiscalData 同口径。
+  // 剔除通胀让阈值围绕零漂移，消除名义支出自然增速导致的"预挂收紧"
   const fiscal = m.fiscalChangePct === null ? S.NEUTRAL
     : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT
     : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
@@ -257,7 +258,7 @@ async function main() {
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pcepi] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
@@ -265,6 +266,7 @@ async function main() {
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
     fredSeries('DCOILWTICO', apiKey),
+    fredSeries('PCEPI', apiKey), // PCE价格指数，财政支出通胀平减用
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -275,6 +277,7 @@ async function main() {
   const epuM = sampleMonthEnd(epu);
   const sahmM = sampleMonthEnd(sahm);
   const oilM = sampleMonthEnd(oil);
+  const pcepiM = sampleMonthEnd(pcepi);
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
@@ -301,8 +304,21 @@ async function main() {
     const prevWalcl = timeline.length ? (walclMap.get(timeline[timeline.length - 1].month) ?? null) : null;
 
     const asOf = prevMonthOf(month); // 发布滞后：只用 M-1 月及更早的月度观测
-    // 财政：截至 M-1 月的月度值序列
+    // 财政：截至 M-1 月的月度值序列 → 实际同比（名义TTM同比 − 同期TTM通胀）
     const fiscalHist = fiscalM.filter(o => o.month <= asOf).map(o => o.value);
+    const nominalFiscalPct = ttmChangePct(fiscalHist);
+    // 同期通胀：PCEPI 近12月均值 vs 前12月均值同比（与支出TTM窗口对齐）
+    const pcepiHist = pcepiM.filter(o => o.month <= asOf).map(o => o.value);
+    let fiscalInflationPct = null;
+    if (pcepiHist.length >= 24) {
+      const last24 = pcepiHist.slice(-24);
+      const avgCur = last24.slice(12).reduce((a, b) => a + b, 0) / 12;
+      const avgPrev = last24.slice(0, 12).reduce((a, b) => a + b, 0) / 12;
+      if (avgPrev !== 0) fiscalInflationPct = (avgCur / avgPrev - 1) * 100;
+    }
+    const realFiscalPct = (nominalFiscalPct !== null && fiscalInflationPct !== null)
+      ? nominalFiscalPct - fiscalInflationPct
+      : nominalFiscalPct;
     // 行政：EPU 截至 M-1 月近10年（120个月）窗口百分位 —— 无前视且建模发布滞后
     const epuHist = epuM.filter(o => o.month <= asOf).slice(-120);
     const epuLatest = epuHist.length && epuHist[epuHist.length - 1].month === asOf ? epuHist[epuHist.length - 1].value : null;
@@ -310,7 +326,7 @@ async function main() {
     const r = replayMonth({
       rate, prevRate,
       walcl: walclV, prevWalcl,
-      fiscalChangePct: ttmChangePct(fiscalHist),
+      fiscalChangePct: realFiscalPct,
       epuPercentile: epuLatest !== null ? percentileAsOf(epuLatest, epuHist.map(o => o.value)) : null,
       oilChangePct: (() => {
         const cur = oilMap.get(month), prev = timeline.length ? oilMap.get(timeline[timeline.length - 1].month) : null;
