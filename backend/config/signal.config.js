@@ -3,6 +3,12 @@ export default {
   // 利率判定：单次调整幅度(绝对值) >= 50bp 视为应对式加息/应对式降息（防守信号），方向不限
   RATE_REACTIVE_ADJUSTMENT_BP: 50,
 
+  // 实际利率门控（修复"渐进加息被判宽松"）：实际利率 = 名义利率上限 − 12月截尾均值PCE同比。
+  // 当实际利率 > 此阈值，说明货币立场已明显紧缩（如2004-06连续25bp累计+425bp、2023加息到5.5%），
+  // 即便当期无≥50bp应对式调整，利率子信号也不得输出loose（封顶neutral）——
+  // 区分"政策冲量步长小"与"政策立场水平已高"。中性实际利率约0.5%，取1.0%为明显紧缩线。
+  REAL_RATE_RESTRICTIVE_PCT: 1.0,
+
   // 零利率区间上限：利率目标上限降至此值以下视为"降到底"，是应对式调整锁/萨姆锁的解锁条件之一
   ZERO_RATE_FLOOR_PCT: 0.25,
 
@@ -60,6 +66,7 @@ export default {
   AI_MARKET_SYMBOLS: { SEMI: 'SMH', BENCH: 'SPY' },
   AI_MARKET_WINDOW_DAYS: 90,               // 相对收益回看窗口（日历日）
   AI_MARKET_REL_RETURN_THRESHOLD_PCT: 8,   // 相对收益 >+8% → loose，<-8% → tight
+  AI_MARKET_OVERHEAT_PCT: 25,              // 相对收益 >+25% → 过热(拥挤≠健康)，截断为neutral不投宽松票
   AI_SEMI_IP_YOY_LOOSE_PCT: 5,             // 半导体IP同比 >+5% → loose
   AI_SEMI_IP_YOY_TIGHT_PCT: 0,             // 同比 <0% → tight
   AI_SEMI_IP_LOOKBACK_DAYS: 400,

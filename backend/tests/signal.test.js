@@ -78,6 +78,14 @@ describe('calcMonetarySignal', () => {
       prevBalanceSheet: 7200,
     })).toBe('neutral');
   });
+
+  it('观望：渐进加息到高位（实际利率门控，修复#1）——立场偏紧不再判宽松', () => {
+    // 2023：5.5%利率、25bp本次加息、通胀2.5% → 实际利率3% → 货币维从loose降为neutral
+    expect(calcMonetarySignal({
+      currentRate: 5.5, prevRate: 5.25, trimmedPce12m: 2.5,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    })).toBe('neutral');
+  });
 });
 
 // 测试 bp 换算
@@ -112,6 +120,32 @@ describe('deriveSubSignals', () => {
       currentBalanceSheet: 7200, prevBalanceSheet: 7200,
     });
     expect(rateSignal).toBe('tight');
+  });
+
+  it('实际利率门控（修复#1）：立场偏紧时渐进加息不投宽松票', () => {
+    // 2023场景：加息到5.5%但本次仅25bp，通胀(trimmedPce12m)约2.5% → 实际利率3% > 1% → neutral
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 5.5, prevRate: 5.25, trimmedPce12m: 2.5,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('neutral');
+  });
+
+  it('实际利率门控：实际利率为负（宽松环境）时渐进调整仍是 loose', () => {
+    // 2021场景：利率0.25%、通胀5% → 实际利率-4.75% → 保持loose
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 0.25, prevRate: 0.25, trimmedPce12m: 5.0,
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('loose');
+  });
+
+  it('实际利率门控：PCE数据缺失时跳过门控（保持原loose行为）', () => {
+    const { rateSignal } = deriveSubSignals({
+      currentRate: 5.5, prevRate: 5.25, // 无 trimmedPce12m
+      currentBalanceSheet: 7200, prevBalanceSheet: 7200,
+    });
+    expect(rateSignal).toBe('loose');
   });
 });
 
@@ -199,10 +233,18 @@ describe('calcAdminSignal', () => {
     expect(calcAdminSignal({})).toBe('neutral');
   });
 
-  // 油价事件层：战争冲击的市场实时定价，优先于EPU百分位
-  it('油价30天+20%以上（战争/供给冲击）→ 立即收紧，无视EPU低分位', () => {
-    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: 25 })).toBe('tight');
-    expect(calcAdminSignal({ oilChange30dPct: 20 })).toBe('tight'); // 恰好20%含边界
+  // 油价事件层：飙升侧对称护栏（修复#5）——区分战争冲击 vs 需求复苏
+  it('油价+20%且EPU高位（战争/供给冲击）→ 收紧', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: 25 })).toBe('tight');
+  });
+
+  it('油价+20%但EPU平静（需求复苏，如2009/2016/2020V型底）→ 不误判防守，落回EPU判定为宽松', () => {
+    // 修复前：油价飙升无条件tight，会在最佳买点误判防守。修复后：EPU平静→需求信号→落回EPU(低位=loose)
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: 25 })).toBe('loose');
+  });
+
+  it('油价+20%且EPU中性 → 落回EPU判定为neutral', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 65, epuDailyPercentile: 60, oilChange30dPct: 25 })).toBe('neutral');
   });
 
   it('油价30天-20%以上（战争结束/对抗降级）→ 立即宽松：日频EPU未处高位时', () => {
@@ -244,6 +286,13 @@ describe('deriveAiSupplySubSignals', () => {
     expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 12, semiIpYoy: null }).marketSignal).toBe('loose');
     expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: -10, semiIpYoy: null }).marketSignal).toBe('tight');
     expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 3, semiIpYoy: null }).marketSignal).toBe('neutral');
+  });
+
+  it('过热截断（修复#6）：相对收益 >+25%（极端跑赢=拥挤）→ neutral，不投宽松票', () => {
+    // 2000-03泡沫顶部SOX极端跑赢场景：旧逻辑投loose助攻进攻，修复后截为neutral
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 30, semiIpYoy: null }).marketSignal).toBe('neutral');
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 25, semiIpYoy: null }).marketSignal).toBe('loose'); // 恰好25%含边界仍loose
+    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 25.1, semiIpYoy: null }).marketSignal).toBe('neutral');
   });
 
   it('基本面子信号：同比 >+5% → loose，<0% → tight，0~5% → neutral', () => {

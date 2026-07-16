@@ -86,6 +86,10 @@ export function replayMonth(m, prevState) {
     rateDiffBp = Math.round((m.rate - m.prevRate) * 100);
     rateSignal = Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP ? S.TIGHT : S.LOOSE;
   }
+  // 实际利率门控（与线上 deriveSubSignals 同口径）：立场偏紧时渐进加息不投宽松票
+  if (rateSignal === S.LOOSE && m.rate !== null && m.pce12m !== null && m.pce12m !== undefined) {
+    if (m.rate - m.pce12m > cfg.REAL_RATE_RESTRICTIVE_PCT) rateSignal = S.NEUTRAL;
+  }
   let bsSignal = S.NEUTRAL; // WALCL 2002-12 前缺失 → neutral
   if (m.walcl !== null && m.prevWalcl !== null && m.prevWalcl !== 0) {
     const chg = (m.walcl - m.prevWalcl) / m.prevWalcl * 100;
@@ -101,12 +105,13 @@ export function replayMonth(m, prevState) {
     : m.fiscalChangePct > cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.TIGHT
     : m.fiscalChangePct < -cfg.FISCAL_TTM_CHANGE_THRESHOLD_PCT ? S.LOOSE : S.NEUTRAL;
 
-  // 行政：油价事件层（月环比±20%≈30天窗口）优先，其次 EPUTRADE 前视安全10年百分位
-  // 护栏：暴跌只在EPU未处高位时判宽松（危机需求型暴跌如2008-10不误判宽松）
+  // 行政：油价事件层（月环比±20%≈30天窗口）优先，其次 EPUTRADE 前视安全10年百分位。
+  // 飙升/暴跌侧对称护栏（与线上 calcAdminSignal 同口径）：仅EPU高位时飙升判战争冲击tight，
+  // EPU平静时的油价大涨=需求复苏(V型底右侧最佳买点)不误判防守
   const epuHigh = m.epuPercentile !== null && m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT;
   const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
-    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT ? S.TIGHT
-      : (m.oilChangePct <= -cfg.OIL_SHOCK_PCT && !epuHigh) ? S.LOOSE : null)
+    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT && epuHigh ? S.TIGHT
+      : (m.oilChangePct <= -cfg.OIL_SHOCK_PCT && m.epuPercentile !== null && !epuHigh) ? S.LOOSE : null)
     : null;
   const admin = oilEvent !== null ? oilEvent
     : m.epuPercentile === null ? S.NEUTRAL
@@ -116,12 +121,12 @@ export function replayMonth(m, prevState) {
   const aiSupply = S.NEUTRAL; // 历史上无AI维度
 
   // 锁：calcLockActive 语义（触发锁存；零利率≤0.25% 或 非零<50bp 小幅调整解锁）
+  // （2026-07-16回测验证：分化解锁规则让锁在降息周期长期锁死、复苏牛捕获率崩溃，保持原语义）
   const zeroUnlock = m.rate !== null && m.rate <= cfg.ZERO_RATE_FLOOR_PCT;
   const smallAdjUnlock = rateDiffBp !== null && rateDiffBp !== 0 && Math.abs(rateDiffBp) < cfg.RATE_REACTIVE_ADJUSTMENT_BP;
 
   const sahmTrigger = m.sahm !== null && m.sahm >= cfg.SAHM_TRIGGER_THRESHOLD;
   const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-  // 与线上 calcLockActive 一致：零利率无条件解锁；小幅调整只在当期无触发时解锁（防单期解锁下期重锁翻转）
   const sahmLockActive = zeroUnlock ? false
     : (smallAdjUnlock && !sahmTrigger) ? false
     : (prevState.sahmLockActive || sahmTrigger);
@@ -255,7 +260,7 @@ async function main() {
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pce12m] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
@@ -263,6 +268,7 @@ async function main() {
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
     fredSeries('DCOILWTICO', apiKey),
+    fredSeries('PCETRIM12M159SFRBDAL', apiKey), // 12月截尾均值PCE同比，供实际利率门控
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -273,10 +279,11 @@ async function main() {
   const epuM = sampleMonthEnd(epu);
   const sahmM = sampleMonthEnd(sahm);
   const oilM = sampleMonthEnd(oil);
+  const pceM = sampleMonthEnd(pce12m);
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
-  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
+  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM), pceMap = byMonth(pceM);
   // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
   const spxDateMap = new Map(spxM.map(o => [o.month, o.date]));
 
@@ -315,6 +322,7 @@ async function main() {
         return cur != null && prev != null && prev !== 0 ? (cur - prev) / prev * 100 : null;
       })(),
       sahm: sahmMap.get(asOf) ?? null,
+      pce12m: pceMap.get(asOf) ?? null, // 发布滞后：实际利率门控用 M-1 月PCE
     }, state);
     state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };
     prevRate = rate;

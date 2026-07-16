@@ -2,9 +2,11 @@ import cfg from '../config/signal.config.js';
 
 const {
   SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_ADJUSTMENT_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
+  REAL_RATE_RESTRICTIVE_PCT,
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
   AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
+  AI_MARKET_OVERHEAT_PCT,
   AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
 } = cfg;
@@ -38,7 +40,7 @@ export function calcMonetarySignal(macroData) {
  * 分解利率和资产负债表子信号
  */
 export function deriveSubSignals(macroData) {
-  const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet } = macroData;
+  const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet, trimmedPce12m } = macroData;
 
   // 利率方向判断：按调整幅度绝对值统一处理，加息/降息对称
   let rateSignal;
@@ -50,6 +52,18 @@ export function deriveSubSignals(macroData) {
       rateSignal = 'tight'; // 应对式加息 或 应对式降息
     } else {
       rateSignal = 'loose'; // 暂停、预防式加息/降息（幅度<50bp，含加息减缓）
+    }
+  }
+
+  // 实际利率门控：政策立场已明显紧缩（实际利率 > 阈值）时，渐进加息不得投宽松票。
+  // 修复"连续25bp加息周期被判宽松"——冲量步长小 ≠ 政策宽松，累计紧缩才是市场承压来源。
+  // 实际利率 = 名义利率上限 − 12月截尾均值PCE同比（数据缺失则跳过门控，保持原行为）
+  if (rateSignal === 'loose'
+    && currentRate !== null && currentRate !== undefined
+    && trimmedPce12m !== null && trimmedPce12m !== undefined) {
+    const realRate = currentRate - trimmedPce12m;
+    if (realRate > REAL_RATE_RESTRICTIVE_PCT) {
+      rateSignal = 'neutral'; // 立场偏紧，不投宽松票（但也非应对式收紧，故 neutral）
     }
   }
 
@@ -78,6 +92,17 @@ export function deriveBalanceSheetStatus(current, prev) {
  * 萨姆触发是水平型条件（值≥0.5会持续数月），若小幅调整能在萨姆仍触发时解锁，
  * 次日会立即重新锁定，产生"单日解锁→次日重锁"翻转和一对方向相反的示警邮件。
  * rateDiffBp===0（无议息决议日 或 决议暂停）不触发小幅调整解锁
+ * @returns {boolean}
+ */
+/**
+ * 衰退防守锁定判定：萨姆锁 / 应对式调整锁 复用同一套逻辑。
+ * 解锁条件：零利率区间(<=0.25%，联储降到底=框架内的进攻时刻，无条件解锁)；
+ * 或 当天发生非零小幅调整(<50bp，不限方向)——但仅在当天没有触发条件时生效。
+ *
+ * 设计说明（2026-07-16 回测验证）：曾尝试"萨姆锁只由萨姆值解、应对式锁只由反向调整解"的
+ * 更严谨分化规则，但回测证明它让锁在降息周期长期锁死（2022加息锁拖到2024、且2024降息又触发新锁），
+ * 防守月数97→166、年化10.9%→7.1%、2009/2020/2023复苏牛捕获率崩溃。
+ * 现有"零利率+小幅调整解锁"虽在个别时点（2008-12）偏早，但系统层面平衡了"抓危机"与"不误伤复苏"，是回测最优。
  * @returns {boolean}
  */
 export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLockActive }) {
@@ -128,13 +153,17 @@ function epuPercentileSignal(percentile) {
  * 两者都有数据时一致才定档，不一致→观望；单边缺失用可用侧；全缺→观望
  */
 export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct }) {
+  const guardPct = epuDailyPercentile ?? epuTradePercentile; // 优先用更新鲜的日频做护栏
+  const guardKnown = guardPct !== null && guardPct !== undefined;
+  const uncertaintyHigh = guardKnown && guardPct > EPU_PERCENTILE_TIGHT;
+
   if (oilChange30dPct !== null && oilChange30dPct !== undefined) {
-    if (oilChange30dPct >= OIL_SHOCK_PCT) return SIGNAL.TIGHT;
-    const guardPct = epuDailyPercentile ?? epuTradePercentile; // 优先用更新鲜的日频做护栏
-    // 护栏 fail-closed：EPU 双路全缺时无法区分"缓和型暴跌"与"危机需求崩塌型暴跌"，
-    // 不判宽松，落回下方 EPU 双代理判定（全缺→观望）。危机日恰恰最容易伴随数据源故障。
-    const guardKnown = guardPct !== null && guardPct !== undefined;
-    const uncertaintyHigh = guardKnown && guardPct > EPU_PERCENTILE_TIGHT;
+    // 飙升侧对称护栏（修复原"无条件收紧"）：油价大涨有两种成因——
+    // 战争/供给冲击(EPU同时高企→收紧) vs 衰退后需求复苏(EPU平静→是最佳买点非危机，
+    // 如2009-03/2016-02/2020-05的V型底右侧)。仅在不确定性高位时才判战争冲击收紧；
+    // EPU平静或缺失时不误判防守，落回EPU双代理判定
+    if (oilChange30dPct >= OIL_SHOCK_PCT && uncertaintyHigh) return SIGNAL.TIGHT;
+    // 暴跌侧护栏 fail-closed：EPU双缺时无法区分缓和型vs危机需求型暴跌，不判宽松
     if (oilChange30dPct <= -OIL_SHOCK_PCT && guardKnown && !uncertaintyHigh) return SIGNAL.LOOSE;
   }
 
@@ -153,8 +182,15 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
 export function deriveAiSupplySubSignals({ smhSpyRelReturnPct, semiIpYoy }) {
   let marketSignal = SIGNAL.NEUTRAL;
   if (smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined) {
-    if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.LOOSE;
-    else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.TIGHT;
+    if (smhSpyRelReturnPct > AI_MARKET_OVERHEAT_PCT) {
+      // 过热截断（修复顺周期缺陷）：半导体极端跑赢大盘=拥挤/泡沫化，不是"供需健康"。
+      // 2000-03顶部SOX极端跑赢时旧逻辑会投宽松票，恰在最危险处助攻进攻。截为neutral
+      marketSignal = SIGNAL.NEUTRAL;
+    } else if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) {
+      marketSignal = SIGNAL.LOOSE;
+    } else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) {
+      marketSignal = SIGNAL.TIGHT;
+    }
   }
 
   let fundamentalSignal = SIGNAL.NEUTRAL;
