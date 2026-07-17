@@ -33,5 +33,10 @@ export function getLastFomcDecisionDate(asOfDate = todayET()) {
     if (date <= asOfDate) last = date;
     else break;
   }
+  // 日历耗尽护栏：FOMC 例会间隔约6-8周，最近日程已过去70天以上说明该补新年份了——
+  // 货币维度的"暂停/加息"判定依赖此日历，静默陈旧会让方向判定失真
+  if (last && (Date.parse(asOfDate) - Date.parse(last)) > 70 * 86400000) {
+    console.warn(`[fomc-meetings] calendar may be stale: last known decision ${last}, asOf ${asOfDate} — add next year's DECISION_DATES`);
+  }
   return last;
 }

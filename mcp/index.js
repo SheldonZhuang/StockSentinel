@@ -28,12 +28,12 @@ const asText = body => ({ content: [{ type: 'text', text: body }] });
 
 const server = new McpServer({
   name: 'stock-sentinel',
-  version: '1.0.0',
+  version: '1.0.3', // 与 backend/api/mcp.js 保持同版
 });
 
 server.tool(
   'get_current_signal',
-  '获取美股当前进攻/防守信号。返回四档最终信号（attack进攻/neutral观望/reduce减仓观望/defense全面防守）、四个维度（AI供需/货币/财政/行政）各自的宽松/中性/收紧状态、以及全部参考指标（联邦基金利率、萨姆规则、联邦支出、WTI油价、EPU不确定性指数、AI模型调用量等）。判定规则：进攻=四维全宽松且无锁；仅单维收紧=减仓观望；双维以上收紧或衰退锁激活=全面防守。仅供研究参考，不构成投资建议。',
+  '获取美股当前进攻/防守信号。返回四档最终信号（attack进攻/neutral观望/reduce减仓观望/defense全面防守）、四个维度（AI供需/货币/财政/行政）各自的宽松/中性/收紧状态、以及全部参考指标（联邦基金利率、萨姆规则、联邦支出、WTI油价、EPU不确定性指数、AI模型调用量等）。判定规则：进攻（非对称）=AI供需宽松且货币/财政/行政均不收紧（中性即可）且无锁；仅单维收紧=减仓观望；双维以上收紧或衰退锁激活=全面防守。仅供研究参考，不构成投资建议。',
   {},
   async () => asText(await callApi('/signal'))
 );

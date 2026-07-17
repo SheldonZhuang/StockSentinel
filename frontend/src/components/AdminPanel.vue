@@ -152,10 +152,10 @@
         </tbody>
       </table>
     </section>
-  </div>
+
     <!-- 开放API密钥管理（变现基础） -->
-    <section class="admin-section">
-      <h3 class="block-title">{{ $t('admin.apiKeys.title') }}</h3>
+    <section class="section">
+      <h3>{{ $t('admin.apiKeys.title') }}</h3>
       <div class="key-form">
         <input v-model="keyName" class="key-input" :placeholder="$t('admin.apiKeys.namePlaceholder')" />
         <select v-model="keyTier" class="key-select">
@@ -192,7 +192,7 @@
         </tbody>
       </table>
     </section>
-
+  </div>
 </template>
 
 <script setup>

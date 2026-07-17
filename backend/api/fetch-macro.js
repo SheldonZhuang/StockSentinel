@@ -62,6 +62,41 @@ export function prevValue(observations) {
 }
 
 /**
+ * 最近一次"实际变动"之前的值（降序输入）：跳过与最新值相同的重复观测。
+ * DFEDTARU 是日频重复序列，prevValue（昨天）在两次议息之间恒等于现值，
+ * 无法承载"最近一次调整的方向"——这个函数才是"上一档利率水平"。
+ */
+export function prevDistinctValue(observations) {
+  const valid = (observations || [])
+    .map(o => parseFloat(o.value))
+    .filter(v => !isNaN(v));
+  if (!valid.length) return null;
+  for (const v of valid) {
+    if (v !== valid[0]) return v;
+  }
+  return null; // 回看窗口内利率从未变动
+}
+
+/**
+ * 货币方向的基准利率（2026-07-17 第六轮修复）：返回"最近一次FOMC决议前的利率"，
+ * 而非"昨天的观测"——DFEDTARU 日频重复同值，相邻观测差在两次议息之间恒为0，
+ * 旧取法会把加息周期约95%的天数误判成"暂停→宽松"（与 SKILL.md/回测宣称的
+ * "渐进加息周期全程收紧"三方分裂）。规则：
+ *   最近决议改了利率（最新台阶日 ≥ 决议日，DFEDTARU 在决议次日生效）→ 台阶前水平，
+ *     差值=本次调整幅度，方向判定 tight/loose 且到下次决议前保持不变；
+ *   最近决议按兵不动（决议日之后无台阶）→ 现值，差值0 → 暂停→宽松（拍板规则）；
+ *   日历缺失（2027+未补年份）→ 退化为"最近一次实际调整的方向"；
+ *   FRED 生效滞后（决议次日更新）期间会短暂按"暂停"处理，最多1个观测日。
+ */
+export function calcDecisionPrevRate({ currentRate, rateSteps, prevDistinct, decisionDate }) {
+  if (currentRate === null || currentRate === undefined) return null;
+  const lastStepDate = rateSteps?.[0]?.date ?? null;
+  const changedAtLastDecision = lastStepDate !== null
+    && (decisionDate === null || decisionDate === undefined || lastStepDate >= decisionDate);
+  return changedAtLastDecision ? prevDistinct : currentRate;
+}
+
+/**
  * 利率台阶扫描：相邻有效观测间的每次变动（降序输入 → 降序输出 {date, diffBp}，date=新值生效日）。
  * 供锁触发判定用：端点差会把停机窗口内两次 25bp 聚合成假 50bp"应对式"，
  * 逐笔台阶还能补检"触发日 cron 失败"错过的调整事件（只要仍在回看窗口内）。
@@ -114,6 +149,17 @@ export async function fetchMacroData() {
   const currentBalanceSheet = latestValue(bsObs);
   const prevBalanceSheet = prevValue(bsObs);
   const balanceSheetPeriodDate = latestDate(bsObs);
+
+  // prevRate = 最近一次FOMC决议前的利率（语义与推导见 calcDecisionPrevRate 注释）
+  const currentRate = latestValue(rateObs);
+  const rateSteps = calcRateSteps(rateObs);
+  const rateDecisionDate = getLastFomcDecisionDate();
+  const prevRate = calcDecisionPrevRate({
+    currentRate,
+    rateSteps,
+    prevDistinct: prevDistinctValue(rateObs),
+    decisionDate: rateDecisionDate,
+  });
   const corePcePeriodDate = latestDate(corePceObs);
   const trimmedPce1mPeriodDate = latestDate(trimmedPce1mObs);
   const trimmedPcePeriodDate = latestDate(trimmedPceObs);
@@ -149,9 +195,9 @@ export async function fetchMacroData() {
   const creditSpreadPeriodDate = latestDate(creditObs);
 
   return {
-    currentRate: latestValue(rateObs),
-    prevRate: prevValue(rateObs),
-    rateSteps: calcRateSteps(rateObs),
+    currentRate,
+    prevRate,
+    rateSteps,
     currentBalanceSheet,
     prevBalanceSheet,
     creditSpread,
@@ -171,7 +217,7 @@ export async function fetchMacroData() {
     sahmValue: latestValue(sahmObs),
 
     // 议息会议决定日期（利率每日更新，真正的"决定"日以 FOMC 日历为准）
-    rateDecisionDate: getLastFomcDecisionDate(),
+    rateDecisionDate,
 
     // 资产负债表：H.4.1 每周四发布，对应上周三数据，发布日 = 参考周三 + 1天
     balanceSheetPeriodDate,

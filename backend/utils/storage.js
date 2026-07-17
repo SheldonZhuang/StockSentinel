@@ -603,6 +603,13 @@ export async function upsertApiUsage(day, entries) {
   persist();
 }
 
+/** 清理过期用量行（keyless 的 ip 条目逐日累积，不清理会无界增长）；每日日切时调用一次 */
+export async function pruneApiUsage(beforeDay) {
+  await getDb();
+  db.run('DELETE FROM api_usage WHERE day < ?', [beforeDay]);
+  persist();
+}
+
 // --- AI 日报 ---
 
 export async function saveDailyReport(data) {

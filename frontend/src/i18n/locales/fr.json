@@ -34,7 +34,6 @@
     "yoyChange": "En glissement annuel",
     "epuTrade": "Incertitude Politique Commerciale",
     "percentile10y": "Percentile 10 ans",
-    "smhSpyRelReturn": "Rendement Relatif SMH−SPY (90j)",
     "semiIpYoy": "Production Semi-conducteurs AoA",
     "dataDate": "Date des données",
     "decisionDate": "Décision FOMC",
@@ -60,18 +59,17 @@
     "hints": {
       "modelUsageTrend": "Règle : volume moyen 7 j en baisse >10 % vs 28 j précédents → alerte bulle, offre/demande IA forcée en resserrement. Sommet du flux : les utilisateurs paient les modèles",
       "capexYoY": "Règle : capex 4 trimestres glissants des hyperscalers (MSFT/AMZN/GOOGL/META) <0 % en GA → alerte bulle, resserrement forcé. 2e niveau : les modèles achètent du cloud",
-      "semiIpYoy": "Règle : production industrielle semi-conducteurs GA >+5 % → assouplissement, <0 % → resserrement ; doit concorder avec le proxy marché, sinon neutre. 3e niveau : le cloud achète des puces",
-      "smhSpyRelReturn": "Règle : rendement relatif SMH−SPY 90 j >+8 % → assouplissement, <−8 % → resserrement ; doit concorder avec le proxy fondamental, sinon neutre",
-      "rate": "Règle : ajustement unique ≥50 pb (réactif, toute direction) → resserrement + verrou d’ajustement réactif (défense forcée) ; <50 pb ou pause → assouplissement",
-      "balanceSheet": "Règle : variation hebdo >+0,25 % → QE (assouplissement), <−0,25 % → QT (resserrement), entre → pause. Monétaire = taux souple ET pas de QT → souple ; réactif OU QT → resserré",
+      "semiIpYoy": "La production de semi-conducteurs en GA est le maillon final côté offre du trio de flux de trésorerie offre/demande IA (usage → capex cloud → production semi). Règle de consensus du trio : un maillon en contraction → resserrement (alerte de surproduction) ; toute la chaîne en hausse → assouplissement (pénurie) ; sinon neutre.",
+      "rate": "Jugé selon la direction de la dernière décision du FOMC : une hausse (y compris graduelle de 25 pb) → resserrement, maintenu jusqu'à la décision suivante ; une baisse ou un statu quo → assouplissement. Un ajustement unique ≥50 pb (toute direction) déclenche en outre le verrou d'ajustement réactif, forçant la défense totale.",
+      "balanceSheet": "Variation du bilan (hebdo) : expansion >0,25 % (QE) → vote assouplissement ; contraction >0,25 % (QT) ne vaut pas resserrement à elle seule — elle bloque seulement une note assouplie (backtest : le marché a monté la plupart des années de QT) ; entre les deux → pause.",
       "sahm": "Règle : valeur Sahm <0,5 % → souple ; ≥0,5 % → début de récession, verrou Sahm (défense forcée) ; déverrouillage à taux ≤0,25 % ou ajustement <50 pb",
       "epuTrade": "Règle : indice d’incertitude commerciale (mensuel, spécifique commerce/tarifs/tech) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’EPU quotidien, sinon neutre",
       "reference": "Affichage indicatif, ne participe pas au jugement",
       "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre",
-      "oilWti": "Règle (pétrole = pricing en temps réel des nouvelles de guerre, au jour) : hausse 30 j ≥+20 % → choc guerre/offre, resserrement immédiat ; baisse ≥20 % ET incertitude non élevée (EPU quotidien ≤80e pct, mensuel en secours) → fin de guerre/désescalade, assouplissement immédiat ; si l'EPU est simultanément élevé, la chute est de type crise/demande (ex. panique tarifaire avr. 2025) — pas d'assouplissement, retour au double proxy EPU. Dans ±20 % retour à l'EPU. Note : l'assouplissement ne retire que le veto de cette dimension — l'attaque exige les quatre souples et aucun verrou",
-      "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement"
+      "oilWti": "La variation 30 j du WTI est le pricing en temps réel par le marché des chocs guerre/géopolitique, prioritaire sur les percentiles EPU : hausse ≥+20 % ET EPU élevé (>80e pct) → resserrement (choc guerre/offre) ; une flambée avec un EPU calme = reprise de la demande, pas de fausse défense. Baisse ≥20 % ET EPU non élevé → assouplissement (désescalade) ; si l'EPU est simultanément élevé, la chute est de type crise — pas d'assouplissement.",
+      "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement. Mesuré en dépenses réelles (hors inflation) en GA : la croissance naturelle des dépenses nominales ≈5 % pré-déclencherait le resserrement en permanence ; après déflatement PCE, ne se déclenche que si l'expansion/contraction réelle dépasse ±5 %"
     },
-    "hintGlobal": "Règle globale : Attaque = les quatre souples (ET) ; une seule dimension resserrée = alléger et attendre ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
+    "hintGlobal": "Règle globale : Attaque (asymétrique) = offre/demande IA accommodante (le moteur actif enclenché) + monétaire/fiscale/administrative toutes non resserrées (neutre suffit ; tout resserrement met un veto) + aucun verrou ; une seule dimension resserrée = alléger et attendre ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
     "stale": "Données retardées",
     "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé",
     "epuDaily": "Incertitude politique (quotidien)",
@@ -119,8 +117,8 @@
   "interpret": {
     "title": "Interprétation du Signal",
     "triggers": "Défense déclenchée par :",
-    "toAttack": "Vers l'attaque (les quatre accommodants) :",
-    "allLoose": "Les quatre dimensions accommodantes — conditions d'attaque réunies"
+    "toAttack": "Vers l'attaque (offre/demande IA accommodante + monétaire/fiscale/administrative non resserrées + aucun verrou) :",
+    "allLoose": "Conditions d'attaque réunies : offre/demande IA accommodante (moteur actif enclenché), monétaire/fiscale/administrative non resserrées, aucun verrou"
   },
   "auth": {
     "login": "Connexion",

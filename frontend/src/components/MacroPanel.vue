@@ -59,13 +59,28 @@ function formatMonth(dateStr) {
 }
 
 // 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
-const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'smhSpyRelReturn', 'rate', 'balanceSheet', 'sahm', 'fiscalOutlaysTtm', 'epuTrade', 'epuDaily', 'oilWti']);
+const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'rate', 'balanceSheet', 'sahm', 'fiscalOutlaysTtm', 'epuTrade', 'epuDaily', 'oilWti']);
 
 // EPU 百分位 → 子档位徽章（阈值同步 signal.config.js：>80 收紧 / <50 宽松）
 function epuBadge(percentile) {
   if (percentile == null) return null;
   if (percentile > 80) return 'tight';
   if (percentile < 50) return 'loose';
+  return 'neutral';
+}
+
+// 油价事件层徽章：与 backend/api/signal.js calcAdminSignal 事件层同步，改后端时必须同步这里。
+// guard = 日频EPU百分位 ?? 月度贸易EPU百分位（优先更新鲜的日频做护栏）：
+//   涨幅≥+20% 且 guard>80 → tight（战争/供给冲击；EPU平静时的大涨=需求复苏，不误判防守）；
+//   跌幅≤−20% 且 guard 非空且 ≤80 → loose（冲突缓和；EPU双缺或高企时 fail-closed 不判宽松）；
+//   其余 → neutral
+function oilBadge(ind) {
+  if (ind.oilChange30dPct == null) return null;
+  const guard = ind.epuDailyPercentile ?? ind.epuTradePercentile;
+  const guardKnown = guard != null;
+  const uncertaintyHigh = guardKnown && guard > 80;
+  if (ind.oilChange30dPct >= 20 && uncertaintyHigh) return 'tight';
+  if (ind.oilChange30dPct <= -20 && guardKnown && !uncertaintyHigh) return 'loose';
   return 'neutral';
 }
 
@@ -106,27 +121,26 @@ const groups = computed(() => {
     {
       key: 'aiSupply',
       items: [
-        // 顺序=AI产业链现金流向：模型用量（源头需求）→ 云厂商资本开支 → 半导体产出 → 市场代理
+        // 顺序=AI产业链现金流向：模型用量（源头需求）→ 云厂商资本开支 → 半导体产出
         {
           key: 'modelUsageTrend', signed: true, value: ind.modelUsageTrendPct, unit: '%', change: null,
-          // 阈值与 backend/config/signal.config.js 保持同步：<-10% 触发泡沫预警
-          signalBadge: ind.modelUsageTrendPct != null
-            ? (ind.modelUsageTrendPct < -10 ? 'tight' : ind.modelUsageTrendPct >= 0 ? 'loose' : 'neutral')
-            : null,
+          // 优先用后端算好的调用量子信号（server.js 复用 aiMarketSignal 列存 usageSignal）；
+          // null 时回退本地阈值，同步 signal.config.js：>+10 宽松 / <-10 收紧 / 其间中性
+          signalBadge: ind.aiMarketSignal ?? (ind.modelUsageTrendPct != null
+            ? (ind.modelUsageTrendPct > 10 ? 'loose' : ind.modelUsageTrendPct < -10 ? 'tight' : 'neutral')
+            : null),
         },
         {
           key: 'capexYoY', signed: true, value: ind.capexYoY, unit: '%', change: null,
-          // 阈值同步 signal.config.js：<0% 触发泡沫预警
-          signalBadge: ind.capexYoY != null ? (ind.capexYoY < 0 ? 'tight' : 'loose') : null,
+          // 阈值同步 signal.config.js：>+10% 宽松 / <0% 收紧（触发泡沫预警）/ 其间中性
+          signalBadge: ind.capexYoY != null
+            ? (ind.capexYoY > 10 ? 'loose' : ind.capexYoY < 0 ? 'tight' : 'neutral')
+            : null,
         },
         {
           key: 'semiIpYoy', signed: true, value: ind.semiIpYoy, unit: '%', change: null,
           signalBadge: ind.aiFundamentalSignal,
           periodDate: ind.semiIpPeriodDate, releaseDate: ind.semiIpReleaseDate, periodIsMonth: true,
-        },
-        {
-          key: 'smhSpyRelReturn', signed: true, value: ind.smhSpyRelReturnPct, unit: '%', change: null,
-          signalBadge: ind.aiMarketSignal,
         },
       ],
     },
@@ -203,9 +217,7 @@ const groups = computed(() => {
             ? `30D ${ind.oilChange30dPct > 0 ? '+' : ''}${ind.oilChange30dPct.toFixed(1)}%`
               + (ind.oilSource ? ` · ${t(`indicators.oilSource.${ind.oilSource}`)}` : '')
             : null,
-          signalBadge: ind.oilChange30dPct != null
-            ? (ind.oilChange30dPct >= 20 ? 'tight' : ind.oilChange30dPct <= -20 ? 'loose' : 'neutral')
-            : null,
+          signalBadge: oilBadge(ind),
           periodDate: ind.oilPeriodDate,
         },
         {

@@ -1,9 +1,10 @@
 // 轻量按 IP 保底限流：内存滑动计数，供 /mcp 与 /auth 等无 key 路径兜底，
 // 防止匿名高频请求打满 CPU（bcrypt）/ 烧第三方 API 配额 / 撑爆缓存。
 // 与 public.js 的日额度计费限流正交：这里是"每分钟保底闸"，不做计费对账。
-const buckets = new Map(); // ip → { windowStart, count }
+const buckets = new Map(); // `${实例序号}:${ip}` → { windowStart, count }
 const WINDOW_MS = 60_000;
 const MAX_BUCKETS = 10_000; // 上限防内存 DoS：超限时清最旧一批
+let instanceSeq = 0;
 
 /**
  * @param {object} opts
@@ -12,8 +13,11 @@ const MAX_BUCKETS = 10_000; // 上限防内存 DoS：超限时清最旧一批
  * @returns Express 中间件
  */
 export function ipRateLimit({ max, keyFn }) {
+  // 每个中间件实例独立命名空间：/v1(120)、/mcp(60)、/auth(20) 各有各的 max，
+  // 共享同一 ip 桶会让宽松路由的正常流量吃掉严格路由的额度（刷满 /v1 后登录被 20/min 闸误封）
+  const scope = `${instanceSeq++}:`;
   return function (req, res, next) {
-    const key = keyFn ? keyFn(req) : req.ip || 'unknown';
+    const key = scope + (keyFn ? keyFn(req) : req.ip || 'unknown');
     const now = Date.now();
 
     if (buckets.size > MAX_BUCKETS) {

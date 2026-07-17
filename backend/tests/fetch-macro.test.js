@@ -10,7 +10,7 @@ vi.mock('axios', () => {
 });
 
 import axios from 'axios';
-import { fetchMacroData, calcRateSteps } from '../api/fetch-macro.js';
+import { fetchMacroData, calcRateSteps, calcDecisionPrevRate, prevDistinctValue } from '../api/fetch-macro.js';
 
 function makeObs(values) {
   return values.map((v, i) => ({
@@ -78,7 +78,7 @@ describe('fetchMacroData', () => {
     expect(data.prevUnemployment).toBe(4.25);
   });
 
-  it('latest value 取第一条有效观测', async () => {
+  it('latest value 取第一条有效观测；prevRate 按决议语义（历史台阶早于最近决议 → 暂停 → 等于现值）', async () => {
     // 第一条是 '.' (无效), 第二条是 4.75
     axios.get.mockResolvedValue({
       data: {
@@ -92,7 +92,9 @@ describe('fetchMacroData', () => {
 
     const data = await fetchMacroData();
     expect(data.currentRate).toBe(4.75);
-    expect(data.prevRate).toBe(4.25);
+    // 2026-07-17 修复后：prevRate = 最近一次FOMC决议前的利率。最新台阶(2024-02-01)
+    // 早于最近决议日 → 最近决议是"按兵不动" → prevRate 等于现值（差0 → 暂停→宽松）
+    expect(data.prevRate).toBe(4.75);
   });
 
   it('FRED_API_KEY 未设置时抛错', async () => {
@@ -145,6 +147,74 @@ describe('fetchMacroData', () => {
     expect(data.creditSpread).toBe(2.0);
     expect(data.creditSpreadPercentile).toBeCloseTo(1, 0); // 最新2.0是最低 → ~1分位
     expect(data.creditSpread90dWidenBp).not.toBeNull();
+  });
+});
+
+describe('prevDistinctValue', () => {
+  it('跳过重复观测，返回最近一次变动前的水平', () => {
+    const obs = [
+      { date: '2026-07-01', value: '4.50' },
+      { date: '2026-06-30', value: '4.50' },
+      { date: '2026-06-29', value: '4.25' },
+      { date: '2026-06-28', value: '4.25' },
+    ];
+    expect(prevDistinctValue(obs)).toBe(4.25);
+  });
+
+  it('窗口内无变动 / 空输入返回 null', () => {
+    expect(prevDistinctValue([{ date: '2026-07-01', value: '4.50' }, { date: '2026-06-30', value: '4.50' }])).toBeNull();
+    expect(prevDistinctValue([])).toBeNull();
+    expect(prevDistinctValue(null)).toBeNull();
+  });
+});
+
+describe('calcDecisionPrevRate（货币方向基准：最近一次FOMC决议前的利率）', () => {
+  it('最近决议加息（台阶日≥决议日）→ 返回台阶前水平，到下次决议前差值保持为正', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: 4.5,
+      rateSteps: [{ date: '2026-06-18', diffBp: 25 }], // DFEDTARU 决议次日生效
+      prevDistinct: 4.25,
+      decisionDate: '2026-06-17',
+    })).toBe(4.25);
+  });
+
+  it('最近决议按兵不动（决议日后无台阶）→ 返回现值（差0 → 暂停→宽松）', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: 4.5,
+      rateSteps: [{ date: '2026-03-19', diffBp: 25 }], // 上上次会议的加息
+      prevDistinct: 4.25,
+      decisionDate: '2026-06-17', // 最近决议是暂停
+    })).toBe(4.5);
+  });
+
+  it('窗口内完全无台阶（长期暂停）→ 返回现值', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: 4.5, rateSteps: [], prevDistinct: null, decisionDate: '2026-06-17',
+    })).toBe(4.5);
+  });
+
+  it('日历缺失（2027+未补年份）→ 退化为最近一次实际调整的方向', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: 4.5,
+      rateSteps: [{ date: '2027-03-18', diffBp: -25 }],
+      prevDistinct: 4.75,
+      decisionDate: null,
+    })).toBe(4.75);
+  });
+
+  it('利率数据缺失 → null', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: null, rateSteps: [], prevDistinct: null, decisionDate: '2026-06-17',
+    })).toBeNull();
+  });
+
+  it('盘中紧急调整（台阶日晚于决议日）同样按"最近调整方向"处理', () => {
+    expect(calcDecisionPrevRate({
+      currentRate: 3.0,
+      rateSteps: [{ date: '2026-07-05', diffBp: -100 }], // 会议间紧急降息
+      prevDistinct: 4.0,
+      decisionDate: '2026-06-17',
+    })).toBe(4.0);
   });
 });
 

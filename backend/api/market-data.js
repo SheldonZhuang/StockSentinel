@@ -5,8 +5,8 @@ import yahooFinance from 'yahoo-finance2';
 // 统一行情入口：Yahoo → Tiingo → Twelve Data 三层回退
 // 背景：Yahoo 对数据中心/非住宅IP大面积限流（本机与Railway都持续429），
 // 备用源 key 缺失时优雅跳过该层，全失败返回 null，永不 throw
-const TIINGO_DAILY_URL = sym => `https://api.tiingo.com/tiingo/daily/${sym}/prices`;
-const TIINGO_IEX_URL = sym => `https://api.tiingo.com/iex/${sym}`;
+const TIINGO_DAILY_URL = sym => `https://api.tiingo.com/tiingo/daily/${encodeURIComponent(sym)}/prices`;
+const TIINGO_IEX_URL = sym => `https://api.tiingo.com/iex/${encodeURIComponent(sym)}`;
 const TWELVEDATA_SERIES_URL = 'https://api.twelvedata.com/time_series';
 const TWELVEDATA_PRICE_URL = 'https://api.twelvedata.com/price';
 // FMP 新版 stable 接口（旧 v3 对2025-08后注册的key已关闭）；免费层250次/天

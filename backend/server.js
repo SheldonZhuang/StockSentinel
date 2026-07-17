@@ -62,7 +62,10 @@ const allowedOrigins = [
   'https://stock-sentinel-eight.vercel.app',
 ];
 
-app.use(cors({
+// 白名单 CORS 只挂内部 /api/*：全局挂载会先于 /v1、/mcp 处理 OPTIONS 预检
+// （cors 默认 preflightContinue:false 直接 204 终结），非白名单来源永远到不了
+// 路由级 cors({origin:'*'})，浏览器端第三方集成全部被误拦
+app.use('/api', cors({
   origin: allowedOrigins,
 }));
 app.use(express.json({ limit: '256kb' })); // 限制请求体，防超大 JSON 打满内存
@@ -319,7 +322,7 @@ async function runDailyUpdate() {
     semiIpReleaseDate: policyData.semiIpReleaseDate,
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
-    aiBubbleWarning: aiSupplyAuto === 'tight' ? 1 : 0, // 复用列：AI供需=收紧(供过于求)标记
+    aiBubbleWarning: aiSupplyAutoEff === 'tight' ? 1 : 0, // 复用列：AI供需=收紧(供过于求)标记（stale日沿用上次判定，与 ai_supply_signal 同口径）
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
     reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
@@ -338,7 +341,7 @@ async function runDailyUpdate() {
     capexYoY: chainData.capexYoY,
     capexTtm: chainData.capexTtm,
     capexPrevTtm: chainData.capexPrevTtm,
-    bubbleWarning: aiSupplyAuto === 'tight',
+    bubbleWarning: aiSupplyAutoEff === 'tight',
     bubbleReasons: JSON.stringify(
       [aiSubSignals.usageSignal === 'tight' && 'usage',
        aiSubSignals.capexSignal === 'tight' && 'capex',

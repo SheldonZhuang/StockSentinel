@@ -75,6 +75,7 @@ export function ttmChangePct(monthlyValues) {
 /**
  * 单月重放：复用线上阈值判定四维 + 锁 + 最终信号（AI供需历史无意义 → neutral）
  * @param {object} m - 当月指标 {rate, prevRate, walcl, prevWalcl, fiscalChangePct, epuPercentile, sahm}
+ *   walcl/prevWalcl = 采样时点可得的最新两条 WALCL 周度观测（lastTwoWeeklyAsOf，与线上 fetch-macro 同口径）
  * @param {object} prevState - {sahmLockActive, reactiveLockActive}
  */
 export function replayMonth(m, prevState) {
@@ -157,11 +158,108 @@ export function findPeakTrough(spx, start, end) {
 }
 
 const dayDiff = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+const addDaysISO = (date, n) => new Date(new Date(`${date}T00:00:00Z`).getTime() + n * 86400000).toISOString().slice(0, 10);
+
+/** 该日历月最后一天（YYYY-MM-DD），月末采样的 asOf 时点 */
+export function lastDayOfMonth(month) {
+  const [y, m] = month.split('-').map(Number);
+  return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`;
+}
+
+/**
+ * 取 asOfDate 时点可得的最后两条周度观测（与线上 fetch-macro 用最新两条 WALCL 周度观测环比同口径）。
+ * 发布滞后：WALCL 周三数据次日（周四）才发布 → 仅"观测日期+1 ≤ asOfDate"的观测可见
+ * @param {Array<{date, value:number}>} series - 升序
+ * @returns {{curr:number|null, prev:number|null}}
+ */
+export function lastTwoWeeklyAsOf(series, asOfDate) {
+  let curr = null, prev = null;
+  for (const o of series) {
+    if (addDaysISO(o.date, 1) > asOfDate) break;
+    prev = curr;
+    curr = o.value;
+  }
+  return { curr, prev };
+}
+
+/**
+ * missedPct 双语义（按 leadDays 正负拆分，报告图例同步）：
+ *  - 提前捕获（leadDays>0）：missedPct = peak/sigPx − 1（正值）——信号发出后市场又涨了 X% 才见顶（防守的踏空成本）
+ *  - 滞后捕获（leadDays≤0）：missedPct = sigPx/peak − 1（负值）——信号发出时已从顶部回落 X%（错过的部分）
+ */
+export function calcMissedPct(sigPx, peakClose, leadDays) {
+  if (sigPx === null || sigPx === undefined || !peakClose || leadDays === null) {
+    return { missedPct: null, missedKind: null };
+  }
+  return leadDays > 0
+    ? { missedPct: (peakClose / sigPx - 1) * 100, missedKind: 'preTop' }
+    : { missedPct: (sigPx / peakClose - 1) * 100, missedKind: 'postTop' };
+}
+
+/**
+ * 危机实际曝险路径统计：从首次防守信号月到危机底部月逐月复利——
+ * defense 月按现金（联邦基金利率月化，与全期模拟同口径），非 defense 月按 SPY 月收益。
+ * 防守片段中途解除（如 2008：2007-10 即恢复非防守；2020：2019-12 已恢复）会如实体现在路径里，
+ * 不再假设"从首次防守一路防守到底部"（旧口径 trough/sigPx−1 属造假式高估）。
+ * @returns {{pathRetPct, buyHoldRetPct, savedPct, coveragePct}|null}
+ *  savedPct = 路径收益 − 同期买入持有收益（百分点，正=相对买入持有少亏）
+ *  coveragePct = 曝险决策月（信号月起、底部月前一月止）中 defense 月占比
+ */
+export function crisisPathStats(timeline, rateMap, firstDefMonth, troughMonth) {
+  const seg = timeline.filter(t => t.month >= firstDefMonth && t.month <= troughMonth && t.spx !== null);
+  if (seg.length < 2) return null;
+  let navS = 1, navB = 1, defCount = 0;
+  for (let i = 1; i < seg.length; i++) {
+    const ret = seg[i].spx / seg[i - 1].spx;
+    navB *= ret;
+    if (seg[i - 1].final === 'defense') {
+      defCount++;
+      navS *= 1 + ((rateMap.get(seg[i - 1].month) ?? 0) / 100) / 12;
+    } else {
+      navS *= ret;
+    }
+  }
+  const decisions = seg.length - 1;
+  return {
+    pathRetPct: (navS - 1) * 100,
+    buyHoldRetPct: (navB - 1) * 100,
+    savedPct: (navS - navB) * 100,
+    coveragePct: (defCount / decisions) * 100,
+  };
+}
+
+/**
+ * 净值模拟（全期/区间通用纯函数）：曝险由上月档位决定——
+ * defense → 全现金（联邦基金利率月化计息）；reduce → reduceWeight×SPY + (1−reduceWeight)×现金；
+ * 其余（attack/neutral）→ 满仓 SPY。buyHold=true 忽略档位恒满仓。
+ * @param {Array<{month, spx:number, final}>} months - 升序、spx 非空
+ * @returns {{totalPct, cagrPct, mddPct, years}|null}
+ */
+export function simulateNav(months, rateMap, { reduceWeight = 1, buyHold = false } = {}) {
+  if (months.length < 2) return null;
+  let nav = 1, peak = 1, mdd = 0;
+  for (let i = 1; i < months.length; i++) {
+    const ret = months[i].spx / months[i - 1].spx;
+    const cash = 1 + ((rateMap.get(months[i - 1].month) ?? 0) / 100) / 12;
+    const f = months[i - 1].final;
+    nav *= buyHold ? ret
+      : f === 'defense' ? cash
+      : f === 'reduce' ? reduceWeight * ret + (1 - reduceWeight) * cash
+      : ret;
+    peak = Math.max(peak, nav);
+    mdd = Math.min(mdd, nav / peak - 1);
+  }
+  const years = (months.length - 1) / 12;
+  return { totalPct: (nav - 1) * 100, cagrPct: (Math.pow(nav, 1 / years) - 1) * 100, mddPct: mdd * 100, years };
+}
 
 // ---------- 数据拉取 ----------
 
 async function fredSeries(id, apiKey, extra = '') {
-  const url = `${FRED_BASE}?series_id=${id}&observation_start=1997-01-01&api_key=${apiKey}&file_type=json&sort_order=asc&limit=100000${extra}`;
+  // 1987-01-01 起（原 1997）：保证 EPUTRADE（FRED 可回溯到 1985）在 2000-01 起的每个月
+  // 都有足额 120 个月观测供 slice(-120) 十年百分位窗口用，消除 2000-2006 小窗百分位噪声；
+  // 其余序列提前起点无害——多拉的数据只占内存，判定逻辑仍从 2000-01 重放
+  const url = `${FRED_BASE}?series_id=${id}&observation_start=1987-01-01&api_key=${apiKey}&file_type=json&sort_order=asc&limit=100000${extra}`;
   const res = await axios.get(url, { timeout: 30000 });
   return (res.data.observations || [])
     .map(o => ({ date: o.date, value: parseFloat(o.value) }))
@@ -172,14 +270,20 @@ const SPX_CACHE = path.join(__dirname, 'spx-cache.json');
 
 async function fetchSpx() {
   const result = await fetchSpxLive();
-  // 成功拉到全历史 → 落盘缓存；全部源失败/只拿到短历史 → 用缓存兜底（省 Tiingo 配额）
+  // 成功拉到全历史 → 仅 Tiingo 总回报口径允许写缓存（stooq/Yahoo 价格指数不含股息，
+  // 若覆盖缓存，下次兜底会静默用低口径数据系统性低估买入持有约1.9%/年）
   const coversHistory = result.bars.length && result.bars[0].date <= '1998-01-01';
   if (coversHistory) {
-    fs.writeFileSync(SPX_CACHE, JSON.stringify(result));
+    if (result.source.startsWith('Tiingo')) fs.writeFileSync(SPX_CACHE, JSON.stringify(result));
     return result;
   }
   if (fs.existsSync(SPX_CACHE)) {
     const cached = JSON.parse(fs.readFileSync(SPX_CACHE, 'utf8'));
+    // 陈旧护栏：最后一根 bar 距今超过45天 → 拒绝静默使用，明确报错要求恢复实时拉取
+    const lastBarDate = cached.bars.length ? cached.bars[cached.bars.length - 1].date : null;
+    if (!lastBarDate || dayDiff(lastBarDate, new Date().toISOString().slice(0, 10)) > 45) {
+      throw new Error(`spx-cache.json 最后一根bar(${lastBarDate ?? '无'})距今超过45天，缓存已陈旧——请修复 Tiingo 拉取后重跑，不静默使用降级数据`);
+    }
     console.warn(`[backtest] live sources incomplete, using cached ${cached.source} (${cached.bars.length} bars)`);
     return { ...cached, source: `${cached.source}（本地缓存）` };
   }
@@ -275,7 +379,7 @@ async function main() {
   const { bars: spx, source: spxSource } = await fetchSpx();
 
   const rateM = sampleMonthEnd(spliceRateSeries(dfedtar, dfedtaru));
-  const walclM = sampleMonthEnd(walcl);
+  // WALCL 不做月末采样：与线上 fetch-macro 同口径——每个采样时点取可得的最新两条周度观测环比（见循环内）
   const fiscalM = sampleMonthEnd(fiscal); // 月度序列，月末采样=原值
   const epuM = sampleMonthEnd(epu);
   const sahmM = sampleMonthEnd(sahm);
@@ -284,12 +388,14 @@ async function main() {
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
-  const rateMap = byMonth(rateM), walclMap = byMonth(walclM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
+  const rateMap = byMonth(rateM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
   // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
   const spxDateMap = new Map(spxM.map(o => [o.month, o.date]));
 
-  // 重放：2000-01 起（此前36个月做 EPU/财政窗口热身）
-  const months = rateM.map(o => o.month).filter(m => m >= '2000-01');
+  // 重放：2000-01 起（此前13年做 EPU/财政窗口热身）。
+  // 未收官月份剔除：当前系统年月只有半个月数据，纳入会用不完整月收益污染统计（月中重跑时尤甚）
+  const nowMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const months = rateM.map(o => o.month).filter(m => m >= '2000-01' && m < nowMonth);
   const timeline = [];
   let state = { sahmLockActive: false, reactiveLockActive: false };
   // 首月利率变动用 1999-12 播种，避免首月恒 null
@@ -303,15 +409,19 @@ async function main() {
 
   for (const month of months) {
     const rate = rateMap.get(month) ?? null;
-    const walclV = walclMap.get(month) ?? null;
-    const prevWalcl = timeline.length ? (walclMap.get(timeline[timeline.length - 1].month) ?? null) : null;
+    // WALCL：月末采样时取 asOf 时点可得的最新两条周度观测（与线上 fetch-macro 最新两条周度环比同口径；
+    // 旧版月末对月末差分把4-5周变化摊成一次比较，同一个±0.25%阈值下判定明显偏松）。
+    // 周三数据次日（周四）发布 → lastTwoWeeklyAsOf 只放行"观测日+1 ≤ 采样日"的观测
+    const { curr: walclV, prev: prevWalcl } = lastTwoWeeklyAsOf(walcl, lastDayOfMonth(month));
 
     const asOf = prevMonthOf(month); // 发布滞后：只用 M-1 月及更早的月度观测
     // 财政：截至 M-1 月的月度值序列 → 实际同比（名义TTM同比 − 同期TTM通胀）
     const fiscalHist = fiscalM.filter(o => o.month <= asOf).map(o => o.value);
     const nominalFiscalPct = ttmChangePct(fiscalHist);
-    // 同期通胀：PCEPI 近12月均值 vs 前12月均值同比（与支出TTM窗口对齐）
-    const pcepiHist = pcepiM.filter(o => o.month <= asOf).map(o => o.value);
+    // 同期通胀：PCEPI 近12月均值 vs 前12月均值同比（与支出TTM窗口对齐）。
+    // PCEPI 用 M-2：BEA 发布日在月末边界上（M-1 月数据常在 M 月末尾才出），M-1 口径有前视嫌疑
+    const pcepiAsOf = prevMonthOf(asOf);
+    const pcepiHist = pcepiM.filter(o => o.month <= pcepiAsOf).map(o => o.value);
     let fiscalInflationPct = null;
     if (pcepiHist.length >= 24) {
       const last24 = pcepiHist.slice(-24);
@@ -346,7 +456,7 @@ async function main() {
   const crisisRows = CRISES.map(c => {
     const { peak } = findPeakTrough(spx, ...c.peakWindow);
     if (!peak) {
-      return { name: c.name, peakDate: '数据缺失', troughDate: '—', drawdownPct: null, firstDefMonth: null, leadDays: null, missedPct: null, savedPct: null, recoverMonth: null, lockTypes: '—' };
+      return { name: c.name, peakDate: '数据缺失', troughDate: '—', drawdownPct: null, firstDefMonth: null, leadDays: null, missedPct: null, missedKind: null, savedPct: null, coveragePct: null, pathRetPct: null, buyHoldRetPct: null, recoverMonth: null, lockTypes: '—' };
     }
     const { trough } = findPeakTrough(spx, peak.date, c.searchEnd);
     const drawdownPct = (trough.close / peak.close - 1) * 100;
@@ -360,8 +470,11 @@ async function main() {
 
     // 防守发出时点价格（用当月SPX月末价）
     const sigPx = firstDef?.spx ?? null;
-    const missedPct = sigPx ? (sigPx / peak.close - 1) * 100 : null;    // 距顶部（负=已从顶部跌了这么多才示警）
-    const savedPct = sigPx ? (trough.close / sigPx - 1) * 100 : null;   // 示警后到底部还有多少跌幅（躲掉的）
+    // missedPct 双语义（calcMissedPct）：提前捕获=信号→顶部再涨+X%（踏空成本）；滞后捕获=顶部→信号已回落−X%
+    const { missedPct, missedKind } = calcMissedPct(sigPx, peak.close, leadDays);
+    // savedPct 按实际曝险路径（crisisPathStats）：信号月→底部月逐月复利，defense月吃现金、
+    // 非defense月吃SPY，与同期买入持有之差（百分点）。防守中途解除如实计入，不再假设一路防守到底
+    const path = firstDef ? crisisPathStats(timeline, rateMap, firstDef.month, trough.date.slice(0, 7)) : null;
 
     // 恢复非防守
     const afterDef = firstDef ? timeline.filter(t => t.month > firstDef.month) : [];
@@ -370,7 +483,11 @@ async function main() {
     return {
       name: c.name,
       peakDate: peak.date, troughDate: trough.date, drawdownPct,
-      firstDefMonth: firstDef?.month ?? null, leadDays, missedPct, savedPct,
+      firstDefMonth: firstDef?.month ?? null, leadDays, missedPct, missedKind,
+      savedPct: path?.savedPct ?? null,
+      coveragePct: path?.coveragePct ?? null,
+      pathRetPct: path?.pathRetPct ?? null,
+      buyHoldRetPct: path?.buyHoldRetPct ?? null,
       recoverMonth: recover?.month ?? null,
       lockTypes: firstDef ? [firstDef.sahmLockActive && '萨姆锁', firstDef.reactiveLockActive && '应对式锁'].filter(Boolean).join('+') || '决策树' : '—',
     };
@@ -414,13 +531,10 @@ async function main() {
     const tiers = { attack: 0, neutral: 0, reduce: 0, defense: 0 };
     for (const t of months) tiers[t.final] = (tiers[t.final] || 0) + 1;
     const buyHold = (months[months.length - 1].spx / months[0].spx - 1) * 100;
-    // 曝险规则：上月为全面防守→本月空仓；其余满仓（reduce=减仓由用户执行层决定，这里按持有计）
-    let nav = 1;
-    for (let i = 1; i < months.length; i++) {
-      const ret = months[i].spx / months[i - 1].spx;
-      nav *= months[i - 1].final === 'defense' ? 1 : ret;
-    }
-    const strat = (nav - 1) * 100;
+    // 曝险规则：上月为全面防守→本月全现金（联邦基金利率月化计息，与全期模拟同口径——
+    // 旧版 nav*=1 零利息与全期模拟不一致）；其余满仓（reduce=减仓由用户执行层决定，这里按持有计）
+    const sim = simulateNav(months, rateMap);
+    const strat = sim.totalPct;
     return {
       name: w.name, months: months.length, tiers,
       buyHold, strat,
@@ -428,28 +542,24 @@ async function main() {
     };
   });
 
-  // ---- 全期策略模拟：仅全面防守离场（防守月计现金利息）vs 买入持有 ----
-  // 防守期资金不是零收益：停在货币基金/短债，按当时联邦基金利率(rateMap，年化)月化计息。
+  // ---- 全期策略模拟（simulateNav 统一口径）：防守月计现金利息（联邦基金利率月化）----
   // 防守期与高利率期高度重合（2000/2007/2022-23），忽略现金利息会系统性低估策略收益。
   const withPx = timeline.filter(t => t.spx !== null);
-  let navS = 1, navB = 1, peakS = 1, peakB = 1, mddS = 0, mddB = 0;
-  for (let i = 1; i < withPx.length; i++) {
-    const ret = withPx[i].spx / withPx[i - 1].spx;
-    navB *= ret;
-    if (withPx[i - 1].final === 'defense') {
-      const annualRatePct = rateMap.get(withPx[i - 1].month) ?? 0;
-      navS *= 1 + (annualRatePct / 100) / 12; // 月化现金利息
-    } else {
-      navS *= ret;
-    }
-    peakB = Math.max(peakB, navB); mddB = Math.min(mddB, navB / peakB - 1);
-    peakS = Math.max(peakS, navS); mddS = Math.min(mddS, navS / peakS - 1);
-  }
-  const years = (withPx.length - 1) / 12;
+  const bhSim = simulateNav(withPx, rateMap, { buyHold: true });
+  const stratSim = simulateNav(withPx, rateMap);                          // 仅全面防守离场（reduce 月照常满仓）
+  const reduceHalfSim = simulateNav(withPx, rateMap, { reduceWeight: 0.5 }); // 敏感性：照档位建议执行 reduce=50%仓
+  // 子样本稳健性：2010-01 起（避开2000泡沫顶起点）同一套规则重放的后半段
+  const sub2010 = withPx.filter(t => t.month >= '2010-01');
+  const sub2010Strat = simulateNav(sub2010, rateMap);
+  const sub2010BuyHold = simulateNav(sub2010, rateMap, { buyHold: true });
   const overall = {
-    years,
-    buyHoldTotal: (navB - 1) * 100, buyHoldCagr: (Math.pow(navB, 1 / years) - 1) * 100, buyHoldMdd: mddB * 100,
-    stratTotal: (navS - 1) * 100, stratCagr: (Math.pow(navS, 1 / years) - 1) * 100, stratMdd: mddS * 100,
+    years: bhSim.years,
+    buyHoldTotal: bhSim.totalPct, buyHoldCagr: bhSim.cagrPct, buyHoldMdd: bhSim.mddPct,
+    stratTotal: stratSim.totalPct, stratCagr: stratSim.cagrPct, stratMdd: stratSim.mddPct,
+    reduceHalfTotal: reduceHalfSim.totalPct, reduceHalfCagr: reduceHalfSim.cagrPct, reduceHalfMdd: reduceHalfSim.mddPct,
+    sub2010Years: sub2010Strat?.years ?? null,
+    sub2010StratCagr: sub2010Strat?.cagrPct ?? null, sub2010StratMdd: sub2010Strat?.mddPct ?? null,
+    sub2010BuyHoldCagr: sub2010BuyHold?.cagrPct ?? null, sub2010BuyHoldMdd: sub2010BuyHold?.mddPct ?? null,
   };
 
   const summary = {
@@ -479,48 +589,57 @@ async function main() {
     进攻: b.tiers?.attack ?? 0, 观望: b.tiers?.neutral ?? 0, 减仓: b.tiers?.reduce ?? 0, 防守: b.tiers?.defense ?? 0,
     买入持有: b.buyHold?.toFixed(1) + '%', 策略: b.strat?.toFixed(1) + '%', 捕获率: b.capture?.toFixed(0) + '%',
   })));
-  console.log(`全期(${summary.overall.years.toFixed(1)}年) 买入持有 年化${summary.overall.buyHoldCagr.toFixed(1)}% 最大回撤${summary.overall.buyHoldMdd.toFixed(0)}% | 策略 年化${summary.overall.stratCagr.toFixed(1)}% 最大回撤${summary.overall.stratMdd.toFixed(0)}%`);
+  console.log(`全期(${summary.overall.years.toFixed(1)}年) 买入持有 年化${summary.overall.buyHoldCagr.toFixed(1)}% 最大回撤${summary.overall.buyHoldMdd.toFixed(0)}% | 策略(仅defense离场) 年化${summary.overall.stratCagr.toFixed(1)}% 最大回撤${summary.overall.stratMdd.toFixed(0)}% | reduce=50%仓 年化${summary.overall.reduceHalfCagr.toFixed(1)}% 最大回撤${summary.overall.reduceHalfMdd.toFixed(0)}%`);
+  console.log(`2010-01起子样本(${summary.overall.sub2010Years?.toFixed(1)}年) 策略 年化${summary.overall.sub2010StratCagr?.toFixed(1)}% vs 买入持有 年化${summary.overall.sub2010BuyHoldCagr?.toFixed(1)}%`);
   console.log(`防守期均月收益 ${summary.avgDefenseRet?.toFixed(2)}% (${summary.defMonths}月) vs 非防守 ${summary.avgNonDefenseRet?.toFixed(2)}% (${summary.nonDefMonths}月)`);
   console.log(`防守片段 ${summary.episodes} 段，其中假阳性（未伴随>15%回撤）${summary.falsePositives} 段`);
 }
 
 function writeReport(s, timeline) {
   const f = v => v === null || v === undefined ? '—' : (typeof v === 'number' ? v.toFixed(1) : v);
+  const missedCell = c => c.missedKind === 'preTop' ? `信号后再涨+${f(c.missedPct)}%见顶`
+    : c.missedKind === 'postTop' ? `已回落${f(c.missedPct)}%` : '—';
   const rows = s.crisisRows.map(c =>
-    `| ${c.name} | ${c.peakDate} | ${c.troughDate} | ${f(c.drawdownPct)}% | ${c.firstDefMonth ?? '未触发'} | ${c.leadDays === null ? '—' : (c.leadDays >= 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)} | ${f(c.missedPct)}% | ${f(c.savedPct)}% | ${c.recoverMonth ?? '—'} | ${c.lockTypes} |`
+    `| ${c.name} | ${c.peakDate} | ${c.troughDate} | ${f(c.drawdownPct)}% | ${c.firstDefMonth ?? '未触发'} | ${c.leadDays === null ? '—' : (c.leadDays >= 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)} | ${missedCell(c)} | ${c.savedPct === null ? '—' : `${c.savedPct >= 0 ? '+' : ''}${f(c.savedPct)}pp`} | ${c.coveragePct === null ? '—' : `${f(c.coveragePct)}%`} | ${c.recoverMonth ?? '—'} | ${c.lockTypes} |`
   ).join('\n');
 
   const md = `# 股哨兵决策树历史回测报告
 
-生成时间：${new Date().toISOString().slice(0, 10)} ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSDS133FMS、EPUTRADE、SAHMREALTIME）｜ 标普500：${s.spxSource}
+生成时间：${new Date().toISOString().slice(0, 10)} ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSO133FMS+PCEPI平减(实际支出口径)、EPUTRADE、SAHMREALTIME）｜ 标普500：${s.spxSource}
 
 ## 方法论
 
-- **重放粒度**：月末采样，${s.monthsCovered} 个月（2000-01 起），逐月用与线上完全一致的阈值（\`signal.config.js\`）重算四维信号、萨姆锁/应对式调整锁与最终信号。
-- **前视偏差规避 + 发布滞后建模**：月度指标（财政/萨姆/EPUTRADE）在 M 月末决策时只用 M-1 月及更早的观测（模拟真实发布时点：财政次月中旬、萨姆次月初、EPU月后编制）；EPU 百分位只用截至当时的近120个月窗口；锁状态按时间顺序锁存演进，不回看。残余局限：FRED 只存最新修订版而非当时 vintage（萨姆/EPU 均受影响，见"局限"）。
-- **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。
+- **重放粒度**：月末采样，${s.monthsCovered} 个月（2000-01 起），逐月用与线上完全一致的阈值（\`signal.config.js\`）重算四维信号、萨姆锁/应对式调整锁与最终信号。未收官的当前日历月（月中重跑时只有半个月数据）从重放中剔除。
+- **前视偏差规避 + 发布滞后建模**：月度指标（财政/萨姆/EPUTRADE）在 M 月末决策时只用 M-1 月及更早的观测（模拟真实发布时点：财政次月中旬、萨姆次月初、EPU月后编制）；财政平减用的 PCEPI 用 M-2 月及更早（BEA 发布日在月末边界上）；EPU 百分位只用截至当时的近120个月窗口（数据自1987年起拉取，2000-01 起每个月都有足额120个月观测）；锁状态按时间顺序锁存演进，不回看。残余局限：FRED 只存最新修订版而非当时 vintage（萨姆/EPU/财政/PCEPI 均受影响，见"局限"）。
+- **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。注：线上系统 2026-07-17 起按"最近一次FOMC决议方向"判定货币维（加息决议→收紧保持到下次决议），月度差分是其近似。
+- **资产负债表（WALCL）**：每个月末采样时取该时点可得的最新两条周度观测做环比（与线上 fetch-macro 同口径），±0.25% 阈值；WALCL 周三数据次日（周四）才发布，仅"发布日≤采样日"的观测参与。
 - **AI供需维度**：历史上无意义，全程置为观望（neutral）——见"局限"。
 
 ## 危机明细
 
-| 危机 | 市场顶部 | 市场底部 | 最大回撤 | 首次防守信号 | 相对顶部 | 示警时距顶部 | 示警后躲掉 | 恢复非防守 | 触发来源 |
-|---|---|---|---|---|---|---|---|---|---|
+| 危机 | 市场顶部 | 市场底部 | 最大回撤 | 首次防守信号 | 相对顶部 | 踏空/回落 | 相对买入持有少亏 | 防守覆盖率 | 恢复非防守 | 触发来源 |
+|---|---|---|---|---|---|---|---|---|---|---|
 ${rows}
 
-> "示警时距顶部"为负表示信号发出时已从顶部回落该幅度（错过的部分）；"示警后躲掉"为负表示防守后市场继续下跌的幅度（保护住的部分）。
+> **"踏空/回落"双语义**：提前捕获行（信号早于顶部）显示"信号后再涨 +X% 见顶"=防守后市场又涨了这么多才见顶（踏空成本）；滞后捕获行显示"已回落 −X%"=信号发出时已从顶部跌掉的部分（错过的部分）。
+> **"相对买入持有少亏"按实际曝险路径计算**：从首次防守信号月到危机底部月逐月复利——defense 月按现金（联邦基金利率月化，与全期模拟同口径），非 defense 月按 SPY 月收益；该值 = 路径收益 − 同期买入持有收益（百分点，正=少亏）。防守片段中途解除（如 2008：2007-10 即恢复；2020：2019-12 已恢复）如实计入，**不再假设从首次信号一路防守到底部**（旧口径按 底部价/信号价−1 计算，系统性高估保护效果）。路径终点为底部月的月末采样价。
+> **"防守覆盖率"** = 首次信号月到底部月之间（曝险决策月口径）defense 月占比，反映保护的真实密度。
 > 提前捕获的严格定义：首次防守信号发出日早于市场顶部日（leadDays > 0）。仅"窗口内出现过防守月"不计为提前捕获。
 
 ## 全期统计
 
 - 全面防守期月均收益：**${f(s.avgDefenseRet)}%**（${s.defMonths} 个月）｜减仓观望期：**${f(s.avgReduceRet)}%**（${s.reduceMonths} 个月）｜其余：**${f(s.avgNonDefenseRet)}%**（${s.nonDefMonths} 个月）
 - **全面防守占比：${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%**，减仓观望占比：${(s.reduceMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（防守分级后，单维收紧不再全仓防守）
+- 全期（${s.overall.years.toFixed(1)}年）：买入持有 年化 ${f(s.overall.buyHoldCagr)}%、最大回撤 ${f(s.overall.buyHoldMdd)}%；策略（仅defense离场，defense月计现金利息）年化 ${f(s.overall.stratCagr)}%、最大回撤 ${f(s.overall.stratMdd)}%
+- **敏感性（照档位建议执行）**："reduce=50%仓"策略（reduce 月 50% SPY + 50% 现金利息；defense 月全现金；其余满仓）：年化 ${f(s.overall.reduceHalfCagr)}%、最大回撤 ${f(s.overall.reduceHalfMdd)}%——与上行"仅defense离场"口径并列，反映严格按档位执行的真实预期
+- **子样本稳健性（2010-01 起，${f(s.overall.sub2010Years)}年）**：策略年化 ${f(s.overall.sub2010StratCagr)}%（最大回撤 ${f(s.overall.sub2010StratMdd)}%）vs 买入持有年化 ${f(s.overall.sub2010BuyHoldCagr)}%（最大回撤 ${f(s.overall.sub2010BuyHoldMdd)}%）——策略的超额收益高度依赖起点包含 2000 年泡沫顶；后半段策略主要贡献是降回撤而非增收益
 - 各维度收紧月数：货币 ${s.dimTight.monetary}、财政 ${s.dimTight.fiscal}、行政 ${s.dimTight.admin}；锁激活 ${s.dimTight.lockMonths} 个月
 - 防守信号片段共 **${s.episodes}** 段，其中 **${s.falsePositives}** 段未伴随随后12个月内 >15% 的回撤（假阳性率 ${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}%）
 
 ## 阈值敏感性简评
 
 - **±50bp 应对式阈值（月度口径）**：加息/降息周期中相邻两次25bp会在月度差分中合并为50bp，使应对式锁在整个周期内长期锁存——这是防守占比偏高的主要来源之一。线上系统按快照差（日级）判定，比月度回测更精确。
-- **财政 ±5%**：TTM 赤字同比波动频繁越过阈值，贡献了大量单维收紧月份。
+- **财政 ±5%**：TTM 实际支出同比波动频繁越过阈值，贡献了大量单维收紧月份。
 - **EPU >80 分位**：2018-2019 贸易战与 2025 关税周期长期处于高分位，行政维度在这些年份几乎常态收紧。
 - **萨姆锁 0.5**：2001、2008-2009、2020 衰退期均如期触发，衰退识别可靠。
 
@@ -529,12 +648,13 @@ ${rows}
 1. **AI供需维度缺席**：四维只剩三维参与，历史上"进攻"档几乎不出现（进攻要求四全宽松），本报告聚焦防守端评估。
 2. **WALCL 2002-12 前缺失**：2000 年危机的货币维度只有利率子信号。
 3. **月度重放粒度**：线上按日运行且利率基线用快照差，月度差分会把相邻小幅调整合并成"应对式"，高估锁的锁存时长；提前/滞后天数有 ±30 天误差带。
-4. **修订版 vs vintage**：SAHMREALTIME/EPUTRADE 用的是 FRED 最新修订版而非当时可见的原始值，与实时决策存在残余偏差。
+4. **修订版 vs vintage**：SAHMREALTIME/EPUTRADE/MTS财政支出/PCEPI 用的都是 FRED 最新修订版而非当时可见的原始值（财政与 PCEPI 均有后续修订），与实时决策存在残余偏差。
 5. **SPY 代理 SPX**：ETF 价格与指数走势一致，顶部/底部日期可能相差1个交易日以内。
+6. **假阳性为保守上界**：假阳性判定用月末采样价，月中盘中出现过 >15% 但月末收复的回撤会被漏计，${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 是保守上界。
 
 ## 结论与建议
 
-> 本报告为**财政方向反转后**（2026-07-12，"大市场小政府"原则：赤字扩大=收紧）的新口径。与旧口径（赤字扩大=宽松）对比：旧口径四次危机全部提前示警（56/254/236/189 天）但防守占比 83%、假阳性 23/24；新口径见下。
+> 本报告为**财政口径两次修正后**的结果：2026-07-12 方向反转（"大市场小政府"原则：政府扩张=收紧），2026-07-16 起指标从旧口径的名义赤字（MTSDS133FMS，TTM赤字同比）改为新口径的实际支出（MTSO133FMS 名义支出，经 PCEPI 平减）。历史对比：最早的赤字旧口径（赤字扩大=宽松）四次危机全部提前示警（56/254/236/189 天）但防守占比 83%、假阳性 23/24；新口径见下。
 
 1. **捕获情况**：${s.crisisRows.filter(c => c.firstDefMonth).length}/${s.crisisRows.length} 场危机触发防守信号，其中 ${s.crisisRows.filter(c => c.leadDays !== null && c.leadDays > 0).length} 场为提前捕获（信号早于顶部）、${s.crisisRows.filter(c => c.leadDays !== null && c.leadDays <= 0).length} 场为滞后捕获（相对顶部：${s.crisisRows.map(c => c.leadDays === null ? '—' : (c.leadDays > 0 ? `提前${c.leadDays}天` : `滞后${-c.leadDays}天`)).join('、')}）。滞后捕获多由应对式利率锁在危机演进中接管。
 2. **防守分级已生效（2026-07-12 用户拍板）**：单维收紧=减仓观望（部分仓位），双维共振或锁=全面防守（空仓/对冲）。全面防守占比 ${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（分级前为 74%），大量单维噪声月份降级为减仓观望。

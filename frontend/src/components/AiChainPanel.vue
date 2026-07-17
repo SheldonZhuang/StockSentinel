@@ -127,7 +127,8 @@ function formatPct(v) {
 const usageClass = computed(() => {
   const v = bubble.value.modelUsageTrendPct;
   if (v == null) return '';
-  if ((bubble.value.reasons || []).includes('modelUsage')) return 'neg';
+  // 后端 server.js 写入的 reason key 为 'usage'（usage/capex/semiIp 三件套）
+  if ((bubble.value.reasons || []).includes('usage')) return 'neg';
   return v >= 0 ? 'pos' : 'neutral';
 });
 

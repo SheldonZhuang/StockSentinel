@@ -1,23 +1,36 @@
-# /mcp 远程端点（Streamable HTTP）— 2026-07-15
+# 第六轮全面审查（专家视角重审 + 逻辑/代码纠错）— 2026-07-17
 
-背景：Smithery URL 模式扫描要求远程 MCP 端点；现有 MCP 只有 stdio npm 包。
-用户已拍板方案①：后端加 /mcp，同时解锁 claude.ai 等"填 URL 即连"客户端。
+背景：用户要求以顶级美股投资专家视角重新审视"进攻/防守判断"项目目标，
+全面检查逻辑与代码错误，修复后同步 GitHub。基线：209/209 测试通过，工作树干净。
 
-- [x] backend 安装 @modelcontextprotocol/sdk + zod
-- [x] backend/api/mcp.js：无状态 StreamableHTTP，6 工具复用内部函数
-- [x] public.js 导出 rateLimit 供复用
-- [x] server.js 挂载 /mcp
-- [x] tests/mcp.test.js：initialize + tools/list 冒烟
-- [x] 本地 npm test 全绿（195/195）
-- [x] push → Railway 部署 → curl 生产 /mcp 验证（initialize/tools/list/tools/call 全通）
-- [x] Smithery 重新发布 URL → 扫描 SUCCESS（Capabilities found: 6 tools）→ 页面完整
-- [x] 更新 memory + 本文件复盘
+- [x] 四路并行子代理审查：信号方法论 / 后端代码 / 回测正确性 / 前端+MCP+文档一致性
+- [x] 核实代理 findings，逐条验证后修复高/中严重度问题（30个文件，+603/−212）
+- [x] npm test 全绿：backend 234/234（209→234，新增25个）+ frontend 5/5 + build 通过
+- [x] 回测重跑：危机表改实际曝险路径口径，头部数字基本不变（年化11.3% vs 8.5%）
+- [x] 专家视角设计建议整理成 docs/methodology-review-2026-07-17.md（规则改动待用户拍板）
+- [x] commit + push GitHub
+- [x] 复盘写回本文件 + 更新 memory
 
 ## 复盘
-- Smithery 2026 起 URL 模式只认 Streamable HTTP MCP，旧 smithery.yaml(stdio+commandFunction)
-  仅存量兼容，新条目不再扫描它——smithery.yaml 可以从仓库删除（无害，留着也行）。
-- /new 向导不能覆盖已有条目（报 ID 已存在）；更新 URL 要走服务器页 Releases → Publish 弹窗。
-- Smithery 的 React 表单必须用真实鼠标事件（puppeteer click），JS 合成 click/input 事件
-  对开关类控件无效（表单不进 dirty 状态，Save 不亮）。
-- 扫描日志的两个 Warning 无害：resources/prompts Method not found（只暴露 tools）、
-  no config schema（可选 API key 未声明；以后想让用户在 Smithery 界面填 key 再补 configSchema）。
+
+**本轮最重发现（线上高危）**：货币维度用日频序列"昨天vs前天"差值判方向——DFEDTARU
+两次议息之间天天重复同值，差值恒为0，加息周期约95%的天数被判"宽松"，与 SKILL.md/回测
+宣称的"加息周期全程收紧"三方分裂。教训：**"文档说A、回测测B、线上跑C"的三方分裂，
+只有把线上真实取数路径当作独立审计对象才能发现**——前五轮都审了判定函数本身（纯函数
+没错），漏了喂给它的数据语义（prevValue=昨天≠上一档利率）。
+
+**第二教训（回测诚实度）**：危机表 savedPct 假设"从首次信号一路防守到底部"，但防守
+片段会中途解除（2008年防守覆盖率实际仅66.7%）。对外展示的门面数字必须与 NAV 模拟同
+口径；"能算出来"和"按实际曝险路径算"是两回事。修复后 2008"躲掉54%"→"少亏35.5pp"。
+
+**第三教训（房哨兵模式重演）**：前端又手抄了后端阈值且已漂移5处（调用量预警键名不一致
+导致红色预警永不显示、油价徽章还是无护栏旧规则）。凡是判定类展示，优先用后端算好的
+子信号字段（aiMarketSignal/aiFundamentalSignal 已有），前端只渲染不重算。
+
+**其余高危**：全局CORS白名单短路 /v1、/mcp 预检（浏览器端付费API全挂而服务端调用正常，
+所以一直没暴露）；限流桶跨路由共享（刷/v1会误封登录）；用量Map/表无界增长。
+
+**待用户拍板**（docs/methodology-review-2026-07-17.md）：趋势确认层（10月均线否决器，
+预期拦住2007-10/2008-12/2019-12三个最贵错误）、应对式锁解锁方向约束、reduce档语义
+（回测证明reduce月均+1.3%高于其余档，照建议减仓在统计上跑输不动）、AI调用量窗口错配
+（现行参数下attack档结构性不可达）、线上真实决策树从未被整体回测。

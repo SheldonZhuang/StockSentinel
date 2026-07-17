@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // 开放API（/v1/backtest/summary 等）与 /api 同一后端
+      '/v1': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
 });

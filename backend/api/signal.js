@@ -39,10 +39,13 @@ export function calcMonetarySignal(macroData) {
  * 分解利率和资产负债表子信号
  *
  * 利率方向规则（2026-07-16 用户拍板，纯方向）：加息=资金成本升高=利空=收紧；降息/暂停=放松。
- *   - 任何加息（Δ>0，含渐进25bp）→ tight（覆盖"温水煮青蛙"，渐进加息周期全程收紧）
+ *   - 任何加息（Δ>0，含渐进25bp）→ tight（覆盖"温水煮青蛙"，两次决议之间保持收紧）
  *   - 降息或暂停（Δ≤0）→ loose
  *   - 单次 |Δ|≥50bp（不论方向）另触发应对式利率锁 → 强制防守（在 server 层/computeLocks 处理）
  *     ≥50bp 降息虽方向上是 loose，但锁会强制防守（应对式降息=危机中的紧急降息）
+ *
+ * prevRate 语义（2026-07-17 修复）：调用方须传"最近一次FOMC决议前的利率"（fetch-macro 已封装），
+ * 而非日频序列的前一条观测——后者在两次议息之间恒等于现值，会把加息周期几乎全程误判为宽松。
  */
 export function deriveSubSignals(macroData) {
   const { currentRate, prevRate, currentBalanceSheet, prevBalanceSheet } = macroData;
@@ -51,8 +54,8 @@ export function deriveSubSignals(macroData) {
   if (currentRate === null || prevRate === null || currentRate === undefined || prevRate === undefined) {
     rateSignal = 'neutral';
   } else {
-    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 正=加息，负=降息
-    rateSignal = rateDiffBp > 0 ? 'tight' : 'loose'; // 加息→收紧；降息/暂停→宽松
+    const rateDiffBp = Math.round((currentRate - prevRate) * 100); // 正=最近决议加息，负=降息，0=暂停
+    rateSignal = rateDiffBp > 0 ? 'tight' : 'loose'; // 加息→收紧（保持到下次决议）；降息/暂停→宽松
   }
 
   const balanceSheetSignal = deriveBalanceSheetStatus(currentBalanceSheet, prevBalanceSheet);

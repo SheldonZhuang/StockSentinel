@@ -6,7 +6,7 @@ import cors from 'cors';
 import { asyncRoute } from '../utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
-import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage } from '../utils/storage.js';
+import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage, pruneApiUsage } from '../utils/storage.js';
 import { ipRateLimit } from '../utils/ip-rate-limit.js';
 import fs from 'fs';
 import path from 'path';
@@ -25,6 +25,7 @@ router.use(ipRateLimit({ max: 120 }));
 const TIER_DAILY_LIMITS = { keyless: 25, free: 250, pro: 10000 };
 
 const usage = new Map(); // identifier → { day, count }
+const USAGE_MAX = 50_000; // 容量上限：keyless 条目是 `ip:x`，轮换 IPv6 可无限造新键，无上限会撑到 OOM
 
 // 用量持久化：进程重启不清零（限流公平性 + 计费对账底账）。
 // 写路径批量化：内存实时计数，60秒脏刷盘，避免每请求整库 persist
@@ -33,6 +34,10 @@ let usageDirty = false;
 
 async function ensureUsageLoaded(day) {
   if (usageLoadedDay === day) return;
+  // 日切清理：昨日条目已失效，keyless 的 `ip:x` 键只增不删会随天数无界累积
+  for (const [k, v] of usage) {
+    if (v.day !== day) usage.delete(k);
+  }
   try {
     const rows = await loadApiUsage(day);
     for (const r of rows) {
@@ -45,6 +50,9 @@ async function ensureUsageLoaded(day) {
     console.warn('[public-api] usage load failed:', err.message);
   }
   usageLoadedDay = day;
+  // 表侧同款清理（每日一次）：保留400天做计费对账，更早的 ip:x 底账只增不删会无界膨胀
+  const cutoff = new Date(Date.parse(day) - 400 * 86400000).toISOString().slice(0, 10);
+  pruneApiUsage(cutoff).catch(err => console.warn('[public-api] usage prune failed:', err.message));
 }
 
 const flushTimer = setInterval(async () => {
@@ -115,6 +123,13 @@ export async function rateLimit(req, res, next) {
       error: 'rate_limited',
       message: `Daily limit of ${limit} requests reached (tier: ${resolved.tier}). Get an API key for higher limits.`,
     });
+  }
+  // 同日容量兜底（keyCache 同款策略）：新键且已到上限时清空重载，
+  // 已持久化的计数从 DB 恢复，仅丢失 ≤60s 未刷盘增量——宁可短暂放宽也不 OOM
+  if (!entry && usage.size >= USAGE_MAX) {
+    usage.clear();
+    usageLoadedDay = null;
+    await ensureUsageLoaded(day);
   }
   usage.set(resolved.id, { day, count: count + 1 });
   usageDirty = true;

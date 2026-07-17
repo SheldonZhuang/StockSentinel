@@ -44,8 +44,8 @@
         </div>
         <div v-else class="interpret-block">
           <span class="interpret-label">{{ $t('interpret.toAttack') }}</span>
-          <span v-for="d in positions" :key="d.key" :class="['interpret-item', d.value === 'loose' ? 'loose' : 'pending']">
-            {{ d.value === 'loose' ? '✓' : '○' }} {{ $t(`signalPos.${d.key}`) }}
+          <span v-for="d in positions" :key="d.key" :class="['interpret-item', attackReady(d) ? 'loose' : 'pending']">
+            {{ attackReady(d) ? '✓' : '○' }} {{ $t(`signalPos.${d.key}`) }}
           </span>
         </div>
       </div>
@@ -85,16 +85,22 @@ const SIGNALS = [
 
 const fmtPct = v => (v == null ? null : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`);
 
+// "距进攻"清单达成判定（非对称进攻，同步 backend/api/signal.js calcFinalSignal）：
+// AI供需必须=宽松（主动引擎发动）；货币/财政/行政只需"不收紧"（中性或宽松均达成，任一收紧即否决）。
+// 锁激活在 server 层强制防守，不进此清单。
+function attackReady(d) {
+  return d.key === 'aiSupply' ? d.value === 'loose' : d.value !== 'tight';
+}
+
 // 各维度卡片上的核心数据一行
 function dimMetric(key) {
   const ind = props.signal?.indicators || {};
   if (key === 'aiSupply') {
-    // 按产业链现金流向排列：付费源头（模型调用量）最领先最靠前 → 云capex → 半导体产出 → 市场代理
+    // 按产业链现金流向排列：付费源头（模型调用量）最领先最靠前 → 云capex → 半导体产出
     const parts = [];
     if (ind.modelUsageTrendPct != null) parts.push(`${t('indicators.short.modelUsage')} ${fmtPct(ind.modelUsageTrendPct)}`);
     if (ind.capexYoY != null) parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}`);
     if (ind.semiIpYoy != null) parts.push(`${t('indicators.short.semiIp')} ${fmtPct(ind.semiIpYoy)}`);
-    if (ind.smhSpyRelReturnPct != null) parts.push(`SMH−SPY ${fmtPct(ind.smhSpyRelReturnPct)}`);
     return parts.join(' · ') || null;
   }
   if (key === 'monetary') {

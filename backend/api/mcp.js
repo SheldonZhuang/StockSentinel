@@ -28,7 +28,7 @@ function buildServer() {
 
   server.tool(
     'get_current_signal',
-    '获取美股当前进攻/防守信号。返回四档最终信号（attack进攻/neutral观望/reduce减仓观望/defense全面防守）、四个维度（AI供需/货币/财政/行政）各自的宽松/中性/收紧状态、以及全部参考指标（联邦基金利率、萨姆规则、联邦支出、WTI油价、EPU不确定性指数、AI模型调用量等）。判定规则：进攻=四维全宽松且无锁；仅单维收紧=减仓观望；双维以上收紧或衰退锁激活=全面防守。仅供研究参考，不构成投资建议。',
+    '获取美股当前进攻/防守信号。返回四档最终信号（attack进攻/neutral观望/reduce减仓观望/defense全面防守）、四个维度（AI供需/货币/财政/行政）各自的宽松/中性/收紧状态、以及全部参考指标（联邦基金利率、萨姆规则、联邦支出、WTI油价、EPU不确定性指数、AI模型调用量等）。判定规则：进攻（非对称）=AI供需宽松且货币/财政/行政均不收紧（中性即可）且无锁；仅单维收紧=减仓观望；双维以上收紧或衰退锁激活=全面防守。仅供研究参考，不构成投资建议。',
     {},
     async () => {
       const payload = await buildSignalPayload();
@@ -67,7 +67,8 @@ function buildServer() {
     'get_stock_percentile',
     '查询个股或ETF：当前价格在历史区间中的百分位（≥80%高位/≤20%低位）、真实市盈率P/E与市销率P/S（SEC EDGAR财报口径）。支持指数别名：US10Y(10年美债收益率)、VIX、SPX、NDX。',
     {
-      symbol: z.string().max(12).describe('股票代码，如 NVDA、AAPL、QQQ、US10Y'),
+      // 与 /v1/stock/:symbol（public.js SYMBOL_RE）同一护栏：拦住 `/ ?` 等可改写下游行情源请求路径的字符
+      symbol: z.string().regex(/^[A-Z0-9.^=-]{1,12}$/i, 'invalid symbol').describe('股票代码，如 NVDA、AAPL、QQQ、US10Y'),
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('区间起点 YYYY-MM-DD，默认3年前'),
       endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('区间终点 YYYY-MM-DD，默认今天'),
     },

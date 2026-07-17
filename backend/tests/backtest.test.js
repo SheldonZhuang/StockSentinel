@@ -6,6 +6,11 @@ import {
   ttmChangePct,
   replayMonth,
   findPeakTrough,
+  lastDayOfMonth,
+  lastTwoWeeklyAsOf,
+  calcMissedPct,
+  crisisPathStats,
+  simulateNav,
 } from '../backtest/run-backtest.js';
 
 describe('spliceRateSeries', () => {
@@ -134,5 +139,107 @@ describe('findPeakTrough', () => {
     const { peak, trough } = findPeakTrough(spx, '2020-01-01', '2020-12-31');
     expect(peak.date).toBe('2020-02-19');
     expect(trough.date).toBe('2020-03-23');
+  });
+});
+
+describe('lastDayOfMonth', () => {
+  it('闰年2月', () => expect(lastDayOfMonth('2020-02')).toBe('2020-02-29'));
+  it('平年2月', () => expect(lastDayOfMonth('2021-02')).toBe('2021-02-28'));
+  it('12月跨年边界', () => expect(lastDayOfMonth('2021-12')).toBe('2021-12-31'));
+});
+
+describe('lastTwoWeeklyAsOf（WALCL周度环比 + 发布滞后）', () => {
+  const series = [
+    { date: '2020-03-04', value: 1 }, // 周三观测，3-05（周四）发布
+    { date: '2020-03-11', value: 2 }, // 3-12 发布
+    { date: '2020-03-18', value: 3 }, // 3-19 发布
+  ];
+  it('观测日+1 ≤ asOf 才可见：3-18 当天第三条尚未发布', () => {
+    expect(lastTwoWeeklyAsOf(series, '2020-03-18')).toEqual({ curr: 2, prev: 1 });
+  });
+  it('3-19（发布日）起第三条可见', () => {
+    expect(lastTwoWeeklyAsOf(series, '2020-03-19')).toEqual({ curr: 3, prev: 2 });
+  });
+  it('可见观测不足两条 → prev 为 null（判定降级 neutral）', () => {
+    expect(lastTwoWeeklyAsOf(series, '2020-03-05')).toEqual({ curr: 1, prev: null });
+    expect(lastTwoWeeklyAsOf(series, '2020-03-04')).toEqual({ curr: null, prev: null });
+  });
+});
+
+describe('calcMissedPct（双语义）', () => {
+  it('提前捕获（leadDays>0）：信号→顶部再涨 +X%（踏空成本，正值）', () => {
+    const r = calcMissedPct(100, 110, 30);
+    expect(r.missedKind).toBe('preTop');
+    expect(r.missedPct).toBeCloseTo(10, 5);
+  });
+  it('滞后捕获（leadDays≤0）：顶部→信号已回落 −X%（负值）', () => {
+    const r = calcMissedPct(90, 100, -30);
+    expect(r.missedKind).toBe('postTop');
+    expect(r.missedPct).toBeCloseTo(-10, 5);
+  });
+  it('缺数据 → null', () => {
+    expect(calcMissedPct(null, 100, 5)).toEqual({ missedPct: null, missedKind: null });
+    expect(calcMissedPct(100, 110, null)).toEqual({ missedPct: null, missedKind: null });
+  });
+});
+
+describe('crisisPathStats（实际曝险路径，防守中途解除如实计入）', () => {
+  const rateMap = new Map([['2020-01', 12], ['2020-02', 12]]); // 12%年化 → 1%/月
+  it('defense月吃现金、非defense月吃SPY，savedPct=路径−买入持有（百分点）', () => {
+    const timeline = [
+      { month: '2020-01', spx: 100, final: 'defense' }, // 防守月：躲过 -10%
+      { month: '2020-02', spx: 90, final: 'neutral' },  // 中途解除：吃满 -50%
+      { month: '2020-03', spx: 45, final: 'defense' },
+    ];
+    const s = crisisPathStats(timeline, rateMap, '2020-01', '2020-03');
+    expect(s.pathRetPct).toBeCloseTo(-49.5, 5);    // 1.01 × 0.5 − 1
+    expect(s.buyHoldRetPct).toBeCloseTo(-55, 5);   // 0.45 − 1
+    expect(s.savedPct).toBeCloseTo(5.5, 5);        // 相对买入持有少亏 5.5pp
+    expect(s.coveragePct).toBeCloseTo(50, 5);      // 2个曝险决策月中1个defense
+  });
+  it('一路防守到底 → 覆盖率100%，savedPct=现金路径−买入持有', () => {
+    const timeline = [
+      { month: '2020-01', spx: 100, final: 'defense' },
+      { month: '2020-02', spx: 50, final: 'defense' },
+      { month: '2020-03', spx: 40, final: 'defense' },
+    ];
+    const s = crisisPathStats(timeline, rateMap, '2020-01', '2020-03');
+    expect(s.coveragePct).toBe(100);
+    expect(s.pathRetPct).toBeCloseTo((1.01 * 1.01 - 1) * 100, 5);
+    expect(s.savedPct).toBeCloseTo((1.01 * 1.01 - 0.4) * 100, 5);
+  });
+  it('区间不足两个月 → null', () => {
+    expect(crisisPathStats([{ month: '2020-01', spx: 100, final: 'defense' }], rateMap, '2020-01', '2020-01')).toBe(null);
+  });
+});
+
+describe('simulateNav（净值模拟统一口径）', () => {
+  const rateMap = new Map([['2020-01', 12], ['2020-02', 12]]); // 1%/月现金
+  const months = [
+    { month: '2020-01', spx: 100, final: 'reduce' },
+    { month: '2020-02', spx: 110, final: 'defense' },
+    { month: '2020-03', spx: 55, final: 'neutral' },
+  ];
+  it('buyHold 忽略档位恒满仓', () => {
+    expect(simulateNav(months, rateMap, { buyHold: true }).totalPct).toBeCloseTo(-45, 5);
+  });
+  it('默认（仅defense离场）：defense月计现金利息而非零收益', () => {
+    // reduce月满仓 ×1.1，defense月现金 ×1.01 → 11.1%
+    expect(simulateNav(months, rateMap).totalPct).toBeCloseTo(11.1, 5);
+  });
+  it('reduce=50%仓敏感性：reduce月 50%SPY+50%现金', () => {
+    // (0.5×1.1 + 0.5×1.01) × 1.01 − 1 = 6.555%
+    expect(simulateNav(months, rateMap, { reduceWeight: 0.5 }).totalPct).toBeCloseTo(6.555, 3);
+  });
+  it('最大回撤按净值峰值回撤计', () => {
+    const flat = [
+      { month: '2020-01', spx: 100, final: 'neutral' },
+      { month: '2020-02', spx: 120, final: 'neutral' },
+      { month: '2020-03', spx: 60, final: 'neutral' },
+    ];
+    expect(simulateNav(flat, rateMap, { buyHold: true }).mddPct).toBeCloseTo(-50, 5);
+  });
+  it('不足两个月 → null', () => {
+    expect(simulateNav([{ month: '2020-01', spx: 100, final: 'neutral' }], rateMap)).toBe(null);
   });
 });
