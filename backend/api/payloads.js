@@ -35,7 +35,13 @@ export async function buildSignalPayload() {
     calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
     snapshot.yield_curve_inverted_days ?? null
   );
-  const finalSignal = (sahmLockActive || reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  const candidateSignal = (sahmLockActive || reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  // 降档迟滞（V4）：无任何手动覆盖时，快照的 final_signal 已是 cron 应用迟滞后的生效档，直接信任
+  //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）；
+  // 存在覆盖时管理员操作需即时生效，用重算值，不做迟滞
+  const anyOverride = !!(fiscalOverride || adminOverride || aiSupplyOverride
+    || sahmLockOverridden || reactiveAdjustmentLockOverridden);
+  const finalSignal = anyOverride ? candidateSignal : (snapshot.final_signal || candidateSignal);
 
   return {
     finalSignal,
@@ -128,6 +134,10 @@ export async function buildSignalPayload() {
       reactiveAdjustmentLockTriggerBp: reactiveAdjustmentLockActive ? snapshot.reactive_adjustment_lock_trigger_bp : null,
       sahmLockOverridden,
       reactiveAdjustmentLockOverridden,
+      sahmLockSince: snapshot.sahm_lock_since ?? null,
+      reactiveAdjustmentLockSince: snapshot.reactive_adjustment_lock_since ?? null,
+      // 降档等待中：非 null 表示决策树已给出更宽松档、正处确认期（自该日起满30天生效）
+      finalDowngradePendingSince: snapshot.final_downgrade_pending_since ?? null,
     },
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,

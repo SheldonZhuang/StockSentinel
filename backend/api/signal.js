@@ -8,7 +8,7 @@ const {
   AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
-  YIELD_CURVE_INVERSION_CONFIRM_DAYS,
+  YIELD_CURVE_INVERSION_CONFIRM_DAYS, LOCK_MIN_AGE_DAYS, FINAL_DOWNGRADE_CONFIRM_DAYS,
 } = cfg;
 
 /**
@@ -97,16 +97,49 @@ export function deriveBalanceSheetStatus(current, prev) {
  * 现有"零利率+小幅调整解锁"虽在个别时点（2008-12）偏早，但系统层面平衡了"抓危机"与"不误伤复苏"，是回测最优。
  * @returns {boolean}
  */
-export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLockActive }) {
+export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLockActive, lockAgeDays }) {
   const zeroFloorUnlock = currentRate !== null && currentRate !== undefined
     && currentRate <= ZERO_RATE_FLOOR_PCT;
   if (zeroFloorUnlock) return false;
 
+  // 最短锁存期（2026-07-17 V3 采纳）：锁龄不足 60 天时小幅调整不解锁——拦住
+  // "危机中 -50bp 锁定后下次会议 -25bp 跟进降息立即解锁"（2007-10 顶部区域满仓实录）。
+  // lockAgeDays 为 null/undefined（调用方未提供，如旧快照无锁存日期）时不设限（fail-open 兼容旧行为）
+  const lockAgeOk = lockAgeDays === null || lockAgeDays === undefined || lockAgeDays >= LOCK_MIN_AGE_DAYS;
   const smallAdjustmentUnlock = rateDiffBp !== null && rateDiffBp !== undefined && rateDiffBp !== 0
-    && Math.abs(rateDiffBp) < RATE_REACTIVE_ADJUSTMENT_BP;
+    && Math.abs(rateDiffBp) < RATE_REACTIVE_ADJUSTMENT_BP
+    && (!prevLockActive || lockAgeOk);
   if (smallAdjustmentUnlock && !triggerToday) return false;
 
   return !!prevLockActive || !!triggerToday;
+}
+
+/**
+ * 档位降档迟滞（2026-07-17 V4 采纳）：升档（更防守方向，含锁强制 defense）即时生效；
+ * 降档（更宽松方向）需候选档持续温和满 FINAL_DOWNGRADE_CONFIRM_DAYS 天才生效，
+ * 期间沿用上一生效档。回测实证：唯一拦住 2019-12"新冠崩盘前2个月退出防守"的机制，
+ * 且消除阈值边界抖动造成的档位翻转与示警邮件（2019-11→12→2020-01 实录）。
+ * @param {string} candidate - 本日原始候选档（决策树+锁+曲线否决之后）
+ * @param {string|null} prevEffective - 上一快照的生效档
+ * @param {string|null} pendingSince - 降档等待开始日（上一快照），无等待为 null
+ * @param {string} today - 'YYYY-MM-DD'
+ * @returns {{signal: string, pendingSince: string|null}}
+ */
+export function applyDowngradeHold(candidate, prevEffective, pendingSince, today) {
+  const severity = s => ({
+    [FINAL_SIGNAL.DEFENSE]: 3, [FINAL_SIGNAL.REDUCE]: 2,
+    [FINAL_SIGNAL.NEUTRAL]: 1, [FINAL_SIGNAL.ATTACK]: 0,
+  })[s] ?? 1;
+
+  if (!prevEffective || severity(candidate) >= severity(prevEffective)) {
+    return { signal: candidate, pendingSince: null }; // 升档/持平即时生效，清空等待
+  }
+  const since = pendingSince || today;
+  const ageDays = Math.floor((Date.parse(today) - Date.parse(since)) / 86400000);
+  if (ageDays >= FINAL_DOWNGRADE_CONFIRM_DAYS) {
+    return { signal: candidate, pendingSince: null }; // 确认期满，降档生效
+  }
+  return { signal: prevEffective, pendingSince: since }; // 确认期内沿用上一档
 }
 
 /**

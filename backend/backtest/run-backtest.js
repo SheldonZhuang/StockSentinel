@@ -1,5 +1,6 @@
 // 历史回测：把决策树套在 2000/2008/2020/2022 四次美股大跌上，评估防守信号提前量与假阳性
 // 运行：node backtest/run-backtest.js（FRED_API_KEY 从 backend/.env 读取）
+//       node backtest/run-backtest.js --eval  → 遍历规则变体组合打印对照表（不写报告文件）
 // 只 import 现有判定逻辑，不修改任何线上文件
 import 'dotenv/config';
 import fs from 'fs';
@@ -7,9 +8,24 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import cfg from '../config/signal.config.js';
+import { calcLockActive, applyDowngradeHold } from '../api/signal.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
+
+// ---------- 规则变体开关（2026-07-17 评估定稿） ----------
+// V3(最短锁存期)+V4(降档迟滞) 组合评估后采纳为新基线（年化11.3→11.7%、08覆盖66.7→94.4%、
+// 2020覆盖80→100%、假阳性20/26→17/19），默认开启并复用线上 calcLockActive/applyDowngradeHold；
+// V1/V2/V5/V6 评估否决保持关闭（对照表可用 --eval 模式复现）。
+export const VARIANTS_DEFAULT = {
+  trendConfirm: false,        // V1 趋势确认层【否决：年化-1.0pp；2007-10月末价仍在10月SMA上方，拦不住该解锁，只剩复苏晚入场代价】
+  cutLockDirUnlock: false,    // V2 降息锁方向约束【否决：年化-0.5pp；2001锁到2004-06、2025-10起锁死至今——分化解锁问题窄化重现】
+  minLockMonths: 2,           // V3 最短锁存期【采纳】：锁触发后至少2个月才允许小幅调整解锁 = 线上 LOCK_MIN_AGE_DAYS(60天)÷30天标准月
+  downgradeHysteresis: true,  // V4 档位迟滞【采纳】：降档需连续2个月更宽松才生效 = 线上 FINAL_DOWNGRADE_CONFIRM_DAYS(30天)确认期
+  realRateCap: false,         // V5 实际利率封顶【否决：非对称进攻树只数tight票，货币loose→neutral不改变任何档位，结构性无影响】
+  aiSemi: false,              // V6 AI维半导体代理【否决：年化-1.4pp；2019全年防守-12.2pp；2000科网同比+43~52%投宽松票，无提前示警】
+};
+export const REAL_RATE_CAP_PCT = 1.5; // V5 阈值：实际利率超过此值即"高实际利率环境"，宽松票作废
 
 // ---------- 纯函数（可测试，backend/tests/backtest.test.js 覆盖） ----------
 
@@ -73,12 +89,24 @@ export function ttmChangePct(monthlyValues) {
 }
 
 /**
- * 单月重放：复用线上阈值判定四维 + 锁 + 最终信号（AI供需历史无意义 → neutral）
- * @param {object} m - 当月指标 {rate, prevRate, walcl, prevWalcl, fiscalChangePct, epuPercentile, sahm}
- *   walcl/prevWalcl = 采样时点可得的最新两条 WALCL 周度观测（lastTwoWeeklyAsOf，与线上 fetch-macro 同口径）
- * @param {object} prevState - {sahmLockActive, reactiveLockActive}
+ * 末端N期简单均线（V1 趋势确认层用：月末收盘10月SMA）
+ * @param {number[]} values - 升序数值数组
+ * @returns {number|null} 不足N期 → null（调用方跳过该规则）
  */
-export function replayMonth(m, prevState) {
+export function smaLast(values, n) {
+  if (!Array.isArray(values) || values.length < n) return null;
+  return values.slice(-n).reduce((a, b) => a + b, 0) / n;
+}
+
+/**
+ * 单月重放：复用线上阈值判定四维 + 锁 + 最终信号（AI供需历史无意义 → neutral；V6 变体例外）
+ * @param {object} m - 当月指标 {rate, prevRate, walcl, prevWalcl, fiscalChangePct, epuPercentile, sahm,
+ *   oilChangePct, spxBelowSma10, realRatePct, semiYoy}
+ *   walcl/prevWalcl = 采样时点可得的最新两条 WALCL 周度观测（lastTwoWeeklyAsOf，与线上 fetch-macro 同口径）
+ * @param {object} prevState - {sahmLockActive, reactiveLockActive, reactiveLockDir, sahmLockAge, reactiveLockAge}
+ * @param {object} variants - 变体开关（缺省全关 = 基线，与既有行为逐位一致）
+ */
+export function replayMonth(m, prevState, variants = {}) {
   const S = cfg.SIGNAL;
   // 货币方向规则（与线上 deriveSubSignals 同口径）：任何加息→tight；降息/暂停→loose。
   // 单次|Δ|≥50bp 另触发应对式利率锁（下方）。资产负债表 ±0.25%
@@ -95,8 +123,12 @@ export function replayMonth(m, prevState) {
       : chg < -cfg.BALANCE_SHEET_PAUSE_THRESHOLD_PCT ? S.TIGHT : S.NEUTRAL;
   }
   // QT只拦截宽松不定罪收紧（与线上 calcMonetarySignal 同口径）
-  const monetary = rateSignal === S.TIGHT ? S.TIGHT
+  let monetary = rateSignal === S.TIGHT ? S.TIGHT
     : (rateSignal === S.LOOSE && bsSignal !== S.TIGHT) ? S.LOOSE : S.NEUTRAL;
+  // V5 实际利率封顶：政策利率−核心PCE同比 > +1.5%（高实际利率=环境本身偏紧）时 loose 封顶 neutral（tight不变）
+  if (variants.realRateCap && monetary === S.LOOSE
+    && m.realRatePct !== null && m.realRatePct !== undefined
+    && m.realRatePct > REAL_RATE_CAP_PCT) monetary = S.NEUTRAL;
 
   // 财政：实际支出同比（名义TTM同比 − 同期TTM通胀），与线上 fetchFiscalData 同口径。
   // 剔除通胀让阈值围绕零漂移，消除名义支出自然增速导致的"预挂收紧"
@@ -117,33 +149,66 @@ export function replayMonth(m, prevState) {
     : m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT ? S.TIGHT
     : m.epuPercentile < cfg.EPU_PERCENTILE_LOOSE ? S.LOOSE : S.NEUTRAL;
 
-  const aiSupply = S.NEUTRAL; // 历史上无AI维度
+  // V6：AI维用半导体产出同比（IPG3344S，1972年起全程可得）做唯一子信号回放，阈值与线上 semi 子信号一致；
+  // 基线（变体关）保持历史上无AI维度 → neutral
+  let aiSupply = S.NEUTRAL;
+  if (variants.aiSemi && m.semiYoy !== null && m.semiYoy !== undefined) {
+    aiSupply = m.semiYoy > cfg.AI_SEMI_IP_YOY_LOOSE_PCT ? S.LOOSE
+      : m.semiYoy < cfg.AI_SEMI_IP_YOY_TIGHT_PCT ? S.TIGHT : S.NEUTRAL;
+  }
 
-  // 锁：calcLockActive 语义（触发锁存；零利率≤0.25% 或 非零<50bp 小幅调整解锁）
-  // （2026-07-16回测验证：分化解锁规则让锁在降息周期长期锁死、复苏牛捕获率崩溃，保持原语义）
-  const zeroUnlock = m.rate !== null && m.rate <= cfg.ZERO_RATE_FLOOR_PCT;
-  const smallAdjUnlock = rateDiffBp !== null && rateDiffBp !== 0 && Math.abs(rateDiffBp) < cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-
+  // 锁：复用线上 calcLockActive（单一来源）——触发锁存；零利率≤0.25% 或 非零<50bp 小幅调整解锁。
+  // V3 最短锁存期（默认开，2026-07-17采纳）：月度锁龄×30天喂给 lockAgeDays，
+  // 2个月锁存 ⇔ 线上 LOCK_MIN_AGE_DAYS=60天（零利率解锁在线上实现里天然豁免）；
+  // minLockMonths=0（旧基线回退）时传 null 走 fail-open，与 2026-07-16 前行为逐位一致
   const sahmTrigger = m.sahm !== null && m.sahm >= cfg.SAHM_TRIGGER_THRESHOLD;
   const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-  const sahmLockActive = zeroUnlock ? false
-    : (smallAdjUnlock && !sahmTrigger) ? false
-    : (prevState.sahmLockActive || sahmTrigger);
-  const reactiveLockActive = zeroUnlock ? false
-    : (smallAdjUnlock && !reactiveTrigger) ? false
-    : (prevState.reactiveLockActive || reactiveTrigger);
+
+  // V1 趋势否决（已否决，--eval 可复现）：SPX月末收盘<10月SMA 期间全部解锁路径被否决，锁保持
+  const trendVeto = !!variants.trendConfirm && m.spxBelowSma10 === true;
+  const minLock = variants.minLockMonths || 0;
+  const lockAgeDaysOf = prevAgeMonths => (minLock > 0 ? (prevAgeMonths ?? 0) * 30 : null);
+
+  let sahmLockActive = calcLockActive({
+    triggerToday: sahmTrigger, rateDiffBp, currentRate: m.rate,
+    prevLockActive: !!prevState.sahmLockActive, lockAgeDays: lockAgeDaysOf(prevState.sahmLockAge),
+  });
+  if (trendVeto) sahmLockActive = !!(prevState.sahmLockActive || sahmTrigger);
+
+  // V2 方向约束（已否决，--eval 可复现）：降息触发的应对式锁遇另一次小幅降息时，
+  // rateDiffBp 以 0 传入压制 calcLockActive 的小幅调整解锁路径（语义=该次降息不解锁）
+  const cutLockCutBlocked = !!variants.cutLockDirUnlock
+    && prevState.reactiveLockDir === 'cut' && rateDiffBp !== null && rateDiffBp < 0;
+  let reactiveLockActive = calcLockActive({
+    triggerToday: reactiveTrigger, rateDiffBp: cutLockCutBlocked ? 0 : rateDiffBp, currentRate: m.rate,
+    prevLockActive: !!prevState.reactiveLockActive, lockAgeDays: lockAgeDaysOf(prevState.reactiveLockAge),
+  });
+  if (trendVeto) reactiveLockActive = !!(prevState.reactiveLockActive || reactiveTrigger);
+  // V2+V1 组合：降息触发的锁在趋势收复（月末收盘≥10月SMA）时解除
+  if (variants.cutLockDirUnlock && variants.trendConfirm
+    && prevState.reactiveLockActive && prevState.reactiveLockDir === 'cut'
+    && m.spxBelowSma10 === false && !reactiveTrigger) reactiveLockActive = false;
+
+  // 锁触发方向与锁龄（V2/V3 状态；基线下计算无副作用）
+  const reactiveLockDir = !reactiveLockActive ? null
+    : reactiveTrigger ? (rateDiffBp > 0 ? 'hike' : 'cut')
+    : (prevState.reactiveLockDir ?? null);
+  const sahmLockAge = sahmLockActive ? (prevState.sahmLockActive ? (prevState.sahmLockAge ?? 0) : 0) + 1 : 0;
+  const reactiveLockAge = reactiveLockActive ? (prevState.reactiveLockActive ? (prevState.reactiveLockAge ?? 0) : 0) + 1 : 0;
 
   // 决策树（防守分级 + 非对称进攻）：双维以上收紧=全面防守；单维收紧=减仓观望；
   // 进攻=AI供需宽松且政策三维不收紧（tightCount===0）；锁强制全面防守。
-  // 注：AI供需在历史回测中恒为neutral（AI主题2015前不存在），故进攻档回测触发0次——
+  // 注：AI供需在历史回测中恒为neutral（AI主题2015前不存在，V6变体例外），故进攻档回测触发0次——
   // 属AI主题年轻的固有限制，非规则错误；实盘中AI供需有数据、进攻档是活的。
   const tightCount = [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length;
   let final = tightCount >= 2 ? 'defense'
     : tightCount === 1 ? 'reduce'
     : (aiSupply === S.LOOSE) ? 'attack' : 'neutral';
+  // V1 ②：趋势之下不进攻——attack 降级 neutral
+  if (variants.trendConfirm && m.spxBelowSma10 === true && final === 'attack') final = 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
 
-  return { monetary, fiscal, admin, aiSupply, final, sahmLockActive, reactiveLockActive, rateDiffBp };
+  return { monetary, fiscal, admin, aiSupply, final, sahmLockActive, reactiveLockActive, reactiveLockDir, sahmLockAge, reactiveLockAge, rateDiffBp };
 }
 
 /** 找 [start,end] 区间内 SPX 最高/最低收盘 */
@@ -255,15 +320,31 @@ export function simulateNav(months, rateMap, { reduceWeight = 1, buyHold = false
 
 // ---------- 数据拉取 ----------
 
+// FRED 本地文件缓存（fred-cache.json，24h TTL，已加 .gitignore）：
+// --eval 模式反复跑变体组合会重复请求同一批序列，无缓存易触发 FRED 429
+const FRED_CACHE = path.join(__dirname, 'fred-cache.json');
+const FRED_CACHE_TTL_MS = 24 * 3600 * 1000;
+let fredCache = null;
+
 async function fredSeries(id, apiKey, extra = '') {
+  if (fredCache === null) {
+    try { fredCache = JSON.parse(fs.readFileSync(FRED_CACHE, 'utf8')); } catch { fredCache = {}; }
+  }
+  const cacheKey = `${id}|1987-01-01|${extra}`;
+  const hit = fredCache[cacheKey];
+  if (hit && Date.now() - hit.at < FRED_CACHE_TTL_MS) return hit.obs;
+
   // 1987-01-01 起（原 1997）：保证 EPUTRADE（FRED 可回溯到 1985）在 2000-01 起的每个月
   // 都有足额 120 个月观测供 slice(-120) 十年百分位窗口用，消除 2000-2006 小窗百分位噪声；
   // 其余序列提前起点无害——多拉的数据只占内存，判定逻辑仍从 2000-01 重放
   const url = `${FRED_BASE}?series_id=${id}&observation_start=1987-01-01&api_key=${apiKey}&file_type=json&sort_order=asc&limit=100000${extra}`;
   const res = await axios.get(url, { timeout: 30000 });
-  return (res.data.observations || [])
+  const obs = (res.data.observations || [])
     .map(o => ({ date: o.date, value: parseFloat(o.value) }))
     .filter(o => !isNaN(o.value));
+  fredCache[cacheKey] = { at: Date.now(), obs };
+  fs.writeFileSync(FRED_CACHE, JSON.stringify(fredCache));
+  return obs;
 }
 
 const SPX_CACHE = path.join(__dirname, 'spx-cache.json');
@@ -360,12 +441,13 @@ const BULL_RUNS = [
   { name: '2026 战后反弹', start: '2026-04', end: '2026-07' },
 ];
 
-async function main() {
+/** 拉取全部序列并做月末采样，返回重放所需的数据包（与变体无关，--eval 模式只拉一次） */
+export async function loadData() {
   const apiKey = process.env.FRED_API_KEY;
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pcepi] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pcepi, corePceYoy, semiYoy] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
@@ -373,7 +455,9 @@ async function main() {
     fredSeries('EPUTRADE', apiKey),
     fredSeries('SAHMREALTIME', apiKey),
     fredSeries('DCOILWTICO', apiKey),
-    fredSeries('PCEPI', apiKey), // PCE价格指数，财政支出通胀平减用
+    fredSeries('PCEPI', apiKey),                    // PCE价格指数，财政支出通胀平减用
+    fredSeries('PCEPILFE', apiKey, '&units=pc1'),   // V5：核心PCE同比（%）
+    fredSeries('IPG3344S', apiKey, '&units=pc1'),   // V6：半导体及电子元件产出同比（%），1972年起
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -388,40 +472,56 @@ async function main() {
   const spxM = sampleMonthEnd(spx.map(b => ({ date: b.date, value: b.close })));
 
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
-  const rateMap = byMonth(rateM), sahmMap = byMonth(sahmM), oilMap = byMonth(oilM), spxMap = byMonth(spxM);
-  // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
-  const spxDateMap = new Map(spxM.map(o => [o.month, o.date]));
+  return {
+    spx, spxSource, walcl, fiscalM, epuM, pcepiM, spxM,
+    rateM,
+    rateMap: byMonth(rateM), sahmMap: byMonth(sahmM), oilMap: byMonth(oilM), spxMap: byMonth(spxM),
+    corePceYoyMap: byMonth(sampleMonthEnd(corePceYoy)), // V5
+    semiYoyMap: byMonth(sampleMonthEnd(semiYoy)),       // V6
+    // 月→该月真实月末交易日，用于危机提前量按真实日期计算（而非硬编码 "-28"）
+    spxDateMap: new Map(spxM.map(o => [o.month, o.date])),
+    spxIdxMap: new Map(spxM.map((o, i) => [o.month, i])), // V1：SMA窗口定位
+  };
+}
 
+const prevMonthOf = m => {
+  const [y, mo] = m.split('-').map(Number);
+  return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
+};
+
+/** 逐月重放（变体开关注入 replayMonth / 迟滞状态机），返回 timeline */
+export function runReplay(D, variants = VARIANTS_DEFAULT) {
   // 重放：2000-01 起（此前13年做 EPU/财政窗口热身）。
   // 未收官月份剔除：当前系统年月只有半个月数据，纳入会用不完整月收益污染统计（月中重跑时尤甚）
   const nowMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  const months = rateM.map(o => o.month).filter(m => m >= '2000-01' && m < nowMonth);
+  const months = D.rateM.map(o => o.month).filter(m => m >= '2000-01' && m < nowMonth);
   const timeline = [];
-  let state = { sahmLockActive: false, reactiveLockActive: false };
+  let state = { sahmLockActive: false, reactiveLockActive: false, reactiveLockDir: null, sahmLockAge: 0, reactiveLockAge: 0 };
+  // V4 迟滞状态（默认开）：复用线上 applyDowngradeHold（日频，FINAL_DOWNGRADE_CONFIRM_DAYS=30天确认期）。
+  // 月度重放按"标准月=30天"合成日历喂入 → 30天确认期 ⇔ 1个标准月等待 ⇔ 评估口径
+  // "降档需连续2个月更宽松才生效"。不用真实月末日期：2月只有28天，会让确认期偶尔跨到第3个月，偏离评估口径
+  let hyst = { effective: null, pendingSince: null };
+  let monthIdx = 0;
   // 首月利率变动用 1999-12 播种，避免首月恒 null
-  let prevRate = rateMap.get('1999-12') ?? null;
+  let prevRate = D.rateMap.get('1999-12') ?? null;
   // 月度指标发布滞后建模：MTSDS133FMS 次月中旬发布、SAHMREALTIME 次月初随非农、EPUTRADE 月后编制，
   // M 月末决策时只能看到 M-1 月的观测（利率/WALCL/油价为日频/周频实时序列，不移位）
-  const prevMonthOf = m => {
-    const [y, mo] = m.split('-').map(Number);
-    return mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, '0')}`;
-  };
 
   for (const month of months) {
-    const rate = rateMap.get(month) ?? null;
+    const rate = D.rateMap.get(month) ?? null;
     // WALCL：月末采样时取 asOf 时点可得的最新两条周度观测（与线上 fetch-macro 最新两条周度环比同口径；
     // 旧版月末对月末差分把4-5周变化摊成一次比较，同一个±0.25%阈值下判定明显偏松）。
     // 周三数据次日（周四）发布 → lastTwoWeeklyAsOf 只放行"观测日+1 ≤ 采样日"的观测
-    const { curr: walclV, prev: prevWalcl } = lastTwoWeeklyAsOf(walcl, lastDayOfMonth(month));
+    const { curr: walclV, prev: prevWalcl } = lastTwoWeeklyAsOf(D.walcl, lastDayOfMonth(month));
 
     const asOf = prevMonthOf(month); // 发布滞后：只用 M-1 月及更早的月度观测
     // 财政：截至 M-1 月的月度值序列 → 实际同比（名义TTM同比 − 同期TTM通胀）
-    const fiscalHist = fiscalM.filter(o => o.month <= asOf).map(o => o.value);
+    const fiscalHist = D.fiscalM.filter(o => o.month <= asOf).map(o => o.value);
     const nominalFiscalPct = ttmChangePct(fiscalHist);
     // 同期通胀：PCEPI 近12月均值 vs 前12月均值同比（与支出TTM窗口对齐）。
     // PCEPI 用 M-2：BEA 发布日在月末边界上（M-1 月数据常在 M 月末尾才出），M-1 口径有前视嫌疑
     const pcepiAsOf = prevMonthOf(asOf);
-    const pcepiHist = pcepiM.filter(o => o.month <= pcepiAsOf).map(o => o.value);
+    const pcepiHist = D.pcepiM.filter(o => o.month <= pcepiAsOf).map(o => o.value);
     let fiscalInflationPct = null;
     if (pcepiHist.length >= 24) {
       const last24 = pcepiHist.slice(-24);
@@ -433,8 +533,19 @@ async function main() {
       ? nominalFiscalPct - fiscalInflationPct
       : nominalFiscalPct;
     // 行政：EPU 截至 M-1 月近10年（120个月）窗口百分位 —— 无前视且建模发布滞后
-    const epuHist = epuM.filter(o => o.month <= asOf).slice(-120);
+    const epuHist = D.epuM.filter(o => o.month <= asOf).slice(-120);
     const epuLatest = epuHist.length && epuHist[epuHist.length - 1].month === asOf ? epuHist[epuHist.length - 1].value : null;
+
+    // V1：截至当月的最近10个月末收盘均值（含当月）；前10个月 SMA 不足时为 null（跳过该规则）
+    let spxBelowSma10 = null;
+    const spxIdx = D.spxIdxMap.get(month);
+    if (spxIdx !== undefined) {
+      const sma = smaLast(D.spxM.slice(0, spxIdx + 1).map(o => o.value), 10);
+      if (sma !== null) spxBelowSma10 = D.spxM[spxIdx].value < sma;
+    }
+    // V5：实际利率 = 政策利率（月末目标上沿，实时可见）− 核心PCE同比（M-1可见）
+    const corePce = D.corePceYoyMap.get(asOf) ?? null;
+    const realRatePct = (rate !== null && corePce !== null) ? rate - corePce : null;
 
     const r = replayMonth({
       rate, prevRate,
@@ -442,17 +553,35 @@ async function main() {
       fiscalChangePct: realFiscalPct,
       epuPercentile: epuLatest !== null ? percentileAsOf(epuLatest, epuHist.map(o => o.value)) : null,
       oilChangePct: (() => {
-        const cur = oilMap.get(month), prev = timeline.length ? oilMap.get(timeline[timeline.length - 1].month) : null;
+        const cur = D.oilMap.get(month), prev = timeline.length ? D.oilMap.get(timeline[timeline.length - 1].month) : null;
         return cur != null && prev != null && prev !== 0 ? (cur - prev) / prev * 100 : null;
       })(),
-      sahm: sahmMap.get(asOf) ?? null,
-    }, state);
-    state = { sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive };
+      sahm: D.sahmMap.get(asOf) ?? null,
+      spxBelowSma10,
+      realRatePct,
+      semiYoy: D.semiYoyMap.get(prevMonthOf(asOf)) ?? null, // V6：IP 发布滞后建模为 M-2 可见
+    }, state, variants);
+    state = {
+      sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive,
+      reactiveLockDir: r.reactiveLockDir, sahmLockAge: r.sahmLockAge, reactiveLockAge: r.reactiveLockAge,
+    };
     prevRate = rate;
-    timeline.push({ month, spx: spxMap.get(month) ?? null, spxDate: spxDateMap.get(month) ?? null, ...r });
+    let final = r.final;
+    if (variants.downgradeHysteresis) { // V4：降档需连续2个月确认，升档即时（复用线上 applyDowngradeHold）
+      const synthToday = addDaysISO('2000-01-01', monthIdx * 30); // 标准月=30天 合成日历（见 hyst 注释）
+      const h = applyDowngradeHold(r.final, hyst.effective, hyst.pendingSince, synthToday);
+      hyst = { effective: h.signal, pendingSince: h.pendingSince };
+      final = h.signal;
+    }
+    monthIdx++;
+    timeline.push({ month, spx: D.spxMap.get(month) ?? null, spxDate: D.spxDateMap.get(month) ?? null, ...r, rawFinal: r.final, final });
   }
+  return timeline;
+}
 
-  // ---- 评估 ----
+/** 危机/牛市/全期统计（与变体无关的评估口径），返回 summary */
+export function evaluate(D, timeline) {
+  const { spx, spxSource, rateMap, spxMap } = D;
   const crisisRows = CRISES.map(c => {
     const { peak } = findPeakTrough(spx, ...c.peakWindow);
     if (!peak) {
@@ -562,7 +691,7 @@ async function main() {
     sub2010BuyHoldCagr: sub2010BuyHold?.cagrPct ?? null, sub2010BuyHoldMdd: sub2010BuyHold?.mddPct ?? null,
   };
 
-  const summary = {
+  return {
     spxSource,
     bullRows,
     overall,
@@ -579,6 +708,16 @@ async function main() {
       lockMonths: timeline.filter(t => t.sahmLockActive || t.reactiveLockActive).length,
     },
   };
+}
+
+async function main() {
+  const D = await loadData();
+
+  if (process.argv.includes('--eval')) return runEval(D);
+
+  const timeline = runReplay(D, VARIANTS_DEFAULT);
+  const summary = evaluate(D, timeline);
+  const { crisisRows, bullRows } = summary;
 
   fs.writeFileSync(path.join(__dirname, 'backtest-raw.json'), JSON.stringify({ summary, timeline }, null, 2));
   writeReport(summary, timeline);
@@ -593,6 +732,105 @@ async function main() {
   console.log(`2010-01起子样本(${summary.overall.sub2010Years?.toFixed(1)}年) 策略 年化${summary.overall.sub2010StratCagr?.toFixed(1)}% vs 买入持有 年化${summary.overall.sub2010BuyHoldCagr?.toFixed(1)}%`);
   console.log(`防守期均月收益 ${summary.avgDefenseRet?.toFixed(2)}% (${summary.defMonths}月) vs 非防守 ${summary.avgNonDefenseRet?.toFixed(2)}% (${summary.nonDefMonths}月)`);
   console.log(`防守片段 ${summary.episodes} 段，其中假阳性（未伴随>15%回撤）${summary.falsePositives} 段`);
+}
+
+// ---------- 变体评估模式（--eval）：数据只拉一次，遍历组合打印对照表，不写报告文件 ----------
+
+const VARIANT_DEFS = [
+  ['V1趋势确认', { trendConfirm: true }],
+  ['V2降息锁方向', { cutLockDirUnlock: true }],
+  ['V3锁存2月', { minLockMonths: 2 }],
+  ['V4降档迟滞', { downgradeHysteresis: true }],
+  ['V5实际利率封顶', { realRateCap: true }],
+  ['V6AI半导体', { aiSemi: true }],
+];
+
+function evalRow(name, D, timeline) {
+  const s = evaluate(D, timeline);
+  const total = s.defMonths + s.reduceMonths + s.nonDefMonths;
+  const c = key => s.crisisRows.find(r => r.name.startsWith(key));
+  const c08 = c('2008'), c20 = c('2020');
+  const f1 = v => v === null || v === undefined ? '—' : v.toFixed(1);
+  return {
+    组合: name,
+    年化: s.overall.stratCagr, 回撤: s.overall.stratMdd,
+    防守月: s.defMonths, 防守占比: total ? s.defMonths / total * 100 : 0,
+    召回: `${s.crisisRows.filter(r => r.firstDefMonth).length}/${s.crisisRows.length}`,
+    首次示警: s.crisisRows.map(r => r.firstDefMonth ?? '未触发').join(' '),
+    '08少亏/覆盖': `${f1(c08?.savedPct)}pp/${f1(c08?.coveragePct)}%`,
+    '20少亏/覆盖': `${f1(c20?.savedPct)}pp/${f1(c20?.coveragePct)}%`,
+    恢复: s.crisisRows.map(r => r.recoverMonth ?? '—').join(' '),
+    假阳性: `${s.falsePositives}/${s.episodes}`,
+  };
+}
+
+const keyMonthDetail = (timeline, mo) => {
+  const t = timeline.find(x => x.month === mo);
+  if (!t) return `${mo}:无数据`;
+  const locks = [t.sahmLockActive && '萨姆锁', t.reactiveLockActive && '应对锁'].filter(Boolean).join('+');
+  return `${mo}=${t.final}${locks ? `(${locks})` : ''}`;
+};
+
+function runEval(D) {
+  const baseTimeline = runReplay(D, {});
+  const rows = [evalRow('基线(全关)', D, baseTimeline)];
+  const timelines = new Map([['基线(全关)', baseTimeline]]);
+
+  // 单变体
+  for (const [name, v] of VARIANT_DEFS) {
+    const tl = runReplay(D, v);
+    timelines.set(name, tl);
+    rows.push(evalRow(name, D, tl));
+  }
+
+  // 组合扫描：全部 2^6 组合（V2/V3 互为替代不同开），跳过空集与单变体（已列）
+  const comboRows = [];
+  for (let mask = 1; mask < (1 << VARIANT_DEFS.length); mask++) {
+    const picked = VARIANT_DEFS.filter((_, i) => mask & (1 << i));
+    if (picked.length < 2) continue;
+    const names = picked.map(([n]) => n);
+    if (names.includes('V2降息锁方向') && names.includes('V3锁存2月')) continue; // 互为替代
+    const v = Object.assign({}, ...picked.map(([, p]) => p));
+    const label = names.map(n => n.slice(0, 2)).join('+');
+    const tl = runReplay(D, v);
+    timelines.set(label, tl);
+    comboRows.push(evalRow(label, D, tl));
+  }
+  comboRows.sort((a, b) => b.年化 - a.年化);
+
+  const fmt = r => ({ ...r, 年化: r.年化.toFixed(2) + '%', 回撤: r.回撤.toFixed(1) + '%', 防守占比: r.防守占比.toFixed(0) + '%' });
+  console.log('\n===== 基线 + 单变体 =====');
+  console.table(rows.map(fmt));
+  console.log('\n===== 组合（按年化排序，前15） =====');
+  console.table(comboRows.slice(0, 15).map(fmt));
+  console.log('\n===== 组合（按年化排序，后5） =====');
+  console.table(comboRows.slice(-5).map(fmt));
+
+  // 关键时点行为明细：2007-10 小幅降息解锁 / 2008-12 零利率解锁 / 2019-12 退出防守
+  console.log('\n===== 关键时点明细（2007-10 / 2008-12 / 2019-12 ± 复苏入场） =====');
+  const firstNonDefAfter = (tl, mo) => tl.find(x => x.month > mo && x.final !== 'defense')?.month ?? '—';
+  for (const [name, tl] of timelines) {
+    if (!rows.some(r => r.组合 === name) && !comboRows.slice(0, 8).some(r => r.组合 === name)) continue;
+    const def23 = tl.filter(t => t.month >= '2023-01' && t.month <= '2023-12' && t.final === 'defense').length;
+    console.log(`${name.padEnd(16)} ${keyMonthDetail(tl, '2007-10')}  ${keyMonthDetail(tl, '2008-12')}  ${keyMonthDetail(tl, '2019-12')}  | 复苏入场: 09年${firstNonDefAfter(tl, '2009-03')} 20年${firstNonDefAfter(tl, '2020-03')} 23年防守${def23}月`);
+  }
+
+  // V6 三个半导体下行周期的代价明细（vs 基线）
+  console.log('\n===== V6 半导体下行周期代价（vs 基线） =====');
+  const v6tl = timelines.get('V6AI半导体');
+  for (const [ws, we] of [['2015-01', '2016-12'], ['2019-01', '2019-12'], ['2023-01', '2023-06']]) {
+    const seg = tl => tl.filter(t => t.month >= ws && t.month <= we && t.spx !== null);
+    const b = seg(baseTimeline), v = seg(v6tl);
+    const simB = simulateNav(b, D.rateMap), simV = simulateNav(v, D.rateMap);
+    const cnt = (tl, f) => tl.filter(t => t.final === f).length;
+    const aiTight = v.filter(t => t.aiSupply === 'tight').length;
+    console.log(`${ws}~${we}: AI维tight ${aiTight}月 | defense 基线${cnt(b, 'defense')}→V6 ${cnt(v, 'defense')}月, reduce ${cnt(b, 'reduce')}→${cnt(v, 'reduce')}月 | 区间策略收益 基线${simB.totalPct.toFixed(1)}% → V6 ${simV.totalPct.toFixed(1)}%（差${(simV.totalPct - simB.totalPct).toFixed(1)}pp）`);
+  }
+  // 2000 科网泡沫更早示警检验
+  const firstDefIn = (tl, s, e) => tl.find(t => t.month >= s && t.month <= e && t.final === 'defense')?.month ?? '未触发';
+  console.log(`2000科网泡沫首次防守: 基线 ${firstDefIn(baseTimeline, '1999-06', '2003-03')} → V6 ${firstDefIn(v6tl, '1999-06', '2003-03')}`);
+  const aiTight2000 = v6tl.filter(t => t.month >= '2000-01' && t.month <= '2002-12' && t.aiSupply === 'tight').map(t => t.month);
+  console.log(`2000-2002 AI维tight月份: ${aiTight2000.length ? aiTight2000[0] + '起共' + aiTight2000.length + '月' : '无'}`);
 }
 
 function writeReport(s, timeline) {
@@ -613,6 +851,7 @@ function writeReport(s, timeline) {
 - **前视偏差规避 + 发布滞后建模**：月度指标（财政/萨姆/EPUTRADE）在 M 月末决策时只用 M-1 月及更早的观测（模拟真实发布时点：财政次月中旬、萨姆次月初、EPU月后编制）；财政平减用的 PCEPI 用 M-2 月及更早（BEA 发布日在月末边界上）；EPU 百分位只用截至当时的近120个月窗口（数据自1987年起拉取，2000-01 起每个月都有足额120个月观测）；锁状态按时间顺序锁存演进，不回看。残余局限：FRED 只存最新修订版而非当时 vintage（萨姆/EPU/财政/PCEPI 均受影响，见"局限"）。
 - **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。注：线上系统 2026-07-17 起按"最近一次FOMC决议方向"判定货币维（加息决议→收紧保持到下次决议），月度差分是其近似。
 - **资产负债表（WALCL）**：每个月末采样时取该时点可得的最新两条周度观测做环比（与线上 fetch-macro 同口径），±0.25% 阈值；WALCL 周三数据次日（周四）才发布，仅"发布日≤采样日"的观测参与。
+- **最短锁存期 + 档位降档迟滞（2026-07-17 变体评估采纳，本报告默认启用）**：①任一锁触发后至少锁存2个月才允许小幅调整解锁（零利率解锁不受限）——复用线上 \`calcLockActive\`，月度锁龄×30天 对齐线上 \`LOCK_MIN_AGE_DAYS=60\` 天；②最终档位**降档**（向宽松）需连续2个月决策树给出更宽松档才生效，**升档**（向防守）即时——复用线上 \`applyDowngradeHold\`，标准月=30天 对齐线上 \`FINAL_DOWNGRADE_CONFIRM_DAYS=30\` 天确认期。与未启用的旧基线对比：年化 11.3%→11.7%、2008防守覆盖 66.7%→94.4%（少亏 35.5→58.1pp）、2020覆盖 80%→100%、假阳性 20/26→17/19；代价：2010起子样本年化 13.3%→12.3%、复苏入场平均晚约1个月。同轮评估否决：V1趋势确认（-1.0pp，2007-10月末价仍在10月SMA上方拦不住解锁）、V2降息锁方向约束（-0.5pp，2001锁到2004、2025-10起锁死）、V5实际利率封顶（非对称进攻树下结构性无影响）、V6半导体AI维（-1.4pp，见"结论"5）。对照表可用 \`node backtest/run-backtest.js --eval\` 复现。
 - **AI供需维度**：历史上无意义，全程置为观望（neutral）——见"局限"。
 
 ## 危机明细
@@ -663,7 +902,7 @@ ${rows}
    - 防守分级：单维收紧 → 减仓/观望；双维以上收紧或任一锁激活 → 全面防守。锁与多维共振在历史上与真实危机高度重合。
    - 财政/行政维度可考虑从"OR 即触发"降级为"确认性信号"（需与货币或供需共振才触发防守）。
    - 任何阈值修改后应重跑本回测（\`node backtest/run-backtest.js\`）对比防守占比与召回率的变化。
-5. **下一步**：AI供需维度用半导体IP同比（1997年起可得）代理回测 2000 年科网泡沫，检验"供需维度能否比政策维度更早示警"。
+5. **半导体代理AI维假设已验证不成立（2026-07-17 评估否决）**：曾计划"AI供需维度用半导体IP同比代理回测2000年科网泡沫，检验供需维度能否比政策维度更早示警"。实测（IPG3344S 半导体产出同比，M-2可见性）：该指标为质量调整口径，2000年全年同比 +43~52%、泡沫破裂首年（2001上半年）仍 +12~45%，仅2001-11/12短暂转负2个月——泡沫期AI维投的是**宽松**票，首次防守时点（2000-05）无任何提前；而2019年半导体下行周期（同比负9个月）造成全年防守、区间收益 -12.2pp，全期年化 -1.4pp。半导体产出不是泡沫顶部的前瞻指标（2015-16下行撞上回调属巧合获益 +13.8pp，2023H1零影响）。
 `;
   fs.writeFileSync(path.join(__dirname, '../../docs/backtest-report.md'), md);
 }

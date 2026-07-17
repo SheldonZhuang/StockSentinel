@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
-  calcLockActive, applyYieldCurveVeto,
+  calcLockActive, applyYieldCurveVeto, applyDowngradeHold,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -496,5 +496,68 @@ describe('applyYieldCurveVeto（曲线倒挂≥3个月否决进攻档准入）',
     expect(applyYieldCurveVeto('defense', 200)).toBe('defense');
     expect(applyYieldCurveVeto('reduce', 200)).toBe('reduce');
     expect(applyYieldCurveVeto('neutral', 200)).toBe('neutral');
+  });
+});
+
+describe('calcLockActive 最短锁存期（V3，2026-07-17采纳）', () => {
+  it('锁龄不足60天：小幅调整不解锁（拦住2007-10场景：-50bp锁定次月-25bp跟进）', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: -25, currentRate: 4.25, prevLockActive: true, lockAgeDays: 30,
+    })).toBe(true);
+  });
+
+  it('锁龄满60天：小幅调整正常解锁', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: -25, currentRate: 4.25, prevLockActive: true, lockAgeDays: 60,
+    })).toBe(false);
+  });
+
+  it('零利率解锁不受锁存期限制', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: 0, currentRate: 0.25, prevLockActive: true, lockAgeDays: 5,
+    })).toBe(false);
+  });
+
+  it('锁龄未知（旧快照无锁存日期）：fail-open 兼容旧行为', () => {
+    expect(calcLockActive({
+      triggerToday: false, rateDiffBp: -25, currentRate: 4.25, prevLockActive: true, lockAgeDays: null,
+    })).toBe(false);
+  });
+});
+
+describe('applyDowngradeHold 降档迟滞（V4，2026-07-17采纳）', () => {
+  it('升档即时生效并清空等待（锁强制defense不受迟滞影响）', () => {
+    expect(applyDowngradeHold('defense', 'reduce', '2026-07-01', '2026-07-10'))
+      .toEqual({ signal: 'defense', pendingSince: null });
+  });
+
+  it('持平：直接生效，清空等待', () => {
+    expect(applyDowngradeHold('reduce', 'reduce', null, '2026-07-10'))
+      .toEqual({ signal: 'reduce', pendingSince: null });
+  });
+
+  it('降档开始等待：沿用上一档，记录起始日', () => {
+    expect(applyDowngradeHold('reduce', 'defense', null, '2026-07-10'))
+      .toEqual({ signal: 'defense', pendingSince: '2026-07-10' });
+  });
+
+  it('确认期内（<30天）继续沿用上一档', () => {
+    expect(applyDowngradeHold('reduce', 'defense', '2026-07-01', '2026-07-15'))
+      .toEqual({ signal: 'defense', pendingSince: '2026-07-01' });
+  });
+
+  it('确认期满（≥30天）降档生效（2019-12场景在月度回测中被此机制拦住）', () => {
+    expect(applyDowngradeHold('reduce', 'defense', '2026-06-10', '2026-07-10'))
+      .toEqual({ signal: 'reduce', pendingSince: null });
+  });
+
+  it('等待期间候选反弹回升档：即时生效并清空等待', () => {
+    expect(applyDowngradeHold('defense', 'defense', '2026-07-01', '2026-07-05'))
+      .toEqual({ signal: 'defense', pendingSince: null });
+  });
+
+  it('无历史（首次运行）：候选直接生效', () => {
+    expect(applyDowngradeHold('neutral', null, null, '2026-07-10'))
+      .toEqual({ signal: 'neutral', pendingSince: null });
   });
 });

@@ -23,6 +23,7 @@ import {
   calcLockActive,
   detectSignalChanges,
   applyYieldCurveVeto,
+  applyDowngradeHold,
 } from './api/signal.js';
 import signalCfg from './config/signal.config.js';
 import {
@@ -160,6 +161,11 @@ function computeLocks(macroData, prevSnapshot, overrides) {
   const prevSahmLockActive = prevSnapshot ? !!prevSnapshot.sahm_lock_active : false;
   const prevReactiveLockActive = prevSnapshot ? !!prevSnapshot.reactive_adjustment_lock_active : false;
   const prevTriggerBp = prevSnapshot ? prevSnapshot.reactive_adjustment_lock_trigger_bp : null;
+  // 锁存起始日（V3 最短锁存期用）：旧快照无此列时为 null → calcLockActive fail-open 兼容旧行为
+  const prevSahmLockSince = prevSnapshot?.sahm_lock_since ?? null;
+  const prevReactiveLockSince = prevSnapshot?.reactive_adjustment_lock_since ?? null;
+  const today = todayET();
+  const ageDays = since => (since ? Math.floor((Date.parse(today) - Date.parse(since)) / 86400000) : null);
 
   const sahmTrigger = sahmValue !== null && sahmValue !== undefined
     && sahmValue >= signalCfg.SAHM_TRIGGER_THRESHOLD;
@@ -167,10 +173,20 @@ function computeLocks(macroData, prevSnapshot, overrides) {
 
   const rawSahmLockActive = calcLockActive({
     triggerToday: sahmTrigger, rateDiffBp, currentRate, prevLockActive: prevSahmLockActive,
+    lockAgeDays: prevSahmLockActive ? ageDays(prevSahmLockSince) : null,
   });
   const rawReactiveLockActive = calcLockActive({
     triggerToday: reactiveTrigger, rateDiffBp, currentRate, prevLockActive: prevReactiveLockActive,
+    lockAgeDays: prevReactiveLockActive ? ageDays(prevReactiveLockSince) : null,
   });
+
+  // 锁存起始日演进：新激活 → 今天；持续激活 → 沿用（旧快照缺列则从今天起算）；解除 → 清空
+  const sahmLockSince = rawSahmLockActive
+    ? (prevSahmLockActive ? (prevSahmLockSince ?? today) : today)
+    : null;
+  const reactiveAdjustmentLockSince = rawReactiveLockActive
+    ? (prevReactiveLockActive ? (prevReactiveLockSince ?? today) : today)
+    : null;
 
   let reactiveAdjustmentLockTriggerBp = null;
   if (reactiveTrigger) {
@@ -190,6 +206,9 @@ function computeLocks(macroData, prevSnapshot, overrides) {
     reactiveAdjustmentLockTriggerBp: reactiveAdjustmentLockOverridden ? null : reactiveAdjustmentLockTriggerBp,
     sahmLockOverridden,
     reactiveAdjustmentLockOverridden,
+    // 锁存起始日按 raw 状态记录（override 清锁不清起始日——override 撤销后锁龄延续）
+    sahmLockSince,
+    reactiveAdjustmentLockSince,
   };
 }
 
@@ -256,7 +275,15 @@ async function runDailyUpdate() {
   );
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
-  const finalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  const rawFinalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）
+  const hold = applyDowngradeHold(
+    rawFinalSignal,
+    prevSnapshot?.final_signal ?? null,
+    prevSnapshot?.final_downgrade_pending_since ?? null,
+    today
+  );
+  const finalSignal = hold.signal;
 
   await saveSignalSnapshot({
     date: today,
@@ -333,6 +360,9 @@ async function runDailyUpdate() {
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
     reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
+    sahmLockSince: locks.sahmLockSince,
+    reactiveAdjustmentLockSince: locks.reactiveAdjustmentLockSince,
+    finalDowngradePendingSince: hold.pendingSince,
     fiscalStale,
     adminStale,
     aiSupplyStale,

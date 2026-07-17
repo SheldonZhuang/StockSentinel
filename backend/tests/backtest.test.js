@@ -11,7 +11,10 @@ import {
   calcMissedPct,
   crisisPathStats,
   simulateNav,
+  smaLast,
+  VARIANTS_DEFAULT,
 } from '../backtest/run-backtest.js';
+import { applyDowngradeHold } from '../api/signal.js';
 
 describe('spliceRateSeries', () => {
   it('DFEDTAR 在 DFEDTARU 起点之前的观测保留，之后被 DFEDTARU 接管', () => {
@@ -125,6 +128,157 @@ describe('replayMonth', () => {
   it('全部数据缺失 → 各维中性 → 观望（利率宽松但AI中性挡住进攻）', () => {
     const r = replayMonth({ rate: null, prevRate: null, walcl: null, prevWalcl: null, fiscalChangePct: null, epuPercentile: null, sahm: null }, NO_LOCK);
     expect(r.final).toBe('neutral');
+  });
+});
+
+describe('VARIANTS_DEFAULT（新基线口径守卫，2026-07-17 采纳定稿）', () => {
+  it('V3(锁存2月)+V4(降档迟滞) 默认开启，V1/V2/V5/V6 否决保持关闭', () => {
+    expect(VARIANTS_DEFAULT).toEqual({
+      trendConfirm: false,
+      cutLockDirUnlock: false,
+      minLockMonths: 2,
+      downgradeHysteresis: true,
+      realRateCap: false,
+      aiSemi: false,
+    });
+  });
+});
+
+describe('smaLast（V1 十月均线）', () => {
+  it('末端N期均值', () => {
+    expect(smaLast([1, 2, 3, 4], 2)).toBe(3.5);
+    expect(smaLast(Array(10).fill(5), 10)).toBe(5);
+  });
+  it('不足N期 → null（V1 前10个月跳过该规则）', () => {
+    expect(smaLast([1, 2, 3], 10)).toBe(null);
+    expect(smaLast([], 1)).toBe(null);
+  });
+});
+
+describe('applyDowngradeHold 月度换算（V4：标准月=30天 合成日历 ⇔ 降档需连续2个月确认）', () => {
+  // 月度重放把第 i 个月喂成 2000-01-01 + i×30 天，30天确认期恰好=1个标准月等待
+  const synth = i => new Date(Date.parse('2000-01-01') + i * 30 * 86400000).toISOString().slice(0, 10);
+  it('降档第1个标准月保持原档，第2个标准月生效（30天确认期满）', () => {
+    const m1 = applyDowngradeHold('reduce', 'defense', null, synth(0));
+    expect(m1.signal).toBe('defense');
+    expect(m1.pendingSince).toBe(synth(0));
+    const m2 = applyDowngradeHold('reduce', m1.signal, m1.pendingSince, synth(1));
+    expect(m2).toEqual({ signal: 'reduce', pendingSince: null });
+  });
+  it('确认期内弹回防守 → 等待清零、即时回防（锁强制defense不受迟滞影响）', () => {
+    const m1 = applyDowngradeHold('neutral', 'defense', null, synth(0));
+    const m2 = applyDowngradeHold('defense', m1.signal, m1.pendingSince, synth(1));
+    expect(m2).toEqual({ signal: 'defense', pendingSince: null });
+  });
+  it('首月无上档 → 直接采用候选档', () => {
+    expect(applyDowngradeHold('reduce', null, null, synth(0))).toEqual({ signal: 'reduce', pendingSince: null });
+  });
+  it('真实月末日历会因2月28天<30天错过确认（合成日历存在的理由）', () => {
+    const m1 = applyDowngradeHold('reduce', 'defense', null, '2001-01-31');
+    const m2 = applyDowngradeHold('reduce', m1.signal, m1.pendingSince, '2001-02-28'); // 28天 < 30
+    expect(m2.signal).toBe('defense'); // 若用真实日期，降档会拖到第3个月
+  });
+});
+
+describe('replayMonth 变体（默认全关时与基线逐位一致）', () => {
+  const NEUTRAL_INPUT = { rate: 3, prevRate: 3, walcl: null, prevWalcl: null, fiscalChangePct: null, epuPercentile: null, sahm: null };
+  const NO_LOCK = { sahmLockActive: false, reactiveLockActive: false };
+
+  it('V1 趋势否决：SPX<10月SMA 期间小幅调整解锁被否决，锁保持', () => {
+    const m = { ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3, spxBelowSma10: true };
+    const base = replayMonth(m, { sahmLockActive: true, reactiveLockActive: true });
+    expect(base.sahmLockActive).toBe(false); // 基线：小幅调整解锁
+    const v1 = replayMonth(m, { sahmLockActive: true, reactiveLockActive: true }, { trendConfirm: true });
+    expect(v1.sahmLockActive).toBe(true);
+    expect(v1.reactiveLockActive).toBe(true);
+    expect(v1.final).toBe('defense');
+  });
+
+  it('V1 趋势否决：零利率解锁也被否决（2008-12 场景）', () => {
+    const m = { ...NEUTRAL_INPUT, rate: 0.25, prevRate: 1, sahm: 0.8, spxBelowSma10: true };
+    const base = replayMonth(m, { sahmLockActive: true, reactiveLockActive: false });
+    expect(base.sahmLockActive).toBe(false); // 基线：零利率解锁
+    const v1 = replayMonth(m, { sahmLockActive: true, reactiveLockActive: false }, { trendConfirm: true });
+    expect(v1.sahmLockActive).toBe(true);
+  });
+
+  it('V1 趋势收复（收盘≥SMA）后解锁路径恢复，与基线一致', () => {
+    const m = { ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3, spxBelowSma10: false };
+    const v1 = replayMonth(m, { sahmLockActive: true, reactiveLockActive: true }, { trendConfirm: true });
+    expect(v1.sahmLockActive).toBe(false);
+    expect(v1.reactiveLockActive).toBe(false);
+  });
+
+  it('V1+V6 趋势之下不进攻：attack 降级 neutral', () => {
+    const m = { ...NEUTRAL_INPUT, semiYoy: 12, spxBelowSma10: true };
+    const above = replayMonth({ ...m, spxBelowSma10: false }, NO_LOCK, { trendConfirm: true, aiSemi: true });
+    expect(above.final).toBe('attack');
+    const below = replayMonth(m, NO_LOCK, { trendConfirm: true, aiSemi: true });
+    expect(below.final).toBe('neutral');
+  });
+
+  it('V2 方向约束：降息触发的应对式锁不能被小幅降息解锁，小幅加息可以', () => {
+    const locked = { sahmLockActive: false, reactiveLockActive: true, reactiveLockDir: 'cut', reactiveLockAge: 3 };
+    const cut = replayMonth({ ...NEUTRAL_INPUT, rate: 2.75, prevRate: 3 }, locked, { cutLockDirUnlock: true });
+    expect(cut.reactiveLockActive).toBe(true); // 小幅降息 → 锁保持
+    const hike = replayMonth({ ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3 }, locked, { cutLockDirUnlock: true });
+    expect(hike.reactiveLockActive).toBe(false); // 小幅加息 → 解锁
+    const zero = replayMonth({ ...NEUTRAL_INPUT, rate: 0.25, prevRate: 0.5 }, locked, { cutLockDirUnlock: true });
+    expect(zero.reactiveLockActive).toBe(false); // 零利率 → 解锁
+  });
+
+  it('V2 加息触发的锁维持现行规则：小幅降息仍可解锁', () => {
+    const locked = { sahmLockActive: false, reactiveLockActive: true, reactiveLockDir: 'hike', reactiveLockAge: 3 };
+    const r = replayMonth({ ...NEUTRAL_INPUT, rate: 2.75, prevRate: 3 }, locked, { cutLockDirUnlock: true });
+    expect(r.reactiveLockActive).toBe(false);
+  });
+
+  it('锁触发方向与锁龄锁存：降息≥50bp → dir=cut、age=1，次月保持则 age 递增', () => {
+    const r1 = replayMonth({ ...NEUTRAL_INPUT, rate: 2.5, prevRate: 3 }, NO_LOCK);
+    expect(r1.reactiveLockActive).toBe(true);
+    expect(r1.reactiveLockDir).toBe('cut');
+    expect(r1.reactiveLockAge).toBe(1);
+    const r2 = replayMonth({ ...NEUTRAL_INPUT, rate: 2.5, prevRate: 2.5 }, r1);
+    expect(r2.reactiveLockAge).toBe(2);
+    expect(r2.reactiveLockDir).toBe('cut');
+  });
+
+  it('V3 最短锁存期：锁龄不足2月时小幅调整解锁无效，满2月后恢复', () => {
+    const young = { sahmLockActive: false, reactiveLockActive: true, reactiveLockDir: 'hike', reactiveLockAge: 1 };
+    const r1 = replayMonth({ ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3 }, young, { minLockMonths: 2 });
+    expect(r1.reactiveLockActive).toBe(true); // 锁龄1 < 2 → 保持
+    const aged = { ...young, reactiveLockAge: 2 };
+    const r2 = replayMonth({ ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3 }, aged, { minLockMonths: 2 });
+    expect(r2.reactiveLockActive).toBe(false); // 锁龄2 → 允许解锁
+  });
+
+  it('V3 零利率解锁不受最短锁存期限制', () => {
+    const young = { sahmLockActive: true, reactiveLockActive: true, sahmLockAge: 1, reactiveLockAge: 1 };
+    const r = replayMonth({ ...NEUTRAL_INPUT, rate: 0.25, prevRate: 1 }, young, { minLockMonths: 2 });
+    expect(r.sahmLockActive).toBe(false);
+    expect(r.reactiveLockActive).toBe(false);
+  });
+
+  it('V5 实际利率封顶：暂停（宽松票）且实际利率>+1.5% → 货币封顶 neutral；≤+1.5% 不动', () => {
+    const capped = replayMonth({ ...NEUTRAL_INPUT, rate: 5.25, prevRate: 5.25, realRatePct: 3 }, NO_LOCK, { realRateCap: true });
+    expect(capped.monetary).toBe('neutral');
+    const kept = replayMonth({ ...NEUTRAL_INPUT, rate: 5.25, prevRate: 5.25, realRatePct: 1 }, NO_LOCK, { realRateCap: true });
+    expect(kept.monetary).toBe('loose');
+    const tight = replayMonth({ ...NEUTRAL_INPUT, rate: 5.5, prevRate: 5.25, realRatePct: 3 }, NO_LOCK, { realRateCap: true });
+    expect(tight.monetary).toBe('tight'); // tight 不受封顶影响
+  });
+
+  it('V6 AI维半导体代理：同比>+5% → loose(进攻)；<0% → tight(单维=减仓)；之间 → neutral', () => {
+    const loose = replayMonth({ ...NEUTRAL_INPUT, semiYoy: 8 }, NO_LOCK, { aiSemi: true });
+    expect(loose.aiSupply).toBe('loose');
+    expect(loose.final).toBe('attack'); // 政策三维不收紧 + AI宽松 → 进攻
+    const tight = replayMonth({ ...NEUTRAL_INPUT, semiYoy: -2 }, NO_LOCK, { aiSemi: true });
+    expect(tight.aiSupply).toBe('tight');
+    expect(tight.final).toBe('reduce');
+    const mid = replayMonth({ ...NEUTRAL_INPUT, semiYoy: 3 }, NO_LOCK, { aiSemi: true });
+    expect(mid.aiSupply).toBe('neutral');
+    const off = replayMonth({ ...NEUTRAL_INPUT, semiYoy: -2 }, NO_LOCK); // 变体关 → 恒 neutral
+    expect(off.aiSupply).toBe('neutral');
   });
 });
 
