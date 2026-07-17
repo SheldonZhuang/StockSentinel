@@ -4,8 +4,9 @@ const {
   SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_ADJUSTMENT_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
   EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
-  AI_MARKET_REL_RETURN_THRESHOLD_PCT, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
-  AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT, AI_CAPEX_YOY_TIGHT_PCT,
+  AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT,
+  AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT,
+  AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
 } = cfg;
 
@@ -164,60 +165,40 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
 }
 
 /**
- * AI供需子信号：市场（SMH-SPY相对收益）与基本面（半导体IP同比）
- * 用户框架：供不应求=宽松（越跑赢越宽松，不封顶）；防守靠"供过于求(长线转弱)+货币收紧"双维共振
+ * AI供需子信号：纯现金流三件套（沿资金流向）——移除原SMH-SPY股价代理。
+ * 每个子信号 loose(供不应求/需求投资旺) / neutral / tight(供过于求/收缩)：
+ *   usage    模型调用量趋势（需求侧，最前瞻）：>+10% loose；<-10% tight
+ *   capex    云厂商资本开支同比（投资侧）：>+10% loose；<0% tight
+ *   semiIp   半导体产出同比（供给侧，末端）：>+5% loose；<0% tight
+ * @returns {{usageSignal, capexSignal, semiSignal}}
  */
-export function deriveAiSupplySubSignals({ smhSpyRelReturnPct, semiIpYoy }) {
-  let marketSignal = SIGNAL.NEUTRAL;
-  if (smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined) {
-    if (smhSpyRelReturnPct > AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.LOOSE;
-    else if (smhSpyRelReturnPct < -AI_MARKET_REL_RETURN_THRESHOLD_PCT) marketSignal = SIGNAL.TIGHT;
-  }
-
-  let fundamentalSignal = SIGNAL.NEUTRAL;
-  if (semiIpYoy !== null && semiIpYoy !== undefined) {
-    if (semiIpYoy > AI_SEMI_IP_YOY_LOOSE_PCT) fundamentalSignal = SIGNAL.LOOSE;
-    else if (semiIpYoy < AI_SEMI_IP_YOY_TIGHT_PCT) fundamentalSignal = SIGNAL.TIGHT;
-  }
-
-  return { marketSignal, fundamentalSignal };
+export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpYoy }) {
+  const band = (v, looseTh, tightTh) => {
+    if (v === null || v === undefined) return null;
+    if (v > looseTh) return SIGNAL.LOOSE;
+    if (v < tightTh) return SIGNAL.TIGHT;
+    return SIGNAL.NEUTRAL;
+  };
+  return {
+    usageSignal: band(modelUsageTrendPct, AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT),
+    capexSignal: band(capexYoY, AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT),
+    semiSignal: band(semiIpYoy, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT),
+  };
 }
 
 /**
- * AI泡沫预警：模型调用量趋势跌破阈值 或 云厂商资本开支同比转负（用户框架："下降→尽快防守"）
- * 数据缺失(null)不触发预警（优雅降级）
- * @returns {{warning: boolean, reasons: string[]}}
+ * AI供需信号：现金流三件套（调用量/capex/半导体产出）共识判定。
+ * 供不应求(资金流向上)=宽松；供过于求(向下)=收紧。
+ * 规则：取所有有数据的子信号——任一为tight即tight（供过于求是防守信号，用户框架"下降→尽快防守"，
+ *   任一环节收缩即警示）；否则全部loose才loose（供不应求需全链一致）；其余neutral；全缺→neutral。
+ * @param {object} data - 含 modelUsageTrendPct/capexYoY/semiIpYoy
  */
-export function calcBubbleWarning({ modelUsageTrendPct, capexYoY } = {}) {
-  const reasons = [];
-  if (modelUsageTrendPct !== null && modelUsageTrendPct !== undefined
-    && modelUsageTrendPct < AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT) {
-    reasons.push('modelUsage');
-  }
-  if (capexYoY !== null && capexYoY !== undefined && capexYoY < AI_CAPEX_YOY_TIGHT_PCT) {
-    reasons.push('capex');
-  }
-  return { warning: reasons.length > 0, reasons };
-}
-
-/**
- * AI供需信号：两个子信号都有数据时要求一致才定档（不一致 → 观望）；
- * 只有一边有数据时直接采用该边（数据缺失 ≠ 意见分歧）；全缺失 → 观望；
- * 泡沫预警触发时强制收紧（管理员 override 仍最优先，在 server 层应用）
- */
-export function calcAiSupplySignal(policyData, bubble = null) {
-  if (bubble?.warning) return SIGNAL.TIGHT;
-
-  const { smhSpyRelReturnPct, semiIpYoy } = policyData;
-  const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
-  const hasMarket = smhSpyRelReturnPct !== null && smhSpyRelReturnPct !== undefined;
-  const hasFundamental = semiIpYoy !== null && semiIpYoy !== undefined;
-
-  if (hasMarket && hasFundamental) {
-    return marketSignal === fundamentalSignal ? marketSignal : SIGNAL.NEUTRAL;
-  }
-  if (hasMarket) return marketSignal;
-  if (hasFundamental) return fundamentalSignal;
+export function calcAiSupplySignal(data) {
+  const { usageSignal, capexSignal, semiSignal } = deriveAiSupplySubSignals(data);
+  const subs = [usageSignal, capexSignal, semiSignal].filter(s => s !== null);
+  if (!subs.length) return SIGNAL.NEUTRAL;                    // 全缺失
+  if (subs.some(s => s === SIGNAL.TIGHT)) return SIGNAL.TIGHT; // 任一环节收缩=供过于求→收紧
+  if (subs.every(s => s === SIGNAL.LOOSE)) return SIGNAL.LOOSE; // 全链供不应求→宽松
   return SIGNAL.NEUTRAL;
 }
 
@@ -225,7 +206,7 @@ export function calcAiSupplySignal(policyData, bubble = null) {
  * 示警变化检测：对比前一快照与本次结果，找出所有值得提醒的事件
  * 用户策略"防守信号出现任意一项就立即防守"→ 不止最终信号变化，任一维度转收紧、泡沫预警触发都要示警
  * @param {object|null} prevSnapshot - 上一条 signal_snapshots 行（下划线列名），无历史时为 null
- * @param {object} current - { finalSignal, monetary, fiscal, admin, aiSupply, bubbleWarning, bubbleReasons }
+ * @param {object} current - { finalSignal, monetary, fiscal, admin, aiSupply, sahmLockActive, reactiveAdjustmentLockActive }
  * @returns {Array<{kind, ...}>} 空数组 = 无需示警
  */
 export function detectSignalChanges(prevSnapshot, current) {
@@ -250,10 +231,6 @@ export function detectSignalChanges(prevSnapshot, current) {
     }
   }
 
-  if (!prevSnapshot.ai_bubble_warning && current.bubbleWarning) {
-    changes.push({ kind: 'bubble', reasons: current.bubbleReasons || [] });
-  }
-
   if (!prevSnapshot.sahm_lock_active && current.sahmLockActive) {
     changes.push({ kind: 'sahmLockOn' });
   } else if (prevSnapshot.sahm_lock_active && !current.sahmLockActive) {
@@ -270,11 +247,12 @@ export function detectSignalChanges(prevSnapshot, current) {
 }
 
 /**
- * 决策树：四个信号位 → 最终信号（防守分级，2026-07-12 回测调优后用户拍板）
+ * 决策树：四个信号位 → 最终信号（防守分级 + 非对称进攻，2026-07-16 用户拍板）
  * 参数顺序遵循策略主线"长线看供需，短线看政策"：AI供需 → 货币 → 财政 → 行政
- * 进攻 = AND（四全宽松）
  * 全面防守 = 双维以上收紧（多维共振，历史上与真实危机高度重合；锁激活在 server 层强制）
- * 减仓观望 = 仅单维收紧（回测显示单维收紧多为噪声，全仓防守代价过高）
+ * 减仓观望 = 仅单维收紧
+ * 进攻（非对称）= AI供需宽松（主动看多引擎必须发动）且 货币/财政/行政都不收紧（政策三维作否决项，
+ *   中性或宽松均可，任一收紧即否决——解决贸易战/打仗期抢跑：行政收紧则不进攻，等威胁解除再进攻）且 无锁
  * 观望 = 其余
  */
 export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
@@ -283,16 +261,12 @@ export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
   if (tightCount >= 2) return FINAL_SIGNAL.DEFENSE;
   if (tightCount === 1) return FINAL_SIGNAL.REDUCE;
 
-  // 进攻：四全宽松
-  if (
-    aiSupply === SIGNAL.LOOSE &&
-    monetary === SIGNAL.LOOSE &&
-    fiscal === SIGNAL.LOOSE &&
-    admin === SIGNAL.LOOSE
-  ) {
+  // 进攻（非对称）：AI供需宽松 且 政策三维都不收紧（此处 tightCount===0 已保证无收紧，
+  // 只需再要求 AI供需=宽松）。锁在 server 层强制防守，不会走到这里。
+  if (aiSupply === SIGNAL.LOOSE) {
     return FINAL_SIGNAL.ATTACK;
   }
 
-  // 观望
+  // 观望（含 AI供需中性、政策三维不收紧的情形）
   return FINAL_SIGNAL.NEUTRAL;
 }

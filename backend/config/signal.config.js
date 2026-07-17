@@ -66,17 +66,17 @@ export default {
   OIL_SHOCK_PCT: 20,
   OIL_LOOKBACK_DAYS: 60,     // 拉60天日线保证能找到30天前的交易日观测
 
-  // AI供需信号：市场代理（SMH vs SPY 相对收益）+ 基本面代理（半导体IP同比），两者一致才定档
-  AI_MARKET_SYMBOLS: { SEMI: 'SMH', BENCH: 'SPY' },
-  AI_MARKET_WINDOW_DAYS: 90,               // 相对收益回看窗口（日历日）
-  AI_MARKET_REL_RETURN_THRESHOLD_PCT: 8,   // 相对收益 >+8% → loose（供不应求，越跑赢越宽松，不封顶），<-8% → tight
-  AI_SEMI_IP_YOY_LOOSE_PCT: 5,             // 半导体IP同比 >+5% → loose
-  AI_SEMI_IP_YOY_TIGHT_PCT: 0,             // 同比 <0% → tight
+  // AI供需信号（长线主线，2026-07-16重构）：纯现金流三件套一致性判定——
+  // 沿资金流向：模型调用量趋势(需求侧,最前瞻) → 云厂商capex同比(投资侧) → 半导体产出同比(供给侧,末端)。
+  // 移除原SMH-SPY相对收益（股价是供需传导的结果非供需本身，且顺周期泡沫顶部误投宽松票）。
+  // 供不应求(三件套向上)=宽松；供过于求(向下)=收紧。三者共识判定(全非空时多数决/一致；缺失降级)。
+  AI_MODEL_USAGE_LOOSE_PCT: 10,    // 模型调用量趋势 >+10%（需求旺）→ loose
+  AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT: -10, // <-10%（需求降，供过于求预警）→ tight
+  AI_CAPEX_YOY_LOOSE_PCT: 10,      // 云厂商capex同比 >+10%（扩产投资旺）→ loose
+  AI_CAPEX_YOY_TIGHT_PCT: 0,       // <0%（capex转负，投资收缩）→ tight
+  AI_SEMI_IP_YOY_LOOSE_PCT: 5,     // 半导体产出同比 >+5% → loose
+  AI_SEMI_IP_YOY_TIGHT_PCT: 0,     // 同比 <0% → tight
   AI_SEMI_IP_LOOKBACK_DAYS: 400,
-
-  // AI泡沫预警（任一触发 → aiSupply 自动信号强制收紧）
-  AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT: -10, // 模型调用量 近7日均值 vs 前28日均值 低于该值 → 预警
-  AI_CAPEX_YOY_TIGHT_PCT: 0,                 // 云厂商滚动4季资本开支同比 低于该值 → 预警
 
   // 信号档位常量
   SIGNAL: {

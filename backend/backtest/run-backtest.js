@@ -132,11 +132,14 @@ export function replayMonth(m, prevState) {
     : (smallAdjUnlock && !reactiveTrigger) ? false
     : (prevState.reactiveLockActive || reactiveTrigger);
 
-  // 决策树（防守分级）：双维以上收紧=全面防守；单维收紧=减仓观望；锁强制全面防守
+  // 决策树（防守分级 + 非对称进攻）：双维以上收紧=全面防守；单维收紧=减仓观望；
+  // 进攻=AI供需宽松且政策三维不收紧（tightCount===0）；锁强制全面防守。
+  // 注：AI供需在历史回测中恒为neutral（AI主题2015前不存在），故进攻档回测触发0次——
+  // 属AI主题年轻的固有限制，非规则错误；实盘中AI供需有数据、进攻档是活的。
   const tightCount = [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length;
   let final = tightCount >= 2 ? 'defense'
     : tightCount === 1 ? 'reduce'
-    : (aiSupply === S.LOOSE && monetary === S.LOOSE && fiscal === S.LOOSE && admin === S.LOOSE) ? 'attack' : 'neutral';
+    : (aiSupply === S.LOOSE) ? 'attack' : 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
 
   return { monetary, fiscal, admin, aiSupply, final, sahmLockActive, reactiveLockActive, rateDiffBp };

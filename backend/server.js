@@ -20,7 +20,6 @@ import {
   calcAiSupplySignal,
   deriveAiSupplySubSignals,
   deriveSubSignals,
-  calcBubbleWarning,
   calcLockActive,
   detectSignalChanges,
 } from './api/signal.js';
@@ -212,18 +211,17 @@ async function runDailyUpdate() {
   const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
 
-  // 泡沫预警 stale-keep：调用量与 capex 双双为 null（=数据通道故障，OpenRouter/EDGAR 独立于行情源）
-  // 时无法区分"预警解除"与"拉取失败"，沿用上一快照的预警状态——
-  // 防止故障日静默撤销强制收紧、发出假"转好"邮件，数据恢复日又重复发一封预警
-  const bubbleAuto = calcBubbleWarning(chainData);
-  const bubbleDataMissing = chainData.modelUsageTrendPct == null && chainData.capexYoY == null;
-  const bubbleStale = bubbleDataMissing && !bubbleAuto.warning && !!prevSnapshot?.ai_bubble_warning;
-  const bubble = bubbleStale ? { warning: true, reasons: ['stale-keep'] } : bubbleAuto;
+  // AI供需现金流三件套：调用量+capex（chainData）+ 半导体产出（policyData）合成一个维度
+  const aiSupplyInputs = {
+    modelUsageTrendPct: chainData.modelUsageTrendPct,
+    capexYoY: chainData.capexYoY,
+    semiIpYoy: policyData.semiIpYoy,
+  };
 
   const fiscalAuto = calcFiscalSignal(policyData);
   const adminAuto = calcAdminSignal(policyData);
-  const aiSupplyAuto = calcAiSupplySignal(policyData, bubble);
-  const { marketSignal, fundamentalSignal } = deriveAiSupplySubSignals(policyData);
+  const aiSupplyAuto = calcAiSupplySignal(aiSupplyInputs);
+  const aiSubSignals = deriveAiSupplySubSignals(aiSupplyInputs);
 
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
@@ -233,8 +231,10 @@ async function runDailyUpdate() {
     || Math.abs(policyData.oilChange30dPct) < signalCfg.OIL_SHOCK_PCT;
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
     && oilInconclusive && !!prevSnapshot?.admin_auto_signal;
-  const aiDataMissing = policyData.smhSpyRelReturnPct == null && policyData.semiIpYoy == null;
-  const aiSupplyStale = aiDataMissing && !bubble.warning && !!prevSnapshot?.ai_supply_auto_signal;
+  // AI供需 stale：三件套全 null（调用量/capex/半导体产出通道全故障）时沿用上一快照
+  const aiDataMissing = aiSupplyInputs.modelUsageTrendPct == null
+    && aiSupplyInputs.capexYoY == null && aiSupplyInputs.semiIpYoy == null;
+  const aiSupplyStale = aiDataMissing && !!prevSnapshot?.ai_supply_auto_signal;
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
   const adminAutoEff = adminStale ? prevSnapshot.admin_auto_signal : adminAuto;
   const aiSupplyAutoEff = aiSupplyStale ? prevSnapshot.ai_supply_auto_signal : aiSupplyAuto;
@@ -307,15 +307,15 @@ async function runDailyUpdate() {
     oilPeriodDate: policyData.oilPeriodDate,
     oilSource: policyData.oilSource,
     aiSupplyAutoSignal: aiSupplyAutoEff,
-    aiMarketSignal: marketSignal,
-    aiFundamentalSignal: fundamentalSignal,
-    smhSpyRelReturnPct: policyData.smhSpyRelReturnPct,
+    aiMarketSignal: aiSubSignals.usageSignal,   // 复用列：调用量子信号（原市场代理已移除）
+    aiFundamentalSignal: aiSubSignals.semiSignal, // 复用列：半导体产出子信号
+    smhSpyRelReturnPct: null,                   // 已移除SMH-SPY股价代理
     semiIpYoy: policyData.semiIpYoy,
     semiIpPeriodDate: policyData.semiIpPeriodDate,
     semiIpReleaseDate: policyData.semiIpReleaseDate,
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
-    aiBubbleWarning: bubble.warning ? 1 : 0,
+    aiBubbleWarning: aiSupplyAuto === 'tight' ? 1 : 0, // 复用列：AI供需=收紧(供过于求)标记
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
     reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
@@ -334,8 +334,12 @@ async function runDailyUpdate() {
     capexYoY: chainData.capexYoY,
     capexTtm: chainData.capexTtm,
     capexPrevTtm: chainData.capexPrevTtm,
-    bubbleWarning: bubble.warning,
-    bubbleReasons: JSON.stringify(bubble.reasons),
+    bubbleWarning: aiSupplyAuto === 'tight',
+    bubbleReasons: JSON.stringify(
+      [aiSubSignals.usageSignal === 'tight' && 'usage',
+       aiSubSignals.capexSignal === 'tight' && 'capex',
+       aiSubSignals.semiSignal === 'tight' && 'semiIp'].filter(Boolean)
+    ),
   });
 
   console.log(`[cron] Signal updated: aiSupply=${aiSupply}, monetary=${monetary}, fiscal=${fiscal}, admin=${admin} → final=${finalSignal}`);
@@ -356,15 +360,14 @@ async function runDailyUpdate() {
   // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
   await backupDatabase();
 
-  // 示警：最终信号变化 / 任一维度转收紧 / 泡沫预警触发（用户策略：任一收紧=立即防守，必须果断）
+  // 示警：最终信号变化 / 任一维度转收紧（用户策略：任一收紧=立即防守，必须果断）
+  // AI供需转收紧(供过于求)已由 dimTight 捕获，不再单列泡沫预警
   const changes = detectSignalChanges(prevSnapshot, {
     finalSignal,
     monetary,
     fiscal,
     admin,
     aiSupply,
-    bubbleWarning: bubble.warning,
-    bubbleReasons: bubble.reasons,
     sahmLockActive: locks.sahmLockActive,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive,
     reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
@@ -382,7 +385,6 @@ async function runDailyUpdate() {
           epuTradePercentile: policyData.epuTradePercentile,
           epuDailyPercentile: policyData.epuDailyPercentile,
           oilChange30dPct: policyData.oilChange30dPct,
-          smhSpyRelReturnPct: policyData.smhSpyRelReturnPct,
           semiIpYoy: policyData.semiIpYoy,
           modelUsageTrendPct: chainData.modelUsageTrendPct,
           capexYoY: chainData.capexYoY,

@@ -19,8 +19,6 @@ const baseCurrent = {
   fiscal: 'neutral',
   admin: 'neutral',
   aiSupply: 'loose',
-  bubbleWarning: false,
-  bubbleReasons: [],
   sahmLockActive: false,
   reactiveAdjustmentLockActive: false,
 };
@@ -49,24 +47,18 @@ describe('detectSignalChanges', () => {
     expect(detectSignalChanges(prev, { ...baseCurrent, fiscal: 'tight' })).toEqual([]);
   });
 
-  it('泡沫预警 0→1 → bubble 事件', () => {
+  it('AI供需转收紧(供过于求) → dimTight 事件（原泡沫预警已融入维度）', () => {
     const changes = detectSignalChanges(basePrev, {
-      ...baseCurrent, bubbleWarning: true, bubbleReasons: ['capex'],
+      ...baseCurrent, aiSupply: 'tight',
     });
-    expect(changes).toContainEqual({ kind: 'bubble', reasons: ['capex'] });
-  });
-
-  it('泡沫预警持续为1 → 不重复示警', () => {
-    const prev = { ...basePrev, ai_bubble_warning: 1 };
-    expect(detectSignalChanges(prev, { ...baseCurrent, bubbleWarning: true })).toEqual([]);
+    expect(changes).toContainEqual({ kind: 'dimTight', dim: 'aiSupply', from: 'loose', to: 'tight' });
   });
 
   it('多事件同时发生 → 全部收集', () => {
     const changes = detectSignalChanges(basePrev, {
       ...baseCurrent, finalSignal: 'defense', fiscal: 'tight', admin: 'tight',
-      bubbleWarning: true, bubbleReasons: ['modelUsage'],
     });
-    expect(changes).toHaveLength(4);
+    expect(changes).toHaveLength(3); // final + fiscal转tight + admin转tight
   });
 
   it('萨姆锁 0→1 → sahmLockOn 事件', () => {

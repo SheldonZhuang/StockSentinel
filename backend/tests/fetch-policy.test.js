@@ -187,7 +187,6 @@ describe('fetchPolicyData', () => {
     expect(data.epuTradePercentile).toBeCloseTo(0.8, 1); // 1/120
     expect(data.epuDaily).toBe(200); // 最新7天均值
     expect(data.epuDailyPercentile).toBe(100); // 历史最高
-    expect(data.smhSpyRelReturnPct).toBeCloseTo(11, 5); // 12% - 1%
     expect(data.semiIpYoy).toBe(7.2);
     expect(data.semiIpPeriodDate).toBe('2026-05-01');
     expect(data.oilWti).toBe(96);
@@ -213,16 +212,14 @@ describe('fetchPolicyData', () => {
     expect(data.semiIpYoy).toBe(7.2);
   });
 
-  it('Yahoo 失败隔离：市场指标 null，但半导体IP仍有值', async () => {
+  it('半导体IP独立于其他维度：EPU/油价失败时半导体产出仍返回', async () => {
     mockFredBySeriesId({
       MTSO133FMS: fiscalObs,
       EPUTRADE: epuObs,
       IPG3344S: semiIpObs,
     });
-    yahooFinance.historical.mockRejectedValue(new Error('yahoo down'));
 
     const data = await fetchPolicyData();
-    expect(data.smhSpyRelReturnPct).toBe(null);
     expect(data.semiIpYoy).toBe(7.2);
   });
 
@@ -259,7 +256,6 @@ describe('fetchPolicyData', () => {
     const data = await fetchPolicyData();
     expect(data.outlaysChangePct).toBe(null);
     expect(data.epuTradePercentile).toBe(null);
-    expect(data.smhSpyRelReturnPct).toBe(null);
     expect(data.semiIpYoy).toBe(null);
   });
 });

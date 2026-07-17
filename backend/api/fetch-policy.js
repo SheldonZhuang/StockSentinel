@@ -1,15 +1,12 @@
 import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { fetchSeries, fetchReleaseDate, latestValue, latestDate } from './fetch-macro.js';
-import { getDailyCloses } from './market-data.js';
 import { todayET, daysAgoET } from '../utils/datetime.js';
 
 const {
   FRED_SERIES,
   FISCAL_LOOKBACK_DAYS,
   EPU_LOOKBACK_DAYS,
-  AI_MARKET_SYMBOLS,
-  AI_MARKET_WINDOW_DAYS,
   AI_SEMI_IP_LOOKBACK_DAYS,
 } = cfg;
 
@@ -19,7 +16,7 @@ const NULL_ADMIN = {
   epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null,
   oilWti: null, oilChange30dPct: null, oilPeriodDate: null, oilSource: null,
 };
-const NULL_AI = { smhSpyRelReturnPct: null, semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
+const NULL_AI = { semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
 
 /**
  * 计算滚动12月(TTM)赤字总额及同比变化
@@ -275,35 +272,21 @@ export async function fetchAdminData(apiKey) {
 
 /**
  * AI供需：市场代理（SMH vs SPY 相对收益）+ 基本面代理（半导体IP同比）
- * 两个子拉取各自容错：一边失败不影响另一边
+ * AI供需基本面：半导体产出同比（供给侧，末端）。
+ * （调用量/capex 由 fetchAiChainData 提供，在 server 层合成三件套；SMH-SPY股价代理已移除）
  */
 export async function fetchAiSupplyData(apiKey) {
-  const [market, fundamental] = await Promise.all([
-    (async () => {
-      const period1 = daysAgoET(AI_MARKET_WINDOW_DAYS);
-      const period2 = todayET();
-      const [semiBars, benchBars] = await Promise.all([
-        getDailyCloses(AI_MARKET_SYMBOLS.SEMI, period1, period2),
-        getDailyCloses(AI_MARKET_SYMBOLS.BENCH, period1, period2),
-      ]);
-      return { smhSpyRelReturnPct: calcRelativeReturn(semiBars, benchBars) };
-    })().catch(err => {
-      console.warn('[fetch-policy] AI market fetch failed:', err.message);
-      return { smhSpyRelReturnPct: null };
-    }),
-    (async () => {
-      const obs = await fetchSeries(FRED_SERIES.SEMI_IP, daysAgoET(AI_SEMI_IP_LOOKBACK_DAYS), apiKey, 'pc1');
-      const semiIpPeriodDate = latestDate(obs);
-      const semiIpReleaseDate = semiIpPeriodDate
-        ? await fetchReleaseDate(FRED_SERIES.SEMI_IP, semiIpPeriodDate, apiKey).catch(() => null)
-        : null;
-      return { semiIpYoy: latestValue(obs), semiIpPeriodDate, semiIpReleaseDate };
-    })().catch(err => {
-      console.warn('[fetch-policy] AI fundamental fetch failed:', err.message);
-      return { semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
-    }),
-  ]);
-  return { ...market, ...fundamental };
+  try {
+    const obs = await fetchSeries(FRED_SERIES.SEMI_IP, daysAgoET(AI_SEMI_IP_LOOKBACK_DAYS), apiKey, 'pc1');
+    const semiIpPeriodDate = latestDate(obs);
+    const semiIpReleaseDate = semiIpPeriodDate
+      ? await fetchReleaseDate(FRED_SERIES.SEMI_IP, semiIpPeriodDate, apiKey).catch(() => null)
+      : null;
+    return { semiIpYoy: latestValue(obs), semiIpPeriodDate, semiIpReleaseDate };
+  } catch (err) {
+    console.warn('[fetch-policy] AI fundamental fetch failed:', err.message);
+    return { semiIpYoy: null, semiIpPeriodDate: null, semiIpReleaseDate: null };
+  }
 }
 
 /**

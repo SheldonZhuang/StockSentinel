@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
-  calcBubbleWarning, calcLockActive,
+  calcLockActive,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -272,109 +272,83 @@ describe('calcAdminSignal', () => {
 
 // AI供需子信号（市场：SMH-SPY相对收益 ±8%；基本面：半导体IP同比 >5% / <0%）
 describe('deriveAiSupplySubSignals', () => {
-  it('市场子信号：相对收益 >+8% → loose，<-8% → tight，之间 → neutral', () => {
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 12, semiIpYoy: null }).marketSignal).toBe('loose');
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: -10, semiIpYoy: null }).marketSignal).toBe('tight');
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 3, semiIpYoy: null }).marketSignal).toBe('neutral');
+  it('调用量子信号：>+10% loose，<-10% tight，之间 neutral', () => {
+    expect(deriveAiSupplySubSignals({ modelUsageTrendPct: 15 }).usageSignal).toBe('loose');
+    expect(deriveAiSupplySubSignals({ modelUsageTrendPct: -12 }).usageSignal).toBe('tight');
+    expect(deriveAiSupplySubSignals({ modelUsageTrendPct: 3 }).usageSignal).toBe('neutral');
   });
 
-  it('供不应求越极端越宽松（无过热截断）：相对收益+30%仍是loose', () => {
-    // 用户框架：供不应求=宽松不封顶；防守靠"供过于求(长线转弱)+货币收紧"双维共振
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: 30, semiIpYoy: null }).marketSignal).toBe('loose');
+  it('capex子信号：>+10% loose，<0% tight，0~10% neutral', () => {
+    expect(deriveAiSupplySubSignals({ capexYoY: 25 }).capexSignal).toBe('loose');
+    expect(deriveAiSupplySubSignals({ capexYoY: -5 }).capexSignal).toBe('tight');
+    expect(deriveAiSupplySubSignals({ capexYoY: 5 }).capexSignal).toBe('neutral');
   });
 
-  it('基本面子信号：同比 >+5% → loose，<0% → tight，0~5% → neutral', () => {
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: 9.5 }).fundamentalSignal).toBe('loose');
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: -2.1 }).fundamentalSignal).toBe('tight');
-    expect(deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: 2.4 }).fundamentalSignal).toBe('neutral');
+  it('半导体产出子信号：>+5% loose，<0% tight，0~5% neutral', () => {
+    expect(deriveAiSupplySubSignals({ semiIpYoy: 9.5 }).semiSignal).toBe('loose');
+    expect(deriveAiSupplySubSignals({ semiIpYoy: -2.1 }).semiSignal).toBe('tight');
+    expect(deriveAiSupplySubSignals({ semiIpYoy: 2.4 }).semiSignal).toBe('neutral');
   });
 
-  it('数据缺失的子信号为 neutral', () => {
-    const subs = deriveAiSupplySubSignals({ smhSpyRelReturnPct: null, semiIpYoy: null });
-    expect(subs.marketSignal).toBe('neutral');
-    expect(subs.fundamentalSignal).toBe('neutral');
+  it('数据缺失的子信号为 null（区别于 neutral）', () => {
+    const subs = deriveAiSupplySubSignals({});
+    expect(subs.usageSignal).toBe(null);
+    expect(subs.capexSignal).toBe(null);
+    expect(subs.semiSignal).toBe(null);
   });
 });
 
-// AI供需合成：两边都有数据要求一致；单边缺失用另一边；全缺失观望
+// AI供需合成：任一环节收缩=收紧(供过于求)；全链一致宽松=宽松(供不应求)；其余中性；全缺中性
 describe('calcAiSupplySignal', () => {
-  it('宽松：两个子信号都宽松', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: 8 })).toBe('loose');
+  it('宽松：三件套全部宽松（全链供不应求）', () => {
+    expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8 })).toBe('loose');
   });
 
-  it('收紧：两个子信号都收紧', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: -15, semiIpYoy: -3 })).toBe('tight');
+  it('收紧：任一环节收缩（供过于求，用户框架"下降→尽快防守"）', () => {
+    expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: -5, semiIpYoy: 8 })).toBe('tight');
+    expect(calcAiSupplySignal({ modelUsageTrendPct: -20, capexYoY: 25, semiIpYoy: 8 })).toBe('tight');
   });
 
-  it('观望：市场宽松但基本面收紧（分歧）', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: -3 })).toBe('neutral');
+  it('观望：部分宽松部分中性（未全链一致）', () => {
+    expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 5, semiIpYoy: 8 })).toBe('neutral');
   });
 
-  it('观望：市场宽松但基本面观望（分歧）', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: 12, semiIpYoy: 2 })).toBe('neutral');
+  it('单/双件套可用：有数据的子信号一致才定档', () => {
+    expect(calcAiSupplySignal({ semiIpYoy: 8 })).toBe('loose');
+    expect(calcAiSupplySignal({ capexYoY: -5 })).toBe('tight');
+    expect(calcAiSupplySignal({ modelUsageTrendPct: 15, semiIpYoy: 2 })).toBe('neutral');
   });
 
-  it('单边缺失：市场数据缺失时采用基本面判定', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: 8 })).toBe('loose');
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: -3 })).toBe('tight');
-  });
-
-  it('单边缺失：基本面数据缺失时采用市场判定', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: -15, semiIpYoy: null })).toBe('tight');
-  });
-
-  it('观望：数据全缺失', () => {
-    expect(calcAiSupplySignal({ smhSpyRelReturnPct: null, semiIpYoy: null })).toBe('neutral');
+  it('全缺失 → 中性', () => {
+    expect(calcAiSupplySignal({})).toBe('neutral');
   });
 });
 
-// AI泡沫预警（调用量趋势 < -10% 或 资本开支同比 < 0）
-describe('calcBubbleWarning', () => {
-  it('调用量趋势跌破阈值 → 预警', () => {
-    expect(calcBubbleWarning({ modelUsageTrendPct: -12, capexYoY: 20 }))
-      .toEqual({ warning: true, reasons: ['modelUsage'] });
+describe('calcFinalSignal 进攻档(非对称)', () => {
+  it('进攻：AI供需宽松 + 政策三维全中性', () => {
+    expect(calcFinalSignal('loose', 'neutral', 'neutral', 'neutral')).toBe('attack');
   });
 
-  it('资本开支同比转负 → 预警', () => {
-    expect(calcBubbleWarning({ modelUsageTrendPct: 5, capexYoY: -5 }))
-      .toEqual({ warning: true, reasons: ['capex'] });
+  it('进攻：AI供需宽松 + 政策三维全宽松', () => {
+    expect(calcFinalSignal('loose', 'loose', 'loose', 'loose')).toBe('attack');
   });
 
-  it('双重预警', () => {
-    expect(calcBubbleWarning({ modelUsageTrendPct: -20, capexYoY: -1 }))
-      .toEqual({ warning: true, reasons: ['modelUsage', 'capex'] });
+  it('进攻：AI供需宽松 + 货币宽松其余中性', () => {
+    expect(calcFinalSignal('loose', 'loose', 'neutral', 'neutral')).toBe('attack');
   });
 
-  it('未跌破阈值不预警', () => {
-    expect(calcBubbleWarning({ modelUsageTrendPct: -9, capexYoY: 3 }).warning).toBe(false);
+  it('非进攻：AI供需中性(引擎未发动)→观望', () => {
+    expect(calcFinalSignal('neutral', 'loose', 'loose', 'loose')).toBe('neutral');
   });
 
-  it('数据缺失不预警（优雅降级）', () => {
-    expect(calcBubbleWarning({ modelUsageTrendPct: null, capexYoY: null }).warning).toBe(false);
-    expect(calcBubbleWarning({}).warning).toBe(false);
-    expect(calcBubbleWarning().warning).toBe(false);
-  });
-});
-
-// 泡沫预警对 AI供需信号的强制作用
-describe('calcAiSupplySignal + bubble', () => {
-  it('预警触发时即使双子信号宽松也强制收紧', () => {
-    expect(calcAiSupplySignal(
-      { smhSpyRelReturnPct: 12, semiIpYoy: 8 },
-      { warning: true, reasons: ['capex'] }
-    )).toBe('tight');
-  });
-
-  it('无预警时行为与不传 bubble 一致（回归）', () => {
-    const data = { smhSpyRelReturnPct: 12, semiIpYoy: 8 };
-    expect(calcAiSupplySignal(data, { warning: false, reasons: [] })).toBe(calcAiSupplySignal(data));
-    expect(calcAiSupplySignal(data, null)).toBe('loose');
+  it('非进攻：AI供需宽松但行政收紧(贸易战)→减仓，不抢跑', () => {
+    expect(calcFinalSignal('loose', 'neutral', 'neutral', 'tight')).toBe('reduce');
   });
 });
 
 // 决策树合成（四元，参数顺序=策略主线：AI供需/货币/财政/行政）
 describe('calcFinalSignal', () => {
-  it('进攻：四个信号位全部宽松', () => {
+  it('进攻：AI供需宽松 + 政策三维全宽松', () => {
     expect(calcFinalSignal('loose', 'loose', 'loose', 'loose')).toBe('attack');
   });
 
@@ -402,15 +376,15 @@ describe('calcFinalSignal', () => {
     expect(calcFinalSignal('tight', 'tight', 'tight', 'tight')).toBe('defense');
   });
 
-  it('观望：AI供需宽松 货币宽松 财政观望 行政宽松（非全宽松）', () => {
-    expect(calcFinalSignal('loose', 'loose', 'neutral', 'loose')).toBe('neutral');
+  it('进攻：AI供需宽松 + 政策三维不收紧（财政中性也进攻，非对称门槛）', () => {
+    expect(calcFinalSignal('loose', 'loose', 'neutral', 'loose')).toBe('attack');
   });
 
   it('观望：四个全观望', () => {
     expect(calcFinalSignal('neutral', 'neutral', 'neutral', 'neutral')).toBe('neutral');
   });
 
-  it('观望：AI供需观望 其余三个宽松（非全宽松）', () => {
+  it('观望：AI供需观望 其余三个宽松（引擎未发动，不进攻）', () => {
     expect(calcFinalSignal('neutral', 'loose', 'loose', 'loose')).toBe('neutral');
   });
 });

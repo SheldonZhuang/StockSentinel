@@ -1,6 +1,6 @@
 # 股哨兵决策树历史回测报告
 
-生成时间：2026-07-16 ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSDS133FMS、EPUTRADE、SAHMREALTIME）｜ 标普500：Tiingo SPY 总回报（adjClose，含股息复权）
+生成时间：2026-07-17 ｜ 数据源：FRED（利率 DFEDTAR+DFEDTARU 拼接、WALCL、MTSDS133FMS、EPUTRADE、SAHMREALTIME）｜ 标普500：Tiingo SPY 总回报（adjClose，含股息复权）
 
 ## 方法论
 
