@@ -99,7 +99,7 @@ export async function fetchMacroData() {
     return [];
   });
 
-  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs] = await Promise.all([
+  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs, creditObs] = await Promise.all([
     fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
     fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
     degraded(fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'), 'CORE_PCE'),       // 同比变动百分比
@@ -108,6 +108,7 @@ export async function fetchMacroData() {
     degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_12M, pceStart, apiKey), 'TRIMMED_PCE_12M'),  // 本身就是同比变动率
     degraded(fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey), 'UNEMPLOYMENT'),
     degraded(fetchSeries(FRED_SERIES.SAHM, sahmStart, apiKey), 'SAHM'),
+    degraded(fetchSeries(FRED_SERIES.CREDIT_SPREAD, daysAgoET(3660), apiKey), 'CREDIT_SPREAD'), // 信用利差(参考)，10年窗口
   ]);
 
   const currentBalanceSheet = latestValue(bsObs);
@@ -135,12 +136,28 @@ export async function fetchMacroData() {
     releaseDateSafe(FRED_SERIES.SAHM, sahmPeriodDate),
   ]);
 
+  // 信用利差参考指标（不参与判定）：当前值 + 可得窗口百分位 + 90日走阔。creditObs 为日频降序
+  const creditVals = creditObs.map(o => parseFloat(o.value)).filter(v => !isNaN(v));
+  const creditSpread = creditVals.length ? creditVals[0] : null;
+  const creditSpreadPercentile = creditSpread !== null && creditVals.length > 20
+    ? Math.round(creditVals.filter(v => v <= creditSpread).length / creditVals.length * 1000) / 10
+    : null;
+  // 90日走阔（bp）：最新 vs 约63交易日前（降序，索引63）
+  const creditSpread90dWidenBp = creditSpread !== null && creditVals.length > 63
+    ? Math.round((creditSpread - creditVals[63]) * 100)
+    : null;
+  const creditSpreadPeriodDate = latestDate(creditObs);
+
   return {
     currentRate: latestValue(rateObs),
     prevRate: prevValue(rateObs),
     rateSteps: calcRateSteps(rateObs),
     currentBalanceSheet,
     prevBalanceSheet,
+    creditSpread,
+    creditSpreadPercentile,
+    creditSpread90dWidenBp,
+    creditSpreadPeriodDate,
     corePce: latestValue(corePceObs),
     prevCorePce: prevValue(corePceObs),
     trimmedPce1m: latestValue(trimmedPce1mObs),

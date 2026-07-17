@@ -118,12 +118,33 @@ describe('fetchMacroData', () => {
     axios.get.mockImplementation(() => {
       call++;
       if (call === 8) return Promise.reject(new Error('timeout')); // 第8个是 SAHM
-      if (call <= 8) return Promise.resolve({ data: { observations: makeObs([4.75, 4.25, 4.0]) } });
+      if (call <= 9) return Promise.resolve({ data: { observations: makeObs([4.75, 4.25, 4.0]) } });
       return Promise.resolve({ data: { observations: [{ date: '2024-01-01', value: '4.75', realtime_start: '2024-01-15' }] } });
     });
     const data = await fetchMacroData();
     expect(data.currentRate).toBe(4.75);
     expect(data.sahmValue).toBeNull(); // SAHM 降级
+  });
+
+  it('信用利差参考指标：当前值+百分位（不参与判定）', async () => {
+    let call = 0;
+    axios.get.mockImplementation(() => {
+      call++;
+      // 第9个是信用利差（BAA10Y），给一个降序日频序列：最新2.0，历史多为更高 → 低百分位
+      if (call === 9) {
+        const obs = Array.from({ length: 100 }, (_, i) => ({
+          date: new Date(Date.UTC(2026, 4, 30) - i * 86400000).toISOString().slice(0, 10),
+          value: String(i === 0 ? 2.0 : 3.0 + (i % 5) * 0.1),
+        }));
+        return Promise.resolve({ data: { observations: obs } });
+      }
+      if (call <= 9) return Promise.resolve({ data: { observations: makeObs([4.75, 4.25, 4.0]) } });
+      return Promise.resolve({ data: { observations: [{ date: '2024-01-01', value: '4.75', realtime_start: '2024-01-15' }] } });
+    });
+    const data = await fetchMacroData();
+    expect(data.creditSpread).toBe(2.0);
+    expect(data.creditSpreadPercentile).toBeCloseTo(1, 0); // 最新2.0是最低 → ~1分位
+    expect(data.creditSpread90dWidenBp).not.toBeNull();
   });
 });
 
