@@ -134,7 +134,7 @@ export async function fetchMacroData() {
     return [];
   });
 
-  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs, creditObs] = await Promise.all([
+  const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs, creditObs, curveObs] = await Promise.all([
     fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
     fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
     degraded(fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'), 'CORE_PCE'),       // 同比变动百分比
@@ -144,6 +144,7 @@ export async function fetchMacroData() {
     degraded(fetchSeries(FRED_SERIES.UNEMPLOYMENT, unStart, apiKey), 'UNEMPLOYMENT'),
     degraded(fetchSeries(FRED_SERIES.SAHM, sahmStart, apiKey), 'SAHM'),
     degraded(fetchSeries(FRED_SERIES.CREDIT_SPREAD, daysAgoET(3660), apiKey), 'CREDIT_SPREAD'), // 信用利差(参考)，10年窗口
+    degraded(fetchSeries(FRED_SERIES.YIELD_CURVE, daysAgoET(400), apiKey), 'YIELD_CURVE'),  // 期限利差，回看窗口须覆盖63个交易日确认期
   ]);
 
   const currentBalanceSheet = latestValue(bsObs);
@@ -194,6 +195,22 @@ export async function fetchMacroData() {
     : null;
   const creditSpreadPeriodDate = latestDate(creditObs);
 
+  // 收益率曲线参考指标（10年−3个月期限利差）：当前值 + 连续倒挂交易日数。
+  // 倒挂持续≥确认期(63交易日)时否决进攻档准入（server/payloads 层执行，不触发防守不做锁）
+  const curveValid = curveObs
+    .map(o => ({ date: o.date, v: parseFloat(o.value) }))
+    .filter(o => !isNaN(o.v)); // 降序
+  const yieldCurveSpread = curveValid.length ? curveValid[0].v : null;
+  let yieldCurveInvertedDays = null;
+  if (curveValid.length) {
+    yieldCurveInvertedDays = 0;
+    for (const o of curveValid) {
+      if (o.v < 0) yieldCurveInvertedDays++;
+      else break;
+    }
+  }
+  const yieldCurvePeriodDate = curveValid.length ? curveValid[0].date : null;
+
   return {
     currentRate,
     prevRate,
@@ -204,6 +221,9 @@ export async function fetchMacroData() {
     creditSpreadPercentile,
     creditSpread90dWidenBp,
     creditSpreadPeriodDate,
+    yieldCurveSpread,
+    yieldCurveInvertedDays,
+    yieldCurvePeriodDate,
     corePce: latestValue(corePceObs),
     prevCorePce: prevValue(corePceObs),
     trimmedPce1m: latestValue(trimmedPce1mObs),

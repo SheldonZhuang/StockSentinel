@@ -17,6 +17,7 @@
                   ({{ $t(`indicators.${trendKey(ind.change)}`) }})
                 </span>
                 <span v-if="ind.bsStatus" :class="['pos-badge', ind.bsStatus]">{{ $t(`indicators.bsStatus.${ind.bsStatus}`) }}</span>
+                <span v-if="ind.ycStatus" :class="['pos-badge', ind.ycStatus]">{{ $t(`indicators.ycStatus.${ind.ycStatus}`) }}</span>
                 <span v-if="ind.extra" class="ind-extra">{{ ind.extra }}</span>
                 <span v-if="ind.signalBadge" :class="['pos-badge', ind.signalBadge]">{{ $t(`signalPos.${ind.signalBadge}`) }}</span>
               </span>
@@ -84,10 +85,23 @@ function oilBadge(ind) {
   return 'neutral';
 }
 
+// 收益率曲线状态徽章（阈值同步 signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS=63 /
+// api/signal.js applyYieldCurveVeto）：倒挂≥63交易日=确认期（红，进攻档准入被否决）；
+// 0<天数<63=倒挂未确认（黄）；未倒挂（绿）。数据全缺失不显示徽章
+function ycStatus(ind) {
+  if (ind.yieldCurveSpread == null && ind.yieldCurveInvertedDays == null) return null;
+  const days = ind.yieldCurveInvertedDays ?? 0;
+  if (days >= 63) return 'tight';
+  if (days > 0) return 'neutral';
+  return 'loose';
+}
+
 function hintFor(ind) {
   if (JUDGED_KEYS.has(ind.key)) {
     return `${t(`indicators.hints.${ind.key}`)}\n${t('indicators.hintGlobal')}`;
   }
+  // 收益率曲线是参考指标但有专属提示（唯一判定角色：倒挂确认期否决进攻档准入）
+  if (ind.key === 'yieldCurve') return t('indicators.hints.yieldCurve');
   return t('indicators.hints.reference');
 }
 
@@ -125,9 +139,10 @@ const groups = computed(() => {
         {
           key: 'modelUsageTrend', signed: true, value: ind.modelUsageTrendPct, unit: '%', change: null,
           // 优先用后端算好的调用量子信号（server.js 复用 aiMarketSignal 列存 usageSignal）；
-          // null 时回退本地阈值，同步 signal.config.js：>+10 宽松 / <-10 收紧 / 其间中性
+          // null 时回退本地阈值，同步 signal.config.js：>+3 宽松 / <-3 收紧 / 其间中性
+          // （2026-07-17 窗口改为28日均vs前28日均后阈值随之重标定，±10 → ±3）
           signalBadge: ind.aiMarketSignal ?? (ind.modelUsageTrendPct != null
-            ? (ind.modelUsageTrendPct > 10 ? 'loose' : ind.modelUsageTrendPct < -10 ? 'tight' : 'neutral')
+            ? (ind.modelUsageTrendPct > 3 ? 'loose' : ind.modelUsageTrendPct < -3 ? 'tight' : 'neutral')
             : null),
         },
         {
@@ -190,6 +205,16 @@ const groups = computed(() => {
           key: 'unemployment', value: ind.unemployment, unit: '%',
           change: ind.unemployment !== null && ind.unemploymentPrev !== null ? ind.unemployment - ind.unemploymentPrev : null,
           periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate, periodIsMonth: true,
+        },
+        {
+          // 收益率曲线(10y−3m)参考指标：不参与防守判定；唯一判定角色=倒挂确认期（≥63交易日）
+          // 否决进攻档准入（backend/api/signal.js applyYieldCurveVeto 同口径）
+          key: 'yieldCurve', signed: true, value: ind.yieldCurveSpread, unit: '%', change: null,
+          extra: (ind.yieldCurveInvertedDays ?? 0) > 0
+            ? t('indicators.ycInvertedDays', { n: ind.yieldCurveInvertedDays })
+            : null,
+          ycStatus: ycStatus(ind),
+          periodDate: ind.yieldCurvePeriodDate,
         },
       ],
     },

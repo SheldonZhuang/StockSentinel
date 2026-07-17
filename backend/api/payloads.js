@@ -6,7 +6,7 @@ import {
   getEffectiveBottleneck,
   getLatestAiChainSnapshot,
 } from '../utils/storage.js';
-import { calcFinalSignal, deriveSubSignals } from './signal.js';
+import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto } from './signal.js';
 
 /**
  * 当前信号完整载荷（读取时实时重算决策树+锁强制，与快照解耦以反映最新 override）
@@ -31,7 +31,10 @@ export async function buildSignalPayload() {
   const sahmLockActive = sahmLockOverridden ? false : rawSahmLockActive;
   const reactiveAdjustmentLockActive = reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive;
 
-  const decisionTreeSignal = calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal);
+  const decisionTreeSignal = applyYieldCurveVeto(
+    calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
+    snapshot.yield_curve_inverted_days ?? null
+  );
   const finalSignal = (sahmLockActive || reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
 
   return {
@@ -89,6 +92,9 @@ export async function buildSignalPayload() {
       creditSpreadPercentile: snapshot.credit_spread_percentile,
       creditSpread90dWidenBp: snapshot.credit_spread_90d_widen_bp,
       creditSpreadPeriodDate: snapshot.credit_spread_period_date,
+      yieldCurveSpread: snapshot.yield_curve_spread,
+      yieldCurveInvertedDays: snapshot.yield_curve_inverted_days,
+      yieldCurvePeriodDate: snapshot.yield_curve_period_date,
       fiscalOutlaysTtm: snapshot.fiscal_outlays_ttm,
       fiscalOutlaysChangePct: snapshot.fiscal_outlays_change_pct,
       fiscalPeriodDate: snapshot.fiscal_period_date,

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
-  calcLockActive,
+  calcLockActive, applyYieldCurveVeto,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -473,5 +473,28 @@ describe('calcLockActive', () => {
     expect(calcLockActive({
       triggerToday: false, rateDiffBp: 0, currentRate: 4.25, prevLockActive: false,
     })).toBe(false);
+  });
+});
+
+describe('applyYieldCurveVeto（曲线倒挂≥3个月否决进攻档准入）', () => {
+  it('attack + 倒挂≥63交易日 → 降级 neutral', () => {
+    expect(applyYieldCurveVeto('attack', 63)).toBe('neutral');
+    expect(applyYieldCurveVeto('attack', 120)).toBe('neutral');
+  });
+
+  it('attack + 倒挂未达确认期 → 保持 attack', () => {
+    expect(applyYieldCurveVeto('attack', 0)).toBe('attack');
+    expect(applyYieldCurveVeto('attack', 62)).toBe('attack');
+  });
+
+  it('数据缺失 fail-open：不否决', () => {
+    expect(applyYieldCurveVeto('attack', null)).toBe('attack');
+    expect(applyYieldCurveVeto('attack', undefined)).toBe('attack');
+  });
+
+  it('只作用于 attack：其他档位原样通过（不触发防守、不做锁）', () => {
+    expect(applyYieldCurveVeto('defense', 200)).toBe('defense');
+    expect(applyYieldCurveVeto('reduce', 200)).toBe('reduce');
+    expect(applyYieldCurveVeto('neutral', 200)).toBe('neutral');
   });
 });

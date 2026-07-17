@@ -33,10 +33,13 @@ export default {
   },
 
   // OpenRouter 模型调用量（需 OPENROUTER_API_KEY，展示时须注明来源 openrouter.ai/rankings）
+  // 窗口 2026-07-17 重标定：原 7日均vs前28日均（窗口中心相距约17.5天，+10%阈值≈年化8倍增速，
+  // 健康增长永远给不出宽松票=进攻档结构性死亡；且单周节假日回落即可假触发收紧）。
+  // 改为 28日均vs前28日均：月度级平滑，节假日单周噪声被摊薄到约1/4
   OPENROUTER_RANKINGS_URL: 'https://openrouter.ai/api/v1/datasets/rankings-daily',
-  USAGE_RECENT_DAYS: 7,   // 近期均值窗口
+  USAGE_RECENT_DAYS: 28,  // 近期均值窗口
   USAGE_PRIOR_DAYS: 28,   // 对照均值窗口
-  USAGE_FETCH_DAYS: 40,   // 拉取天数（7+28+缓冲）
+  USAGE_FETCH_DAYS: 70,   // 拉取天数（28+28+缓冲）
 
   // Yahoo 顺序拉取间隔，避免突发并发触发429
   YAHOO_CALL_DELAY_MS: 350,

@@ -44,8 +44,8 @@
         </div>
         <div v-else class="interpret-block">
           <span class="interpret-label">{{ $t('interpret.toAttack') }}</span>
-          <span v-for="d in positions" :key="d.key" :class="['interpret-item', attackReady(d) ? 'loose' : 'pending']">
-            {{ attackReady(d) ? '✓' : '○' }} {{ $t(`signalPos.${d.key}`) }}
+          <span v-for="c in attackChecklist" :key="c.key" :class="['interpret-item', c.ok ? 'loose' : 'pending']">
+            {{ c.ok ? '✓' : '○' }} {{ $t(c.labelKey) }}
           </span>
         </div>
       </div>
@@ -163,6 +163,19 @@ const positions = computed(() => {
 const tightDims = computed(() =>
   positions.value.filter(p => p.value === 'tight').map(p => ({ ...p, detail: dimDetail(p.key) }))
 );
+
+// "距进攻"清单 = 四维达成状态 + 收益率曲线否决器。
+// 曲线项同步 backend/api/signal.js applyYieldCurveVeto：10y−3m 连续倒挂 ≥63 个交易日
+// （≈3个月，signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS）时否决进攻档准入；
+// 数据缺失(null)视为达成——与后端 fail-open 同口径。
+const attackChecklist = computed(() => [
+  ...positions.value.map(d => ({ key: d.key, labelKey: `signalPos.${d.key}`, ok: attackReady(d) })),
+  {
+    key: 'yieldCurve',
+    labelKey: 'interpret.yieldCurveOk',
+    ok: (props.signal?.indicators?.yieldCurveInvertedDays ?? 0) < 63,
+  },
+]);
 
 const lockInfo = computed(() => {
   const ind = props.signal?.indicators;

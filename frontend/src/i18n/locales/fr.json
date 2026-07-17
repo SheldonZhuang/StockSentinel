@@ -31,6 +31,8 @@
     "trimmedPce12m": "PCE Écrêté (12M)",
     "unemployment": "Chômage",
     "sahm": "Règle de Sahm",
+    "yieldCurve": "Courbe des taux (10a−3m)",
+    "ycInvertedDays": "inversée depuis {n} jours de bourse consécutifs",
     "yoyChange": "En glissement annuel",
     "epuTrade": "Incertitude Politique Commerciale",
     "percentile10y": "Percentile 10 ans",
@@ -51,25 +53,31 @@
       "neutral": "Bilan en pause",
       "tight": "QT (contraction)"
     },
+    "ycStatus": {
+      "loose": "Non inversée",
+      "neutral": "Inversée, non confirmée",
+      "tight": "Inversion confirmée · attaque bloquée"
+    },
     "trendUp": "Hausse",
     "trendFlat": "Stable",
     "trendDown": "Baisse",
     "modelUsageTrend": "Tendance d’usage des modèles",
     "capexYoY": "Capex cloud (GA)",
     "hints": {
-      "modelUsageTrend": "Règle : volume moyen 7 j en baisse >10 % vs 28 j précédents → alerte bulle, offre/demande IA forcée en resserrement. Sommet du flux : les utilisateurs paient les modèles",
+      "modelUsageTrend": "Tendance d'usage des modèles : moyenne des 28 derniers jours vs moyenne des 28 jours précédents (lissage au niveau mensuel qui dilue le bruit hebdomadaire des jours fériés). >+3 % (≈ croissance annualisée ≥+47 %) → demande vigoureuse · accommodant ; <−3 % (baisse durable de la moyenne mensuelle) → demande en repli · alerte de suroffre · resserrement. Source : openrouter.ai/rankings — proxy d'un agrégateur unique, avec bruit de parts de marché.",
       "capexYoY": "Règle : capex 4 trimestres glissants des hyperscalers (MSFT/AMZN/GOOGL/META) <0 % en GA → alerte bulle, resserrement forcé. 2e niveau : les modèles achètent du cloud",
       "semiIpYoy": "La production de semi-conducteurs en GA est le maillon final côté offre du trio de flux de trésorerie offre/demande IA (usage → capex cloud → production semi). Règle de consensus du trio : un maillon en contraction → resserrement (alerte de surproduction) ; toute la chaîne en hausse → assouplissement (pénurie) ; sinon neutre.",
       "rate": "Jugé selon la direction de la dernière décision du FOMC : une hausse (y compris graduelle de 25 pb) → resserrement, maintenu jusqu'à la décision suivante ; une baisse ou un statu quo → assouplissement. Un ajustement unique ≥50 pb (toute direction) déclenche en outre le verrou d'ajustement réactif, forçant la défense totale.",
       "balanceSheet": "Variation du bilan (hebdo) : expansion >0,25 % (QE) → vote assouplissement ; contraction >0,25 % (QT) ne vaut pas resserrement à elle seule — elle bloque seulement une note assouplie (backtest : le marché a monté la plupart des années de QT) ; entre les deux → pause.",
       "sahm": "Règle : valeur Sahm <0,5 % → souple ; ≥0,5 % → début de récession, verrou Sahm (défense forcée) ; déverrouillage à taux ≤0,25 % ou ajustement <50 pb",
+      "yieldCurve": "Écart de terme Treasuries 10 ans − 3 mois, l'indicateur avancé de récession le plus éprouvé (précède historiquement les récessions de 12 à 18 mois). Indicateur de référence — ne participe pas au jugement défensif ; son seul rôle décisionnel : une inversion continue ≥3 mois (63 jours de bourse) met un veto à l'accès au palier attaque (l'attaque est rétrogradée en attente) ; ne déclenche jamais la défense et ne constitue pas un verrou.",
       "epuTrade": "Règle : indice d’incertitude commerciale (mensuel, spécifique commerce/tarifs/tech) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’EPU quotidien, sinon neutre",
       "reference": "Affichage indicatif, ne participe pas au jugement",
       "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre",
       "oilWti": "La variation 30 j du WTI est le pricing en temps réel par le marché des chocs guerre/géopolitique, prioritaire sur les percentiles EPU : hausse ≥+20 % ET EPU élevé (>80e pct) → resserrement (choc guerre/offre) ; une flambée avec un EPU calme = reprise de la demande, pas de fausse défense. Baisse ≥20 % ET EPU non élevé → assouplissement (désescalade) ; si l'EPU est simultanément élevé, la chute est de type crise — pas d'assouplissement.",
       "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement. Mesuré en dépenses réelles (hors inflation) en GA : la croissance naturelle des dépenses nominales ≈5 % pré-déclencherait le resserrement en permanence ; après déflatement PCE, ne se déclenche que si l'expansion/contraction réelle dépasse ±5 %"
     },
-    "hintGlobal": "Règle globale : Attaque (asymétrique) = offre/demande IA accommodante (le moteur actif enclenché) + monétaire/fiscale/administrative toutes non resserrées (neutre suffit ; tout resserrement met un veto) + aucun verrou ; une seule dimension resserrée = alléger et attendre ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
+    "hintGlobal": "Règle globale : Attaque (asymétrique) = offre/demande IA accommodante (le moteur actif enclenché) + monétaire/fiscale/administrative toutes non resserrées (neutre suffit ; tout resserrement met un veto) + aucun verrou + courbe des taux hors inversion confirmée (10a−3m inversée ≥3 mois / 63 jours de bourse → veto à l'accès au palier attaque, rétrogradé en attente) ; une seule dimension resserrée = alléger et attendre — cesser de renforcer, rester vigilant ; inutile de réduire les positions existantes (le backtest montre que les mois à une seule dimension resserrée n'ont pas un rendement mensuel moyen inférieur aux autres — un resserrement isolé est un signal d'attention, pas d'action) ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale",
     "stale": "Données retardées",
     "staleHint": "Source temporairement indisponible ; dernier jugement valide conservé",
     "epuDaily": "Incertitude politique (quotidien)",
@@ -117,8 +125,9 @@
   "interpret": {
     "title": "Interprétation du Signal",
     "triggers": "Défense déclenchée par :",
-    "toAttack": "Vers l'attaque (offre/demande IA accommodante + monétaire/fiscale/administrative non resserrées + aucun verrou) :",
-    "allLoose": "Conditions d'attaque réunies : offre/demande IA accommodante (moteur actif enclenché), monétaire/fiscale/administrative non resserrées, aucun verrou"
+    "toAttack": "Vers l'attaque (offre/demande IA accommodante + monétaire/fiscale/administrative non resserrées + aucun verrou + courbe des taux hors inversion confirmée) :",
+    "allLoose": "Conditions d'attaque réunies : offre/demande IA accommodante (moteur actif enclenché), monétaire/fiscale/administrative non resserrées, aucun verrou, courbe des taux hors inversion confirmée",
+    "yieldCurveOk": "Courbe des taux hors inversion confirmée"
   },
   "auth": {
     "login": "Connexion",
@@ -219,7 +228,7 @@
     "sourceManual": "Manuel",
     "relReturnLabel": "30j vs SPY",
     "bubbleTitle": "Moniteur de Bulle",
-    "modelUsageTrend": "Tendance d'Usage des Modèles (7j/28j)",
+    "modelUsageTrend": "Tendance d'Usage des Modèles (28j vs 28j précédents)",
     "capexYoY": "Capex Cloud (12M glissants)",
     "capexAmount": "{bn} Mrd USD",
     "semiIpYoy": "Production Semi-conducteurs AoA",

@@ -219,11 +219,10 @@ describe('fetchAiChainData', () => {
   const flatBars = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 100 }];
   const upBars = [{ date: '2024-01-01', close: 100 }, { date: '2024-01-02', close: 110 }];
   const orRows = (() => {
-    // 35个完整天，前28天100、近7天110（相对昨天为止）
+    // 56个完整天（窗口2026-07-17改为28v28），前28天100、近28天110（相对昨天为止）→ +10%
     const rows = [];
-    for (let i = 0; i < 35; i++) {
-      const d = new Date(Date.UTC(2000, 0, 1) + 0); // 占位，实际用相对今天的日期
-      const date = new Date(Date.now() - (35 - i) * 86400000).toISOString().slice(0, 10);
+    for (let i = 0; i < 56; i++) {
+      const date = new Date(Date.now() - (56 - i) * 86400000).toISOString().slice(0, 10);
       rows.push({ date, model_permaslug: 'a/x', total_tokens: String(i < 28 ? 100 : 110) });
     }
     return rows;

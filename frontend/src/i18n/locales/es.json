@@ -31,6 +31,8 @@
     "trimmedPce12m": "PCE Recortado (12M)",
     "unemployment": "Desempleo",
     "sahm": "Regla de Sahm",
+    "yieldCurve": "Curva de rendimientos (10a−3m)",
+    "ycInvertedDays": "invertida durante {n} días hábiles consecutivos",
     "yoyChange": "Interanual",
     "epuTrade": "Incertidumbre Política Comercial",
     "percentile10y": "Percentil 10 años",
@@ -51,25 +53,31 @@
       "neutral": "Balance en pausa",
       "tight": "QT (contracción)"
     },
+    "ycStatus": {
+      "loose": "No invertida",
+      "neutral": "Invertida, sin confirmar",
+      "tight": "Inversión confirmada · ataque vetado"
+    },
     "trendUp": "Subida",
     "trendFlat": "Estable",
     "trendDown": "Bajada",
     "modelUsageTrend": "Tendencia de uso de modelos",
     "capexYoY": "Capex cloud (interanual)",
     "hints": {
-      "modelUsageTrend": "Regla: media de 7 días cae >10 % vs 28 días previos → alerta de burbuja, oferta/demanda IA forzada a restrictiva. Cima del flujo de caja: los usuarios pagan a los modelos",
+      "modelUsageTrend": "Tendencia de uso de modelos: media de los últimos 28 días vs media de los 28 días previos (suavizado a nivel mensual que diluye el ruido semanal de festivos). >+3 % (≈ crecimiento anualizado ≥+47 %) → demanda fuerte · laxa; <−3 % (caída sostenida de la media mensual) → demanda debilitándose · alerta de sobreoferta · restrictiva. Fuente: openrouter.ai/rankings — proxy de un único agregador con ruido de cuotas.",
       "capexYoY": "Regla: capex de hyperscalers (MSFT/AMZN/GOOGL/META, 4T móviles) interanual <0 % → alerta de burbuja, restrictiva forzada. 2.º nivel: los modelos compran nube",
       "semiIpYoy": "La producción de semiconductores interanual es el extremo del lado de la oferta del trío de flujo de caja de oferta/demanda IA (uso → capex cloud → producción semi). Regla de consenso del trío: cualquier eslabón en contracción → restrictiva (alerta de sobreoferta); toda la cadena al alza → laxa (escasez); si no → neutral.",
       "rate": "Se juzga por la dirección de la última decisión del FOMC: una subida (incl. gradual de 25 pb) → restrictiva, mantenida hasta la siguiente decisión; recorte o pausa → laxa. Un ajuste único ≥50 pb (cualquier dirección) además activa el bloqueo de ajuste reactivo, forzando defensa total.",
       "balanceSheet": "Variación del balance (semanal): expansión >0,25 % (QE) → voto laxo; contracción >0,25 % (QT) no se juzga restrictiva por sí sola — solo bloquea una calificación laxa (backtest: el mercado subió en la mayoría de los años de QT); entre ambos → pausa.",
       "sahm": "Regla: valor Sahm <0,5 % → laxa; ≥0,5 % → inicio de recesión, bloqueo Sahm (defensa forzada); se desbloquea con tasa ≤0,25 % o ajuste <50 pb",
+      "yieldCurve": "Diferencial de plazos entre Treasuries a 10 años y a 3 meses, el indicador adelantado de recesión más contrastado (históricamente precede a las recesiones en 12-18 meses). Indicador de referencia — no participa en el juicio defensivo; su único papel decisorio: una inversión continua ≥3 meses (63 días hábiles) veta el acceso al nivel de ataque (el ataque se rebaja a observar); nunca activa la defensa y no es un bloqueo.",
       "epuTrade": "Regla: índice de incertidumbre comercial (mensual, específico comercio/aranceles/tec.) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el EPU diario, si no → neutral",
       "reference": "Solo referencia, no participa en el juicio",
       "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral",
       "oilWti": "La variación de 30 días del WTI es el precio de mercado en tiempo real de los choques bélicos/geopolíticos, con prioridad sobre los percentiles EPU: subida ≥+20 % Y EPU elevado (>percentil 80) → restrictiva (choque bélico/de oferta); una subida con EPU en calma = recuperación de demanda, sin falsa defensa. Caída ≥20 % Y EPU no elevado → laxa (desescalada); si el EPU está simultáneamente alto, la caída es de tipo crisis — sin laxa.",
       "fiscalOutlaysTtm": "Regla (gobierno pequeño): gasto federal TTM interanual >+5 % → restrictiva (el gobierno crece); <−5 % → laxa (el gobierno adelgaza). Por qué gasto y no déficit: el déficit mezcla el lado de ingresos — un déficit por recortes de impuestos (2017) cumple el principio y no debe leerse como restrictivo. Medido como gasto real (deflactado) interanual: el gasto nominal crece naturalmente ≈5 % y pre-activaría restrictiva de forma crónica; tras deflactar por PCE solo se dispara cuando la expansión/contracción real supera ±5 %"
     },
-    "hintGlobal": "Regla global: Ataque (asimétrico) = oferta/demanda IA laxa (el motor activo encendido) + monetaria/fiscal/administrativa todas no restrictivas (neutral basta; cualquier restrictiva veta) + sin bloqueos; solo una dimensión restrictiva = reducir y esperar; dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total",
+    "hintGlobal": "Regla global: Ataque (asimétrico) = oferta/demanda IA laxa (el motor activo encendido) + monetaria/fiscal/administrativa todas no restrictivas (neutral basta; cualquier restrictiva veta) + sin bloqueos + curva de rendimientos fuera de inversión confirmada (10a−3m invertida ≥3 meses / 63 días hábiles → veta el acceso al ataque, rebajado a observar); solo una dimensión restrictiva = reducir y esperar — dejar de aumentar posiciones y elevar la alerta; no hace falta reducir las posiciones existentes (evidencia de backtest: los meses con una sola dimensión restrictiva no rinden de media menos que el resto — una sola restrictiva es señal de atención, no de acción); dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total",
     "stale": "Datos retrasados",
     "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido",
     "epuDaily": "Incertidumbre política (diaria)",
@@ -117,8 +125,9 @@
   "interpret": {
     "title": "Interpretación de la Señal",
     "triggers": "Defensa activada por:",
-    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos):",
-    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos"
+    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos + curva de rendimientos fuera de inversión confirmada):",
+    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos, curva de rendimientos fuera de inversión confirmada",
+    "yieldCurveOk": "Curva de rendimientos fuera de inversión confirmada"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -219,7 +228,7 @@
     "sourceManual": "Manual",
     "relReturnLabel": "30d vs SPY",
     "bubbleTitle": "Monitor de Burbuja",
-    "modelUsageTrend": "Tendencia de Uso de Modelos (7d/28d)",
+    "modelUsageTrend": "Tendencia de Uso de Modelos (28d vs 28d previos)",
     "capexYoY": "Capex de Nube (12M móviles)",
     "capexAmount": "{bn} MM USD",
     "semiIpYoy": "Producción de Semiconductores Interanual",

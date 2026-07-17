@@ -8,6 +8,7 @@ const {
   AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
+  YIELD_CURVE_INVERSION_CONFIRM_DAYS,
 } = cfg;
 
 /**
@@ -272,4 +273,20 @@ export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
 
   // 观望（含 AI供需中性、政策三维不收紧的情形）
   return FINAL_SIGNAL.NEUTRAL;
+}
+
+/**
+ * 收益率曲线否决器（2026-07-17，参考指标的唯一判定角色）：
+ * 10y−3m 连续倒挂 ≥ 确认期（63个交易日≈3个月）时，进攻档降级为观望——
+ * 曲线倒挂是最经受检验的衰退领先指标（领先12-18个月，1968年以来零漏报），
+ * 倒挂确认期内不开最激进档位。只否决 attack，不触发防守、不做锁
+ * （吸取信用利差锁误锁复苏期的教训：领先指标适合"不抢跑"，不适合"强制离场"）。
+ * server 层与 payloads 层共用本函数，保证快照与实时读取同口径。
+ * @param {string} signal - calcFinalSignal 的结果
+ * @param {number|null} invertedDays - 连续倒挂交易日数（数据缺失时 null → 不否决，fail-open）
+ */
+export function applyYieldCurveVeto(signal, invertedDays) {
+  if (signal !== FINAL_SIGNAL.ATTACK) return signal;
+  if (invertedDays === null || invertedDays === undefined) return signal;
+  return invertedDays >= YIELD_CURVE_INVERSION_CONFIRM_DAYS ? FINAL_SIGNAL.NEUTRAL : signal;
 }

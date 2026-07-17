@@ -101,6 +101,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'credit_spread_percentile REAL',
   'credit_spread_90d_widen_bp REAL',
   'credit_spread_period_date TEXT',
+  'yield_curve_spread REAL',
+  'yield_curve_inverted_days INTEGER',
+  'yield_curve_period_date TEXT',
 ];
 
 function migrateSchema() {
@@ -395,8 +398,9 @@ export async function saveSignalSnapshot(data) {
      epu_daily, epu_daily_percentile, epu_daily_period_date,
      oil_wti, oil_change_30d_pct, oil_period_date, oil_source,
      fiscal_outlays_ttm, fiscal_outlays_ttm_prev, fiscal_outlays_change_pct,
-     credit_spread, credit_spread_percentile, credit_spread_90d_widen_bp, credit_spread_period_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     credit_spread, credit_spread_percentile, credit_spread_90d_widen_bp, credit_spread_period_date,
+     yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -420,6 +424,7 @@ export async function saveSignalSnapshot(data) {
     data.oilWti, data.oilChange30dPct, data.oilPeriodDate, data.oilSource,
     data.fiscalOutlaysTtm, data.fiscalOutlaysTtmPrev, data.fiscalOutlaysChangePct,
     data.creditSpread, data.creditSpreadPercentile, data.creditSpread90dWidenBp, data.creditSpreadPeriodDate,
+    data.yieldCurveSpread, data.yieldCurveInvertedDays, data.yieldCurvePeriodDate,
   ]);
 }
 

@@ -22,6 +22,7 @@ import {
   deriveSubSignals,
   calcLockActive,
   detectSignalChanges,
+  applyYieldCurveVeto,
 } from './api/signal.js';
 import signalCfg from './config/signal.config.js';
 import {
@@ -249,7 +250,10 @@ async function runDailyUpdate() {
   const fiscal = fiscalOverride?.signal || fiscalAutoEff;
   const admin = adminOverride?.signal || adminAutoEff;
   const aiSupply = aiSupplyOverride?.signal || aiSupplyAutoEff;
-  const decisionTreeSignal = calcFinalSignal(aiSupply, monetary, fiscal, admin);
+  const decisionTreeSignal = applyYieldCurveVeto(
+    calcFinalSignal(aiSupply, monetary, fiscal, admin),
+    macroData.yieldCurveInvertedDays
+  );
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
   const finalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
@@ -269,6 +273,9 @@ async function runDailyUpdate() {
     creditSpreadPercentile: macroData.creditSpreadPercentile,
     creditSpread90dWidenBp: macroData.creditSpread90dWidenBp,
     creditSpreadPeriodDate: macroData.creditSpreadPeriodDate,
+    yieldCurveSpread: macroData.yieldCurveSpread,
+    yieldCurveInvertedDays: macroData.yieldCurveInvertedDays,
+    yieldCurvePeriodDate: macroData.yieldCurvePeriodDate,
     fredCorePce: macroData.corePce,
     fredTrimmedPce: macroData.trimmedPce,
     fredUnemployment: macroData.unemployment,
