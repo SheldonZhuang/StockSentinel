@@ -9,6 +9,9 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { calcLockActive, applyDowngradeHold, calcFinalSignal, applyTrendReentry } from '../api/signal.js';
+// M系评估用片段判定（循环引用安全：accuracy-report.mjs 反向 import 本文件，双方只在运行期调用
+// 对方的顶层函数声明——ESM 函数声明在模块求值前已初始化，两个入口 argv 判定互斥不会双触发 main）
+import { episodesOf, crisisSpansOf, episodeVerdict } from './accuracy-report.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
@@ -47,6 +50,24 @@ export const VARIANTS_DEFAULT = {
   // 08覆盖 94.4→88.9% 打穿硬约束，而对2024误触发只延迟1个月（0.53/0.57连续两月≥0.5）】
   sahmLockTrendReentry: true,    // X1【采纳】萨姆锁驱动defense也过W5趋势门（应对式锁仍豁免）＝线上 applyTrendReentry
   defenseNeedsAdminOrLock: true, // X3【采纳】纯"货币+财政"双维共振降reduce（最窄口径）＝线上 calcFinalSignal 内置
+  // ---- 2026-07-18 第四轮（M系，市场/估值第5维评估）：针对 2000滞后68天/2022滞后148天——
+  // 现有四维全是宏观慢变量，抓不到预期驱动的顶。全部默认关，采纳由主会话定；对照表 --eval-m 复现。
+  // 评估结论（硬约束=召回≥5/6·08覆盖≥90%·年化≥12.1%）：**没有任何变体移动2000/2022的首防月份**，
+  // 滞后在此框架内不可安全压缩——两条结构性根因：①W5趋势门（12.35%基线的支柱）只允许趋势下方的
+  // 树驱动defense，而"预警"按定义发生在趋势上方（M3f诊断：关W5后CAPE+货币共振确实让2000提前24天/
+  // 2022提前187天，但年化10.41%、纯误报2→10段、实际少亏反而降低45.8→44.8pp/6.6→5.9pp——踏空成本
+  // 超过躲掉的下跌）；②市场票只能在破位后触发，2000月末破位(2000-09)晚于应对锁(2000-05)四个月，
+  // 2022破位月(02/04)与货币tight月(03/05)在月度采样上恰好错开（X2+M1修口径也只04：滞后148→116天，
+  // 少亏反降6.6→6.4pp，年化9.00%砸穿）。各变体：M1 9.79%(-2.6pp，复苏期市场+财政共振：2009-02~06/
+  // 2011-10~12/2015-08~09/2018-10~11/2020-05全是V型底右侧)；M1x与M1逐位一致（市+货纯双维从未出现）；
+  // M2@10/15 11.00/11.07%(新增防守月全在2009复苏段)；M1b 12.26%过约束但对2000/2022零影响且复活
+  // 2004-08假阳性段；M3c与基线逐位一致（确认票从未触发）；M3f 11.73%(2026-03/04新增纯误报段)
+  m1TrendVote: false,        // M1 趋势票：月末SPX<10月SMA → 市场维tight（计入≥2共振；高于SMA→neutral不投loose）
+  marketConfirmOnly: false,  // M1b 市场票仅确认票：自己不凑数，四维自身≥2共振被X3降档时+1票恢复defense
+  marketMonetaryReduce: false, // M1x 市场+货币纯双维共振比照X3降reduce（验证与X3交互）
+  m2DrawdownPct: null,       // M2 距52周高点票：月末收盘距52周最高收盘回撤≥该值(%)→市场维tight（如10/15）
+  capeConfirmVote: false,    // M3c 席勒CAPE 30年滚动分位>90 → 仅确认票（M-1可见，multpl.com月度）
+  capeFullVote: false,       // M3f CAPE独立票（诊断用：验证"2017-2021常态高位→假阳性泛滥"预期）
 };
 export const REAL_RATE_CAP_PCT = 1.5; // V5 阈值：实际利率超过此值即"高实际利率环境"，宽松票作废
 
@@ -122,6 +143,49 @@ export function smaLast(values, n) {
 }
 
 /**
+ * M2：距过去52周（lookbackDays 日历日）最高收盘的回撤（%，≤0）。
+ * 窗口 = (asOfDate−lookbackDays, asOfDate]，含 asOfDate 当日；最新收盘=窗口内最后一根 bar。
+ * 窗口内无 bar → null（调用方跳过该规则）
+ * @param {Array<{date, close:number}>} bars - 日线升序
+ */
+export function rollingHighDrawdownPct(bars, asOfDate, lookbackDays = 365) {
+  const startDate = new Date(new Date(`${asOfDate}T00:00:00Z`).getTime() - lookbackDays * 86400000)
+    .toISOString().slice(0, 10);
+  let last = null, high = null;
+  for (const b of bars) {
+    if (b.date > asOfDate) break;
+    if (b.date <= startDate || !Number.isFinite(b.close)) continue;
+    if (high === null || b.close > high) high = b.close;
+    last = b.close;
+  }
+  if (last === null || !high) return null;
+  return (last / high - 1) * 100;
+}
+
+/**
+ * M3：解析 multpl.com Shiller PE 月度表（https://www.multpl.com/shiller-pe/table/by-month）。
+ * 行格式：<td>Jul 1, 2026</td> <td> &#x2002; 41.10 </td>；当月行日期可能是月中（如 Jul 17）。
+ * 同月多条时保留页面靠前（更新）的一条；返回按月升序
+ * @returns {Array<{month:'YYYY-MM', value:number}>}
+ */
+export function parseMultplCape(html) {
+  const MONTHS = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+  const re = /<td>([A-Z][a-z]{2}) \d{1,2}, (\d{4})<\/td>\s*<td[^>]*>(?:&[#\w]+;|\s)*([\d.]+)/g;
+  const byMonth = new Map();
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const mm = MONTHS[m[1]];
+    const v = parseFloat(m[3]);
+    if (!mm || isNaN(v)) continue;
+    const month = `${m[2]}-${mm}`;
+    if (!byMonth.has(month)) byMonth.set(month, v); // 页面倒序，先见=最新
+  }
+  return [...byMonth.entries()]
+    .map(([month, value]) => ({ month, value }))
+    .sort((a, b) => (a.month < b.month ? -1 : 1));
+}
+
+/**
  * W4a：确认期可参数化的降档迟滞（逻辑与线上 applyDowngradeHold 逐位一致，仅确认天数可覆盖）。
  * 升档/持平即时生效并清空等待；降档需候选档持续满 confirmDays 天。
  * 注意：月度重放的合成日历步长为30天，任何 confirmDays∈(0,30] 都等价于"等1个采样月"——
@@ -142,7 +206,8 @@ export function applyDowngradeHoldWithDays(candidate, prevEffective, pendingSinc
 /**
  * 单月重放：复用线上阈值判定四维 + 锁 + 最终信号（AI供需历史无意义 → neutral；V6 变体例外）
  * @param {object} m - 当月指标 {rate, prevRate, walcl, prevWalcl, fiscalChangePct, epuPercentile, sahm,
- *   oilChangePct, spxBelowSma10, realRatePct, semiYoy}
+ *   oilChangePct, spxBelowSma10, realRatePct, semiYoy, dd52wPct, capePercentile}
+ *   dd52wPct = 月末收盘距52周最高收盘回撤%（M2用）；capePercentile = CAPE 30年滚动分位（M3用，M-1可见）
  *   walcl/prevWalcl = 采样时点可得的最新两条 WALCL 周度观测（lastTwoWeeklyAsOf，与线上 fetch-macro 同口径）
  * @param {object} prevState - {sahmLockActive, reactiveLockActive, reactiveLockDir, sahmLockAge, reactiveLockAge}
  * @param {object} variants - 变体开关（缺省全关 = 基线，与既有行为逐位一致）
@@ -264,6 +329,31 @@ export function replayMonth(m, prevState, variants = {}) {
   // W1（否决保留）：防守共振须含金融维——决策树defense要求货币tight在票内，纯政策组合只到reduce；
   // 锁不在此限（下方锁强制defense会覆盖）
   if (variants.defenseNeedsFinancial && final === 'defense' && monetary !== S.TIGHT) final = 'reduce';
+  // ---- M系（2026-07-18 第5维评估：市场/估值票，全部默认关）----
+  // 市场维=单一维度：M1（跌破10月SMA）与 M2（距52周高点回撤超阈值）同开时 OR 合并为一票，不重复计票。
+  // 注意与 W5 的交互：M1 触发必在 SMA 之下，W5 趋势门天然不冲突；M2 可能在 SMA 上方触发
+  //（深回撤后修复期），此时树驱动 defense 会被下方 W5 门即时降回 reduce——如实保留该交互
+  const marketTight = (!!variants.m1TrendVote && m.spxBelowSma10 === true)
+    || (variants.m2DrawdownPct != null && m.dd52wPct !== null && m.dd52wPct !== undefined
+      && m.dd52wPct <= -variants.m2DrawdownPct);
+  // M3：CAPE 30年滚动分位>90 → 估值票（confirm/full 两形态）
+  const capeTight = (!!variants.capeConfirmVote || !!variants.capeFullVote)
+    && m.capePercentile !== null && m.capePercentile !== undefined && m.capePercentile > 90;
+  const extraVotes = (marketTight && !variants.marketConfirmOnly ? 1 : 0)
+    + (capeTight && !!variants.capeFullVote ? 1 : 0);
+  if (extraVotes > 0) {
+    const totalVotes = tightCount + extraVotes;
+    // M1x：恰"市场+货币"两票的纯双维共振比照 X3 降级 reduce（验证市场维参与的共振是否都该defense）
+    const pureMarketMonetary = !!variants.marketMonetaryReduce && totalVotes === 2
+      && marketTight && tightCount === 1 && monetary === S.TIGHT && !(capeTight && variants.capeFullVote);
+    if (totalVotes >= 2 && !pureMarketMonetary) final = 'defense'; // 市场/估值参与的共振=defense（含解除X3降档）
+    else if (final === 'neutral' || final === 'attack') final = 'reduce'; // 单票（市场/估值独tight）=减仓观望
+  }
+  // 确认票（M1b / M3c）：自己不凑数；四维自身已≥2共振但被X3降档为reduce时 +1 票恢复 defense
+  const confirmVotes = (marketTight && !!variants.marketConfirmOnly ? 1 : 0)
+    + (capeTight && !!variants.capeConfirmVote && !variants.capeFullVote ? 1 : 0);
+  if (confirmVotes > 0 && final === 'reduce' && tightCount === 2
+    && monetary === S.TIGHT && fiscal === S.TIGHT) final = 'defense';
   // V1 ②：趋势之下不进攻——attack 降级 neutral
   if (variants.trendConfirm && m.spxBelowSma10 === true && final === 'attack') final = 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
@@ -419,6 +509,33 @@ async function fredSeries(id, apiKey, extra = '') {
 
 const SPX_CACHE = path.join(__dirname, 'spx-cache.json');
 
+// M3：席勒CAPE（multpl.com 月度表，1871年起）。Shiller ie_data.xls 需二进制xls解析器（未装依赖），
+// multpl.com 同源转载且可直接正则解析。缓存 cape-cache.json；拉取失败用缓存兜底；两者皆无 → 空数组，
+// M3 系列变体如实跳过（fail-soft，不阻塞 M1/M2 评估）
+const CAPE_CACHE = path.join(__dirname, 'cape-cache.json');
+
+async function fetchCape() {
+  try {
+    const res = await axios.get('https://www.multpl.com/shiller-pe/table/by-month', {
+      timeout: 30000, responseType: 'text',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    });
+    const capeM = parseMultplCape(res.data);
+    if (capeM.length > 1500) { // 1871年起应有~1800条，低于1500视为页面改版/截断
+      fs.writeFileSync(CAPE_CACHE, JSON.stringify({ at: Date.now(), capeM }));
+      return { capeM, capeSource: 'multpl.com Shiller PE 月度（1871起）' };
+    }
+    console.warn(`[backtest] multpl CAPE 解析仅得 ${capeM.length} 条，疑似页面改版，转用缓存`);
+  } catch (e) {
+    console.warn('[backtest] multpl CAPE failed:', e.message);
+  }
+  if (fs.existsSync(CAPE_CACHE)) {
+    const cached = JSON.parse(fs.readFileSync(CAPE_CACHE, 'utf8'));
+    return { capeM: cached.capeM, capeSource: 'multpl.com Shiller PE（本地缓存）' };
+  }
+  return { capeM: [], capeSource: 'CAPE 数据不可得（M3 跳过）' };
+}
+
 async function fetchSpx() {
   const result = await fetchSpxLive();
   // 成功拉到全历史 → 仅 Tiingo 总回报口径允许写缓存（stooq/Yahoo 价格指数不含股息，
@@ -531,6 +648,7 @@ export async function loadData() {
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
+  const { capeM, capeSource } = await fetchCape(); // M3：失败fail-soft为空数组
 
   const rateM = sampleMonthEnd(spliceRateSeries(dfedtar, dfedtaru));
   // WALCL 不做月末采样：与线上 fetch-macro 同口径——每个采样时点取可得的最新两条周度观测环比（见循环内）
@@ -544,6 +662,7 @@ export async function loadData() {
   const byMonth = arr => new Map(arr.map(o => [o.month, o.value]));
   return {
     spx, spxSource, walcl, fiscalM, epuM, pcepiM, spxM,
+    capeM, capeSource, // M3：月度CAPE（升序，1871起；不可得时空数组）
     rateM,
     rateMap: byMonth(rateM), sahmMap: byMonth(sahmM), oilMap: byMonth(oilM), spxMap: byMonth(spxM),
     corePceYoyMap: byMonth(sampleMonthEnd(corePceYoy)), // V5
@@ -619,6 +738,18 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     const corePce = D.corePceYoyMap.get(asOf) ?? null;
     const realRatePct = (rate !== null && corePce !== null) ? rate - corePce : null;
 
+    // M2：月末收盘距过去52周最高收盘回撤（SPY日线实时可见，无发布滞后）
+    const dd52wPct = rollingHighDrawdownPct(D.spx, D.spxDateMap.get(month) ?? lastDayOfMonth(month), 365);
+    // M3：CAPE 30年滚动（360月）分位，发布滞后建模为 M-1 可见（multpl 月度值用月初价格+滞后盈利，
+    // 月末决策时上月值早已可得）；窗口不足360月 → null（1871年起的数据2000-01后恒足额）
+    let capePercentile = null;
+    if (D.capeM && D.capeM.length) {
+      const capeHist = D.capeM.filter(o => o.month <= asOf).slice(-360);
+      if (capeHist.length >= 360 && capeHist[capeHist.length - 1].month === asOf) {
+        capePercentile = percentileAsOf(capeHist[capeHist.length - 1].value, capeHist.map(o => o.value));
+      }
+    }
+
     // 指标值提出到局部量（accuracy-report.mjs 错误归因需要透出到 timeline.metrics）
     const epuPctVal = epuLatest !== null ? percentileAsOf(epuLatest, epuHist.map(o => o.value)) : null;
     const oilPrev = timeline.length ? D.oilMap.get(timeline[timeline.length - 1].month) : null;
@@ -635,6 +766,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
       sahm: sahmVal,
       spxBelowSma10,
       realRatePct,
+      dd52wPct, capePercentile, // M2/M3
       semiYoy: D.semiYoyMap.get(prevMonthOf(asOf)) ?? null, // V6：IP 发布滞后建模为 M-2 可见
     }, state, variants);
     state = {
@@ -663,7 +795,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     timeline.push({
       month, spx: D.spxMap.get(month) ?? null, spxDate: D.spxDateMap.get(month) ?? null, ...r, rawFinal: r.final, final,
       // 指标透出（accuracy-report.mjs 错误归因用）：当月各维底层值与阈值差距可追溯
-      metrics: { rate, fiscalPct: realFiscalPct, epuPct: epuPctVal, oilPct: oilPctVal, sahm: sahmVal, spxBelowSma10 },
+      metrics: { rate, fiscalPct: realFiscalPct, epuPct: epuPctVal, oilPct: oilPctVal, sahm: sahmVal, spxBelowSma10, dd52wPct, capePct: capePercentile },
     });
   }
   return timeline;
@@ -803,6 +935,7 @@ export function evaluate(D, timeline) {
 async function main() {
   const D = await loadData();
 
+  if (process.argv.includes('--eval-m')) return runEvalM(D); // 仅M系（第5维）对照表
   if (process.argv.includes('--eval')) return runEval(D);
 
   const timeline = runReplay(D, VARIANTS_DEFAULT);
@@ -1004,6 +1137,113 @@ export function runEvalW(D) {
   console.table(comboRows.map(fmtW));
   const pareto = comboRows.filter(r => r.硬约束 === '过');
   console.log(`硬约束内组合 ${pareto.length} 个；2010起买入持有年化对照：见基线行注（12.3% vs 14.6%基准）`);
+  runEvalM(D);
+}
+
+// ---------- M系变体评估（2026-07-18 第四轮）：市场/估值第5维，目标压缩2000/2022滞后 ----------
+// 背景：现基线2000滞后68天、2022滞后148天——四维全是宏观慢变量，抓不到预期驱动的顶。
+// M1 趋势票（月末SPX<10月SMA）/ M2 距52周高点回撤票 / M3 CAPE 30年分位>90（确认票形态）。
+// 单独跑：node backtest/run-backtest.js --eval-m
+
+function pureFpOf(tl, s) {
+  const eps = episodesOf(tl);
+  const idxOf = new Map(tl.map((t, i) => [t.month, i]));
+  const spans = crisisSpansOf(s.crisisRows);
+  return { eps, pure: eps.filter(e => !episodeVerdict(e, tl, idxOf, spans).overlapCrisis) };
+}
+
+function evalRowM(name, D, tl, baseDefSet) {
+  const s = evaluate(D, tl);
+  const c = key => s.crisisRows.find(r => r.name.startsWith(key));
+  const c00 = c('2000'), c08 = c('2008'), c22 = c('2022');
+  const recall = s.crisisRows.filter(r => r.firstDefMonth).length;
+  const { eps, pure } = pureFpOf(tl, s);
+  const newDefMonths = baseDefSet
+    ? tl.filter(t => t.final === 'defense' && !baseDefSet.has(t.month)).map(t => t.month)
+    : [];
+  const fmtLead = r => !r?.firstDefMonth ? '未触发'
+    : `${r.firstDefMonth}(${r.leadDays >= 0 ? '提前' + r.leadDays : '滞后' + -r.leadDays}天${r.missedKind === 'postTop' ? ',已回落' + r.missedPct.toFixed(1) + '%' : ''})`;
+  // 硬约束（任务书口径）：召回≥5/6、2008覆盖≥90%、年化≥12.1%
+  const pass = recall >= 5 && (c08?.coveragePct ?? 0) >= 90 && s.overall.stratCagr >= 12.1;
+  return {
+    row: {
+      组合: name,
+      年化: s.overall.stratCagr.toFixed(2) + '%', 回撤: s.overall.stratMdd.toFixed(1) + '%',
+      防守月: s.defMonths, 召回: `${recall}/6`,
+      '2000首防': fmtLead(c00), '2022首防': fmtLead(c22),
+      '08覆盖/少亏': `${c08?.coveragePct?.toFixed(1) ?? '—'}%/${c08?.savedPct?.toFixed(1) ?? '—'}pp`,
+      '00/22少亏': `${c00?.savedPct?.toFixed(1) ?? '—'}/${c22?.savedPct?.toFixed(1) ?? '—'}pp`,
+      纯误报段: pure.length, '假阳性(严格)': `${s.falsePositives}/${s.episodes}`,
+      新增防守月: newDefMonths.length,
+      硬约束: pass ? '过' : '✗',
+    },
+    detail: { s, eps, pure, newDefMonths },
+  };
+}
+
+export function runEvalM(D) {
+  console.log('\n═════ M系第5维评估（市场/估值票）——目标：压缩2000(滞后68天)/2022(滞后148天)，不引入新假阳性 ═════');
+  console.log(`硬约束：召回≥5/6、08覆盖≥90%、年化≥12.1%（在此之内优先压缩滞后天数）｜CAPE数据源：${D.capeSource ?? '未加载'}`);
+  const base = runReplay(D, VARIANTS_DEFAULT);
+  const baseDefSet = new Set(base.filter(t => t.final === 'defense').map(t => t.month));
+  const capeOk = !!(D.capeM && D.capeM.length);
+  const M_DEFS = [
+    ['M1 趋势票', { m1TrendVote: true }],
+    ['M1b 趋势确认票', { m1TrendVote: true, marketConfirmOnly: true }],
+    ['M1x 市+货双tight降级', { m1TrendVote: true, marketMonetaryReduce: true }],
+    ['M2@10 52周高点回撤票', { m2DrawdownPct: 10 }],
+    ['M2@15', { m2DrawdownPct: 15 }],
+    ...(capeOk ? [
+      ['M3c CAPE确认票', { capeConfirmVote: true }],
+      ['M3f CAPE独立票(诊断)', { capeFullVote: true }],
+    ] : []),
+    ['M1+M2@10', { m1TrendVote: true, m2DrawdownPct: 10 }],
+    ...(capeOk ? [
+      ['M1+M3c', { m1TrendVote: true, capeConfirmVote: true }],
+      ['M1+M3f', { m1TrendVote: true, capeFullVote: true }],
+      ['M2@10+M3c', { m2DrawdownPct: 10, capeConfirmVote: true }],
+      ['M1+M2@10+M3c', { m1TrendVote: true, m2DrawdownPct: 10, capeConfirmVote: true }],
+    ] : []),
+    // 诊断组合（结论证据链，非候选）：X2修货币口径伪影后市场票的2022上界；关W5看趋势门对预警的压制
+    ['X2+M1(2022口径上界)', { monetaryCarryDir: true, m1TrendVote: true }],
+    ['X2+M2@10', { monetaryCarryDir: true, m2DrawdownPct: 10 }],
+    ['M1−W5(诊断)', { m1TrendVote: true, trendReentry: false }],
+    ...(capeOk ? [['M3f−W5(诊断)', { capeFullVote: true, trendReentry: false }]] : []),
+  ];
+  const rows = [];
+  const details = new Map();
+  {
+    const r = evalRowM('基线(V3+V4+W5+X1+X3)', D, base, null);
+    rows.push(r.row);
+    details.set('基线', { tl: base, ...r.detail });
+  }
+  for (const [name, patch] of M_DEFS) {
+    const tl = runReplay(D, { ...VARIANTS_DEFAULT, ...patch });
+    const r = evalRowM(name, D, tl, baseDefSet);
+    rows.push(r.row);
+    details.set(name, { tl, ...r.detail });
+  }
+  console.table(rows);
+  if (!capeOk) console.log('M3 系列：CAPE 数据不可得（multpl拉取失败且无缓存），如实跳过');
+
+  // FP高危月抽查：跌破趋势线但非>15%大危机的时点（M1/M2型指标在这些点必然投票，看共振后果）
+  const SPOT = ['2010-06', '2011-08', '2011-09', '2015-09', '2015-12', '2016-01', '2018-12', '2019-01', '2023-10', '2025-04', '2025-05'];
+  console.log('\n----- FP高危月抽查（2010-06/2011-08欧债/2015-08波动/2015-12加息/2018Q4/2023-10/2025-04关税）-----');
+  const abbr = { defense: 'D', reduce: 'r', neutral: '·', attack: 'A' };
+  console.table([...details.entries()].map(([name, d]) => {
+    const o = { 组合: name };
+    for (const mo of SPOT) o[mo] = abbr[d.tl.find(t => t.month === mo)?.final] ?? '?';
+    return o;
+  }));
+  console.log('图例：D=全面防守 r=减仓观望 ·=观望');
+
+  // 明细：纯误报段与相对基线新增的防守月
+  console.log('\n----- 各变体纯误报段与新增防守月明细 -----');
+  for (const [name, d] of details) {
+    const pureStr = d.pure.map(e => `${e.start}~${e.end ?? '在续'}(${e.months.length}月)`).join(' ') || '无';
+    if (name === '基线') { console.log(`基线 纯误报段: ${pureStr}`); continue; }
+    console.log(`${name}\n  纯误报段: ${pureStr}\n  新增防守月(${d.newDefMonths.length}): ${d.newDefMonths.join(' ') || '无'}`);
+  }
 }
 
 function writeReport(s, timeline) {
