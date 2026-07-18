@@ -33,7 +33,10 @@ function noteConnectFailure() {
   unavailableUntil = Date.now() + Math.min(60_000 * 2 ** (failStreak - 1), 6 * 3600_000);
   // 前3次照常告警（本机 OpenD 未开时需要提示），之后每8次提示一次防刷屏
   if (failStreak <= 3 || failStreak % 8 === 0) {
-    console.warn(`[moomoo] OpenD WebSocket 连接超时（第${failStreak}次，检查 OpenD 的 WebSocket 端口开关；云端部署无 OpenD 请删除 MOOMOO_WS_PORT 环境变量）`);
+    console.warn(`[moomoo] OpenD WebSocket 连接超时（第${failStreak}次，目标 ${HOST()}:${PORT()}）——`
+      + (HOST() === '127.0.0.1'
+        ? '本机部署：检查 OpenD 是否运行且设置中开启了 WebSocket 端口；云端部署：OpenD 在用户本地，127.0.0.1 永远不通，需配置 MOOMOO_WS_HOST 指向隧道地址（见 docs/moomoo-cloud-setup.md）'
+        : '检查隧道/端口转发是否在线、MOOMOO_WS_KEY 是否与 OpenD 设置一致'));
   }
 }
 

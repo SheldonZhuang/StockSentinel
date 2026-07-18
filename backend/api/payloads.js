@@ -39,7 +39,8 @@ export async function buildSignalPayload() {
   const candidateSignal = applyTrendReentry(
     lockActiveNow ? 'defense' : decisionTreeSignal,
     {
-      lockActive: lockActiveNow,
+      sahmLockActive,
+      reactiveLockActive: reactiveAdjustmentLockActive,
       spxAboveSma10: snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10,
     }
   );

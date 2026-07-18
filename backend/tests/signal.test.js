@@ -372,6 +372,18 @@ describe('calcFinalSignal', () => {
     expect(calcFinalSignal('tight', 'tight', 'loose', 'loose')).toBe('defense');
   });
 
+  it('X3(2026-07-18)：纯"货币+财政"双维共振降为 reduce（防守共振须含行政维或锁）', () => {
+    expect(calcFinalSignal('loose', 'tight', 'tight', 'loose')).toBe('reduce');
+    expect(calcFinalSignal('neutral', 'tight', 'tight', 'neutral')).toBe('reduce');
+  });
+
+  it('X3边界：行政参与或AI参与的双维共振仍是 defense；三维共振仍是 defense', () => {
+    expect(calcFinalSignal('loose', 'tight', 'loose', 'tight')).toBe('defense');
+    expect(calcFinalSignal('loose', 'loose', 'tight', 'tight')).toBe('defense');
+    expect(calcFinalSignal('tight', 'loose', 'tight', 'loose')).toBe('defense');
+    expect(calcFinalSignal('loose', 'tight', 'tight', 'tight')).toBe('defense');
+  });
+
   it('全面防守：多个同时收紧', () => {
     expect(calcFinalSignal('tight', 'tight', 'tight', 'tight')).toBe('defense');
   });
@@ -595,20 +607,25 @@ describe('calcTrendState / applyTrendReentry（W5趋势再入场，2026-07-17采
   });
 
   it('树驱动defense + 趋势向上 → 降级reduce', () => {
-    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: true })).toBe('reduce');
+    expect(applyTrendReentry('defense', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: true })).toBe('reduce');
   });
 
   it('锁驱动defense不受趋势否决（锁=确证的危机应对）', () => {
-    expect(applyTrendReentry('defense', { lockActive: true, spxAboveSma10: true })).toBe('defense');
+    expect(applyTrendReentry('defense', { sahmLockActive: false, reactiveLockActive: true, spxAboveSma10: true })).toBe('defense');
+    // X1(2026-07-18)：萨姆锁驱动的defense也过趋势门（2024-08移民失真误触发归因）
+    expect(applyTrendReentry('defense', { sahmLockActive: true, reactiveLockActive: false, spxAboveSma10: true })).toBe('reduce');
+    // 双锁并存：应对式锁在场即豁免
+    expect(applyTrendReentry('defense', { sahmLockActive: true, reactiveLockActive: true, spxAboveSma10: true })).toBe('defense');
   });
 
   it('趋势向下或未知 → 不降级（fail-open）', () => {
-    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: false })).toBe('defense');
-    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: null })).toBe('defense');
+    expect(applyTrendReentry('defense', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: false })).toBe('defense');
+    expect(applyTrendReentry('defense', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: null })).toBe('defense');
+    expect(applyTrendReentry('defense', { sahmLockActive: true, reactiveLockActive: false, spxAboveSma10: false })).toBe('defense');
   });
 
   it('非defense档原样通过', () => {
-    expect(applyTrendReentry('reduce', { lockActive: false, spxAboveSma10: true })).toBe('reduce');
-    expect(applyTrendReentry('attack', { lockActive: false, spxAboveSma10: true })).toBe('attack');
+    expect(applyTrendReentry('reduce', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: true })).toBe('reduce');
+    expect(applyTrendReentry('attack', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: true })).toBe('attack');
   });
 });

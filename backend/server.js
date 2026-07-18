@@ -289,9 +289,11 @@ async function runDailyUpdate() {
   }
 
   let rawFinalSignal = lockActiveNow ? 'defense' : decisionTreeSignal;
-  // W5：市场上升趋势中（最新收盘≥10月SMA）树驱动的 defense 降级 reduce；锁驱动不受影响
+  // W5/X1：上升趋势中树驱动与萨姆锁驱动的 defense 降级 reduce；应对式锁不受趋势否决
   rawFinalSignal = applyTrendReentry(rawFinalSignal, {
-    lockActive: lockActiveNow, spxAboveSma10: trendState.spxAboveSma10,
+    sahmLockActive: locks.sahmLockActive,
+    reactiveLockActive: locks.reactiveAdjustmentLockActive,
+    spxAboveSma10: trendState.spxAboveSma10,
   });
   // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）
   const hold = applyDowngradeHold(

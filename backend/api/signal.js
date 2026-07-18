@@ -295,7 +295,16 @@ export function detectSignalChanges(prevSnapshot, current) {
 export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
   const tightCount = [aiSupply, monetary, fiscal, admin].filter(s => s === SIGNAL.TIGHT).length;
 
-  if (tightCount >= 2) return FINAL_SIGNAL.DEFENSE;
+  if (tightCount >= 2) {
+    // X3（2026-07-18 归因采纳）：纯"货币+财政"双维共振降为 reduce——防守共振须含行政维
+    // （或锁，锁在 server 层强制）。归因：2004-08 假防守段=渐进加息25bp+财政TTM同比5.4%
+    // 擦线过阈值的纯噪声（当时EPU仅6.7分位，世界毫无危险）。只实施经回测检验的最窄口径：
+    // AI供需参与的共振（未被历史检验，且AI是用户长线主线）保持 defense 不动
+    if (tightCount === 2 && monetary === SIGNAL.TIGHT && fiscal === SIGNAL.TIGHT) {
+      return FINAL_SIGNAL.REDUCE;
+    }
+    return FINAL_SIGNAL.DEFENSE;
+  }
   if (tightCount === 1) return FINAL_SIGNAL.REDUCE;
 
   // 进攻（非对称）：AI供需宽松 且 政策三维都不收紧（此处 tightCount===0 已保证无收紧，
@@ -349,14 +358,15 @@ export function calcTrendState(bars) {
 }
 
 /**
- * 趋势再入场加速器（2026-07-17 归因评估采纳，W5）：市场处上升趋势（最新收盘≥10月SMA）时，
- * **决策树驱动**的全面防守降级为减仓观望——趋势创高时不该全面空仓；
- * 锁驱动的防守不受影响（锁=确证的危机应对，不被趋势否决）。
- * 归因依据：2010后13段全面防守全部假阳性（-1.07pp/年），本规则把假阳性17/19→6/8、
- * 全期年化11.7→12.2%、2010起12.3→12.9%，而2008覆盖94%/少亏58.1pp分毫未损。
+ * 趋势再入场加速器（2026-07-17 W5 采纳；2026-07-18 X1 扩展至萨姆锁）：
+ * 市场处上升趋势（最新收盘≥10月SMA）时，**决策树驱动**与**萨姆锁驱动**的全面防守降级为
+ * 减仓观望；应对式调整锁驱动的防守不受趋势否决（X1b 实测：应对式锁也过趋势门会砸掉
+ * 2008 年顶部前入场，08少亏 58.1→50.7pp，否决）。
+ * X1 归因依据：2024-08 萨姆锁为萨姆规则 1970 年来首次假阳性（移民推高失业率），当时市场
+ * 全程在 10 月 SMA 上方；而 2001/2008/2020 三次真触发时市场均已跌破趋势线，趋势门不影响真危机。
  * trendUp 为 null（数据不足/拉取失败）时不降级（fail-open）。
  */
-export function applyTrendReentry(signal, { lockActive, spxAboveSma10 }) {
-  if (signal !== FINAL_SIGNAL.DEFENSE || lockActive) return signal;
+export function applyTrendReentry(signal, { sahmLockActive, reactiveLockActive, spxAboveSma10 }) {
+  if (signal !== FINAL_SIGNAL.DEFENSE || reactiveLockActive) return signal;
   return spxAboveSma10 === true ? FINAL_SIGNAL.REDUCE : signal;
 }
