@@ -301,7 +301,7 @@ export function simulateOptionScheme(months, pxMap, volByMonth, rateMap, {
 
 // ---------- 数据（QQQ 日线：本地缓存 45 天陈旧护栏，过期回源 Tiingo） ----------
 
-async function loadQqqBars() {
+export async function loadQqqBars() {
   const cacheFile = path.join(__dirname, 'qqq-cache.json');
   const today = new Date().toISOString().slice(0, 10);
   if (fs.existsSync(cacheFile)) {
