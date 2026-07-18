@@ -5,6 +5,7 @@ import {
   simulateDcaBuyHold,
   simulateDcaHedged,
   simulateDcaTimed,
+  simulateS5,
   dcaStats,
 } from '../backtest/dca-schemes.mjs';
 
@@ -187,5 +188,66 @@ describe('simulateDcaTimed（S4/S4q/S5/S6 信号择时定投状态机）', () =>
     // 月2买SPY 1(0.01股)；月3 SPY腰斩: TQQQ 1 + SPY 0.01×50+新买1 → 1+0.5+1
     expect(r.points[2].value).toBeCloseTo(2.5, 10);
     expect(r.diag.missedMonths).toBe(0); // S6不攒现金
+  });
+});
+
+describe('simulateS5（S5精细化：存量也择时）', () => {
+  const mk = tiers => tiers.map((f, i) => ({ month: `2020-${String(i + 1).padStart(2, '0')}`, final: f }));
+  const noRate = new Map();
+  const pxOf = closes => ({ tqqq: new Map(closes.map((c, i) => [`2020-${String(i + 1).padStart(2, '0')}`, c])) });
+
+  it('S5a：defense入场卖全部存量，退defense到reduce即全额买回，episode记录涨跌与触发', () => {
+    const months = mk(['neutral', 'defense', 'reduce']);
+    months[1].sahmLockActive = true; // 触发原因标注
+    const px = pxOf([10, 5, 8]);
+    const r = simulateS5(months, px, noRate);
+    // 月1: 买1(0.1股)；月2 defense: 卖0.1×5=0.5入储备+新钱1 → 储备1.5
+    expect(r.points[1].value).toBeCloseTo(1.5, 10);
+    // 月3 reduce: 买回全部1.5（新钱1另入储备）
+    expect(r.episodes.length).toBe(1);
+    expect(r.episodes[0]).toMatchObject({ sellMonth: '2020-02', buyMonth: '2020-03', trigger: '萨姆锁', waitMonths: 1 });
+    expect(r.episodes[0].tqqqChangePct).toBeCloseTo((8 / 5 - 1) * 100, 8); // +60% = 假信号踏空
+    expect(r.points[2].value).toBeCloseTo(1.5 + 1, 10);
+  });
+  it('S5c：退defense到reduce不买回，恢复neutral才买回', () => {
+    const months = mk(['neutral', 'defense', 'reduce', 'neutral']);
+    const px = pxOf([10, 5, 8, 4]);
+    const r = simulateS5(months, px, noRate, 1, { buybackOnReduce: false });
+    // 月3 reduce: 不买回（储备1.5+新钱1=2.5持币）；月4 neutral: 全部2.5+新钱1买回
+    expect(r.points[2].value).toBeCloseTo(2.5, 10);
+    expect(r.episodes[0].buyMonth).toBe('2020-04');
+    expect(r.episodes[0].tqqqChangePct).toBeCloseTo((4 / 5 - 1) * 100, 8); // −20% = 真信号
+  });
+  it('S5d：defense只卖一半存量，连续defense月不重复卖', () => {
+    const months = mk(['neutral', 'defense', 'defense']);
+    const px = pxOf([10, 10, 10]);
+    const r = simulateS5(months, px, noRate, 1, { sellFraction: 0.5 });
+    // 月2: 卖0.05股=0.5；月3: 不再卖（存量0.05股保留）
+    expect(r.trades.sells).toBe(1);
+    expect(r.points[2].value).toBeCloseTo(3, 10); // 平价无损耗：0.05股×10 + 储备(0.5+1+1)
+  });
+  it('S5b：买回分3个月匀速，末期清尾', () => {
+    const months = mk(['neutral', 'defense', 'neutral', 'neutral', 'neutral']);
+    const px = pxOf([10, 10, 10, 10, 10]);
+    const r = simulateS5(months, px, noRate, 1, { staged: true });
+    // 月2储备: 卖1+新钱1=2；月3: 部署2/3+新钱1；月4: 2/3+1；月5: 清尾2/3+1 → 平价下市值=投入
+    expect(r.points[4].value).toBeCloseTo(5, 10);
+    expect(r.episodes[0].buyMonth).toBe('2020-03'); // 买回月=首笔部署月
+    expect(r.diag.maxDeployPct).toBeLessThan(100);
+  });
+  it('样本末仍在防守 → 开放往返按末月价计涨跌，buyMonth=null', () => {
+    const months = mk(['neutral', 'defense', 'defense']);
+    const px = pxOf([10, 5, 4]);
+    const r = simulateS5(months, px, noRate);
+    expect(r.episodes.length).toBe(1);
+    expect(r.episodes[0].buyMonth).toBe(null);
+    expect(r.episodes[0].tqqqChangePct).toBeCloseTo((4 / 5 - 1) * 100, 8);
+  });
+  it('摩擦：买卖双边收frictionPct，期末市值低于无摩擦', () => {
+    const months = mk(['neutral', 'defense', 'neutral']);
+    const px = pxOf([10, 10, 10]);
+    const noFr = simulateS5(months, px, noRate);
+    const fr = simulateS5(months, px, noRate, 1, { frictionPct: 0.001 });
+    expect(fr.points[2].value).toBeLessThan(noFr.points[2].value);
   });
 });

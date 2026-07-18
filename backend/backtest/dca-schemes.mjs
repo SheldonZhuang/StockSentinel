@@ -173,6 +173,105 @@ export function simulateDcaTimed(months, px, rateMap, C = 1, {
 }
 
 /**
+ * S5 精细化状态机（94号续·用户选中方案，存量也择时）：
+ *  - defense 入场月：卖出存量 TQQQ 的 sellFraction（默认全部）进现金储备（计FFR利息）；防守期新钱也进储备
+ *  - 退出 defense：buybackOnReduce=true（S5a/b/d）→ 到 reduce/neutral/attack 即触发买回；
+ *    false（S5c/e）→ 只有恢复到 neutral/attack 才买回（reduce 继续观望）
+ *  - staged=true（S5b/e）：买回与储备部署分3个月匀速（触发月起每个非defense月释放1/3，末期清尾；
+ *    中途再入 defense 则取消未完成计划、按卖出规则重新防守）
+ *  - reduce（非买回场景）：新钱攒现金、存量持有；neutral/attack：新钱+储备全部（或按期）买入
+ *  - frictionPct：每笔买/卖单边摩擦（敏感性用，默认0）
+ * @returns {{points,twr,diag,episodes,monthLog,trades:{buys,sells}}}
+ *  episodes: [{sellMonth,sellPx,trigger,buyMonth,buyPx,tqqqChangePct,waitMonths}]（tqqqChangePct>0=假信号踏空）
+ */
+export function simulateS5(months, px, rateMap, C = 1, {
+  sellFraction = 1,
+  buybackOnReduce = true,
+  staged = false,
+  frictionPct = 0,
+} = {}) {
+  const monthIdx = m => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
+  let tqqqU = 0, reserve = 0, prevTier = null, prevV = null;
+  let tranche = 0, tranchesLeft = 0;
+  let curEpisode = null;
+  let missedMonths = 0, curWait = 0, maxDeployPct = 0, buys = 0, sells = 0;
+  const waits = [], points = [], twr = [], episodes = [], monthLog = [];
+  months.forEach((m, i) => {
+    if (i > 0) reserve *= 1 + ((rateMap.get(months[i - 1].month) ?? 0) / 100) / 12;
+    const pT = px.tqqq.get(m.month);
+    if (pT === undefined) throw new Error(`合成TQQQ 缺 ${m.month} 月末价`);
+    const f = m.final;
+    const isBuyTier = f === 'attack' || f === 'neutral';
+    const actions = [];
+    // ---- defense 入场：卖出存量 ----
+    if (f === 'defense' && prevTier !== 'defense' && tqqqU > 0 && sellFraction > 0) {
+      const sellU = tqqqU * sellFraction;
+      const proceeds = sellU * pT * (1 - frictionPct);
+      reserve += proceeds; tqqqU -= sellU; sells++;
+      tranchesLeft = 0; // 取消未完成的部署计划
+      const trigger = m.sahmLockActive ? '萨姆锁' : m.reactiveLockActive ? '应对式锁' : '决策树共振';
+      curEpisode = { sellMonth: m.month, sellPx: pT, trigger };
+      actions.push(`卖出存量${sellFraction < 1 ? Math.round(sellFraction * 100) + '%' : ''}(${proceeds.toFixed(2)})`);
+    }
+    // ---- 部署（买回/常规）判定 ----
+    let deployR = 0;
+    const buybackNow = !!curEpisode && curEpisode.buyMonth === undefined && f !== 'defense'
+      && (isBuyTier || (buybackOnReduce && f === 'reduce'));
+    const normalDeploy = isBuyTier && reserve > 0;
+    if (f !== 'defense' && reserve > 0 && (buybackNow || normalDeploy || (staged && tranchesLeft > 0))) {
+      if (staged) {
+        if ((buybackNow || normalDeploy) && tranchesLeft === 0) { tranche = reserve / 3; tranchesLeft = 3; }
+        if (tranchesLeft > 0) {
+          deployR = tranchesLeft === 1 ? reserve : Math.min(tranche, reserve);
+          tranchesLeft--;
+        }
+      } else if (buybackNow || normalDeploy) {
+        deployR = reserve;
+      }
+    }
+    if (deployR > 0 && curEpisode && curEpisode.buyMonth === undefined) {
+      curEpisode.buyMonth = m.month; curEpisode.buyPx = pT;
+      curEpisode.tqqqChangePct = (pT / curEpisode.sellPx - 1) * 100;
+      curEpisode.waitMonths = monthIdx(m.month) - monthIdx(curEpisode.sellMonth);
+      episodes.push(curEpisode); curEpisode = null;
+    }
+    // ---- 新钱去向 + 执行买入 ----
+    let buyAmt = deployR;
+    if (isBuyTier) buyAmt += C; else reserve += C;
+    if (buyAmt > 0) {
+      tqqqU += buyAmt * (1 - frictionPct) / pT; buys++;
+      reserve -= deployR;
+      actions.push(deployR > 0 ? `部署储备+定投(${buyAmt.toFixed(2)})` : `定投买入(${buyAmt.toFixed(2)})`);
+    } else {
+      actions.push(f === 'defense' ? '持币防守(新钱入储备)' : '新钱入储备(观望)');
+    }
+    const v = tqqqU * pT + reserve;
+    if (buyAmt > 0 && deployR > 0 && v > 0) maxDeployPct = Math.max(maxDeployPct, (buyAmt / v) * 100);
+    if (!isBuyTier) { missedMonths++; curWait++; } else if (curWait > 0) { waits.push(curWait); curWait = 0; }
+    twr.push({ month: m.month, nav: i === 0 ? 1 : twr[i - 1].nav * ((v - C) / prevV) });
+    prevV = v;
+    points.push({ month: m.month, value: v, invested: (i + 1) * C });
+    monthLog.push({ month: m.month, tier: f, action: actions.join('+'), value: v, reserve });
+    prevTier = f;
+  });
+  if (curWait > 0) waits.push(curWait);
+  if (curEpisode) { // 样本末仍未买回的开放往返
+    const lastPx = px.tqqq.get(months[months.length - 1].month);
+    episodes.push({ ...curEpisode, buyMonth: null, buyPx: lastPx, tqqqChangePct: (lastPx / curEpisode.sellPx - 1) * 100, waitMonths: monthIdx(months[months.length - 1].month) - monthIdx(curEpisode.sellMonth) });
+  }
+  return {
+    points, twr, episodes, monthLog,
+    trades: { buys, sells },
+    diag: {
+      missedMonths,
+      maxWaitMonths: waits.length ? Math.max(...waits) : 0,
+      avgWaitMonths: waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : 0,
+      maxDeployPct,
+    },
+  };
+}
+
+/**
  * 定投路径统计：总投入/期末市值/倍数/XIRR/市值最大回撤/最大浮亏（min 市值÷累计投入 −1）
  */
 export function dcaStats(points) {
@@ -309,6 +408,94 @@ async function main() {
   const dcaT = simulateDcaBuyHold(timeline, px.tqqq);
   const atTrough = dcaT.points.reduce((a, b) => (b.value / b.invested < a.value / a.invested ? b : a));
   console.log(`\n定投TQQQ最深水下时点：${atTrough.month} —— 已投入 ${money(atTrough.invested)}，市值仅 ${money(atTrough.value)}（${(atTrough.value / atTrough.invested * 100).toFixed(1)}%），浮亏 ${f1((atTrough.value / atTrough.invested - 1) * 100)}%`);
+
+  // ===== S5 精细化（94号续·用户选中）：第一部分 参数变体择优 =====
+  const S5_VARIANTS = [
+    ['S5a 基准(全卖/退defense即买回/一次性)', {}],
+    ['S5b 买回与部署分3个月匀速', { staged: true }],
+    ['S5c 只恢复到neutral/attack才买回', { buybackOnReduce: false }],
+    ['S5d defense只卖一半存量', { sellFraction: 0.5 }],
+    ['S5e =S5b+S5c', { staged: true, buybackOnReduce: false }],
+  ];
+  const compEp = arr => (arr.reduce((a, e) => a * (1 + e.tqqqChangePct / 100), 1) - 1) * 100;
+  const s5Runs = new Map(); // `${label}|${name}` → run
+  for (const [label, months] of windows) {
+    console.log(`\n===== S5 变体择优：${label}（存量也择时；每月$1000） =====`);
+    const rows = S5_VARIANTS.map(([name, opts]) => {
+      const r = simulateS5(months, px, rateMap, 1, opts);
+      s5Runs.set(`${label}|${name}`, r);
+      const s = dcaStats(r.points);
+      const tw = statsFromNav(r.twr);
+      const falseEp = r.episodes.filter(e => e.tqqqChangePct > 0);
+      const trueEp = r.episodes.filter(e => e.tqqqChangePct <= 0);
+      return {
+        变体: name,
+        期末市值: money(s.endValue),
+        XIRR: f1(s.xirrPct) + '%',
+        市值最大回撤: f1(s.valueMddPct) + '%',
+        最大浮亏: f1(s.minValueToInvestedPct) + '%',
+        '2008年': f1(tw.yearly.get('2008')) + '%',
+        '2020年': f1(tw.yearly.get('2020')) + '%',
+        '2022年': f1(tw.yearly.get('2022')) + '%',
+        往返次数: r.episodes.length,
+        假信号往返: `${falseEp.length}次/合计踏空${f1(compEp(falseEp))}%`,
+        真信号往返: `${trueEp.length}次/合计躲掉${f1(compEp(trueEp))}%`,
+      };
+    });
+    console.table(rows);
+  }
+  // 最优变体（按全期XIRR）+ 摩擦敏感性
+  const fullLabel = windows[0][0];
+  let bestName = null, bestXirr = -Infinity;
+  for (const [name] of S5_VARIANTS) {
+    const x = dcaStats(s5Runs.get(`${fullLabel}|${name}`).points).xirrPct;
+    if (x > bestXirr) { bestXirr = x; bestName = name; }
+  }
+  const bestOpts = S5_VARIANTS.find(([n]) => n === bestName)[1];
+  console.log(`\n最优变体（按全期XIRR）：${bestName}`);
+  for (const [label, months] of windows) {
+    const fr = dcaStats(simulateS5(months, px, rateMap, 1, { ...bestOpts, frictionPct: 0.001 }).points);
+    const base = dcaStats(s5Runs.get(`${label}|${bestName}`).points);
+    console.log(`摩擦敏感性（每笔买卖双边0.1%）${label}：XIRR ${f1(base.xirrPct)}% → ${f1(fr.xirrPct)}%（差${f1(fr.xirrPct - base.xirrPct)}pp），期末 ${money(base.endValue)} → ${money(fr.endValue)}`);
+  }
+
+  // ===== 第二部分：最优变体 26 年操作实况（执行手册用） =====
+  const best = s5Runs.get(`${fullLabel}|${bestName}`);
+  const bestStats = dcaStats(best.points);
+  console.log(`\n===== ${bestName} 全期操作实况（2000-01~${timeline[timeline.length - 1].month}） =====`);
+  console.log('\n--- 1. 全部 defense 进出场清单（期间涨跌>0=假信号踏空，<0=躲掉的下跌） ---');
+  console.table(best.episodes.map(e => ({
+    卖出月: e.sellMonth, 触发: e.trigger,
+    买回月: e.buyMonth ?? '样本末未买回',
+    持币月数: e.waitMonths,
+    '期间TQQQ涨跌': f1(e.tqqqChangePct) + '%',
+    判定: e.tqqqChangePct > 0 ? '假信号(踏空)' : '真信号(躲掉)',
+  })));
+  const falseEp = best.episodes.filter(e => e.tqqqChangePct > 0);
+  const trueEp = best.episodes.filter(e => e.tqqqChangePct <= 0);
+  const avgHold = best.episodes.reduce((a, e) => a + e.waitMonths, 0) / (best.episodes.length || 1);
+  const worstFalse = falseEp.reduce((a, e) => (e.tqqqChangePct > (a?.tqqqChangePct ?? -1) ? e : a), null);
+  const bestTrue = trueEp.reduce((a, e) => (e.tqqqChangePct < (a?.tqqqChangePct ?? 1) ? e : a), null);
+  console.log(`--- 2. 往返统计 ---
+26年共卖出 ${best.trades.sells} 次；平均持币 ${f1(avgHold)} 个月，最长 ${Math.max(...best.episodes.map(e => e.waitMonths))} 个月；
+假信号 ${falseEp.length}/${best.episodes.length}（${f1(falseEp.length / best.episodes.length * 100)}%），合计踏空 ${f1(compEp(falseEp))}%；真信号合计躲掉 ${f1(compEp(trueEp))}%；
+最痛一次假信号：${worstFalse ? `${worstFalse.sellMonth}卖出→${worstFalse.buyMonth}买回，踏空 +${f1(worstFalse.tqqqChangePct)}%（${worstFalse.trigger}触发）` : '无'}；
+最值一次真信号：${bestTrue ? `${bestTrue.sellMonth}卖出→${bestTrue.buyMonth ?? '未买回'}，躲掉 ${f1(bestTrue.tqqqChangePct)}%（${bestTrue.trigger}触发）` : '无'}`);
+  console.log(`--- 3. 新钱等待统计（reduce∪defense攒现金） ---
+攒现金月 ${best.diag.missedMonths}/${timeline.length}（${f1(best.diag.missedMonths / timeline.length * 100)}%）；最长等待 ${best.diag.maxWaitMonths} 个月，平均 ${f1(best.diag.avgWaitMonths)} 个月；单笔最大部署占当时组合 ${f1(best.diag.maxDeployPct)}%`);
+  const deep = best.points.reduce((a, b) => (b.value / b.invested < a.value / a.invested ? b : a));
+  const deepLog = best.monthLog.find(l => l.month === deep.month);
+  console.log(`--- 4. 最深浮亏 ---
+${deep.month}：已投 ${money(deep.invested)}，市值 ${money(deep.value)}（${(deep.value / deep.invested * 100).toFixed(1)}%，浮亏 ${f1((deep.value / deep.invested - 1) * 100)}%）；当月档位 ${deepLog.tier}，动作「${deepLog.action}」，其中现金储备 ${money(deepLog.reserve)}`);
+  for (const [cName, from, to] of [['2008金融危机', '2007-06', '2009-09'], ['2020新冠', '2019-10', '2020-12'], ['2022加息熊', '2021-10', '2023-06']]) {
+    console.log(`\n--- ${cName} 逐月操作流水 ---`);
+    for (const l of best.monthLog.filter(l => l.month >= from && l.month <= to)) {
+      console.log(`${l.month} [${l.tier.padEnd(7)}] ${l.action}｜组合 ${money(l.value)}（现金 ${money(l.reserve)}）`);
+    }
+  }
+  const yearsSpan = (timeline.length - 1) / 12;
+  console.log(`\n--- 5. 交易频率 ---
+26年买入 ${best.trades.buys} 笔（含定投与买回）+ 卖出 ${best.trades.sells} 笔 = 共 ${best.trades.buys + best.trades.sells} 笔，年均 ${f1((best.trades.buys + best.trades.sells) / yearsSpan)} 笔`);
 
   console.log(`
 口径声明：
