@@ -1,4 +1,6 @@
-backtest-raw.json
+# 数据缓存不入库（重跑时自动拉取）；backtest-raw.json 必须入库——
+# 生产 /v1/backtest/summary 与 MCP get_backtest_summary 从磁盘读它，
+# 不入库则线上 TrackRecord 回测速览永远 not_available（2026-07-18 生产冒烟发现）
 spx-cache.json
 fred-cache.json
 qqq-cache.json
