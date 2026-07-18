@@ -6,7 +6,7 @@ import {
   getEffectiveBottleneck,
   getLatestAiChainSnapshot,
 } from '../utils/storage.js';
-import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto } from './signal.js';
+import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyTrendReentry } from './signal.js';
 
 /**
  * 当前信号完整载荷（读取时实时重算决策树+锁强制，与快照解耦以反映最新 override）
@@ -35,7 +35,14 @@ export async function buildSignalPayload() {
     calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
     snapshot.yield_curve_inverted_days ?? null
   );
-  const candidateSignal = (sahmLockActive || reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  const lockActiveNow = sahmLockActive || reactiveAdjustmentLockActive;
+  const candidateSignal = applyTrendReentry(
+    lockActiveNow ? 'defense' : decisionTreeSignal,
+    {
+      lockActive: lockActiveNow,
+      spxAboveSma10: snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10,
+    }
+  );
   // 降档迟滞（V4）：无任何手动覆盖时，快照的 final_signal 已是 cron 应用迟滞后的生效档，直接信任
   //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）；
   // 存在覆盖时管理员操作需即时生效，用重算值，不做迟滞
@@ -138,6 +145,10 @@ export async function buildSignalPayload() {
       reactiveAdjustmentLockSince: snapshot.reactive_adjustment_lock_since ?? null,
       // 降档等待中：非 null 表示决策树已给出更宽松档、正处确认期（自该日起满30天生效）
       finalDowngradePendingSince: snapshot.final_downgrade_pending_since ?? null,
+      // 趋势状态（W5 趋势再入场）：最新收盘 vs 10个月末收盘SMA
+      spxClose: snapshot.spx_close ?? null,
+      spxMa10m: snapshot.spx_ma10m ?? null,
+      spxAboveSma10: snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10,
     },
     dataDate: snapshot.date,
     createdAt: snapshot.created_at,

@@ -12,6 +12,7 @@ import {
   crisisPathStats,
   simulateNav,
   smaLast,
+  applyDowngradeHoldWithDays,
   VARIANTS_DEFAULT,
 } from '../backtest/run-backtest.js';
 import { applyDowngradeHold } from '../api/signal.js';
@@ -131,8 +132,8 @@ describe('replayMonth', () => {
   });
 });
 
-describe('VARIANTS_DEFAULT（新基线口径守卫，2026-07-17 采纳定稿）', () => {
-  it('V3(锁存2月)+V4(降档迟滞) 默认开启，V1/V2/V5/V6 否决保持关闭', () => {
+describe('VARIANTS_DEFAULT（基线口径守卫，2026-07-17 两轮评估定稿）', () => {
+  it('V3(锁存2月)+V4(降档迟滞)+W5(趋势再入场) 默认开启，其余否决/搁置保持关闭', () => {
     expect(VARIANTS_DEFAULT).toEqual({
       trendConfirm: false,
       cutLockDirUnlock: false,
@@ -140,6 +141,14 @@ describe('VARIANTS_DEFAULT（新基线口径守卫，2026-07-17 采纳定稿）'
       downgradeHysteresis: true,
       realRateCap: false,
       aiSemi: false,
+      // W系（2026-07-17 第二轮，2010起跑输归因驱动）：W5采纳，W1/W3丢2020/2025召回、
+      // W2/W4b打穿08覆盖硬约束、W4a月度粒度下与30天不可分——均保持关闭
+      defenseNeedsFinancial: false,
+      epuTightPercentile: null,
+      fiscalConfirmOnly: false,
+      hysteresisConfirmDays: null,
+      hysteresisLockOnly: false,
+      trendReentry: true,
     });
   });
 });
@@ -395,5 +404,94 @@ describe('simulateNav（净值模拟统一口径）', () => {
   });
   it('不足两个月 → null', () => {
     expect(simulateNav([{ month: '2020-01', spx: 100, final: 'neutral' }], rateMap)).toBe(null);
+  });
+});
+
+describe('W系变体（2026-07-17 第二轮：2010起跑输归因的针对性变体，默认全关）', () => {
+  const NEUTRAL_INPUT = { rate: 3, prevRate: 3, walcl: null, prevWalcl: null, fiscalChangePct: null, epuPercentile: null, sahm: null };
+  const NO_LOCK = { sahmLockActive: false, reactiveLockActive: false };
+
+  describe('W1 防守共振须含金融维（defenseNeedsFinancial）', () => {
+    it('纯政策组合（财政+行政双tight、货币不tight）只到 reduce', () => {
+      const m = { ...NEUTRAL_INPUT, fiscalChangePct: 8, epuPercentile: 92 };
+      expect(replayMonth(m, NO_LOCK).final).toBe('defense'); // 基线：双维共振防守
+      expect(replayMonth(m, NO_LOCK, { defenseNeedsFinancial: true }).final).toBe('reduce');
+    });
+    it('货币tight参与的共振仍是 defense', () => {
+      const m = { ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3, epuPercentile: 92 }; // 加息→货币tight + 行政tight
+      expect(replayMonth(m, NO_LOCK, { defenseNeedsFinancial: true }).final).toBe('defense');
+    });
+    it('锁不受限：财政+行政共振被降级，但萨姆锁仍强制 defense', () => {
+      const m = { ...NEUTRAL_INPUT, fiscalChangePct: 8, epuPercentile: 92, sahm: 0.6 };
+      const r = replayMonth(m, NO_LOCK, { defenseNeedsFinancial: true });
+      expect(r.sahmLockActive).toBe(true);
+      expect(r.final).toBe('defense');
+    });
+  });
+
+  describe('W2 行政tight阈值覆盖（epuTightPercentile）', () => {
+    it('85分位在90阈值下不再tight（80阈值下tight）', () => {
+      const m = { ...NEUTRAL_INPUT, epuPercentile: 85 };
+      expect(replayMonth(m, NO_LOCK).admin).toBe('tight');
+      expect(replayMonth(m, NO_LOCK, { epuTightPercentile: 90 }).admin).toBe('neutral');
+    });
+    it('92分位在90阈值下仍tight；油价护栏 epuHigh 同步用覆盖阈值', () => {
+      expect(replayMonth({ ...NEUTRAL_INPUT, epuPercentile: 92 }, NO_LOCK, { epuTightPercentile: 90 }).admin).toBe('tight');
+      // 油价+25%飙升：EPU 85分位在90阈值下不算高位 → 不判战争冲击tight（走百分位判定→neutral）
+      const r = replayMonth({ ...NEUTRAL_INPUT, epuPercentile: 85, oilChangePct: 25 }, NO_LOCK, { epuTightPercentile: 90 });
+      expect(r.admin).toBe('neutral');
+    });
+  });
+
+  describe('W3 财政降为确认性信号（fiscalConfirmOnly）', () => {
+    it('财政+行政双tight：财政不计共振票 → reduce（仍计减仓票）', () => {
+      const m = { ...NEUTRAL_INPUT, fiscalChangePct: 8, epuPercentile: 92 };
+      expect(replayMonth(m, NO_LOCK, { fiscalConfirmOnly: true }).final).toBe('reduce');
+    });
+    it('货币+行政双tight（不含财政）→ 仍 defense', () => {
+      const m = { ...NEUTRAL_INPUT, rate: 3.25, prevRate: 3, epuPercentile: 92 };
+      expect(replayMonth(m, NO_LOCK, { fiscalConfirmOnly: true }).final).toBe('defense');
+    });
+    it('财政单维tight → 仍触发 reduce', () => {
+      const m = { ...NEUTRAL_INPUT, fiscalChangePct: 8 };
+      expect(replayMonth(m, NO_LOCK, { fiscalConfirmOnly: true }).final).toBe('reduce');
+    });
+  });
+
+  describe('W5 趋势再入场（trendReentry：月末SPX>10月SMA时决策树defense降级reduce）', () => {
+    const treeDef = { ...NEUTRAL_INPUT, fiscalChangePct: 8, epuPercentile: 92 }; // 财政+行政树防守
+    it('SPX在10月SMA上方（spxBelowSma10=false）→ 树防守降级 reduce', () => {
+      expect(replayMonth({ ...treeDef, spxBelowSma10: false }, NO_LOCK, { trendReentry: true }).final).toBe('reduce');
+    });
+    it('SPX在SMA下方或SMA不可得（null）→ 树防守保持', () => {
+      expect(replayMonth({ ...treeDef, spxBelowSma10: true }, NO_LOCK, { trendReentry: true }).final).toBe('defense');
+      expect(replayMonth({ ...treeDef, spxBelowSma10: null }, NO_LOCK, { trendReentry: true }).final).toBe('defense');
+    });
+    it('锁驱动的defense不受趋势影响（2022应对锁/2024萨姆锁场景）', () => {
+      const m = { ...NEUTRAL_INPUT, sahm: 0.6, spxBelowSma10: false };
+      const r = replayMonth(m, NO_LOCK, { trendReentry: true });
+      expect(r.sahmLockActive).toBe(true);
+      expect(r.final).toBe('defense');
+    });
+  });
+});
+
+describe('applyDowngradeHoldWithDays（W4a：确认期参数化，逻辑与线上逐位一致）', () => {
+  const synth = i => new Date(Date.parse('2000-01-01') + i * 30 * 86400000).toISOString().slice(0, 10);
+  it('confirmDays=30 与线上 applyDowngradeHold 行为一致：第2个标准月降档生效', () => {
+    const m1 = applyDowngradeHoldWithDays('reduce', 'defense', null, synth(0), 30);
+    expect(m1).toEqual(applyDowngradeHold('reduce', 'defense', null, synth(0)));
+    const m2 = applyDowngradeHoldWithDays('reduce', m1.signal, m1.pendingSince, synth(1), 30);
+    expect(m2).toEqual({ signal: 'reduce', pendingSince: null });
+  });
+  it('confirmDays=14 在月度粒度（30天步长）下与30天等价：仍是第2个标准月生效', () => {
+    const m1 = applyDowngradeHoldWithDays('reduce', 'defense', null, synth(0), 14);
+    expect(m1.signal).toBe('defense'); // 第1个月 ageDays=0 < 14 → 扛住
+    const m2 = applyDowngradeHoldWithDays('reduce', m1.signal, m1.pendingSince, synth(1), 14);
+    expect(m2.signal).toBe('reduce');  // 第2个月 ageDays=30 ≥ 14 → 生效（与30天确认期同月）
+  });
+  it('升档即时生效并清空等待', () => {
+    expect(applyDowngradeHoldWithDays('defense', 'reduce', synth(0), synth(1), 14))
+      .toEqual({ signal: 'defense', pendingSince: null });
   });
 });

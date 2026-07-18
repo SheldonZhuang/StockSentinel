@@ -323,3 +323,40 @@ export function applyYieldCurveVeto(signal, invertedDays) {
   if (invertedDays === null || invertedDays === undefined) return signal;
   return invertedDays >= YIELD_CURVE_INVERSION_CONFIRM_DAYS ? FINAL_SIGNAL.NEUTRAL : signal;
 }
+
+/**
+ * 趋势状态（W5 趋势再入场用）：SPY 最新收盘 vs 含当月的最近10个"月末收盘"简单均线。
+ * 与回测同口径：回测在月末采样，SMA 含当月月末收盘；线上日频的当月等价值=最新收盘。
+ * @param {Array<{date: string, close: number}>} bars - 日线（升序或乱序均可，内部按日期排序）
+ * @returns {{spxClose: number|null, spxMa10m: number|null, spxAboveSma10: boolean|null}}
+ *          数据不足10个月 → 全 null（调用方 fail-open）
+ */
+export function calcTrendState(bars) {
+  const valid = (bars || [])
+    .filter(b => b && b.date && Number.isFinite(b.close))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  if (!valid.length) return { spxClose: null, spxMa10m: null, spxAboveSma10: null };
+
+  // 每个自然月取最后一根收盘（当月为止损益=最新收盘）
+  const byMonth = new Map();
+  for (const b of valid) byMonth.set(b.date.slice(0, 7), b.close);
+  const monthly = [...byMonth.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([, c]) => c);
+  const spxClose = valid[valid.length - 1].close;
+  if (monthly.length < 10) return { spxClose, spxMa10m: null, spxAboveSma10: null };
+
+  const spxMa10m = monthly.slice(-10).reduce((a, b) => a + b, 0) / 10;
+  return { spxClose, spxMa10m, spxAboveSma10: spxClose >= spxMa10m };
+}
+
+/**
+ * 趋势再入场加速器（2026-07-17 归因评估采纳，W5）：市场处上升趋势（最新收盘≥10月SMA）时，
+ * **决策树驱动**的全面防守降级为减仓观望——趋势创高时不该全面空仓；
+ * 锁驱动的防守不受影响（锁=确证的危机应对，不被趋势否决）。
+ * 归因依据：2010后13段全面防守全部假阳性（-1.07pp/年），本规则把假阳性17/19→6/8、
+ * 全期年化11.7→12.2%、2010起12.3→12.9%，而2008覆盖94%/少亏58.1pp分毫未损。
+ * trendUp 为 null（数据不足/拉取失败）时不降级（fail-open）。
+ */
+export function applyTrendReentry(signal, { lockActive, spxAboveSma10 }) {
+  if (signal !== FINAL_SIGNAL.DEFENSE || lockActive) return signal;
+  return spxAboveSma10 === true ? FINAL_SIGNAL.REDUCE : signal;
+}

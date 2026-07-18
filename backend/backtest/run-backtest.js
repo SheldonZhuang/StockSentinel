@@ -13,10 +13,11 @@ import { calcLockActive, applyDowngradeHold } from '../api/signal.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 
-// ---------- 规则变体开关（2026-07-17 评估定稿） ----------
-// V3(最短锁存期)+V4(降档迟滞) 组合评估后采纳为新基线（年化11.3→11.7%、08覆盖66.7→94.4%、
+// ---------- 规则变体开关（2026-07-17 评估定稿；W系第二轮同日采纳W5） ----------
+// V3(最短锁存期)+V4(降档迟滞) 组合评估后采纳为基线（年化11.3→11.7%、08覆盖66.7→94.4%、
 // 2020覆盖80→100%、假阳性20/26→17/19），默认开启并复用线上 calcLockActive/applyDowngradeHold；
-// V1/V2/V5/V6 评估否决保持关闭（对照表可用 --eval 模式复现）。
+// V1/V2/V5/V6 评估否决保持关闭。第二轮（2010起跑输买入持有2.3pp/年归因驱动）采纳 W5 趋势再入场，
+// W1-W4 否决保持关闭（对照表可用 --eval 模式复现）。
 export const VARIANTS_DEFAULT = {
   trendConfirm: false,        // V1 趋势确认层【否决：年化-1.0pp；2007-10月末价仍在10月SMA上方，拦不住该解锁，只剩复苏晚入场代价】
   cutLockDirUnlock: false,    // V2 降息锁方向约束【否决：年化-0.5pp；2001锁到2004-06、2025-10起锁死至今——分化解锁问题窄化重现】
@@ -24,6 +25,19 @@ export const VARIANTS_DEFAULT = {
   downgradeHysteresis: true,  // V4 档位迟滞【采纳】：降档需连续2个月更宽松才生效 = 线上 FINAL_DOWNGRADE_CONFIRM_DAYS(30天)确认期
   realRateCap: false,         // V5 实际利率封顶【否决：非对称进攻树只数tight票，货币loose→neutral不改变任何档位，结构性无影响】
   aiSemi: false,              // V6 AI维半导体代理【否决：年化-1.4pp；2019全年防守-12.2pp；2000科网同比+43~52%投宽松票，无提前示警】
+  // ---- 2026-07-17 第二轮（W系，针对"2010起跑输买入持有2.3pp/年"归因：假阳性段-1.07pp/年、
+  //      V4迟滞多扛月-0.90pp/年、真危机段0——2010后13段防守片段全部假阳性，见 backtest/attribution.mjs） ----
+  defenseNeedsFinancial: false, // W1 防守共振须含金融维【否决：召回5/6→3/6，2020/2025全靠财政+行政共振示警，硬伤】
+  epuTightPercentile: null,     // W2 行政tight阈值覆盖(如90)【否决：08覆盖94→89%打穿硬约束——丢的是2009-01迟滞尾巴月(SPY-8.6%)，08少亏58.1→46.0pp】
+  fiscalConfirmOnly: false,     // W3 财政确认性信号【否决：同W1丢2020/2025召回(3/6)——财政票正是这两场的共振来源】
+  hysteresisConfirmDays: null,  // W4a 迟滞确认期覆盖(天)【搁置：月度粒度下(0,30]天都等价"等1个采样月"，与30天不可分，只能线上日频评估】
+  hysteresisLockOnly: false,    // W4b 迟滞只保护锁驱动defense降档【否决：同W2打穿08覆盖——2008-12树防守降档即时生效，丢2009-01护月】
+  // W5 趋势再入场加速器【采纳 2026-07-17】：月末SPX≥10月SMA时决策树驱动的defense降级reduce（锁驱动不受影响
+  // ——锁是确证的危机应对，不被趋势否决）。归因主力精准命中：2016-19"货币+EPU高位"假阳性群与
+  // 2024-25萨姆锁段续命月全部压掉。全期11.7→12.2%、2010起12.3→12.9%（与买持差距2.3→1.7pp/年）、
+  // 假阳性17/19→6/8、防守占比38%→25%、2008覆盖94%/少亏58.1pp不变；
+  // 代价：2020首防提前111天→滞后9天（少亏14.8→12.6pp、覆盖仍100%）、2025少亏6.6→1.2pp
+  trendReentry: true,
 };
 export const REAL_RATE_CAP_PCT = 1.5; // V5 阈值：实际利率超过此值即"高实际利率环境"，宽松票作废
 
@@ -99,6 +113,24 @@ export function smaLast(values, n) {
 }
 
 /**
+ * W4a：确认期可参数化的降档迟滞（逻辑与线上 applyDowngradeHold 逐位一致，仅确认天数可覆盖）。
+ * 升档/持平即时生效并清空等待；降档需候选档持续满 confirmDays 天。
+ * 注意：月度重放的合成日历步长为30天，任何 confirmDays∈(0,30] 都等价于"等1个采样月"——
+ * 14天与30天在月度粒度下不可区分，差异只在线上日频运行中体现
+ * @returns {{signal: string, pendingSince: string|null}}
+ */
+export function applyDowngradeHoldWithDays(candidate, prevEffective, pendingSince, today, confirmDays) {
+  const severity = s => ({ defense: 3, reduce: 2, neutral: 1, attack: 0 })[s] ?? 1;
+  if (!prevEffective || severity(candidate) >= severity(prevEffective)) {
+    return { signal: candidate, pendingSince: null };
+  }
+  const since = pendingSince || today;
+  const ageDays = Math.floor((Date.parse(today) - Date.parse(since)) / 86400000);
+  if (ageDays >= confirmDays) return { signal: candidate, pendingSince: null };
+  return { signal: prevEffective, pendingSince: since };
+}
+
+/**
  * 单月重放：复用线上阈值判定四维 + 锁 + 最终信号（AI供需历史无意义 → neutral；V6 变体例外）
  * @param {object} m - 当月指标 {rate, prevRate, walcl, prevWalcl, fiscalChangePct, epuPercentile, sahm,
  *   oilChangePct, spxBelowSma10, realRatePct, semiYoy}
@@ -139,14 +171,16 @@ export function replayMonth(m, prevState, variants = {}) {
   // 行政：油价事件层（月环比±20%≈30天窗口）优先，其次 EPUTRADE 前视安全10年百分位。
   // 飙升/暴跌侧对称护栏（与线上 calcAdminSignal 同口径）：仅EPU高位时飙升判战争冲击tight，
   // EPU平静时的油价大涨=需求复苏(V型底右侧最佳买点)不误判防守
-  const epuHigh = m.epuPercentile !== null && m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT;
+  // W2：行政tight阈值可覆盖（80→如90分位），油价护栏的 epuHigh 同步用覆盖值保持口径一致
+  const epuTightTh = variants.epuTightPercentile ?? cfg.EPU_PERCENTILE_TIGHT;
+  const epuHigh = m.epuPercentile !== null && m.epuPercentile > epuTightTh;
   const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
     ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT && epuHigh ? S.TIGHT
       : (m.oilChangePct <= -cfg.OIL_SHOCK_PCT && m.epuPercentile !== null && !epuHigh) ? S.LOOSE : null)
     : null;
   const admin = oilEvent !== null ? oilEvent
     : m.epuPercentile === null ? S.NEUTRAL
-    : m.epuPercentile > cfg.EPU_PERCENTILE_TIGHT ? S.TIGHT
+    : m.epuPercentile > epuTightTh ? S.TIGHT
     : m.epuPercentile < cfg.EPU_PERCENTILE_LOOSE ? S.LOOSE : S.NEUTRAL;
 
   // V6：AI维用半导体产出同比（IPG3344S，1972年起全程可得）做唯一子信号回放，阈值与线上 semi 子信号一致；
@@ -201,12 +235,23 @@ export function replayMonth(m, prevState, variants = {}) {
   // 注：AI供需在历史回测中恒为neutral（AI主题2015前不存在，V6变体例外），故进攻档回测触发0次——
   // 属AI主题年轻的固有限制，非规则错误；实盘中AI供需有数据、进攻档是活的。
   const tightCount = [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length;
-  let final = tightCount >= 2 ? 'defense'
-    : tightCount === 1 ? 'reduce'
+  // W3：财政降为确认性信号——tight不计入防守共振票（防守票只数 AI/货币/行政），仍计减仓票
+  const defenseVotes = variants.fiscalConfirmOnly
+    ? [aiSupply, monetary, admin].filter(x => x === S.TIGHT).length
+    : tightCount;
+  let final = defenseVotes >= 2 ? 'defense'
+    : tightCount >= 1 ? 'reduce'
     : (aiSupply === S.LOOSE) ? 'attack' : 'neutral';
+  // W1：防守共振须含金融维——决策树defense要求货币tight在票内，纯政策组合（财政+行政）只到reduce；
+  // 锁不在此限（下方锁强制defense会覆盖）
+  if (variants.defenseNeedsFinancial && final === 'defense' && monetary !== S.TIGHT) final = 'reduce';
   // V1 ②：趋势之下不进攻——attack 降级 neutral
   if (variants.trendConfirm && m.spxBelowSma10 === true && final === 'attack') final = 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
+  // W5：趋势再入场加速器——月末SPX>10月SMA（spxBelowSma10===false）时，
+  // 决策树驱动的defense降级reduce；锁驱动的defense不受影响（锁=确证的危机应对，不被趋势否决）
+  if (variants.trendReentry && final === 'defense' && !sahmLockActive && !reactiveLockActive
+    && m.spxBelowSma10 === false) final = 'reduce';
 
   return { monetary, fiscal, admin, aiSupply, final, sahmLockActive, reactiveLockActive, reactiveLockDir, sahmLockAge, reactiveLockAge, rateDiffBp };
 }
@@ -501,6 +546,8 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
   // 月度重放按"标准月=30天"合成日历喂入 → 30天确认期 ⇔ 1个标准月等待 ⇔ 评估口径
   // "降档需连续2个月更宽松才生效"。不用真实月末日期：2月只有28天，会让确认期偶尔跨到第3个月，偏离评估口径
   let hyst = { effective: null, pendingSince: null };
+  // W4b：当前生效defense是否为锁驱动（锁月刷新；树defense月刷为false；迟滞扛住的月份维持原值）
+  let hystLockDriven = false;
   let monthIdx = 0;
   // 首月利率变动用 1999-12 播种，避免首月恒 null
   let prevRate = D.rateMap.get('1999-12') ?? null;
@@ -569,9 +616,18 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     let final = r.final;
     if (variants.downgradeHysteresis) { // V4：降档需连续2个月确认，升档即时（复用线上 applyDowngradeHold）
       const synthToday = addDaysISO('2000-01-01', monthIdx * 30); // 标准月=30天 合成日历（见 hyst 注释）
-      const h = applyDowngradeHold(r.final, hyst.effective, hyst.pendingSince, synthToday);
+      // W4b：生效档为"决策树驱动的defense"（非锁）且候选更宽松 → 绕过迟滞立即降档；
+      // 锁驱动defense的降档及其余降档（reduce→neutral等）仍走确认期
+      const treeDefenseDowngrade = !!variants.hysteresisLockOnly
+        && hyst.effective === 'defense' && !hystLockDriven && r.final !== 'defense';
+      const h = treeDefenseDowngrade ? { signal: r.final, pendingSince: null }
+        : variants.hysteresisConfirmDays // W4a：确认期覆盖（月度粒度下(0,30]天均等价1个采样月）
+          ? applyDowngradeHoldWithDays(r.final, hyst.effective, hyst.pendingSince, synthToday, variants.hysteresisConfirmDays)
+          : applyDowngradeHold(r.final, hyst.effective, hyst.pendingSince, synthToday);
       hyst = { effective: h.signal, pendingSince: h.pendingSince };
       final = h.signal;
+      if (r.final === 'defense') hystLockDriven = !!(r.sahmLockActive || r.reactiveLockActive);
+      else if (final !== 'defense') hystLockDriven = false;
     }
     monthIdx++;
     timeline.push({ month, spx: D.spxMap.get(month) ?? null, spxDate: D.spxDateMap.get(month) ?? null, ...r, rawFinal: r.final, final });
@@ -831,6 +887,87 @@ function runEval(D) {
   console.log(`2000科网泡沫首次防守: 基线 ${firstDefIn(baseTimeline, '1999-06', '2003-03')} → V6 ${firstDefIn(v6tl, '1999-06', '2003-03')}`);
   const aiTight2000 = v6tl.filter(t => t.month >= '2000-01' && t.month <= '2002-12' && t.aiSupply === 'tight').map(t => t.month);
   console.log(`2000-2002 AI维tight月份: ${aiTight2000.length ? aiTight2000[0] + '起共' + aiTight2000.length + '月' : '无'}`);
+
+  runEvalW(D);
+}
+
+// ---------- W系变体评估（2026-07-17 第二轮）：以旧基线(V3+V4)为参照系逐项叠加 ----------
+// 背景：2010起子样本跑输买入持有2.3pp/年，归因（backtest/attribution.mjs）：
+// 假阳性防守段 -1.1pp/年(54%) + V4迟滞多扛月 -0.9pp/年(46%)，真危机段0——2010后13段防守全为假阳性
+
+function evalRowW(name, D, timeline) {
+  const s = evaluate(D, timeline);
+  const total = s.defMonths + s.reduceMonths + s.nonDefMonths;
+  const c = key => s.crisisRows.find(r => r.name.startsWith(key));
+  const c08 = c('2008'), c20 = c('2020');
+  const recall = s.crisisRows.filter(r => r.firstDefMonth).length;
+  // 硬约束：召回≥5/6、2008覆盖≥90%、2020覆盖≥80%、全期年化≥11.4%（比现基线最多让0.3pp）
+  const pass = recall >= 5 && (c08?.coveragePct ?? 0) >= 90 && (c20?.coveragePct ?? 0) >= 80
+    && s.overall.stratCagr >= 11.4;
+  return {
+    组合: name,
+    全期年化: s.overall.stratCagr, 全期回撤: s.overall.stratMdd,
+    '2010起年化': s.overall.sub2010StratCagr, '2010起回撤': s.overall.sub2010StratMdd,
+    召回: `${recall}/${s.crisisRows.length}`,
+    '08少亏/覆盖': `${c08?.savedPct?.toFixed(1) ?? '—'}pp/${c08?.coveragePct?.toFixed(0) ?? '—'}%`,
+    '20少亏/覆盖': `${c20?.savedPct?.toFixed(1) ?? '—'}pp/${c20?.coveragePct?.toFixed(0) ?? '—'}%`,
+    假阳性: `${s.falsePositives}/${s.episodes}`,
+    防守占比: total ? s.defMonths / total * 100 : 0,
+    硬约束: pass ? '过' : '✗',
+  };
+}
+
+export function runEvalW(D) {
+  // W系对照表以"旧基线(V3+V4，W5关)"为参照系——W5已于2026-07-17采纳为默认，
+  // 此处显式关掉再逐项叠加，保证采纳前的评估对照表随时可复现
+  const run = patch => runReplay(D, { ...VARIANTS_DEFAULT, trendReentry: false, ...patch });
+  const fmtW = r => ({
+    ...r,
+    全期年化: r.全期年化.toFixed(2) + '%', 全期回撤: r.全期回撤.toFixed(1) + '%',
+    '2010起年化': r['2010起年化']?.toFixed(2) + '%', '2010起回撤': r['2010起回撤']?.toFixed(1) + '%',
+    防守占比: r.防守占比.toFixed(0) + '%',
+  });
+
+  console.log('\n===== W系单变体（叠加于旧基线 V3锁存2月+V4降档迟滞；W5已采纳=现默认）=====');
+  const W_SINGLES = [
+    ['W1防守须含金融维', { defenseNeedsFinancial: true }],
+    ['W2 EPU tight 90分位', { epuTightPercentile: 90 }],
+    ['W2b EPU tight 85分位', { epuTightPercentile: 85 }],
+    ['W3财政仅确认', { fiscalConfirmOnly: true }],
+    ['W4a确认期14天', { hysteresisConfirmDays: 14 }],
+    ['W4b迟滞限锁驱动', { hysteresisLockOnly: true }],
+    ['W4c迟滞关(=V3only)', { downgradeHysteresis: false }],
+    ['W5趋势再入场【采纳】', { trendReentry: true }],
+  ];
+  const singleRows = [
+    evalRowW('新基线(V3+V4+W5)', D, runReplay(D, VARIANTS_DEFAULT)),
+    evalRowW('旧基线(V3+V4)', D, run({})),
+  ];
+  for (const [name, patch] of W_SINGLES) singleRows.push(evalRowW(name, D, run(patch)));
+  console.table(singleRows.map(fmtW));
+
+  // 组合扫描：{W1,W2(90),W3,W5} 的全部子集 × 迟滞模式 {V4原样, W4b锁限, W4c关}
+  const BOOLS = [
+    ['W1', { defenseNeedsFinancial: true }],
+    ['W2', { epuTightPercentile: 90 }],
+    ['W3', { fiscalConfirmOnly: true }],
+    ['W5', { trendReentry: true }],
+  ];
+  const HYST_MODES = [['', {}], ['+W4b', { hysteresisLockOnly: true }], ['+W4c', { downgradeHysteresis: false }]];
+  const comboRows = [];
+  for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
+    const picked = BOOLS.filter((_, i) => mask & (1 << i));
+    for (const [suffix, hystPatch] of HYST_MODES) {
+      if (!picked.length && !suffix) continue; // 基线已列
+      const label = (picked.map(([n]) => n).join('+') || '仅') + suffix;
+      comboRows.push(evalRowW(label, D, run(Object.assign({}, ...picked.map(([, p]) => p), hystPatch))));
+    }
+  }
+  comboRows.sort((a, b) => (b['2010起年化'] ?? -99) - (a['2010起年化'] ?? -99));
+  console.log('\n===== W系组合（按2010起年化排序；硬约束=召回≥5/6·08覆盖≥90·20覆盖≥80·全期年化≥11.4）=====');
+  console.table(comboRows.map(fmtW));
+  const pareto = comboRows.filter(r => r.硬约束 === '过');
+  console.log(`硬约束内组合 ${pareto.length} 个；2010起买入持有年化对照：见基线行注（12.3% vs 14.6%基准）`);
 }
 
 function writeReport(s, timeline) {
@@ -852,6 +989,7 @@ function writeReport(s, timeline) {
 - **利率序列**：DFEDTAR（2008-12-15止，点目标）与 DFEDTARU（其后，区间上限）拼接；月度变动 = 当月末 vs 上月末，≥50bp 判应对式收紧。注：线上系统 2026-07-17 起按"最近一次FOMC决议方向"判定货币维（加息决议→收紧保持到下次决议），月度差分是其近似。
 - **资产负债表（WALCL）**：每个月末采样时取该时点可得的最新两条周度观测做环比（与线上 fetch-macro 同口径），±0.25% 阈值；WALCL 周三数据次日（周四）才发布，仅"发布日≤采样日"的观测参与。
 - **最短锁存期 + 档位降档迟滞（2026-07-17 变体评估采纳，本报告默认启用）**：①任一锁触发后至少锁存2个月才允许小幅调整解锁（零利率解锁不受限）——复用线上 \`calcLockActive\`，月度锁龄×30天 对齐线上 \`LOCK_MIN_AGE_DAYS=60\` 天；②最终档位**降档**（向宽松）需连续2个月决策树给出更宽松档才生效，**升档**（向防守）即时——复用线上 \`applyDowngradeHold\`，标准月=30天 对齐线上 \`FINAL_DOWNGRADE_CONFIRM_DAYS=30\` 天确认期。与未启用的旧基线对比：年化 11.3%→11.7%、2008防守覆盖 66.7%→94.4%（少亏 35.5→58.1pp）、2020覆盖 80%→100%、假阳性 20/26→17/19；代价：2010起子样本年化 13.3%→12.3%、复苏入场平均晚约1个月。同轮评估否决：V1趋势确认（-1.0pp，2007-10月末价仍在10月SMA上方拦不住解锁）、V2降息锁方向约束（-0.5pp，2001锁到2004、2025-10起锁死）、V5实际利率封顶（非对称进攻树下结构性无影响）、V6半导体AI维（-1.4pp，见"结论"5）。对照表可用 \`node backtest/run-backtest.js --eval\` 复现。
+- **趋势再入场加速器（2026-07-17 第二轮评估采纳 W5，本报告默认启用）**：月末 SPX ≥ 10月SMA（近10个月末收盘均值，含当月）时，**决策树驱动**的全面防守（defense）降级为减仓观望（reduce）；**锁驱动**的 defense 不受影响——锁是确证的危机应对，不被趋势否决。线上等价实现：日频最新收盘 vs 含当月的10个月末收盘SMA。动机来自 2010 起跑输买入持有 2.3pp/年 的归因（\`backtest/attribution.mjs\`）：2010 后 13 段防守片段全部假阳性，主力是 2016-19"货币tight+EPU常态高位"共振群与 2024-08 萨姆锁误触发后被财政+行政续命的 14 个月（单段 -17.3pp），而这些月份市场都在趋势上方。效果：全期年化 11.7→12.2%、2010起 12.3→12.9%、假阳性 17/19→6/8、全面防守占比 38%→25%、2008 覆盖 94.4%/少亏 58.1pp 不变；代价：2020 首防从提前111天变滞后9天（少亏 14.8→12.6pp、覆盖仍100%）、2025 少亏 6.6→1.2pp。同轮否决：W1防守须含金融维/W3财政仅确认（均丢 2020/2025 召回，5/6→3/6 硬伤）、W2 EPU阈值90分位/W4b迟滞限锁驱动（08覆盖 94→89% 打穿硬约束——都丢 2009-01 那个迟滞尾巴月，SPY 当月 -8.6%）、W4a确认期14天（月度粒度下与30天不可分，留待线上日频评估）。
 - **AI供需维度**：历史上无意义，全程置为观望（neutral）——见"局限"。
 
 ## 危机明细
@@ -903,6 +1041,7 @@ ${rows}
    - 财政/行政维度可考虑从"OR 即触发"降级为"确认性信号"（需与货币或供需共振才触发防守）。
    - 任何阈值修改后应重跑本回测（\`node backtest/run-backtest.js\`）对比防守占比与召回率的变化。
 5. **半导体代理AI维假设已验证不成立（2026-07-17 评估否决）**：曾计划"AI供需维度用半导体IP同比代理回测2000年科网泡沫，检验供需维度能否比政策维度更早示警"。实测（IPG3344S 半导体产出同比，M-2可见性）：该指标为质量调整口径，2000年全年同比 +43~52%、泡沫破裂首年（2001上半年）仍 +12~45%，仅2001-11/12短暂转负2个月——泡沫期AI维投的是**宽松**票，首次防守时点（2000-05）无任何提前；而2019年半导体下行周期（同比负9个月）造成全年防守、区间收益 -12.2pp，全期年化 -1.4pp。半导体产出不是泡沫顶部的前瞻指标（2015-16下行撞上回调属巧合获益 +13.8pp，2023H1零影响）。
+6. **2010起跑输归因与W5采纳（2026-07-17 第二轮）**：W5前基线2010起子样本跑输买入持有2.3pp/年，逐段归因（\`node backtest/attribution.mjs\` 可复现）分解为：**假阳性防守段 -1.07pp/年（54%）+ V4迟滞多扛月 -0.90pp/年（46%）+ 真危机段时机损耗 0**——2010后13段全面防守片段按"随后12月>15%回撤"口径**全部为假阳性**，最大单段是2024-08萨姆锁误触发后被财政+行政续命的14个月（-17.3pp）。W5趋势再入场采纳后差距收窄至约1.7pp/年，且全期年化不降反升。备选决策项：若愿把2008覆盖硬约束从≥90%松到≥85%，W2(EPU tight 90分位)+W4b(迟滞限锁驱动) 组合可达全期12.9%/2010起15.0%（反超买入持有0.4pp/年），代价是2008少亏 58.1→46.0pp（差额全在2009-01一个迟滞尾巴月）——留作用户决策项。
 `;
   fs.writeFileSync(path.join(__dirname, '../../docs/backtest-report.md'), md);
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcMonetarySignal, calcFinalSignal, deriveSubSignals, deriveBalanceSheetStatus,
   calcFiscalSignal, calcAdminSignal, deriveAiSupplySubSignals, calcAiSupplySignal,
-  calcLockActive, applyYieldCurveVeto, applyDowngradeHold,
+  calcLockActive, applyYieldCurveVeto, applyDowngradeHold, calcTrendState, applyTrendReentry,
 } from '../api/signal.js';
 
 // 测试所有货币信号位分支
@@ -559,5 +559,56 @@ describe('applyDowngradeHold 降档迟滞（V4，2026-07-17采纳）', () => {
   it('无历史（首次运行）：候选直接生效', () => {
     expect(applyDowngradeHold('neutral', null, null, '2026-07-10'))
       .toEqual({ signal: 'neutral', pendingSince: null });
+  });
+});
+
+describe('calcTrendState / applyTrendReentry（W5趋势再入场，2026-07-17采纳）', () => {
+  const mkBars = (months, lastClose) => {
+    // 每月两根：月中100x、月末给定值；最后一个月只有"进行中"的最新收盘
+    const bars = [];
+    months.forEach(([ym, close]) => {
+      bars.push({ date: `${ym}-10`, close: close - 1 });
+      bars.push({ date: `${ym}-28`, close });
+    });
+    return bars.concat(lastClose ? [{ date: '2026-07-10', close: lastClose }] : []);
+  };
+  const tenMonths = v => Array.from({ length: 10 }, (_, i) => [`2025-${String(i + 9).padStart(2, '0')}`, v])
+    .map(([ym, c], i) => [i < 4 ? `2025-${String(9 + i).padStart(2, '0')}` : `2026-0${i - 3}`, c]);
+
+  it('最新收盘≥10月SMA → aboveSma10=true；月末收盘取每月最后一根', () => {
+    const s = calcTrendState(mkBars(tenMonths(100), 120));
+    expect(s.spxClose).toBe(120);
+    expect(s.spxAboveSma10).toBe(true); // SMA含当月(120)：(9*100+120)/10=102，120≥102
+  });
+
+  it('最新收盘跌破SMA → aboveSma10=false', () => {
+    const s = calcTrendState(mkBars(tenMonths(100), 80));
+    expect(s.spxAboveSma10).toBe(false); // SMA=(9*100+80)/10=98，80<98
+  });
+
+  it('不足10个月 → 全null（fail-open）', () => {
+    const s = calcTrendState([{ date: '2026-07-01', close: 100 }]);
+    expect(s.spxMa10m).toBeNull();
+    expect(s.spxAboveSma10).toBeNull();
+    expect(calcTrendState([]).spxClose).toBeNull();
+    expect(calcTrendState(null).spxAboveSma10).toBeNull();
+  });
+
+  it('树驱动defense + 趋势向上 → 降级reduce', () => {
+    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: true })).toBe('reduce');
+  });
+
+  it('锁驱动defense不受趋势否决（锁=确证的危机应对）', () => {
+    expect(applyTrendReentry('defense', { lockActive: true, spxAboveSma10: true })).toBe('defense');
+  });
+
+  it('趋势向下或未知 → 不降级（fail-open）', () => {
+    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: false })).toBe('defense');
+    expect(applyTrendReentry('defense', { lockActive: false, spxAboveSma10: null })).toBe('defense');
+  });
+
+  it('非defense档原样通过', () => {
+    expect(applyTrendReentry('reduce', { lockActive: false, spxAboveSma10: true })).toBe('reduce');
+    expect(applyTrendReentry('attack', { lockActive: false, spxAboveSma10: true })).toBe('attack');
   });
 });

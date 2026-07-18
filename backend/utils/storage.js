@@ -107,6 +107,9 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'sahm_lock_since TEXT',
   'reactive_adjustment_lock_since TEXT',
   'final_downgrade_pending_since TEXT',
+  'spx_close REAL',
+  'spx_ma10m REAL',
+  'spx_above_sma10 INTEGER',
 ];
 
 function migrateSchema() {
@@ -403,8 +406,9 @@ export async function saveSignalSnapshot(data) {
      fiscal_outlays_ttm, fiscal_outlays_ttm_prev, fiscal_outlays_change_pct,
      credit_spread, credit_spread_percentile, credit_spread_90d_widen_bp, credit_spread_period_date,
      yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date,
-     sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
+     spx_close, spx_ma10m, spx_above_sma10)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -430,6 +434,7 @@ export async function saveSignalSnapshot(data) {
     data.creditSpread, data.creditSpreadPercentile, data.creditSpread90dWidenBp, data.creditSpreadPeriodDate,
     data.yieldCurveSpread, data.yieldCurveInvertedDays, data.yieldCurvePeriodDate,
     data.sahmLockSince, data.reactiveAdjustmentLockSince, data.finalDowngradePendingSince,
+    data.spxClose, data.spxMa10m, data.spxAboveSma10,
   ]);
 }
 

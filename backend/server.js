@@ -24,6 +24,8 @@ import {
   detectSignalChanges,
   applyYieldCurveVeto,
   applyDowngradeHold,
+  applyTrendReentry,
+  calcTrendState,
 } from './api/signal.js';
 import signalCfg from './config/signal.config.js';
 import {
@@ -42,8 +44,8 @@ import {
 } from './utils/storage.js';
 import { sendSignalAlert } from './utils/mailer.js';
 import { prewarmFundamentals } from './api/fundamentals.js';
-import { normalizeSymbol } from './api/market-data.js';
-import { todayET } from './utils/datetime.js';
+import { normalizeSymbol, getDailyCloses } from './api/market-data.js';
+import { todayET, daysAgoET } from './utils/datetime.js';
 import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import publicRouter from './api/public.js';
@@ -275,7 +277,22 @@ async function runDailyUpdate() {
   );
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
-  const rawFinalSignal = (locks.sahmLockActive || locks.reactiveAdjustmentLockActive) ? 'defense' : decisionTreeSignal;
+  const lockActiveNow = locks.sahmLockActive || locks.reactiveAdjustmentLockActive;
+
+  // 趋势状态（W5 趋势再入场）：SPY 日线≈SPX代理，约13个月窗口保证10个月末收盘；
+  // 拉取失败 → 全 null → applyTrendReentry fail-open（不降级，保持原防守行为）
+  let trendState = { spxClose: null, spxMa10m: null, spxAboveSma10: null };
+  try {
+    trendState = calcTrendState(await getDailyCloses('SPY', daysAgoET(400), today));
+  } catch (err) {
+    console.warn('[cron] trend state fetch failed (fail-open):', err.message);
+  }
+
+  let rawFinalSignal = lockActiveNow ? 'defense' : decisionTreeSignal;
+  // W5：市场上升趋势中（最新收盘≥10月SMA）树驱动的 defense 降级 reduce；锁驱动不受影响
+  rawFinalSignal = applyTrendReentry(rawFinalSignal, {
+    lockActive: lockActiveNow, spxAboveSma10: trendState.spxAboveSma10,
+  });
   // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）
   const hold = applyDowngradeHold(
     rawFinalSignal,
@@ -363,6 +380,9 @@ async function runDailyUpdate() {
     sahmLockSince: locks.sahmLockSince,
     reactiveAdjustmentLockSince: locks.reactiveAdjustmentLockSince,
     finalDowngradePendingSince: hold.pendingSince,
+    spxClose: trendState.spxClose,
+    spxMa10m: trendState.spxMa10m,
+    spxAboveSma10: trendState.spxAboveSma10 === null ? null : (trendState.spxAboveSma10 ? 1 : 0),
     fiscalStale,
     adminStale,
     aiSupplyStale,
