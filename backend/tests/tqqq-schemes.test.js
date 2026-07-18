@@ -9,6 +9,8 @@ import {
   navPathFromWeights,
   simulateEtfScheme,
   simulateOptionScheme,
+  worstRollingCagr,
+  underwaterRecovery,
 } from '../backtest/tqqq-schemes.mjs';
 
 describe('synthDailyCustom（自定义系数日度杠杆合成）', () => {
@@ -222,5 +224,46 @@ describe('simulateOptionScheme（TQQQ期权方案状态机，BS粗建模）', ()
     const months = mkMonths(Array(40).fill('neutral'));
     const r = simulateOptionScheme(months, flatPx(months), flatVol(months), rateMap, { callTiers: ['attack', 'neutral'] });
     expect(r.callMonths).toBe(40); // 36−2=34个月时卖旧、同月买新36个月
+  });
+});
+
+describe('worstRollingCagr（滚动N月年化最差窗口）', () => {
+  const mk = navs => navs.map((nav, i) => ({ month: `20${String(10 + Math.floor(i / 12)).padStart(2, '0')}-${String((i % 12) + 1).padStart(2, '0')}`, nav }));
+  it('挑出年化最差的窗口及其起止月', () => {
+    // 6个点、窗口3个月：三个窗口比值分别为 0.6/1=0.60、0.66/1.2=0.55、0.9/1.1≈0.82 → 最差=第2个
+    const pts = mk([1, 1.2, 1.1, 0.6, 0.66, 0.9]);
+    const w = worstRollingCagr(pts, 3);
+    expect(w.startMonth).toBe('2010-02');
+    expect(w.endMonth).toBe('2010-05');
+    expect(w.cagrPct).toBeCloseTo((Math.pow(0.66 / 1.2, 12 / 3) - 1) * 100, 8);
+  });
+  it('样本不足 windowM+1 点 → null；净值归零窗口 → −100', () => {
+    expect(worstRollingCagr(mk([1, 1.1]), 3)).toBe(null);
+    const w = worstRollingCagr(mk([1, 0.5, 0, 0, 0]), 3);
+    expect(w.cagrPct).toBe(-100);
+  });
+});
+
+describe('underwaterRecovery（从起点看的回本信息）', () => {
+  const mk = navs => navs.map((nav, i) => ({ month: `2020-${String(i + 1).padStart(2, '0')}`, nav }));
+  it('从未跌破起点 → everBelow=false', () => {
+    const u = underwaterRecovery(mk([1, 1.05, 1.2]));
+    expect(u.everBelow).toBe(false);
+    expect(u.recoveredMonth).toBe(null);
+  });
+  it('跌破后收复 → 报收复月与月数（起点到收复月）', () => {
+    const u = underwaterRecovery(mk([1, 0.8, 0.9, 1.02]));
+    expect(u.everBelow).toBe(true);
+    expect(u.recoveredMonth).toBe('2020-04');
+    expect(u.monthsToRecover).toBe(3);
+  });
+  it('跌破后样本末仍未回本 → recoveredMonth=null', () => {
+    const u = underwaterRecovery(mk([1, 0.8, 0.9, 0.99]));
+    expect(u.everBelow).toBe(true);
+    expect(u.recoveredMonth).toBe(null);
+    expect(u.monthsToRecover).toBe(null);
+  });
+  it('不足两点 → null', () => {
+    expect(underwaterRecovery(mk([1]))).toBe(null);
   });
 });

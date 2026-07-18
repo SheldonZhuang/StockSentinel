@@ -122,6 +122,37 @@ export function statsFromNav(points) {
 }
 
 /**
+ * 滚动N月年化最差窗口（路径风险："运气最差的3年"体验）
+ * @returns {{cagrPct, startMonth, endMonth}|null} 样本不足 windowM+1 点 → null
+ */
+export function worstRollingCagr(points, windowM = 36) {
+  if (!points || points.length <= windowM) return null;
+  let worst = null;
+  for (let i = 0; i + windowM < points.length; i++) {
+    const a = points[i], b = points[i + windowM];
+    if (!(a.nav > 0)) continue;
+    const cagr = (Math.pow(b.nav / a.nav, 12 / windowM) - 1) * 100;
+    if (!worst || cagr < worst.cagrPct) worst = { cagrPct: cagr, startMonth: a.month, endMonth: b.month };
+  }
+  return worst;
+}
+
+/**
+ * 从起点看的回本信息：是否曾跌破起点净值、何时收复（"回本耗时"口径=起点到收复月的月数）
+ * @returns {{everBelow:boolean, recoveredMonth:string|null, monthsToRecover:number|null}|null}
+ */
+export function underwaterRecovery(points) {
+  if (!points || points.length < 2) return null;
+  const base = points[0].nav;
+  let everBelow = false;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].nav < base) { everBelow = true; continue; }
+    if (everBelow) return { everBelow: true, recoveredMonth: points[i].month, monthsToRecover: i };
+  }
+  return { everBelow, recoveredMonth: null, monthsToRecover: null };
+}
+
+/**
  * 权重口径的月度净值路径（E0/E3 对照行用，与 execution-layer.simulateExecution 同口径但返回逐月路径）
  */
 export function navPathFromWeights(months, weightsOf, assetRet, rateMap) {
@@ -450,6 +481,83 @@ async function main() {
   }
   console.log('\n===== 方案3/4（TQQQ期权，BS粗粒度建模：IV=合成TQQQ滚动252日实现波动率×1.15，FFR贴现，滚动各收0.5%摩擦；Put常备6个月滚动） =====');
   console.table(optRows);
+
+  // ===== 追加（2026-07-18）：E3 vs E7 vs 裸持TQQQ —— 收益与路径风险专项 =====
+  const tqqqPts = navPoints('tqqq');
+  const worstFullYear = s => {
+    const ys = [...s.yearly].filter(([y]) => s.yearMonths.get(y) === 12);
+    if (!ys.length) return '—';
+    const w = ys.reduce((a, b) => (b[1] < a[1] ? b : a), ['—', Infinity]);
+    return `${w[0]} ${f1(w[1])}%`;
+  };
+  console.log('\n===== 追加1：E3 vs E7 vs 裸持TQQQ 主对比（全期=2000-01起；2010起窗口各自重新起基） =====');
+  const trio = [['E3 2xQQQ(defense→现金,reduce→SPY)', e3Pts], ['E7 85%TQQQ月度再平衡(同上防守)', e7Pts], ['合成TQQQ 买入持有', tqqqPts]];
+  console.table(trio.map(([name, pts]) => {
+    const full = statsFromNav(pts), sub = sub2010Of(pts);
+    return {
+      方案: name,
+      全期年化: f1(full.cagrPct) + '%',
+      '2010起年化': f1(sub.cagrPct) + '%',
+      全期回撤: f1(full.mddPct) + '%',
+      '2010起回撤': f1(sub.mddPct) + '%',
+      全期最差单年: worstFullYear(full),
+      '2010起最差单年': worstFullYear(sub),
+      '最低净值(%初值)': (full.minNavRatio * 100).toFixed(1) + '%',
+      '2008年': f1(full.yearly.get('2008')) + '%',
+      '2020年': f1(full.yearly.get('2020')) + '%',
+      '2022年': f1(full.yearly.get('2022')) + '%',
+    };
+  }));
+
+  console.log('\n===== 追加2a：TQQQ买持从不同起点的结局（同一标的、只改上车时点） =====');
+  console.table([['2000-01起(泡沫顶前)', '2000-01'], ['2010-01起(牛市起点)', '2010-01'], ['2021-11起(QQQ顶部)', '2021-11']].map(([label, startM]) => {
+    const pts = tqqqPts.filter(p => p.month >= startM);
+    const s = statsFromNav(pts);
+    const u = underwaterRecovery(pts);
+    const endRatio = pts[pts.length - 1].nav / pts[0].nav;
+    return {
+      起点: label,
+      年化: f1(s.cagrPct) + '%',
+      最大回撤: f1(s.mddPct) + '%',
+      '最低净值(%起点)': (s.minNavRatio * 100).toFixed(1) + '%',
+      回本耗时: !u.everBelow ? '从未跌破起点'
+        : u.recoveredMonth ? `${u.monthsToRecover}个月（${u.recoveredMonth}收复）`
+        : `样本末仍未回本（现为起点的${(endRatio * 100).toFixed(1)}%）`,
+    };
+  }));
+
+  // 情景推演：把 2000-02 级 QQQ 崩盘（合成TQQQ/E7 各自 2000-01~2003-12 窗口的实际峰谷路径）叠加进 2010起窗口
+  const crashT = statsFromNav(tqqqPts.filter(p => p.month <= '2003-12')).mddPct; // TQQQ 该窗口峰谷
+  const crashE7 = statsFromNav(e7Pts.filter(p => p.month <= '2003-12')).mddPct;  // E7 同窗口实际峰谷（信号防守后的路径）
+  const subT = sub2010Of(tqqqPts), subE7 = sub2010Of(e7Pts);
+  const scen = (sub, crashPct) => (Math.pow((1 + sub.totalPct / 100) * (1 + crashPct / 100), 1 / sub.years) - 1) * 100;
+  const scenT = scen(subT, crashT), scenE7 = scen(subE7, crashE7);
+  const recoverYears = (crashPct, cagrPct) => Math.log(1 / (1 + crashPct / 100)) / Math.log(1 + cagrPct / 100);
+  console.log('\n===== 追加2b：幸存者偏差情景推演——若2000级灾难在2010起窗口重演一次（叠加各自2000-01~2003-12实际峰谷） =====');
+  console.table([
+    {
+      方案: 'TQQQ买持', '2010起实际年化': f1(subT.cagrPct) + '%', '2000级灾难时实际峰谷': f1(crashT) + '%',
+      '叠加一次后的窗口年化': f1(scenT) + '%',
+      '灾后回本需(按实际年化复利)': f1(recoverYears(crashT, subT.cagrPct)) + '年',
+    },
+    {
+      方案: 'E7', '2010起实际年化': f1(subE7.cagrPct) + '%', '2000级灾难时实际峰谷': f1(crashE7) + '%',
+      '叠加一次后的窗口年化': f1(scenE7) + '%',
+      '灾后回本需(按实际年化复利)': f1(recoverYears(crashE7, subE7.cagrPct)) + '年',
+    },
+  ]);
+  console.log(`说明：TQQQ买持 2010起 ${f1(subT.cagrPct)}% vs 全期 ${f1(statsFromNav(tqqqPts).cagrPct)}% 的差距，几乎全部由"2010-2026 没有出现 2000 级回撤"贡献——同一标的只是把 2000-02 那段（峰谷 ${f1(crashT)}%）计入，26.5年年化即掉到 ${f1(statsFromNav(tqqqPts).cagrPct)}%。`);
+
+  console.log('\n===== 追加3：滚动3年年化最差窗口（全样本内"运气最差的3年"体验） =====');
+  console.table(trio.map(([name, pts]) => {
+    const w = worstRollingCagr(pts, 36);
+    return {
+      方案: name,
+      '最差滚动3年年化': f1(w.cagrPct) + '%',
+      窗口: `${w.startMonth}→${w.endMonth}`,
+      '3年累计': f1((Math.pow(1 + w.cagrPct / 100, 3) - 1) * 100) + '%',
+    };
+  }));
 
   console.log(`
 局限声明（BS建模）：
