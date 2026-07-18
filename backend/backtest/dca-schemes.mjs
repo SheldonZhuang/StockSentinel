@@ -100,6 +100,79 @@ export function simulateDcaHedged(months, px, C = 1, { hedgePct = 0.05, rebalanc
 }
 
 /**
+ * 信号择时定投（94号续 S4/S4q/S5/S6 统一状态机）：每月 C 入场，TQQQ 存量默认永不卖出。
+ *  - 档位∈buyTiers（默认 attack/neutral）：当月 C + 按 deployMode 释放的现金储备 → 买TQQQ
+ *  - 档位∈{reduce,defense}：当月 C 进现金储备（按上月FFR月化计息），不买入
+ *  - deployMode: 'lump'=恢复当月一次性全额部署（S4）；'staged3'=恢复后分3个月匀速部署，
+ *    中途再遇 reduce/defense 则暂停、下次恢复重新按剩余储备三等分（S4q）
+ *  - sellOnDefense（S5 超规格，超出用户规则仅供对照）：defense 月把存量 TQQQ 也清入储备；
+ *    次月只要非 defense 即一次性买回全部储备（新资金仍按 buyTiers 规则走）
+ *  - reserveToSpy（S6 对照，用户已否）：reduce/defense 月新资金买 SPY 持有不转换，无现金储备
+ * @returns {{points, twr, diag:{missedMonths,maxWaitMonths,avgWaitMonths,maxDeployPct}}}
+ */
+export function simulateDcaTimed(months, px, rateMap, C = 1, {
+  buyTiers = ['attack', 'neutral'],
+  deployMode = 'lump',
+  sellOnDefense = false,
+  reserveToSpy = false,
+} = {}) {
+  let tqqqU = 0, spyU = 0, reserve = 0, prevTier = null, prevV = null;
+  let tranche = 0, tranchesLeft = 0;
+  let missedMonths = 0, curWait = 0, maxDeployPct = 0;
+  const waits = [];
+  const points = [], twr = [];
+  months.forEach((m, i) => {
+    if (i > 0) reserve *= 1 + ((rateMap.get(months[i - 1].month) ?? 0) / 100) / 12;
+    const pT = px.tqqq.get(m.month), pSpy = px.spy.get(m.month);
+    if (pT === undefined || (reserveToSpy && pSpy === undefined)) throw new Error(`标的缺 ${m.month} 月末价`);
+    const f = m.final;
+    const isBuy = buyTiers.includes(f);
+    // S5：defense 清存量入储备
+    if (sellOnDefense && f === 'defense' && tqqqU > 0) { reserve += tqqqU * pT; tqqqU = 0; }
+    // 储备释放
+    let deployR = 0;
+    if (sellOnDefense && f !== 'defense' && prevTier === 'defense' && reserve > 0) {
+      deployR = reserve; // S5：出 defense 即一次性买回（无论当月档位）
+      tranchesLeft = 0;
+    } else if (isBuy && reserve > 0) {
+      if (deployMode === 'staged3') {
+        if (!buyTiers.includes(prevTier ?? '')) { tranche = reserve / 3; tranchesLeft = 3; } // 新一轮恢复
+        deployR = tranchesLeft <= 1 ? reserve : Math.min(tranche, reserve);
+        tranchesLeft = Math.max(0, tranchesLeft - 1);
+      } else {
+        deployR = reserve;
+      }
+    }
+    // 新资金去向
+    let buyTqqq = deployR;
+    if (isBuy) buyTqqq += C;
+    else if (reserveToSpy) spyU += C / pSpy;
+    else reserve += C;
+    tqqqU += buyTqqq / pT;
+    reserve -= deployR;
+    const v = tqqqU * pT + spyU * (pSpy ?? 0) + reserve;
+    if (deployR > 0 && v > 0) maxDeployPct = Math.max(maxDeployPct, (buyTqqq / v) * 100);
+    // 等待期诊断（攒现金月＝错过买入的月）
+    if (!isBuy && !reserveToSpy) { missedMonths++; curWait++; }
+    else if (curWait > 0) { waits.push(curWait); curWait = 0; }
+    twr.push({ month: m.month, nav: i === 0 ? 1 : twr[i - 1].nav * ((v - C) / prevV) });
+    prevV = v;
+    points.push({ month: m.month, value: v, invested: (i + 1) * C });
+    prevTier = f;
+  });
+  if (curWait > 0) waits.push(curWait);
+  return {
+    points, twr,
+    diag: {
+      missedMonths,
+      maxWaitMonths: waits.length ? Math.max(...waits) : 0,
+      avgWaitMonths: waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : 0,
+      maxDeployPct,
+    },
+  };
+}
+
+/**
  * 定投路径统计：总投入/期末市值/倍数/XIRR/市值最大回撤/最大浮亏（min 市值÷累计投入 −1）
  */
 export function dcaStats(points) {
@@ -162,12 +235,18 @@ async function main() {
     ['2) 定投合成TQQQ 100%买持', months => simulateDcaBuyHold(months, px.tqqq)],
     ['3) 定投TQQQ95%+SQQQ5%月末调整', months => simulateDcaHedged(months, px)],
     ['3q) 同3但SQQQ季末才调整', months => simulateDcaHedged(months, px, 1, { rebalanceQuarterly: true })],
+    ['4) S4 信号择时定投(reduce/defense攒现金,恢复月一次性部署)', months => simulateDcaTimed(months, px, rateMap)],
+    ['4q) S4q 同4但恢复后分3个月匀速部署', months => simulateDcaTimed(months, px, rateMap, 1, { deployMode: 'staged3' })],
+    ['5) S5 超规格对照(存量也择时:defense清仓TQQQ,出defense买回)※超出用户规则', months => simulateDcaTimed(months, px, rateMap, 1, { sellOnDefense: true })],
+    ['6) S6 对照(reduce/defense新资金买SPY持有不转换)※用户已否', months => simulateDcaTimed(months, px, rateMap, 1, { reserveToSpy: true })],
   ];
 
   for (const [label, months] of windows) {
     console.log(`\n===== 定投对比：${label}（每月末定投$1000，共${months.length}个月=总投入${money(months.length)}） =====`);
+    const diags = [];
     const rows = SCHEMES.map(([name, run]) => {
       const r = run(months);
+      if (r.diag) diags.push([name, r.diag]);
       const s = dcaStats(r.points);
       const tw = statsFromNav(r.twr);
       const fullYears = [...tw.yearly].filter(([y]) => tw.yearMonths.get(y) === 12);
@@ -187,6 +266,28 @@ async function main() {
       };
     });
     console.table(rows);
+
+    // 择时定投诊断：现金等待期与部署冲击
+    console.log(`--- 择时定投诊断（${label}）---`);
+    console.table(diags.map(([name, d]) => ({
+      方案: name.split('(')[0].trim(),
+      '攒现金月数(错过买入)': d.missedMonths,
+      最长等待: d.maxWaitMonths + '个月',
+      平均等待: f1(d.avgWaitMonths) + '个月',
+      '单笔最大部署占当时组合': f1(d.maxDeployPct) + '%',
+    })));
+    // "择时的钱花在哪了"：攒现金月份（reduce/defense）里 TQQQ 的实际表现
+    let up = 0, down = 0, sum = 0, cum = 1;
+    for (let i = 0; i < months.length - 1; i++) {
+      const f = months[i].final;
+      if (f !== 'reduce' && f !== 'defense') continue;
+      const r = px.tqqq.get(months[i + 1].month) / px.tqqq.get(months[i].month) - 1;
+      if (r > 0) up++; else down++;
+      sum += r; cum *= 1 + r;
+    }
+    console.log(`攒现金月份（reduce∪defense）的TQQQ实际表现：${up}个月上涨 vs ${down}个月下跌，` +
+      `平均月收益 ${f1(sum / (up + down) * 100)}%，这些月份连乘 ${f1((cum - 1) * 100)}%` +
+      `——S4把钱放现金错过的上涨与躲掉的下跌净额`);
   }
 
   // 对照行：同窗口一次性投入（时间加权CAGR，来自 tqqq-schemes 已有口径）

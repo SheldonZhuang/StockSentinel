@@ -4,6 +4,7 @@ import {
   xirrMonthly,
   simulateDcaBuyHold,
   simulateDcaHedged,
+  simulateDcaTimed,
   dcaStats,
 } from '../backtest/dca-schemes.mjs';
 
@@ -133,5 +134,58 @@ describe('dcaStats（定投路径统计）', () => {
   });
   it('不足两点 → null', () => {
     expect(dcaStats(points.slice(0, 1))).toBe(null);
+  });
+});
+
+describe('simulateDcaTimed（S4/S4q/S5/S6 信号择时定投状态机）', () => {
+  const mk = tiers => tiers.map((f, i) => ({ month: `2020-${String(i + 1).padStart(2, '0')}`, final: f }));
+  const flat = n => new Map(Array.from({ length: n }, (_, i) => [`2020-${String(i + 1).padStart(2, '0')}`, 10]));
+  const noRate = new Map();
+
+  it('全程neutral：等价于裸定投TQQQ（无储备、无等待）', () => {
+    const months = mk(['neutral', 'neutral', 'neutral']);
+    const r = simulateDcaTimed(months, { tqqq: flat(3), spy: flat(3) }, noRate);
+    expect(r.points[2].value).toBeCloseTo(3, 12);
+    expect(r.diag.missedMonths).toBe(0);
+    expect(r.diag.maxDeployPct).toBe(0); // 无储备释放
+  });
+  it('S4：reduce攒现金计息，恢复neutral当月一次性部署（含当月定投）', () => {
+    const months = mk(['reduce', 'reduce', 'neutral']);
+    const rate = new Map([['2020-01', 12], ['2020-02', 12]]); // 1%/月
+    const r = simulateDcaTimed(months, { tqqq: flat(3), spy: flat(3) }, rate);
+    // 月1: 储备1；月2: 储备1×1.01+1=2.01；月3: 储备2.01×1.01=2.0301全部部署+当月1
+    expect(r.points[1].value).toBeCloseTo(2.01, 10);
+    expect(r.points[2].value).toBeCloseTo(2.0301 + 1, 10);
+    expect(r.diag.missedMonths).toBe(2);
+    expect(r.diag.maxWaitMonths).toBe(2);
+    // 单笔部署 3.0301 / 组合3.0301 = 100%
+    expect(r.diag.maxDeployPct).toBeCloseTo(100, 6);
+  });
+  it('S4q：恢复后分3个月匀速部署，储备三等分', () => {
+    const months = mk(['reduce', 'neutral', 'neutral', 'neutral']);
+    const r = simulateDcaTimed(months, { tqqq: flat(4), spy: flat(4) }, noRate, 1, { deployMode: 'staged3' });
+    // 月1储备1；月2部署1/3+1、月3部署1/3+1、月4部署剩余1/3+1 → 期末全进TQQQ
+    expect(r.points[1].value).toBeCloseTo(2, 10);
+    expect(r.points[3].value).toBeCloseTo(4, 10);
+    // 月2后储备应剩2/3，月3后剩1/3（价格不变下市值恒等于投入，检查部署占比<100%）
+    expect(r.diag.maxDeployPct).toBeLessThan(100);
+  });
+  it('S5：defense清存量入储备，出defense（即使reduce档）一次性买回', () => {
+    const months = mk(['neutral', 'defense', 'reduce']);
+    const px = { tqqq: new Map([['2020-01', 10], ['2020-02', 5], ['2020-03', 5]]), spy: flat(3) };
+    const r = simulateDcaTimed(months, px, noRate, 1, { sellOnDefense: true });
+    // 月1: 0.1股；月2 defense: 卖0.1股×5=0.5入储备+当月1 → 储备1.5、市值1.5
+    expect(r.points[1].value).toBeCloseTo(1.5, 10);
+    // 月3 reduce（非defense）: 买回全部储备1.5（当月1仍attack/neutral外→进储备）
+    const v3 = r.points[2].value;
+    expect(v3).toBeCloseTo(1.5 + 1, 10); // 0.3股×5 + 储备1
+  });
+  it('S6：reduce/defense月新资金买SPY持有，无现金储备、无等待诊断', () => {
+    const months = mk(['neutral', 'reduce', 'defense']);
+    const px = { tqqq: flat(3), spy: new Map([['2020-01', 100], ['2020-02', 100], ['2020-03', 50]]) };
+    const r = simulateDcaTimed(months, px, noRate, 1, { reserveToSpy: true });
+    // 月2买SPY 1(0.01股)；月3 SPY腰斩: TQQQ 1 + SPY 0.01×50+新买1 → 1+0.5+1
+    expect(r.points[2].value).toBeCloseTo(2.5, 10);
+    expect(r.diag.missedMonths).toBe(0); // S6不攒现金
   });
 });
