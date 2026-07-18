@@ -83,6 +83,7 @@ export function clearMarketDataCache() {
   inFlight.clear();
   lastTwelveDataCallAt = 0;
   twelveDataQueue = Promise.resolve();
+  fmpQuotaBlockedUntil = 0;
 }
 
 /** 同 key 并发合并：已有相同请求在飞则直接等它的结果 */
@@ -255,12 +256,30 @@ async function quoteFromTwelveData(symbol) {
 
 async function quoteFromFmp(symbol) {
   const apikey = fmpKey();
-  if (!apikey) return null;
-  const res = await axios.get(FMP_QUOTE_URL, { params: { symbol, apikey }, timeout: 15000 });
-  const row = Array.isArray(res.data) ? res.data[0] : null;
-  const price = row?.price ?? null;
-  if (price === null || isNaN(price)) return null;
-  return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: row.name ?? null, source: 'fmp' };
+  if (!apikey || fmpQuotaBlocked()) return null;
+  try {
+    const res = await axios.get(FMP_QUOTE_URL, { params: { symbol, apikey }, timeout: 15000 });
+    const row = Array.isArray(res.data) ? res.data[0] : null;
+    const price = row?.price ?? null;
+    if (price === null || isNaN(price)) return null;
+    return { price, trailingPE: null, forwardPE: null, priceToSales: null, priceToBook: null, shortName: row.name ?? null, source: 'fmp' };
+  } catch (err) {
+    noteFmpError(err);
+    throw err; // 维持原语义：由 getQuote 的回退层捕获记录
+  }
+}
+
+// FMP 402 熔断：402=免费层额度耗尽/计划不含该端点，继续逐标的请求只会刷一屏日志并拖慢回退链。
+// 熔断 12 小时（免费额度按日重置），期间 FMP 层直接跳过
+let fmpQuotaBlockedUntil = 0;
+function fmpQuotaBlocked() {
+  return Date.now() < fmpQuotaBlockedUntil;
+}
+function noteFmpError(err) {
+  if (err?.response?.status === 402 && !fmpQuotaBlocked()) {
+    fmpQuotaBlockedUntil = Date.now() + 12 * 3600_000;
+    console.warn('[market-data] FMP 402 (quota/plan) — circuit open for 12h, P/S将由其他源补全或降级为空');
+  }
 }
 
 /**
@@ -288,7 +307,7 @@ async function fillFundamentalsFromYahooSummary(symbol, quote) {
  */
 async function fillFundamentalsFromFmp(symbol, quote) {
   const apikey = fmpKey();
-  if (!apikey) return quote;
+  if (!apikey || fmpQuotaBlocked()) return quote;
   if (quote.trailingPE !== null && quote.priceToSales !== null) return quote;
   try {
     const res = await axios.get(FMP_RATIOS_URL, { params: { symbol, apikey }, timeout: 15000 });
@@ -301,7 +320,9 @@ async function fillFundamentalsFromFmp(symbol, quote) {
       priceToBook: quote.priceToBook ?? r.priceToBookRatioTTM ?? null,
     };
   } catch (err) {
-    console.warn(`[market-data] fmp ratios(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
+    noteFmpError(err);
+    // 熔断开启后不再逐标的刷日志
+    if (!fmpQuotaBlocked()) console.warn(`[market-data] fmp ratios(${symbol}) failed:`, err?.message || String(err).slice(0, 120));
     return quote;
   }
 }

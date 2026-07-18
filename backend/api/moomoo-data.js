@@ -25,6 +25,17 @@ function isUsSymbol(symbol) {
 let ws = null;
 let loginPromise = null;
 let unavailableUntil = 0; // 连接失败后的冷却窗口，避免每次请求都等超时
+let failStreak = 0; // 连续失败次数：指数退避（60s→…→6h封顶）。云端部署误配 MOOMOO_WS_PORT
+                    // 而无 OpenD 时，固定60s冷却会每分钟重试+刷"连接超时"日志到永远
+
+function noteConnectFailure() {
+  failStreak++;
+  unavailableUntil = Date.now() + Math.min(60_000 * 2 ** (failStreak - 1), 6 * 3600_000);
+  // 前3次照常告警（本机 OpenD 未开时需要提示），之后每8次提示一次防刷屏
+  if (failStreak <= 3 || failStreak % 8 === 0) {
+    console.warn(`[moomoo] OpenD WebSocket 连接超时（第${failStreak}次，检查 OpenD 的 WebSocket 端口开关；云端部署无 OpenD 请删除 MOOMOO_WS_PORT 环境变量）`);
+  }
+}
 
 // futu-api 在断线/空包两条路径上的请求 Promise 永不 settle（rejectAll 的 for...in 遍历bug +
 // 超时回调被 promisePool 整体替换跳过）→ 必须外包硬超时保证 provider 有限时间返回，
@@ -47,12 +58,11 @@ function connect() {
     let discarded = false;
     const timer = setTimeout(() => {
       discarded = true;
-      unavailableUntil = Date.now() + 60_000;
       loginPromise = null;
       // stop() 只反注册回调不关socket，底层每1秒无限重连会累积僵尸实例——必须关底层连接
       try { sock.stop(); } catch { /* noop */ }
       try { if (sock.websock) { sock.websock.state.closing = true; sock.websock.close(); } } catch { /* noop */ }
-      console.warn('[moomoo] OpenD WebSocket 连接超时（检查 OpenD 设置中的 WebSocket 端口开关）');
+      noteConnectFailure();
       resolve(null);
     }, 4000);
 
@@ -60,11 +70,12 @@ function connect() {
       clearTimeout(timer);
       if (discarded) return; // 已被超时弃置的实例迟到登录，不得改写模块级 ws
       if (!ret) {
-        unavailableUntil = Date.now() + 60_000;
         loginPromise = null;
+        noteConnectFailure();
         resolve(null);
         return;
       }
+      failStreak = 0; // 连接成功，重置退避
       ws = sock;
       resolve(sock);
     };
