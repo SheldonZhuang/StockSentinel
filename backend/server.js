@@ -493,6 +493,14 @@ cron.schedule('0 6 * * *', () => runDailyUpdate().catch(err => console.error('[c
 // 启动时立即执行一次
 runDailyUpdate().catch(err => console.error('[startup] initial update failed:', err));
 
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.log(`[server] Stock Sentinel backend running on http://localhost:${PORT}`);
+});
+
+// Railway 滚动重部署时向旧容器发 SIGTERM：优雅关闭并以 0 退出，
+// 否则 npm 会在每次正常重部署时打出 "npm error signal SIGTERM" 误导为故障
+process.on('SIGTERM', () => {
+  console.log('[server] SIGTERM received (rolling redeploy), shutting down gracefully');
+  httpServer.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000).unref(); // 兜底：5秒内未排空连接也退出
 });

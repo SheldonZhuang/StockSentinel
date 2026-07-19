@@ -2,6 +2,26 @@ import axios from 'axios';
 import { closesFromMoomoo, quoteFromMoomoo, moomooEnabled } from './moomoo-data.js';
 import yahooFinance from 'yahoo-finance2';
 
+// historical() 已被 Yahoo 移除、库内部映射到 chart()——废弃提示每容器打一次，无信息量，静默
+yahooFinance.suppressNotices?.(['ripHistorical']);
+
+// Yahoo 429 日志去重：数据中心 IP 被限流是已知常态（回退链接管），逐标的刷屏会把真正的
+// 异常淹没在噪声里。首个 429 打一条说明，之后静默计数、每25次汇总一条；非 429 失败照常打印
+let yahoo429Streak = 0;
+function warnYahooFailure(kind, symbol, message) {
+  if (/Too Many Requests|status code 429|^429/.test(message)) {
+    yahoo429Streak++;
+    if (yahoo429Streak === 1) {
+      console.warn('[market-data] yahoo 429（数据中心IP限流，已知常态）——后续同类失败静默计数，由 Tiingo/TwelveData 回退链接管');
+    } else if (yahoo429Streak % 25 === 0) {
+      console.warn(`[market-data] yahoo 429 已累计 ×${yahoo429Streak}（静默中）`);
+    }
+    return;
+  }
+  yahoo429Streak = 0;
+  console.warn(`[market-data] yahoo lib ${kind}(${symbol}) failed, trying raw chart:`, message.slice(0, 80));
+}
+
 // 统一行情入口：Yahoo → Tiingo → Twelve Data 三层回退
 // 背景：Yahoo 对数据中心/非住宅IP大面积限流（本机与Railway都持续429），
 // 备用源 key 缺失时优雅跳过该层，全失败返回 null，永不 throw
@@ -107,7 +127,7 @@ async function closesFromYahoo(symbol, startDate, endDate) {
   } catch (err) {
     // yahoo-finance2 库走的 cookie/crumb 握手端点对部分 IP 持续 429；
     // 原始 chart 接口不受影响（实测同机可用），降级直连再试一次
-    console.warn(`[market-data] yahoo lib closes(${symbol}) failed, trying raw chart:`, err.message.slice(0, 80));
+    warnYahooFailure('closes', symbol, err.message);
   }
   return closesFromYahooChart(symbol, startDate, endDate);
 }
@@ -206,7 +226,7 @@ async function quoteFromYahoo(symbol) {
     q = await yahooFinance.quote(symbol);
   } catch (err) {
     // 库端点限流时降级原始 chart 接口的 meta（只有价格，估值字段交给后续 FMP 补全）
-    console.warn(`[market-data] yahoo lib quote(${symbol}) failed, trying raw chart:`, err.message.slice(0, 80));
+    warnYahooFailure('quote', symbol, err.message);
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
     const res = await axios.get(url, { timeout: 15000 });
     const meta = res.data?.chart?.result?.[0]?.meta;
