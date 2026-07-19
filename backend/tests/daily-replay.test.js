@@ -5,7 +5,7 @@ import {
   addMonthsYM, firstFridayOf,
   mtsVisibleFrom, pcepiVisibleFrom, sahmVisibleFrom, epuTradeVisibleFrom,
   buildVisibleSeries, calcRateStepsAsc, lastIdxLE, rateInputsAsOf, computeLocksDaily,
-  oilChange30dAsOf, curveRunLengths, oilLevelLowAsOf,
+  oilChange30dAsOf, curveRunLengths, oilLevelLowAsOf, OIL_GUARD_DEFAULT,
   simulateNavDailyRecs, defenseEpisodesDaily, episodeIsFalsePositive,
 } from '../backtest/daily-replay.mjs';
 import { replayMonth } from '../backtest/run-backtest.js';
@@ -200,6 +200,12 @@ describe('oilLevelLowAsOf（O系油价水平护栏）', () => {
   });
   it('无观测 → null（调用方不抑制，fail-open）', () => {
     expect(oilLevelLowAsOf(mkAsc([50]), '2019-12-31', { mode: 'median', windowObs: 5 })).toBe(null);
+  });
+  it('OIL_GUARD_DEFAULT 真实可用（回归锁定：曾因 lookbackObs/windowObs 字段名不一致静默失效）', () => {
+    const asc = mkAsc([100, 90, 80, 70, 40]);
+    expect(oilLevelLowAsOf(asc, '2020-01-05', OIL_GUARD_DEFAULT)).toBe(true); // 40 < 中位80，必须能判低位
+    expect(oilLevelLowAsOf(asc, '2020-01-05', { mode: 'median', lookbackObs: 504 })).toBe(true); // 别名容错
+    expect(oilLevelLowAsOf(asc, '2020-01-05', { mode: 'median' })).toBe(null); // 两键皆缺 → fail-open
   });
 });
 

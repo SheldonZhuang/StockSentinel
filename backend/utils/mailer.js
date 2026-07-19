@@ -179,7 +179,7 @@ export function buildS5ActionEmail(p) {
       <p style="font-size: 15px; color: #222;">档位变化：<strong>${SIGNAL_LABELS[p.from] || p.from}</strong> → <strong>${SIGNAL_LABELS[p.to] || p.to}</strong></p>
       <p style="font-size: 15px; color: #222; line-height: 1.7;">${action}</p>
       <p style="font-size: 12px; color: #888; margin-top: 20px;">
-        26年回测：仅7次此类操作，假信号4次（小额踏空）、真信号3次（躲掉-99%/-92%/-12%）——
+        26年日度回测：仅9次此类操作，假信号4次（小额踏空）、真信号5次（躲掉-87%/-50%/-33%/-20%/-19%）——
         "高频小输、低频巨赢"，机械执行是本方案的全部前提。详见 docs/s5-execution-playbook.md。<br/>
         本邮件仅发送给管理员。仅供研究参考，不构成投资建议。
       </p>

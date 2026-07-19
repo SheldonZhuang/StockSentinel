@@ -36,6 +36,7 @@ import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
 import {
   loadData, runReplay, evaluate, VARIANTS_DEFAULT,
   spliceRateSeries, lastTwoWeeklyAsOf, lastDayOfMonth, findPeakTrough, calcMissedPct, ttmChangePct,
+  buildNetLiquidityWeekly, netLiqChangePctAsOf, NET_LIQ_THRESHOLD_PCT,
 } from './run-backtest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -47,6 +48,10 @@ const S = cfg.SIGNAL;
 const REPLAY_START = '2000-01-01';
 const REPLAY_END = '2026-06-30';
 const WARMUP_START = '1999-01-01'; // 锁/迟滞状态热身年（1999无≥50bp调整、萨姆低位，2000-01起状态干净）
+
+// O1 油价水平护栏（2026-07-19 采纳为 runDailyReplay 默认）：油价30天涨幅≥+20%且EPU高位时，
+// 若WTI低于近2年（504个观测）中位数=低位反弹（危机后复苏非战争冲击）→ 不判行政tight
+export const OIL_GUARD_DEFAULT = { mode: 'median', windowObs: 504 };
 
 // ---------- 纯函数（backend/tests/daily-replay.test.js 覆盖） ----------
 
@@ -196,7 +201,10 @@ export function curveRunLengths(asc) {
 export function oilLevelLowAsOf(oilAsc, asOfDate, guard) {
   const li = lastIdxLE(oilAsc, asOfDate);
   if (li < 0) return null;
-  const from = Math.max(0, li - guard.windowObs + 1);
+  // windowObs 为准；容错 lookbackObs 别名（线上 config 命名风格），两者皆缺 → 不判低位（fail-open）
+  const windowObs = guard.windowObs ?? guard.lookbackObs;
+  if (!Number.isFinite(windowObs) || windowObs < 1) return null;
+  const from = Math.max(0, li - windowObs + 1);
   const price = oilAsc[li].value;
   if (guard.mode === 'drawdown') {
     let hi = -Infinity;
@@ -243,7 +251,17 @@ async function fredSeriesCached(id, apiKey, extra = '') {
 export function runDailyReplay(DD, opts = {}) {
   const { spx, walcl, ratesAsc, stepsAsc, epuDailyAsc, oilAsc, curveAsc, curveRuns,
     mtsVis, pcepiVis, sahmVis, epuTradeVis } = DD;
-  const oilGuard = opts.oilGuard ?? { mode: 'median', lookbackObs: 504 }; // O1已上线（2026-07-19采纳）：与线上 calcAdminSignal 的油价水平护栏一致；传 null 可复现采纳前行为
+  // O1已上线（2026-07-19采纳）：与线上 calcAdminSignal 的油价水平护栏一致。
+  // 显式传 {oilGuard:null} 复现采纳前行为（--eval-oil 的"护栏关"基线用）——须用 ===undefined
+  // 判缺省而非 ??，否则显式 null 会被默认值吞掉
+  const oilGuard = opts.oilGuard === undefined ? OIL_GUARD_DEFAULT : opts.oilGuard;
+  // R系评估开关（2026-07-19，默认关；--eval-r 复现）：
+  //  netLiq —— R1 净流动性(WALCL−TGA−RRP)13周变化率替代 WALCL 周环比做资产负债表子信号；
+  //  cpConfirm —— R2 CP企业利润同比<0 时恰1维tight的 reduce 升级 defense（确认票）
+  const netLiq = !!opts.netLiq;
+  const netLiqTh = opts.netLiqThresholdPct ?? NET_LIQ_THRESHOLD_PCT;
+  const cpConfirm = !!opts.cpConfirm;
+  let pCp = -1; // cpVis 单调指针
 
   const startIdx = spx.findIndex(b => b.date >= WARMUP_START);
   if (startIdx < 0) throw new Error('SPX 数据不含热身起点之后的bar');
@@ -263,7 +281,18 @@ export function runDailyReplay(DD, opts = {}) {
     const decisionDate = getLastFomcDecisionDate(today); // 2025年前 → null（台阶方向近似）
     const { currentRate, prevRate, lastStep } = rateInputsAsOf(ratesAsc, stepsAsc, today, { decisionDate });
     const { curr: currentBalanceSheet, prev: prevBalanceSheet } = lastTwoWeeklyAsOf(walcl, today);
-    const monetary = calcMonetarySignal({ currentRate, prevRate, currentBalanceSheet, prevBalanceSheet });
+    // R1（默认关）：净流动性13周变化率可得时，替代 WALCL 周环比做资产负债表子信号。
+    // 通过合成 bs 观测对（±1% vs 线上±0.25%阈值三态等价映射）复用 calcMonetarySignal 单一来源，
+    // 不复刻其利率方向逻辑；净流动性不可得（2003-01前）→ 原样回退 WALCL 口径
+    let bsCurr = currentBalanceSheet, bsPrev = prevBalanceSheet, netLiqPct = null;
+    if (netLiq) {
+      netLiqPct = netLiqChangePctAsOf(DD.netLiqW, today);
+      if (netLiqPct !== null) {
+        bsPrev = 100;
+        bsCurr = netLiqPct > netLiqTh ? 101 : netLiqPct < -netLiqTh ? 99 : 100;
+      }
+    }
+    const monetary = calcMonetarySignal({ currentRate, prevRate, currentBalanceSheet: bsCurr, prevBalanceSheet: bsPrev });
 
     // -- 财政：可见月阶梯推进 → 名义TTM同比 − PCEPI TTM通胀 --
     while (pMts + 1 < mtsVis.length && mtsVis[pMts + 1].visibleFrom <= today) mtsVals.push(mtsVis[++pMts].value);
@@ -327,7 +356,16 @@ export function runDailyReplay(DD, opts = {}) {
 
     // -- 最终信号（与 runDailyUpdate 同顺序）：树+曲线否决 → 锁强制 → 趋势再入场 → 降档迟滞 --
     const aiSupply = S.NEUTRAL;
-    const tree = applyYieldCurveVeto(calcFinalSignal(aiSupply, monetary, fiscal, admin), invertedDays);
+    let tree = applyYieldCurveVeto(calcFinalSignal(aiSupply, monetary, fiscal, admin), invertedDays);
+    // R2（默认关）：CP企业利润同比<0（可见=季末+2.5个月阶梯）时，恰1维tight的 reduce 升级 defense
+    // （确认票，不独立成票）。树驱动defense照常过下方趋势再入场门，与月度口径同语义
+    let cpYoy = null;
+    if (cpConfirm) {
+      while (pCp + 1 < DD.cpVis.length && DD.cpVis[pCp + 1].visibleFrom <= today) pCp++;
+      cpYoy = pCp >= 0 ? DD.cpVis[pCp].value : null;
+      if (tree === 'reduce' && cpYoy !== null && cpYoy < 0
+        && [aiSupply, monetary, fiscal, admin].filter(x => x === S.TIGHT).length === 1) tree = 'defense';
+    }
     let raw = (locks.sahmLockActive || locks.reactiveLockActive) ? 'defense' : tree;
     raw = applyTrendReentry(raw, {
       sahmLockActive: locks.sahmLockActive,

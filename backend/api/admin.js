@@ -189,10 +189,10 @@ router.get('/s5', requireAdmin, asyncRoute(async (req, res) => {
     ...s5,
     downgradePendingSince: latest?.final_downgrade_pending_since ?? null,
     spxAboveSma10: latest?.spx_above_sma10 == null ? null : !!latest.spx_above_sma10,
-    // 回测口径速览（月度S5a，docs/s5-execution-playbook.md；日度精化进行中）
+    // 回测口径速览（日度S5a，docs/s5-execution-playbook.md，2026-07-19日度精化）
     playbook: {
-      xirrPct: 37.0, maxUnderwaterPct: -8.8, roundTrips26y: 7, falseSignals: 4,
-      note: '月度回测口径；假信号是常态(4/7)，机械执行是前提',
+      xirrPct: 38.8, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4,
+      note: '日度口径；假信号是常态(4/9)，机械执行是前提；浮亏-28.3%来自危机中段的解锁窗往返',
     },
   });
 }));
