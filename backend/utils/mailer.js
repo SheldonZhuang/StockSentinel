@@ -158,3 +158,55 @@ export async function sendSignalAlert(subscribers, payload) {
   }
   return { sent, failed };
 }
+
+/**
+ * S5 执行指令邮件（仅发管理员）：进攻/防守边界变化时的具体操作指令。
+ * S5策略（docs/s5-execution-playbook.md）：进入defense=存量TQQQ全部卖出；
+ * 退出defense（含到reduce）=立即全额买回。命门是"退出即买回"，故独立成一封高优邮件。
+ * @param {object} p - { kind: 'enterDefense'|'exitDefense', from, to, dataDate }
+ */
+export function buildS5ActionEmail(p) {
+  const isEnter = p.kind === 'enterDefense';
+  const subject = isEnter
+    ? '🔴【S5执行】进入全面防守——存量TQQQ应全部卖出'
+    : '🟢【S5执行】防守解除——应立即全额买回TQQQ';
+  const action = isEnter
+    ? '按 S5 规则：<strong>今日卖出全部 TQQQ 存量转入现金</strong>；本月起新定投资金进入现金储备。'
+    : `按 S5 规则：<strong>今日立即一次性全额买回 TQQQ</strong>（即使当前档位只是恢复到"${SIGNAL_LABELS[p.to] || p.to}"也要买回——等待恢复观望是被回测否决的做法，XIRR 37.0%→18.2%）。历史提示：买回发生在V型反弹中，分批只会越买越贵。`;
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #1a1a1a;">${isEnter ? '🔴' : '🟢'} S5 执行指令 · ${p.dataDate || ''}</h2>
+      <p style="font-size: 15px; color: #222;">档位变化：<strong>${SIGNAL_LABELS[p.from] || p.from}</strong> → <strong>${SIGNAL_LABELS[p.to] || p.to}</strong></p>
+      <p style="font-size: 15px; color: #222; line-height: 1.7;">${action}</p>
+      <p style="font-size: 12px; color: #888; margin-top: 20px;">
+        26年回测：仅7次此类操作，假信号4次（小额踏空）、真信号3次（躲掉-99%/-92%/-12%）——
+        "高频小输、低频巨赢"，机械执行是本方案的全部前提。详见 docs/s5-execution-playbook.md。<br/>
+        本邮件仅发送给管理员。仅供研究参考，不构成投资建议。
+      </p>
+    </div>`;
+  return { subject, html };
+}
+
+/** 发送 S5 执行指令给管理员（单收件人，复用重试语义） */
+export async function sendS5ActionAlert(adminEmail, payload) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey.startsWith('re_placeholder') || !adminEmail) {
+    console.warn('[mailer] S5 action alert skipped (no RESEND_API_KEY or admin email)');
+    return { sent: 0, failed: 0 };
+  }
+  const resend = new Resend(apiKey);
+  const { subject, html } = buildS5ActionEmail(payload);
+  const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await resend.emails.send({ from, to: adminEmail, subject, html });
+      return { sent: 1, failed: 0 };
+    } catch (err) {
+      if (attempt === 3) {
+        console.error('[mailer] S5 action email failed after 3 attempts:', err.message);
+        return { sent: 0, failed: 1 };
+      }
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+}

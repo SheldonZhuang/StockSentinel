@@ -9,6 +9,8 @@ import {
   createApiKey,
   listApiKeys,
   setApiKeyDisabled,
+  getSnapshotHistory,
+  getLatestSnapshot,
 } from '../utils/storage.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
 import { fetchAiSupplyNews } from './fetch-rss.js';
@@ -147,6 +149,52 @@ router.patch('/api-keys/:id', requireAdmin, asyncRoute(async (req, res) => {
   await setApiKeyDisabled(id, !!req.body?.disabled);
   invalidateKeyCache(); // 立即失效缓存，禁用即时生效（否则最长 5 分钟仍可用）
   res.json({ ok: true });
+}));
+
+
+/**
+ * S5 执行状态（仅管理员，96号）：把当前信号翻译成 S5 策略（docs/s5-execution-playbook.md）
+ * 的持仓状态与今日/本月动作。纯派生只读——S5 状态完全由档位序列决定：
+ * defense=空仓（进入日卖出），非defense=持仓（退出defense日买回）。
+ */
+export function deriveS5State(rows) {
+  // rows: getSnapshotHistory 输出（按日期倒序，每日一条）
+  const asc = [...rows].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const transitions = [];
+  for (let i = 1; i < asc.length; i++) {
+    const wasDef = asc[i - 1].final_signal === 'defense';
+    const isDef = asc[i].final_signal === 'defense';
+    if (!wasDef && isDef) transitions.push({ date: asc[i].date, kind: 'sell', from: asc[i - 1].final_signal, to: 'defense' });
+    if (wasDef && !isDef) transitions.push({ date: asc[i].date, kind: 'buyback', from: 'defense', to: asc[i].final_signal });
+  }
+  const latest = asc[asc.length - 1] || null;
+  const tier = latest?.final_signal ?? null;
+  const state = tier === 'defense' ? 'in_cash' : 'in_market';
+  // 今日动作：边界日给交易指令，非边界日给例行动作
+  const last = transitions[transitions.length - 1];
+  const boundaryToday = last && latest && last.date === latest.date;
+  let todayAction;
+  if (boundaryToday) todayAction = last.kind === 'sell' ? 'sell_all' : 'buyback_all';
+  else if (tier === 'defense') todayAction = 'stay_cash';
+  else if (tier === 'reduce') todayAction = 'hold_accumulate';   // 持有存量，本月定投进储备
+  else todayAction = 'hold_deploy';                              // neutral/attack：定投+储备买入
+  return { tier, state, todayAction, transitions: transitions.slice(-20), asOf: latest?.date ?? null };
+}
+
+// GET /api/admin/s5 — S5 执行台（仅管理员）
+router.get('/s5', requireAdmin, asyncRoute(async (req, res) => {
+  const [rows, latest] = await Promise.all([getSnapshotHistory(365), getLatestSnapshot()]);
+  const s5 = deriveS5State(rows);
+  res.json({
+    ...s5,
+    downgradePendingSince: latest?.final_downgrade_pending_since ?? null,
+    spxAboveSma10: latest?.spx_above_sma10 == null ? null : !!latest.spx_above_sma10,
+    // 回测口径速览（月度S5a，docs/s5-execution-playbook.md；日度精化进行中）
+    playbook: {
+      xirrPct: 37.0, maxUnderwaterPct: -8.8, roundTrips26y: 7, falseSignals: 4,
+      note: '月度回测口径；假信号是常态(4/7)，机械执行是前提',
+    },
+  });
 }));
 
 export default router;

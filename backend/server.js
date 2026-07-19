@@ -42,7 +42,7 @@ import {
   getAllWatchlistSymbols,
   getLatestDailyReport,
 } from './utils/storage.js';
-import { sendSignalAlert } from './utils/mailer.js';
+import { sendSignalAlert, sendS5ActionAlert } from './utils/mailer.js';
 import { prewarmFundamentals } from './api/fundamentals.js';
 import { normalizeSymbol, getDailyCloses } from './api/market-data.js';
 import { todayET, daysAgoET } from './utils/datetime.js';
@@ -427,6 +427,22 @@ async function runDailyUpdate() {
 
   // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
   await backupDatabase();
+
+  // S5 执行指令邮件（仅管理员，96号）：进/出全面防守是 S5 策略的交易边界，
+  // 单独一封高优邮件给出具体操作指令（进=卖出存量TQQQ；出=立即全额买回，含恢复到reduce）
+  const prevFinal = prevSnapshot?.final_signal ?? null;
+  if (process.env.ADMIN_EMAIL && prevFinal && prevFinal !== finalSignal) {
+    const enteredDefense = finalSignal === 'defense' && prevFinal !== 'defense';
+    const exitedDefense = prevFinal === 'defense' && finalSignal !== 'defense';
+    if (enteredDefense || exitedDefense) {
+      await sendS5ActionAlert(process.env.ADMIN_EMAIL, {
+        kind: enteredDefense ? 'enterDefense' : 'exitDefense',
+        from: prevFinal,
+        to: finalSignal,
+        dataDate: today,
+      }).catch(err => console.warn('[cron] S5 action email failed:', err.message));
+    }
+  }
 
   // 示警：最终信号变化 / 任一维度转收紧（用户策略：任一收紧=立即防守，必须果断）
   // AI供需转收紧(供过于求)已由 dimTight 捕获，不再单列泡沫预警
