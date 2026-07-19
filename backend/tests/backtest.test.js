@@ -168,6 +168,11 @@ describe('VARIANTS_DEFAULT（基线口径守卫，2026-07-17 两轮 + 2026-07-18
       m2DrawdownPct: null,
       capeConfirmVote: false,
       capeFullVote: false,
+      // R系（2026-07-19 第五轮，路线图末三项）：全部默认关——R1净流动性实证档位逐位不变
+      //（结构性无影响），R2 CP确认票年化-1.35pp/新增2009复苏期防守月，均由 --eval-r 复现
+      netLiquidity: false,
+      netLiqThresholdPct: null,
+      cpConfirmVote: false,
     });
   });
 });
