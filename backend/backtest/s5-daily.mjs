@@ -57,16 +57,32 @@ export function buildS5Days(recs, tqqqBars, tierKey = 'final') {
  *  - 退出 defense（到任意非defense档，同 S5a buybackOnReduce）：同滞后规则全额买回储备
  *  - 新钱：每月最后一个交易日投入 C——当日档位 attack/neutral → 买入并顺带部署储备
  *    （买回待执行时不抢跑，储备留给买回日）；reduce/defense → 入储备
+ *  - targetOf（R3 CAPE仓位缩放，2026-07-19 评估，默认null=行为逐位一致）：(month)=>目标TQQQ权重。
+ *    动作日（买回执行日/月末买入日）把TQQQ再平衡到 target×组合——超配侧卖回储备，
+ *    不足侧从储备补足；非动作日不交易（与月度 simulateS5.targetWeightOf 同语义）
  * @returns {{dailyPoints, monthPoints, episodes, yearFactors, trades, missedMonthEnds}}
  *  episodes: [{signalDate,trigger,sellDate,sellPx,buyDate,buyPx,tqqqChangePct,waitDays}]
  */
-export function simulateS5Daily(days, C = 1, { execLagDays = 0 } = {}) {
+export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null } = {}) {
   let tqqqU = 0, reserve = 0, invested = 0, prevV = null;
   let openEp = null;   // 已卖出、待买回的往返
   const pending = [];  // 待执行动作 {execIdx, type:'sell'|'buyback', signalDate, trigger}
   const episodes = [], dailyPoints = [], monthPoints = [];
   const yearFactors = new Map();
   let sells = 0, buys = 0, missedMonthEnds = 0;
+  // R3：动作日再平衡到目标权重（w=1 时买入分支 = 全额部署，与默认路径数值等价）
+  const rebalanceToTarget = (d) => {
+    const w = Math.min(1, Math.max(0, targetOf(d.date.slice(0, 7)) ?? 1));
+    const total = tqqqU * d.px + reserve;
+    const desired = w * total, cur = tqqqU * d.px;
+    if (cur < desired - 1e-9) {
+      const buy = Math.min(reserve, desired - cur);
+      if (buy > 0) { tqqqU += buy / d.px; reserve -= buy; buys++; }
+    } else if (cur > desired + 1e-9) {
+      const sell = cur - desired;
+      tqqqU -= sell / d.px; reserve += sell; sells++;
+    }
+  };
 
   days.forEach((d, i) => {
     if (i > 0) reserve *= 1 + ((days[i - 1].rate ?? 0) / 100) / 252;
@@ -90,7 +106,8 @@ export function simulateS5Daily(days, C = 1, { execLagDays = 0 } = {}) {
           openEp = { signalDate: a.signalDate, trigger: a.trigger, sellDate: d.date, sellPx: d.px };
         }
       } else {
-        if (reserve > 0) { tqqqU += reserve / d.px; reserve = 0; buys++; }
+        if (targetOf) rebalanceToTarget(d);
+        else if (reserve > 0) { tqqqU += reserve / d.px; reserve = 0; buys++; }
         if (openEp) {
           episodes.push({
             ...openEp, buyDate: d.date, buyPx: d.px,
@@ -109,8 +126,8 @@ export function simulateS5Daily(days, C = 1, { execLagDays = 0 } = {}) {
       const isBuyTier = d.tier === 'attack' || d.tier === 'neutral';
       const buybackQueued = openEp !== null || pending.some(a => a.type === 'buyback');
       if (isBuyTier && !buybackQueued) {
-        const amt = C + reserve;
-        tqqqU += amt / d.px; reserve = 0; buys++;
+        if (targetOf) { reserve += C; rebalanceToTarget(d); }
+        else { const amt = C + reserve; tqqqU += amt / d.px; reserve = 0; buys++; }
       } else {
         reserve += C;
         if (!isBuyTier) missedMonthEnds++;

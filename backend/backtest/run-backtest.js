@@ -68,6 +68,10 @@ export const VARIANTS_DEFAULT = {
   m2DrawdownPct: null,       // M2 距52周高点票：月末收盘距52周最高收盘回撤≥该值(%)→市场维tight（如10/15）
   capeConfirmVote: false,    // M3c 席勒CAPE 30年滚动分位>90 → 仅确认票（M-1可见，multpl.com月度）
   capeFullVote: false,       // M3f CAPE独立票（诊断用：验证"2017-2021常态高位→假阳性泛滥"预期）
+  // ---- 2026-07-19 第五轮（R系，路线图末三项候选评估）：全部默认关，采纳由主会话定；--eval-r 复现 ----
+  netLiquidity: false,       // R1 净流动性替代裸WALCL：WALCL−TGA(WTREGEN)−RRP(RRPONTSYD) 13周变化率做资产负债表子信号
+  netLiqThresholdPct: null,  // R1 阈值覆盖（默认±2%，敏感性±1/±3）；净流动性2003-02前不可构成→回退WALCL周环比口径
+  cpConfirmVote: false,      // R2 盈利周期确认票：NIPA企业利润(CP)同比<0 时，恰1维tight的reduce升级defense（发布滞后~2.5月建模）
 };
 export const REAL_RATE_CAP_PCT = 1.5; // V5 阈值：实际利率超过此值即"高实际利率环境"，宽松票作废
 
@@ -228,7 +232,14 @@ export function replayMonth(m, prevState, variants = {}) {
       && prevState.rateSignal !== S.NEUTRAL) rateSignal = prevState.rateSignal;
   }
   let bsSignal = S.NEUTRAL; // WALCL 2002-12 前缺失 → neutral
-  if (m.walcl !== null && m.prevWalcl !== null && m.prevWalcl !== 0) {
+  // R1 净流动性（默认关）：13周变化率 ±2%（阈值可覆盖）替代 WALCL 周环比 ±0.25%——
+  // 2022-24市场跟随净流动性而非WALCL（2023 QT期间RRP释放推动大涨，裸WALCL口径误读为收紧）。
+  // 净流动性不可得（2003-02前/断档）→ 回退现行 WALCL 口径，行为与基线逐位一致
+  const nlTh = variants.netLiqThresholdPct ?? NET_LIQ_THRESHOLD_PCT;
+  if (variants.netLiquidity && m.netLiqChangePct !== null && m.netLiqChangePct !== undefined) {
+    bsSignal = m.netLiqChangePct > nlTh ? S.LOOSE
+      : m.netLiqChangePct < -nlTh ? S.TIGHT : S.NEUTRAL;
+  } else if (m.walcl !== null && m.prevWalcl !== null && m.prevWalcl !== 0) {
     const chg = (m.walcl - m.prevWalcl) / m.prevWalcl * 100;
     bsSignal = chg > cfg.BALANCE_SHEET_PAUSE_THRESHOLD_PCT ? S.LOOSE
       : chg < -cfg.BALANCE_SHEET_PAUSE_THRESHOLD_PCT ? S.TIGHT : S.NEUTRAL;
@@ -359,6 +370,12 @@ export function replayMonth(m, prevState, variants = {}) {
     + (capeTight && !!variants.capeConfirmVote && !variants.capeFullVote ? 1 : 0);
   if (confirmVotes > 0 && final === 'reduce' && tightCount === 2
     && monetary === S.TIGHT && fiscal === S.TIGHT) final = 'defense';
+  // R2 盈利周期确认票（2026-07-19 评估，默认关）：NIPA企业利润同比<0（M月末可见的最新季度，
+  // ~2.5个月发布滞后）时作确认票——恰1维tight的 reduce 升级 defense（不独立成票；
+  // ≥2维共振已是defense、X3纯"货币+财政"降档不在"恰1维"口径内均不受影响）。
+  // 树驱动defense照常过下方W5趋势门：趋势上方会被降回reduce，如实保留该交互
+  if (variants.cpConfirmVote && final === 'reduce' && tightCount === 1
+    && m.cpYoy !== null && m.cpYoy !== undefined && m.cpYoy < 0) final = 'defense';
   // V1 ②：趋势之下不进攻——attack 降级 neutral
   if (variants.trendConfirm && m.spxBelowSma10 === true && final === 'attack') final = 'neutral';
   if (sahmLockActive || reactiveLockActive) final = 'defense';
@@ -410,6 +427,83 @@ export function lastTwoWeeklyAsOf(series, asOfDate) {
     curr = o.value;
   }
   return { curr, prev };
+}
+
+// R1 默认阈值：净流动性13周变化率 ±2%（--eval-r 里对 ±1/±3 做敏感性）
+export const NET_LIQ_THRESHOLD_PCT = 2;
+export const NET_LIQ_WEEKS = 13;
+
+/**
+ * R1：净流动性周度序列 = WALCL − TGA(WTREGEN) − 逆回购(RRPONTSYD)，对齐 WALCL 周三观测日。
+ * 单位换算：WALCL 为百万美元，WTREGEN/RRPONTSYD 为十亿美元 → ×1000 统一为百万。
+ * TGA（周三周均）取 ≤该周三的最新观测，过旧（>maxStaleDays，序列起点前）→ 该周无条目，
+ * 调用方回退现行 WALCL 周环比口径并如实注明。
+ * RRP 为隔夜工具，FRED 只记录有操作的日子——近 rrpFreshDays 内无观测 = 当周无隔夜逆回购
+ * 余额，按 0 计（2009-2013 常设 ON RRP 不存在，余额确实为0；不是数据缺失）。
+ * 数据起点：WTREGEN 2002-12-18 → 净流动性 2003-01 起可构成
+ * @param {Array<{date,value}>} walcl - 升序（百万美元）
+ * @param {Array<{date,value}>} tga - 升序（十亿美元）
+ * @param {Array<{date,value}>} rrp - 升序（十亿美元）
+ * @returns {Array<{date, value:number}>} 升序（百万美元）
+ */
+export function buildNetLiquidityWeekly(walcl, tga, rrp, { maxStaleDays = 10, rrpFreshDays = 7, sideScale = 1000 } = {}) {
+  const out = [];
+  let ti = -1, ri = -1;
+  for (const w of walcl) {
+    while (ti + 1 < tga.length && tga[ti + 1].date <= w.date) ti++;
+    while (ri + 1 < rrp.length && rrp[ri + 1].date <= w.date) ri++;
+    if (ti < 0) continue;
+    const t = tga[ti];
+    if (dayDiff(t.date, w.date) > maxStaleDays) continue;
+    const rrpVal = ri >= 0 && dayDiff(rrp[ri].date, w.date) <= rrpFreshDays ? rrp[ri].value : 0;
+    out.push({ date: w.date, value: w.value - (t.value + rrpVal) * sideScale });
+  }
+  return out;
+}
+
+/**
+ * R1：净流动性 asOf 时点的13周变化率（%）。周四发布滞后（观测日+1 ≤ asOfDate 才可见，
+ * 与 WALCL/lastTwoWeeklyAsOf 同口径）；最新观测须新鲜（距 asOfDate ≤ maxAgeDays——
+ * RRPONTSYD 在 2009-2013 无观测（ON RRP 2013-09 才有常设操作），该段净流动性不可构成，
+ * 不允许陈旧值冒充）；13周前观测需真实间隔在 [80,105] 天内（序列起点/断档处不硬凑）。
+ * 任一不满足 → null → 调用方回退 WALCL 口径
+ */
+export function netLiqChangePctAsOf(netLiqW, asOfDate, weeks = NET_LIQ_WEEKS, maxAgeDays = 14) {
+  let last = -1;
+  for (let i = 0; i < netLiqW.length; i++) {
+    if (addDaysISO(netLiqW[i].date, 1) > asOfDate) break;
+    last = i;
+  }
+  if (last < weeks) return null;
+  const curr = netLiqW[last], prev = netLiqW[last - weeks];
+  if (dayDiff(curr.date, asOfDate) > maxAgeDays) return null;
+  const gap = dayDiff(prev.date, curr.date);
+  if (gap < 80 || gap > 105 || prev.value === 0) return null;
+  return (curr.value / prev.value - 1) * 100;
+}
+
+/**
+ * R2：CP（NIPA税后企业利润，季度SAAR，units=pc1 即同比%）在 M 月末决策时可见的最新同比值。
+ * 发布滞后建模 ~2.5 个月：季度观测日为季初（如 2000-04-01=Q2），季末月 = 季初+2 个月，
+ * BEA 利润随 GDP 第二次估计发布（季后约2个月，如实取保守的2.5个月）→ 可见月 = 季末月+3
+ * （该月月中发布，月末决策时可见）。例：Q1(1-3月) → 6月可见；Q4(10-12月) → 次年3月可见
+ * @param {Array<{date,value}>} cpQ - 升序季度观测（date=季初，value=同比%）
+ * @param {string} month - 'YYYY-MM' 决策月
+ * @returns {number|null}
+ */
+export function cpYoyVisibleAsOf(cpQ, month) {
+  const addM = (m, n) => {
+    const [y, mo] = m.split('-').map(Number);
+    const t = y * 12 + (mo - 1) + n;
+    return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`;
+  };
+  let val = null;
+  for (const o of cpQ) {
+    const visibleMonth = addM(o.date.slice(0, 7), 2 + 3); // 季末月(+2) + 3个月
+    if (visibleMonth > month) break;
+    val = o.value;
+  }
+  return val;
 }
 
 /**
@@ -639,7 +733,7 @@ export async function loadData() {
   if (!apiKey) throw new Error('FRED_API_KEY not set');
 
   console.log('[backtest] fetching FRED series...');
-  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pcepi, corePceYoy, semiYoy] = await Promise.all([
+  const [dfedtar, dfedtaru, walcl, fiscal, epu, sahm, oil, pcepi, corePceYoy, semiYoy, tga, rrp, cpYoyQ] = await Promise.all([
     fredSeries('DFEDTAR', apiKey),
     fredSeries('DFEDTARU', apiKey),
     fredSeries('WALCL', apiKey),
@@ -650,6 +744,9 @@ export async function loadData() {
     fredSeries('PCEPI', apiKey),                    // PCE价格指数，财政支出通胀平减用
     fredSeries('PCEPILFE', apiKey, '&units=pc1'),   // V5：核心PCE同比（%）
     fredSeries('IPG3344S', apiKey, '&units=pc1'),   // V6：半导体及电子元件产出同比（%），1972年起
+    fredSeries('WTREGEN', apiKey),                  // R1：财政部TGA（周三周均，十亿美元，2002-12起）
+    fredSeries('RRPONTSYD', apiKey),                // R1：隔夜逆回购（日频，十亿美元，2003-02起）
+    fredSeries('CP', apiKey, '&units=pc1'),         // R2：NIPA税后企业利润同比（季度%，date=季初）
   ]);
   console.log('[backtest] fetching SPX...');
   const { bars: spx, source: spxSource } = await fetchSpx();
@@ -668,6 +765,8 @@ export async function loadData() {
   return {
     spx, spxSource, walcl, fiscalM, epuM, pcepiM, spxM,
     capeM, capeSource, // M3：月度CAPE（升序，1871起；不可得时空数组）
+    netLiqW: buildNetLiquidityWeekly(walcl, tga, rrp), // R1：净流动性周度（百万美元，2003-02起）
+    cpQ: cpYoyQ, // R2：CP季度同比（date=季初）
     rateM,
     rateMap: byMonth(rateM), sahmMap: byMonth(sahmM), oilMap: byMonth(oilM), spxMap: byMonth(spxM),
     corePceYoyMap: byMonth(sampleMonthEnd(corePceYoy)), // V5
@@ -776,9 +875,16 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
       oilLevelLow = oilCur < median;
     }
 
+    // R1：净流动性13周变化率（周度，周四发布滞后+1天；不可得→null→replayMonth回退WALCL口径）
+    const netLiqChangePct = variants.netLiquidity
+      ? netLiqChangePctAsOf(D.netLiqW, lastDayOfMonth(month)) : null;
+    // R2：CP同比（M月末可见的最新季度，~2.5个月发布滞后建模）
+    const cpYoy = variants.cpConfirmVote ? cpYoyVisibleAsOf(D.cpQ, month) : null;
+
     const r = replayMonth({
       rate, prevRate,
       walcl: walclV, prevWalcl,
+      netLiqChangePct, cpYoy, // R1/R2（变体关时恒null，零开销）
       fiscalChangePct: realFiscalPct,
       epuPercentile: epuPctVal,
       oilChangePct: oilPctVal,
@@ -815,7 +921,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     timeline.push({
       month, spx: D.spxMap.get(month) ?? null, spxDate: D.spxDateMap.get(month) ?? null, ...r, rawFinal: r.final, final,
       // 指标透出（accuracy-report.mjs 错误归因用）：当月各维底层值与阈值差距可追溯
-      metrics: { rate, fiscalPct: realFiscalPct, epuPct: epuPctVal, oilPct: oilPctVal, sahm: sahmVal, spxBelowSma10, dd52wPct, capePct: capePercentile },
+      metrics: { rate, fiscalPct: realFiscalPct, epuPct: epuPctVal, oilPct: oilPctVal, sahm: sahmVal, spxBelowSma10, dd52wPct, capePct: capePercentile, netLiqPct: netLiqChangePct, cpYoy },
     });
   }
   return timeline;
@@ -955,6 +1061,7 @@ export function evaluate(D, timeline) {
 async function main() {
   const D = await loadData();
 
+  if (process.argv.includes('--eval-r')) return runEvalR(D); // 仅R系（净流动性/CP确认票）对照表
   if (process.argv.includes('--eval-m')) return runEvalM(D); // 仅M系（第5维）对照表
   if (process.argv.includes('--eval')) return runEval(D);
 
@@ -1263,6 +1370,73 @@ export function runEvalM(D) {
     const pureStr = d.pure.map(e => `${e.start}~${e.end ?? '在续'}(${e.months.length}月)`).join(' ') || '无';
     if (name === '基线') { console.log(`基线 纯误报段: ${pureStr}`); continue; }
     console.log(`${name}\n  纯误报段: ${pureStr}\n  新增防守月(${d.newDefMonths.length}): ${d.newDefMonths.join(' ') || '无'}`);
+  }
+}
+
+// ---------- R系变体评估（2026-07-19 路线图末三项）：--eval-r 复现 ----------
+// R1 净流动性替代裸WALCL（结构性预判：非对称进攻树只数tight票，资产负债表子信号只能在
+// "降息/暂停月"里把货币维在 loose↔neutral 间切换，从不产生/消除tight → 档位理论上不动，实证验证）；
+// R2 盈利周期确认票（CP同比<0 时恰1维tight的reduce升defense）。
+// 硬约束（任务书）：召回不降、六危机时点不变差、假阳性不增、（日度）年化≥12.0
+
+export function runEvalR(D) {
+  console.log('\n═════ R系评估（月度口径）：R1净流动性 / R2盈利周期确认票 ═════');
+  const base = runReplay(D, VARIANTS_DEFAULT);
+  const baseDefSet = new Set(base.filter(t => t.final === 'defense').map(t => t.month));
+  const R_DEFS = [
+    ['R1@±1% 净流动性', { netLiquidity: true, netLiqThresholdPct: 1 }],
+    ['R1@±2% 净流动性', { netLiquidity: true }],
+    ['R1@±3% 净流动性', { netLiquidity: true, netLiqThresholdPct: 3 }],
+    ['R2 CP确认票', { cpConfirmVote: true }],
+    ['R1@2+R2', { netLiquidity: true, cpConfirmVote: true }],
+  ];
+  const rows = [];
+  const tls = new Map([['基线', base]]);
+  {
+    const r = evalRowM('基线(V3+V4+W5+X1+X3)', D, base, null);
+    rows.push({ ...r.row, 档位diff月: 0, 货币维diff月: 0 });
+  }
+  for (const [name, patch] of R_DEFS) {
+    const tl = runReplay(D, { ...VARIANTS_DEFAULT, ...patch });
+    tls.set(name, tl);
+    const r = evalRowM(name, D, tl, baseDefSet);
+    const finalDiff = tl.filter((t, i) => t.final !== base[i].final).map(t => t.month);
+    const monDiff = tl.filter((t, i) => t.monetary !== base[i].monetary).map(t => t.month);
+    rows.push({ ...r.row, 档位diff月: finalDiff.length, 货币维diff月: monDiff.length });
+  }
+  console.table(rows);
+
+  // ---- R1 诊断：货币维标签变化在哪些月、方向如何；档位是否逐位不变（结构性预判的实证）----
+  for (const [name] of R_DEFS.filter(([n]) => n.startsWith('R1'))) {
+    const tl = tls.get(name);
+    const monDiff = tl.map((t, i) => ({ t, b: base[i] })).filter(x => x.t.monetary !== x.b.monetary);
+    const finalDiff = tl.filter((t, i) => t.final !== base[i].final).map(t => t.month);
+    const y23 = monDiff.filter(x => x.t.month >= '2023-01' && x.t.month <= '2024-12');
+    console.log(`\n----- ${name}：货币维标签变化 ${monDiff.length} 个月（档位变化 ${finalDiff.length} 个月${finalDiff.length ? '：' + finalDiff.join(' ') : '——逐位不变，实证"只动loose↔neutral"'}）-----`);
+    const fmtD = x => `${x.t.month} ${x.b.monetary}→${x.t.monetary}(净流动性13周${x.t.metrics.netLiqPct?.toFixed(1)}%)`;
+    console.log(`  2023-24（QT+RRP释放焦点段）: ${y23.length ? y23.map(fmtD).join('; ') : '无'}`);
+    const rest = monDiff.filter(x => !(x.t.month >= '2023-01' && x.t.month <= '2024-12'));
+    console.log(`  其余: ${rest.length ? rest.map(fmtD).join('; ') : '无'}`);
+  }
+  // QT拦截宽松票的月份对照（rate方向=loose 但被 bsSignal=tight 拦成 neutral 的月：基线 vs R1@2）
+  const qtBlockMonths = tl => tl.filter(t => t.rateSignal === 'loose' && t.monetary === 'neutral').map(t => t.month);
+  const b23 = qtBlockMonths(base).filter(m => m >= '2022-06' && m <= '2024-12');
+  const r23 = qtBlockMonths(tls.get('R1@±2% 净流动性')).filter(m => m >= '2022-06' && m <= '2024-12');
+  console.log(`\nQT拦截宽松票（货币维=neutral 月，2022-06~2024-12）：基线 ${b23.length} 个月 → R1@2 ${r23.length} 个月`);
+  console.log(`  基线: ${b23.join(' ') || '无'}\n  R1@2: ${r23.join(' ') || '无'}`);
+
+  // ---- R2 诊断：CP转负的可见时点、新增防守月按年份分布（2015-16/2019 假阳性焦点）----
+  const negQ = D.cpQ.filter(o => o.value < 0 && o.date >= '1998-01-01');
+  const addM = (m, n) => { const [y, mo] = m.split('-').map(Number); const t = y * 12 + (mo - 1) + n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; };
+  console.log('\n----- R2：CP同比<0 的季度与月末决策可见月 -----');
+  console.log(negQ.map(o => `${o.date.slice(0, 7)}季(${o.value.toFixed(1)}%)→${addM(o.date.slice(0, 7), 5)}起可见`).join('; '));
+  const tlR2 = tls.get('R2 CP确认票');
+  const newDef = tlR2.filter((t, i) => t.final === 'defense' && base[i].final !== 'defense');
+  console.log(`R2 相对基线新增防守月（${newDef.length}）: ${newDef.map(t => t.month).join(' ') || '无'}`);
+  const c = key => s => s.crisisRows.find(r => r.name.startsWith(key));
+  const sB = evaluate(D, base), sR2 = evaluate(D, tlR2);
+  for (const k of ['2000', '2008', '2022']) {
+    console.log(`  ${k}首防: 基线 ${c(k)(sB)?.firstDefMonth ?? '未触发'} → R2 ${c(k)(sR2)?.firstDefMonth ?? '未触发'}`);
   }
 }
 

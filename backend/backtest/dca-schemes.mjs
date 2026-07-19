@@ -181,6 +181,11 @@ export function simulateDcaTimed(months, px, rateMap, C = 1, {
  *    中途再入 defense 则取消未完成计划、按卖出规则重新防守）
  *  - reduce（非买回场景）：新钱攒现金、存量持有；neutral/attack：新钱+储备全部（或按期）买入
  *  - frictionPct：每笔买/卖单边摩擦（敏感性用，默认0）
+ *  - targetWeightOf（R3 CAPE仓位缩放，2026-07-19 评估，默认null=行为与既有逐位一致）：
+ *    (month)=>目标TQQQ权重∈[0,1]。动作月（attack/neutral 常规买入月、出defense买回月）把
+ *    TQQQ 再平衡到 target×组合——不足侧从储备+新钱补足，超配侧卖回储备（"高估值不满仓"是
+ *    该变体的语义重定义，卖出不违背S5）；非动作月（reduce持有/防守）行为不变。
+ *    与 staged 不兼容（分期部署的目标随月漂移，语义纠缠）→ 显式抛错
  * @returns {{points,twr,diag,episodes,monthLog,trades:{buys,sells}}}
  *  episodes: [{sellMonth,sellPx,trigger,buyMonth,buyPx,tqqqChangePct,waitMonths}]（tqqqChangePct>0=假信号踏空）
  */
@@ -189,7 +194,9 @@ export function simulateS5(months, px, rateMap, C = 1, {
   buybackOnReduce = true,
   staged = false,
   frictionPct = 0,
+  targetWeightOf = null,
 } = {}) {
+  if (targetWeightOf && staged) throw new Error('targetWeightOf(R3 CAPE缩放) 与 staged 不兼容，仅支持一次性再平衡');
   const monthIdx = m => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7));
   let tqqqU = 0, reserve = 0, prevTier = null, prevV = null;
   let tranche = 0, tranchesLeft = 0;
@@ -217,8 +224,10 @@ export function simulateS5(months, px, rateMap, C = 1, {
     let deployR = 0;
     const buybackNow = !!curEpisode && curEpisode.buyMonth === undefined && f !== 'defense'
       && (isBuyTier || (buybackOnReduce && f === 'reduce'));
+    // R3 动作月：常规买入月 / 买回月 → 走"再平衡到目标权重"路径，绕过默认全额部署
+    const r3Action = !!targetWeightOf && f !== 'defense' && (buybackNow || isBuyTier);
     const normalDeploy = isBuyTier && reserve > 0;
-    if (f !== 'defense' && reserve > 0 && (buybackNow || normalDeploy || (staged && tranchesLeft > 0))) {
+    if (!r3Action && f !== 'defense' && reserve > 0 && (buybackNow || normalDeploy || (staged && tranchesLeft > 0))) {
       if (staged) {
         if ((buybackNow || normalDeploy) && tranchesLeft === 0) { tranche = reserve / 3; tranchesLeft = 3; }
         if (tranchesLeft > 0) {
@@ -229,7 +238,7 @@ export function simulateS5(months, px, rateMap, C = 1, {
         deployR = reserve;
       }
     }
-    if (deployR > 0 && curEpisode && curEpisode.buyMonth === undefined) {
+    if ((deployR > 0 || (r3Action && buybackNow)) && curEpisode && curEpisode.buyMonth === undefined) {
       curEpisode.buyMonth = m.month; curEpisode.buyPx = pT;
       curEpisode.tqqqChangePct = (pT / curEpisode.sellPx - 1) * 100;
       curEpisode.waitMonths = monthIdx(m.month) - monthIdx(curEpisode.sellMonth);
@@ -237,16 +246,35 @@ export function simulateS5(months, px, rateMap, C = 1, {
     }
     // ---- 新钱去向 + 执行买入 ----
     let buyAmt = deployR;
-    if (isBuyTier) buyAmt += C; else reserve += C;
+    if (r3Action) {
+      reserve += C; // 新钱先入储备
+      // reduce买回月的新钱不参与当月再平衡（与基线S5a口径一致：该月C留在储备等下个买入月），
+      // 保证 targetWeightOf≡1 时与基线逐位一致（回归测试锁定）
+      const stayOut = isBuyTier ? 0 : C;
+      const w = Math.min(1, Math.max(0, targetWeightOf(m.month) ?? 1));
+      const total = tqqqU * pT + reserve - stayOut;
+      const desired = w * total;
+      const cur = tqqqU * pT;
+      if (cur > desired + 1e-9) {
+        const sellAmt = cur - desired;
+        tqqqU -= sellAmt / pT; reserve += sellAmt * (1 - frictionPct); sells++;
+        buyAmt = 0;
+        actions.push(`CAPE缩放卖出至${Math.round(w * 100)}%(${sellAmt.toFixed(2)})`);
+      } else {
+        buyAmt = Math.min(reserve - stayOut, desired - cur);
+      }
+    } else if (isBuyTier) buyAmt += C;
+    else reserve += C;
     if (buyAmt > 0) {
       tqqqU += buyAmt * (1 - frictionPct) / pT; buys++;
-      reserve -= deployR;
-      actions.push(deployR > 0 ? `部署储备+定投(${buyAmt.toFixed(2)})` : `定投买入(${buyAmt.toFixed(2)})`);
-    } else {
-      actions.push(f === 'defense' ? '持币防守(新钱入储备)' : '新钱入储备(观望)');
+      reserve -= r3Action ? buyAmt : deployR;
+      actions.push(r3Action ? `再平衡买入(${buyAmt.toFixed(2)})`
+        : deployR > 0 ? `部署储备+定投(${buyAmt.toFixed(2)})` : `定投买入(${buyAmt.toFixed(2)})`);
+    } else if (!actions.length || f === 'defense') {
+      actions.push(f === 'defense' ? '持币防守(新钱入储备)' : r3Action ? 'CAPE缩放持稳' : '新钱入储备(观望)');
     }
     const v = tqqqU * pT + reserve;
-    if (buyAmt > 0 && deployR > 0 && v > 0) maxDeployPct = Math.max(maxDeployPct, (buyAmt / v) * 100);
+    if (buyAmt > 0 && (deployR > 0 || r3Action) && v > 0) maxDeployPct = Math.max(maxDeployPct, (buyAmt / v) * 100);
     if (!isBuyTier) { missedMonths++; curWait++; } else if (curWait > 0) { waits.push(curWait); curWait = 0; }
     twr.push({ month: m.month, nav: i === 0 ? 1 : twr[i - 1].nav * ((v - C) / prevV) });
     prevV = v;

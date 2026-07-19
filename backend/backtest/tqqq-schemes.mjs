@@ -153,13 +153,15 @@ export function underwaterRecovery(points) {
 }
 
 /**
- * 权重口径的月度净值路径（E0/E3 对照行用，与 execution-layer.simulateExecution 同口径但返回逐月路径）
+ * 权重口径的月度净值路径（E0/E3 对照行用，与 execution-layer.simulateExecution 同口径但返回逐月路径）。
+ * weightsOf(final, monthObj)：第二参传当月完整对象（R3 CAPE缩放按 metrics.capePct 定权重用），
+ * 既有单参调用方不受影响
  */
 export function navPathFromWeights(months, weightsOf, assetRet, rateMap) {
   const points = [{ month: months[0].month, nav: 1 }];
   let nav = 1;
   for (let i = 1; i < months.length; i++) {
-    const w = weightsOf(months[i - 1].final);
+    const w = weightsOf(months[i - 1].final, months[i - 1]);
     let ret = 0;
     for (const [asset, weight] of Object.entries(w)) {
       if (!weight) continue;

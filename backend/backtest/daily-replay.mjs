@@ -36,7 +36,7 @@ import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
 import {
   loadData, runReplay, evaluate, VARIANTS_DEFAULT,
   spliceRateSeries, lastTwoWeeklyAsOf, lastDayOfMonth, findPeakTrough, calcMissedPct, ttmChangePct,
-  buildNetLiquidityWeekly, netLiqChangePctAsOf, NET_LIQ_THRESHOLD_PCT,
+  netLiqChangePctAsOf, NET_LIQ_THRESHOLD_PCT, // R系评估（--eval-r）
 } from './run-backtest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -385,6 +385,7 @@ export function runDailyReplay(DD, opts = {}) {
         fiscalPct, epuTradePct: epuTradePercentile, epuDailyPct: epuDailyPercentile,
         oilPct: oilChange30dPct, oilGuardSuppressed, sahm: sahmValue,
         spxAboveSma10: trendState.spxAboveSma10, invertedDays,
+        netLiqPct, cpYoy, // R系（变体关时恒null）
       },
     };
     records.push(rec);
@@ -564,6 +565,10 @@ export async function loadDailyData() {
       pcepiVis: buildVisibleSeries(D.pcepiM, pcepiVisibleFrom),
       sahmVis: buildVisibleSeries(sahmM, sahmVisibleFrom),
       epuTradeVis: buildVisibleSeries(D.epuM, epuTradeVisibleFrom),
+      netLiqW: D.netLiqW, // R1：净流动性周度（loadData 内构建，2003-01起；周四发布+1天可见）
+      // R2：CP季度同比（date=季初）→ 日度可见阶梯 = 季末+2.5个月 ≈ 季初+5个月的15日
+      //（与月度口径"季末月+3的月末决策可见"同一季度首次可用，粒度换日）
+      cpVis: D.cpQ.map(o => ({ ...o, visibleFrom: `${addMonthsYM(o.date.slice(0, 7), 5)}-15` })),
     },
   };
 }
@@ -721,10 +726,91 @@ async function runEvalOil(D, DD) {
     : '逐月diff：无——证实月度单代理口径下飙升tight分支结构性冗余（epuHigh前提下抑制后百分位回落仍tight），月度不劣化自动满足');
 }
 
+// ---------- R系评估（--eval-r，2026-07-19 路线图末三项之 R1/R2 日度口径） ----------
+// R1 净流动性替代裸WALCL / R2 盈利周期确认票。硬约束（任务书）：召回不降、六危机日级时点不变差、
+// 日度年化≥12.0、假阳性不增。R1 结构性预判同月度：资产负债表子信号只在"降息/暂停日"里把货币维
+// 在 loose↔neutral 间切换，从不产生/消除 tight → 档位应逐位不变（此处实证）
+
+async function runEvalR(D, DD) {
+  const spxBars = D.spx.filter(b => b.date <= REPLAY_END);
+  const DEFS = [
+    ['基线(O1默认)', {}],
+    ['R1@±1% 净流动性', { netLiq: true, netLiqThresholdPct: 1 }],
+    ['R1@±2% 净流动性', { netLiq: true }],
+    ['R1@±3% 净流动性', { netLiq: true, netLiqThresholdPct: 3 }],
+    ['R2 CP确认票', { cpConfirm: true }],
+    ['R1@2+R2', { netLiq: true, cpConfirm: true }],
+  ];
+  let base = null;
+  const rows = [];
+  const details = new Map();
+  for (const [name, opts] of DEFS) {
+    const recs = runDailyReplay(DD, opts).filter(r => r.date >= REPLAY_START && r.date <= REPLAY_END);
+    const sim = simulateNavDailyRecs(recs);
+    const eps = defenseEpisodesDaily(recs);
+    const fp = eps.map(e => episodeIsFalsePositive(e, spxBars)).filter(v => v === true).length;
+    const cr = crisisRowsDaily(recs, spxBars);
+    if (!base) base = { recs, cr, sim, fp, eps };
+    // 硬约束：每场危机 leadDays 不得比基线差；召回不丢；年化≥12.0；假阳性不增
+    let timingOk = true;
+    const timingChanges = [];
+    cr.forEach((r, i) => {
+      const b = base.cr[i];
+      if (b.firstDefDate && !r.firstDefDate) { timingOk = false; timingChanges.push(`${r.name}丢失`); }
+      else if (b.leadDays != null && r.leadDays != null && r.leadDays < b.leadDays) {
+        timingOk = false; timingChanges.push(`${r.name} ${b.leadDays}→${r.leadDays}天`);
+      } else if (b.firstDefDate !== r.firstDefDate) timingChanges.push(`${r.name} ${b.firstDefDate}→${r.firstDefDate}`);
+    });
+    const finalDiffDays = recs.filter((r, i) => r.final !== base.recs[i].final).length;
+    const monDiffDays = recs.filter((r, i) => r.monetary !== base.recs[i].monetary).length;
+    const pass = timingOk && sim.cagrPct >= 12.0 && fp <= base.fp;
+    rows.push({
+      组合: name, 年化: sim.cagrPct.toFixed(2) + '%', 回撤: sim.mddPct.toFixed(1) + '%',
+      假阳性: `${fp}/${eps.length}`,
+      防守占比: (recs.filter(r => r.final === 'defense').length / recs.length * 100).toFixed(1) + '%',
+      档位diff天: finalDiffDays, 货币维diff天: monDiffDays,
+      危机时点变化: timingChanges.join('; ') || '无',
+      硬约束: pass ? '过' : '✗',
+    });
+    details.set(name, { recs, cr, eps, sim, fp });
+  }
+  console.log('\n═════ R系日度评估（硬约束=召回不降·六危机日级时点不变差·年化≥12.0·假阳性不增）═════');
+  console.table(rows);
+
+  // 危机表全对照（R2 —— 唯一可能动档位的变体）
+  const r2 = details.get('R2 CP确认票');
+  console.log('\n----- R2 危机表全对照（vs 基线） -----');
+  console.table(r2.cr.map((r, i) => ({
+    危机: r.name, '基线首防': base.cr[i].firstDefDate ?? '未触发', 'R2首防': r.firstDefDate ?? '未触发',
+    '基线时点': fmtLead(base.cr[i]), 'R2时点': fmtLead(r),
+    '基线少亏pp': f1(base.cr[i].savedPct), 'R2少亏pp': f1(r.savedPct),
+    '基线覆盖%': f1(base.cr[i].coveragePct), 'R2覆盖%': f1(r.coveragePct),
+  })));
+  // R2 相对基线新增的防守日（按片段压缩）
+  const baseDefSet = new Set(base.recs.filter(r => r.final === 'defense').map(r => r.date));
+  const newDefDates = r2.recs.filter(r => r.final === 'defense' && !baseDefSet.has(r.date)).map(r => r.date);
+  const spans = [];
+  let cur = null;
+  for (const d of newDefDates) {
+    if (cur && dayDiff(cur.end, d) <= 7) { cur.end = d; cur.n++; }
+    else { if (cur) spans.push(cur); cur = { start: d, end: d, n: 1 }; }
+  }
+  if (cur) spans.push(cur);
+  console.log(`R2 相对基线新增防守日 ${newDefDates.length} 天：`);
+  for (const s of spans) console.log(`  ${s.start} ~ ${s.end}（${s.n}个交易日）`);
+  // R1 档位不变式实证
+  for (const name of ['R1@±1% 净流动性', 'R1@±2% 净流动性', 'R1@±3% 净流动性']) {
+    const d = details.get(name);
+    const diff = d.recs.filter((r, i) => r.final !== base.recs[i].final).map(r => r.date);
+    console.log(`${name}: 档位diff ${diff.length} 天${diff.length ? '：' + diff.slice(0, 10).join(' ') : '——逐日不变，实证结构性无影响（只动loose↔neutral）'}`);
+  }
+}
+
 async function main() {
   const t0 = Date.now();
   const { D, DD } = await loadDailyData();
   if (process.argv.includes('--eval-oil')) return runEvalOil(D, DD);
+  if (process.argv.includes('--eval-r')) return runEvalR(D, DD);
 
   console.log('[daily-replay] running daily replay...');
   const all = runDailyReplay(DD);
