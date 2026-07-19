@@ -177,17 +177,17 @@ function epuPercentileSignal(percentile) {
  * EPU双代理：月度贸易专项 EPUTRADE（结构性）+ 日频EPU 7日均线（时效性）。
  * 两者都有数据时一致才定档，不一致→观望；单边缺失用可用侧；全缺→观望
  */
-export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct }) {
+export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct, oilLevelLow }) {
   const guardPct = epuDailyPercentile ?? epuTradePercentile; // 优先用更新鲜的日频做护栏
   const guardKnown = guardPct !== null && guardPct !== undefined;
   const uncertaintyHigh = guardKnown && guardPct > EPU_PERCENTILE_TIGHT;
 
   if (oilChange30dPct !== null && oilChange30dPct !== undefined) {
-    // 飙升侧对称护栏（修复原"无条件收紧"）：油价大涨有两种成因——
-    // 战争/供给冲击(EPU同时高企→收紧) vs 衰退后需求复苏(EPU平静→是最佳买点非危机，
-    // 如2009-03/2016-02/2020-05的V型底右侧)。仅在不确定性高位时才判战争冲击收紧；
-    // EPU平静或缺失时不误判防守，落回EPU双代理判定
-    if (oilChange30dPct >= OIL_SHOCK_PCT && uncertaintyHigh) return SIGNAL.TIGHT;
+    // 飙升侧双护栏：①EPU高位（战争冲击必伴随不确定性飙升）②油价水平护栏（2026-07-19 O1采纳）——
+    // 危机刚过时EPU必然还在高位，"EPU平静=复苏"假设失效（2009-03低位反弹+25%被误判战争冲击
+    // 踏空V型底-17.5pp）；补充条件：仅当油价高于近2年中位（oilLevelLow!==true）才判战争冲击，
+    // 低位反弹（2009 $45/2020 $38）放行，高位飙升（2022俄乌 $110）不受影响。null时fail-open不抑制
+    if (oilChange30dPct >= OIL_SHOCK_PCT && uncertaintyHigh && oilLevelLow !== true) return SIGNAL.TIGHT;
     // 暴跌侧护栏 fail-closed：EPU双缺时无法区分缓和型vs危机需求型暴跌，不判宽松
     if (oilChange30dPct <= -OIL_SHOCK_PCT && guardKnown && !uncertaintyHigh) return SIGNAL.LOOSE;
   }

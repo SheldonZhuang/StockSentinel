@@ -185,6 +185,32 @@ export function curveRunLengths(asc) {
   return runs;
 }
 
+/**
+ * O系油价水平护栏（2026-07-18 评估，默认关）：判定当前WTI是否处于"低位"——
+ * 危机后复苏的大涨是"低位反弹"（2009-03/2020-06，EPU仍高位但非战争），
+ * 战争/供给冲击推高的是"高位再飙升"（2022-03俄乌）。
+ * @param {object} guard - {mode:'median', windowObs} 低于近windowObs个观测的中位数=低位；
+ *                        {mode:'drawdown', windowObs, ddPct} 距窗口内最高价回撤仍超ddPct%=低位
+ * @returns {boolean|null} null=无观测
+ */
+export function oilLevelLowAsOf(oilAsc, asOfDate, guard) {
+  const li = lastIdxLE(oilAsc, asOfDate);
+  if (li < 0) return null;
+  const from = Math.max(0, li - guard.windowObs + 1);
+  const price = oilAsc[li].value;
+  if (guard.mode === 'drawdown') {
+    let hi = -Infinity;
+    for (let i = from; i <= li; i++) if (oilAsc[i].value > hi) hi = oilAsc[i].value;
+    return (price / hi - 1) * 100 <= -guard.ddPct;
+  }
+  const win = [];
+  for (let i = from; i <= li; i++) win.push(oilAsc[i].value);
+  win.sort((a, b) => a - b);
+  const mid = win.length >> 1;
+  const median = win.length % 2 ? win[mid] : (win[mid - 1] + win[mid]) / 2;
+  return price < median;
+}
+
 // ---------- FRED 拉取（与 run-backtest 共用 fred-cache.json，同 key 格式/同 TTL） ----------
 
 const FRED_CACHE = path.join(__dirname, 'fred-cache.json');
@@ -214,9 +240,10 @@ async function fredSeriesCached(id, apiKey, extra = '') {
  * 误差≤2个日历日，如实注明）。
  * @returns {Array<record>} 含热身期（1999），调用方按日期过滤
  */
-export function runDailyReplay(DD) {
+export function runDailyReplay(DD, opts = {}) {
   const { spx, walcl, ratesAsc, stepsAsc, epuDailyAsc, oilAsc, curveAsc, curveRuns,
     mtsVis, pcepiVis, sahmVis, epuTradeVis } = DD;
+  const oilGuard = opts.oilGuard ?? { mode: 'median', lookbackObs: 504 }; // O1已上线（2026-07-19采纳）：与线上 calcAdminSignal 的油价水平护栏一致；传 null 可复现采纳前行为
 
   const startIdx = spx.findIndex(b => b.date >= WARMUP_START);
   if (startIdx < 0) throw new Error('SPX 数据不含热身起点之后的bar');
@@ -273,7 +300,16 @@ export function runDailyReplay(DD) {
       if (ma.length) epuDailyPercentile = calcPercentile(ma[ma.length - 1], ma);
     }
     const oilChange30dPct = oilChange30dAsOf(oilAsc, today);
-    const admin = calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct });
+    // O系油价水平护栏（评估开关，默认关）：飙升侧命中且WTI处"低位"→ 该日油价输入置null，
+    // 行政维回落到EPU双代理一致判定（暴跌侧不受影响——低位暴跌的宽松判定语义不变）
+    let oilForAdmin = oilChange30dPct;
+    let oilGuardSuppressed = false;
+    if (oilGuard && oilChange30dPct !== null && oilChange30dPct >= cfg.OIL_SHOCK_PCT
+      && oilLevelLowAsOf(oilAsc, today, oilGuard) === true) {
+      oilForAdmin = null;
+      oilGuardSuppressed = true;
+    }
+    const admin = calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct: oilForAdmin });
 
     // -- 萨姆（发布阶梯）与锁（快照差+台阶） --
     while (pSahm + 1 < sahmVis.length && sahmVis[pSahm + 1].visibleFrom <= today) pSahm++;
@@ -309,7 +345,7 @@ export function runDailyReplay(DD) {
       metrics: {
         rate: currentRate, rateDiffBp: locks.rateDiffBp, lastStepDate: lastStep?.date ?? null,
         fiscalPct, epuTradePct: epuTradePercentile, epuDailyPct: epuDailyPercentile,
-        oilPct: oilChange30dPct, sahm: sahmValue,
+        oilPct: oilChange30dPct, oilGuardSuppressed, sahm: sahmValue,
         spxAboveSma10: trendState.spxAboveSma10, invertedDays,
       },
     };
@@ -535,9 +571,122 @@ function flipDiagnostics(recs) {
   return { changes, roundTrips, defReduceRT, holdDays, confirmed, absorbed, rawChangesCount: rawChanges.length, rawRoundTrips };
 }
 
+// ---------- O系评估（--eval-oil）：油价飙升护栏加"油价水平"条件 ----------
+// 背景（本脚本基线运行发现）：最大单项损耗 2009-03-12~05-01（油价+25%且日频EPU 94分位被
+// 误判战争冲击→行政tight→防守踏空V型底，-17.5pp），根因是"EPU平静=复苏"假设在危机刚过不成立。
+// 硬约束：六危机时点不得变差（2022-03-23俄乌触发必须保住）、日度年化≥11.3%
+
+/** 区间内策略收益%（defense吃现金）——O系目标段挽回计算用 */
+function windowStratRet(recs, a, b) {
+  let nav = 1;
+  for (let i = 1; i < recs.length; i++) {
+    if (recs[i - 1].date < a || recs[i - 1].date > b) continue;
+    const ret = recs[i].spx / recs[i - 1].spx;
+    const cash = 1 + ((recs[i - 1].metrics.rate ?? 0) / 100) / 252;
+    nav *= recs[i - 1].final === 'defense' ? cash : ret;
+  }
+  return (nav - 1) * 100;
+}
+
+/** 连续被抑制日压缩为区间串 */
+function suppressedSpans(recs) {
+  const spans = [];
+  let cur = null;
+  for (const r of recs) {
+    if (r.metrics.oilGuardSuppressed) {
+      if (!cur) cur = { start: r.date, end: r.date, n: 0 };
+      cur.end = r.date; cur.n++;
+    } else if (cur) { spans.push(cur); cur = null; }
+  }
+  if (cur) spans.push(cur);
+  return spans;
+}
+
+async function runEvalOil(D, DD) {
+  const spxBars = D.spx.filter(b => b.date <= REPLAY_END);
+  const DEFS = [
+    ['基线(护栏关)', null],
+    ['O1 低于2年中位(504obs)', { mode: 'median', windowObs: 504 }],
+    ['O2a 1年中位(252)', { mode: 'median', windowObs: 252 }],
+    ['O2b 3年中位(756)', { mode: 'median', windowObs: 756 }],
+    ['O3 距2年高点回撤>40%', { mode: 'drawdown', windowObs: 504, ddPct: 40 }],
+  ];
+  const SEGS = [['2009-03-01', '2009-06-30', '2009复苏段'], ['2020-05-01', '2020-06-30', '2020-06段']];
+  let base = null;
+  const rows = [];
+  const details = new Map();
+  for (const [name, guard] of DEFS) {
+    const recs = runDailyReplay(DD, { oilGuard: guard }).filter(r => r.date >= REPLAY_START && r.date <= REPLAY_END);
+    const sim = simulateNavDailyRecs(recs);
+    const eps = defenseEpisodesDaily(recs);
+    const fp = eps.map(e => episodeIsFalsePositive(e, spxBars)).filter(v => v === true).length;
+    const cr = crisisRowsDaily(recs, spxBars);
+    if (!base) base = { recs, cr, sim };
+    const segRet = SEGS.map(([a, b]) => windowStratRet(recs, a, b));
+    const baseSegRet = SEGS.map(([a, b]) => windowStratRet(base.recs, a, b));
+    // 硬约束：每场危机 leadDays 不得比基线差（未触发→触发算改善；触发→未触发算变差）
+    let timingOk = true;
+    const timingChanges = [];
+    cr.forEach((r, i) => {
+      const b = base.cr[i];
+      if (b.firstDefDate && !r.firstDefDate) { timingOk = false; timingChanges.push(`${r.name}丢失`); }
+      else if (b.leadDays != null && r.leadDays != null && r.leadDays < b.leadDays) {
+        timingOk = false; timingChanges.push(`${r.name} ${b.leadDays}→${r.leadDays}天`);
+      } else if (b.firstDefDate !== r.firstDefDate) timingChanges.push(`${r.name} ${b.firstDefDate}→${r.firstDefDate}`);
+    });
+    const c22 = cr.find(r => r.name.startsWith('2022'));
+    const ukraineKept = c22?.firstDefDate === base.cr.find(r => r.name.startsWith('2022'))?.firstDefDate;
+    const pass = timingOk && ukraineKept && sim.cagrPct >= 11.3;
+    rows.push({
+      组合: name, 年化: sim.cagrPct.toFixed(2) + '%', 回撤: sim.mddPct.toFixed(1) + '%',
+      假阳性: `${fp}/${eps.length}`,
+      防守占比: (recs.filter(r => r.final === 'defense').length / recs.length * 100).toFixed(1) + '%',
+      抑制天数: recs.filter(r => r.metrics.oilGuardSuppressed).length,
+      '2009段挽回pp': (segRet[0] - baseSegRet[0]).toFixed(1),
+      '2020-06段挽回pp': (segRet[1] - baseSegRet[1]).toFixed(1),
+      '2022首防': c22?.firstDefDate ?? '未触发',
+      危机时点变化: timingChanges.join('; ') || '无',
+      硬约束: pass ? '过' : '✗',
+    });
+    details.set(name, { recs, cr, eps, sim });
+  }
+  console.log('\n═════ O系油价水平护栏（日度重放；硬约束=六危机时点不变差·2022-03-23保住·年化≥11.3%）═════');
+  console.table(rows);
+
+  // O1 明细：抑制区间 + 危机表全对照 + 片段对照
+  const o1 = details.get('O1 低于2年中位(504obs)');
+  console.log('\n----- O1 被抑制的油价飙升日（低位反弹判定生效区间） -----');
+  for (const s of suppressedSpans(o1.recs)) console.log(`  ${s.start} ~ ${s.end}（${s.n}个交易日）`);
+  console.log('\n----- O1 危机表全对照（vs 基线） -----');
+  console.table(o1.cr.map((r, i) => ({
+    危机: r.name, '基线首防': base.cr[i].firstDefDate ?? '未触发', 'O1首防': r.firstDefDate ?? '未触发',
+    '基线时点': fmtLead(base.cr[i]), 'O1时点': fmtLead(r),
+    '基线少亏pp': f1(base.cr[i].savedPct), 'O1少亏pp': f1(r.savedPct),
+    '基线覆盖%': f1(base.cr[i].coveragePct), 'O1覆盖%': f1(r.coveragePct),
+  })));
+  console.log('----- O1 防守片段（vs 基线12段） -----');
+  o1.eps.forEach(e => {
+    const fp = episodeIsFalsePositive(e, spxBars);
+    console.log(`  ${e.start} ~ ${e.end}（${e.days}天）${fp === true ? '【假阳性】' : fp === false ? '【真危机】' : '【无法判定】'}`);
+  });
+
+  // 月度口径同款开关（结构性冗余的实证：飙升tight要求epuHigh，抑制后百分位回落仍tight）
+  console.log('\n----- 月度回放同款开关（runReplay + oilLevelGuard） -----');
+  const tlBase = runReplay(D, VARIANTS_DEFAULT).filter(t => t.month <= '2026-06');
+  const tlO1 = runReplay(D, { ...VARIANTS_DEFAULT, oilLevelGuard: true }).filter(t => t.month <= '2026-06');
+  const diffM = tlBase.filter((t, i) => t.final !== tlO1[i].final || t.admin !== tlO1[i].admin).map(t => t.month);
+  const sB = evaluate(D, tlBase), sO = evaluate(D, tlO1);
+  console.log(`月度基线 年化${sB.overall.stratCagr.toFixed(2)}% 回撤${sB.overall.stratMdd.toFixed(1)}% 假阳性${sB.falsePositives}/${sB.episodes} | ` +
+    `月度O1 年化${sO.overall.stratCagr.toFixed(2)}% 回撤${sO.overall.stratMdd.toFixed(1)}% 假阳性${sO.falsePositives}/${sO.episodes}`);
+  console.log(diffM.length
+    ? `逐月diff（admin或final变化）：${diffM.join(' ')}`
+    : '逐月diff：无——证实月度单代理口径下飙升tight分支结构性冗余（epuHigh前提下抑制后百分位回落仍tight），月度不劣化自动满足');
+}
+
 async function main() {
   const t0 = Date.now();
   const { D, DD } = await loadDailyData();
+  if (process.argv.includes('--eval-oil')) return runEvalOil(D, DD);
 
   console.log('[daily-replay] running daily replay...');
   const all = runDailyReplay(DD);

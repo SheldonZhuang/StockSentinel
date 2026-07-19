@@ -80,7 +80,8 @@ function oilBadge(ind) {
   const guard = ind.epuDailyPercentile ?? ind.epuTradePercentile;
   const guardKnown = guard != null;
   const uncertaintyHigh = guardKnown && guard > 80;
-  if (ind.oilChange30dPct >= 20 && uncertaintyHigh) return 'tight';
+  // O1油价水平护栏(2026-07-19)：低位反弹(oilLevelLow===true)不判战争冲击——与 backend calcAdminSignal 同步
+  if (ind.oilChange30dPct >= 20 && uncertaintyHigh && ind.oilLevelLow !== true) return 'tight';
   if (ind.oilChange30dPct <= -20 && guardKnown && !uncertaintyHigh) return 'loose';
   return 'neutral';
 }

@@ -251,10 +251,15 @@ export function replayMonth(m, prevState, variants = {}) {
   // 飙升/暴跌侧对称护栏（与线上 calcAdminSignal 同口径）：仅EPU高位时飙升判战争冲击tight，
   // EPU平静时的油价大涨=需求复苏(V型底右侧最佳买点)不误判防守
   // W2：行政tight阈值可覆盖（80→如90分位），油价护栏的 epuHigh 同步用覆盖值保持口径一致
+  // O1（2026-07-19 日度重放评估用，未列入VARIANTS_DEFAULT）：oilLevelGuard=true 时飙升侧另要求
+  // WTI高于近2年月末中位数（低位反弹=危机后复苏非战争冲击）。注意：月度单代理口径下该分支
+  // 结构性冗余——飙升tight本就要求epuHigh(>80分位)，被抑制后回落到百分位判定仍是tight，
+  // 开关预期逐位无变化（--eval-oil 实证），保留仅为与日度口径对齐可复现
   const epuTightTh = variants.epuTightPercentile ?? cfg.EPU_PERCENTILE_TIGHT;
   const epuHigh = m.epuPercentile !== null && m.epuPercentile > epuTightTh;
+  const oilSurgeBlocked = !!variants.oilLevelGuard && m.oilLevelLow === true;
   const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
-    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT && epuHigh ? S.TIGHT
+    ? (m.oilChangePct >= cfg.OIL_SHOCK_PCT && epuHigh && !oilSurgeBlocked ? S.TIGHT
       : (m.oilChangePct <= -cfg.OIL_SHOCK_PCT && m.epuPercentile !== null && !epuHigh) ? S.LOOSE : null)
     : null;
   const admin = oilEvent !== null ? oilEvent
@@ -695,6 +700,11 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
   let monthIdx = 0;
   // 首月利率变动用 1999-12 播种，避免首月恒 null
   let prevRate = D.rateMap.get('1999-12') ?? null;
+  // O1 油价水平护栏（变体，默认关）：近24个月末WTI中位数窗口，用 2000-01 前的历史播种保证首月满窗
+  const oilHist = variants.oilLevelGuard
+    ? [...D.oilMap.entries()].filter(([mo]) => mo < (months[0] ?? '2000-01'))
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([, v]) => v)
+    : [];
   // 月度指标发布滞后建模：MTSDS133FMS 次月中旬发布、SAHMREALTIME 次月初随非农、EPUTRADE 月后编制，
   // M 月末决策时只能看到 M-1 月的观测（利率/WALCL/油价为日频/周频实时序列，不移位）
 
@@ -756,6 +766,15 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     const oilCur = D.oilMap.get(month);
     const oilPctVal = oilCur != null && oilPrev != null && oilPrev !== 0 ? (oilCur - oilPrev) / oilPrev * 100 : null;
     const sahmVal = D.sahmMap.get(asOf) ?? null;
+    // O1：月末WTI是否低于近24个月末中位数（仅 oilLevelGuard 变体计算，基线零开销）
+    let oilLevelLow = null;
+    if (variants.oilLevelGuard && oilCur != null) {
+      oilHist.push(oilCur);
+      const win = oilHist.slice(-24).slice().sort((a, b) => a - b);
+      const mid = win.length >> 1;
+      const median = win.length % 2 ? win[mid] : (win[mid - 1] + win[mid]) / 2;
+      oilLevelLow = oilCur < median;
+    }
 
     const r = replayMonth({
       rate, prevRate,
@@ -763,6 +782,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
       fiscalChangePct: realFiscalPct,
       epuPercentile: epuPctVal,
       oilChangePct: oilPctVal,
+      oilLevelLow,
       sahm: sahmVal,
       spxBelowSma10,
       realRatePct,

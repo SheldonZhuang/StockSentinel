@@ -366,6 +366,8 @@ async function runDailyUpdate() {
     oilChange30dPct: policyData.oilChange30dPct,
     oilPeriodDate: policyData.oilPeriodDate,
     oilSource: policyData.oilSource,
+    oilLevelLow: policyData.oilLevelLow === null || policyData.oilLevelLow === undefined
+      ? null : (policyData.oilLevelLow ? 1 : 0),
     aiSupplyAutoSignal: aiSupplyAutoEff,
     aiMarketSignal: aiSubSignals.usageSignal,   // 复用列：调用量子信号（原市场代理已移除）
     aiFundamentalSignal: aiSubSignals.semiSignal, // 复用列：半导体产出子信号

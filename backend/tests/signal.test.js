@@ -629,3 +629,26 @@ describe('calcTrendState / applyTrendReentry（W5趋势再入场，2026-07-17采
     expect(applyTrendReentry('attack', { sahmLockActive: false, reactiveLockActive: false, spxAboveSma10: true })).toBe('attack');
   });
 });
+
+describe('calcAdminSignal 油价水平护栏（O1，2026-07-19采纳）', () => {
+  it('高位飙升+EPU高位（俄乌型）→ tight 不受影响', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: 25, oilLevelLow: false })).toBe('tight');
+  });
+
+  it('低位反弹+EPU高位（2009-03型危机后复苏）→ 不判战争冲击，落回EPU双代理判定', () => {
+    // 修复前此场景误判tight踏空V型底-17.5pp；修复后落回EPU判定（双高位→tight仍可能，
+    // 但飙升快速通道被关闭——此处EPU双代理一致高位仍为tight属EPU自身判定）
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 94, oilChange30dPct: 25, oilLevelLow: true })).toBe('tight');
+    // EPU不一致时（日频回落）：修复前飙升通道仍judge tight，修复后正确回到"不一致→观望"
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 60, oilChange30dPct: 25, oilLevelLow: true })).toBe('neutral');
+  });
+
+  it('油价水平未知（null）→ fail-open 保持旧行为', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: 25, oilLevelLow: null })).toBe('tight');
+    expect(calcAdminSignal({ epuTradePercentile: 92, epuDailyPercentile: 90, oilChange30dPct: 25 })).toBe('tight');
+  });
+
+  it('暴跌侧不受水平护栏影响', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: -25, oilLevelLow: true })).toBe('loose');
+  });
+});

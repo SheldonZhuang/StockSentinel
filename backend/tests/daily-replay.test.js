@@ -5,9 +5,10 @@ import {
   addMonthsYM, firstFridayOf,
   mtsVisibleFrom, pcepiVisibleFrom, sahmVisibleFrom, epuTradeVisibleFrom,
   buildVisibleSeries, calcRateStepsAsc, lastIdxLE, rateInputsAsOf, computeLocksDaily,
-  oilChange30dAsOf, curveRunLengths,
+  oilChange30dAsOf, curveRunLengths, oilLevelLowAsOf,
   simulateNavDailyRecs, defenseEpisodesDaily, episodeIsFalsePositive,
 } from '../backtest/daily-replay.mjs';
+import { replayMonth } from '../backtest/run-backtest.js';
 
 describe('addMonthsYM / firstFridayOf', () => {
   it('跨年进位与负数月', () => {
@@ -173,6 +174,54 @@ describe('oilChange30dAsOf / curveRunLengths', () => {
       { date: 'd3', value: 0.1 }, { date: 'd4', value: -0.3 },
     ];
     expect(curveRunLengths(asc)).toEqual([1, 2, 0, 1]);
+  });
+});
+
+describe('oilLevelLowAsOf（O系油价水平护栏）', () => {
+  const mkAsc = vals => vals.map((v, i) => ({ date: `2020-01-${String(i + 1).padStart(2, '0')}`, value: v }));
+  it('median 模式：现价低于窗口中位数=低位；高于=非低位', () => {
+    const asc = mkAsc([100, 90, 80, 70, 40]); // 窗口5个：中位80
+    expect(oilLevelLowAsOf(asc, '2020-01-05', { mode: 'median', windowObs: 5 })).toBe(true);  // 40 < 80
+    expect(oilLevelLowAsOf(asc, '2020-01-05', { mode: 'median', windowObs: 3 })).toBe(true);  // 窗口[80,70,40]中位70 → 40<70
+    const asc2 = mkAsc([40, 50, 60, 70, 95]);
+    expect(oilLevelLowAsOf(asc2, '2020-01-05', { mode: 'median', windowObs: 5 })).toBe(false); // 95 > 60
+  });
+  it('median 偶数窗口取中间两数均值（窗口含当日观测）', () => {
+    const asc = mkAsc([10, 20, 30, 88]); // 窗口4=[10,20,30,88]：中位 (20+30)/2=25
+    expect(oilLevelLowAsOf(asc, '2020-01-04', { mode: 'median', windowObs: 4 })).toBe(false); // 88 > 25
+    const asc2 = mkAsc([10, 20, 30, 15]); // 窗口4=[10,20,30,15]排序后中位 (15+20)/2=17.5
+    expect(oilLevelLowAsOf(asc2, '2020-01-04', { mode: 'median', windowObs: 4 })).toBe(true); // 15 < 17.5
+  });
+  it('drawdown 模式：距窗口最高价回撤仍超阈值=低位（深坑反弹）', () => {
+    const asc = mkAsc([100, 30, 45]); // 高点100，现价45 → 回撤-55% ≤ -40 → 低位
+    expect(oilLevelLowAsOf(asc, '2020-01-03', { mode: 'drawdown', windowObs: 504, ddPct: 40 })).toBe(true);
+    const asc2 = mkAsc([100, 80, 95]); // 回撤-5% → 非低位
+    expect(oilLevelLowAsOf(asc2, '2020-01-03', { mode: 'drawdown', windowObs: 504, ddPct: 40 })).toBe(false);
+  });
+  it('无观测 → null（调用方不抑制，fail-open）', () => {
+    expect(oilLevelLowAsOf(mkAsc([50]), '2019-12-31', { mode: 'median', windowObs: 5 })).toBe(null);
+  });
+});
+
+describe('月度 oilLevelGuard 结构性冗余不变式（--eval-oil 实证的单测锁定）', () => {
+  // 月度单代理口径：飙升tight要求 epuPercentile>80，被抑制后回落到百分位判定仍是tight
+  // → 开关在月度逐位无变化。此不变式若被未来改动打破（如月度改双代理），本测试会报警
+  const m = {
+    rate: 5, prevRate: 5, walcl: null, prevWalcl: null, fiscalChangePct: 0,
+    epuPercentile: 90, oilChangePct: 25, oilLevelLow: true, sahm: 0.1, spxBelowSma10: false,
+  };
+  const state = { sahmLockActive: false, reactiveLockActive: false };
+  it('油价飙升+EPU高位+低位反弹：抑制前后 admin 均为 tight（回落路径同结论）', () => {
+    const off = replayMonth({ ...m }, { ...state });
+    const on = replayMonth({ ...m }, { ...state }, { oilLevelGuard: true });
+    expect(off.admin).toBe('tight');
+    expect(on.admin).toBe('tight');
+    expect(on.final).toBe(off.final);
+  });
+  it('默认（无变体）行为与未传 oilLevelLow 逐位一致（不改现有默认行为）', () => {
+    const legacy = replayMonth({ ...m, oilLevelLow: undefined }, { ...state });
+    const withField = replayMonth({ ...m }, { ...state });
+    expect(withField).toEqual(legacy);
   });
 });
 

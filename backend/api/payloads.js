@@ -124,6 +124,8 @@ export async function buildSignalPayload() {
       oilChange30dPct: snapshot.oil_change_30d_pct,
       oilPeriodDate: snapshot.oil_period_date,
       oilSource: snapshot.oil_source,
+      // O1油价水平护栏：true=油价低于近2年中位（低位反弹，飙升不判战争冲击）
+      oilLevelLow: snapshot.oil_level_low == null ? null : !!snapshot.oil_level_low,
       adminAutoSignal: snapshot.admin_auto_signal,
       smhSpyRelReturnPct: snapshot.smh_spy_rel_return_pct,
       semiIpYoy: snapshot.semi_ip_yoy,
