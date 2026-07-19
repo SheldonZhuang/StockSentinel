@@ -17,6 +17,7 @@ import { fetchAiSupplyNews } from './fetch-rss.js';
 import chainCfg from '../config/ai-chain.config.js';
 import { asyncRoute } from '../utils/async-route.js';
 import { invalidateKeyCache } from './public.js';
+import { getCapeState } from '../utils/cape.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
@@ -183,16 +184,26 @@ export function deriveS5State(rows) {
 
 // GET /api/admin/s5 — S5 执行台（仅管理员）
 router.get('/s5', requireAdmin, asyncRoute(async (req, res) => {
-  const [rows, latest] = await Promise.all([getSnapshotHistory(365), getLatestSnapshot()]);
+  const [rows, latest, cape] = await Promise.all([
+    getSnapshotHistory(365), getLatestSnapshot(), getCapeState(),
+  ]);
   const s5 = deriveS5State(rows);
+  // CAPE估值层（2026-07-19用户确认启用，P3档）：>90分位时attack/neutral期TQQQ目标仓位55%；
+  // 数据不可用时fail-soft（layer=null，按100%显示并提示数据缺失——宁可不缩仓也不误缩）
+  const capeLayer = cape
+    ? { available: true, cape: cape.cape, percentile30y: cape.percentile30y, month: cape.month, active: cape.layerActive }
+    : { available: false, cape: null, percentile30y: null, month: null, active: null };
+  const targetWeightPct = s5.state === 'in_cash' ? 0 : (capeLayer.active === true ? 55 : 100);
   res.json({
     ...s5,
     downgradePendingSince: latest?.final_downgrade_pending_since ?? null,
     spxAboveSma10: latest?.spx_above_sma10 == null ? null : !!latest.spx_above_sma10,
-    // 回测口径速览（日度S5a，docs/s5-execution-playbook.md，2026-07-19日度精化）
+    capeLayer,
+    targetWeightPct,
+    // 回测口径速览（日度S5a+CAPE层，docs/s5-execution-playbook.md）
     playbook: {
-      xirrPct: 38.8, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4,
-      note: '日度口径；假信号是常态(4/9)，机械执行是前提；浮亏-28.3%来自危机中段的解锁窗往返',
+      xirrPct: 40.1, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4,
+      note: '日度口径含CAPE层；假信号是常态(4/9)，机械执行是前提；浮亏-28.3%来自危机中段的解锁窗往返',
     },
   });
 }));

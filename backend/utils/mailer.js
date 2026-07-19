@@ -172,7 +172,7 @@ export function buildS5ActionEmail(p) {
     : '🟢【S5执行】防守解除——应立即全额买回TQQQ';
   const action = isEnter
     ? '按 S5 规则：<strong>今日卖出全部 TQQQ 存量转入现金</strong>；本月起新定投资金进入现金储备。'
-    : `按 S5 规则：<strong>今日立即一次性全额买回 TQQQ</strong>（即使当前档位只是恢复到"${SIGNAL_LABELS[p.to] || p.to}"也要买回——等待恢复观望是被回测否决的做法，XIRR 37.0%→18.2%）。历史提示：买回发生在V型反弹中，分批只会越买越贵。`;
+    : `按 S5 规则：<strong>今日立即一次性全额买回 TQQQ</strong>（即使当前档位只是恢复到"${SIGNAL_LABELS[p.to] || p.to}"也要买回——等待恢复观望是被回测否决的做法，XIRR 37.0%→18.2%）。历史提示：买回发生在V型反弹中，分批只会越买越贵。<br/><span style="color:#b45309">CAPE估值层已启用：买回前查看S5执行台的当前目标仓位（CAPE&gt;90分位时为55%而非100%）。</span>`;
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
       <h2 style="color: #1a1a1a;">${isEnter ? '🔴' : '🟢'} S5 执行指令 · ${p.dataDate || ''}</h2>
