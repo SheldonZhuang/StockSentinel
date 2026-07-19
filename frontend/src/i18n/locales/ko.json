@@ -301,6 +301,11 @@
     "maxUnderwater": "최대 수면 아래 낙폭",
     "roundTrips": "26년간 왕복 횟수",
     "falseSignals": "거짓 신호 횟수",
-    "playbookDoc": "전체 매뉴얼: docs/s5-execution-playbook.md"
+    "playbookDoc": "전체 매뉴얼: docs/s5-execution-playbook.md",
+    "capeLabel": "CAPE 밸류에이션 레이어",
+    "capeUnavailable": "데이터 없음 · 기본 100% 비중",
+    "capeActive": "CAPE {cape} (30년 백분위 P{pct}) > 90 → TQQQ 목표 비중 55%",
+    "capeInactive": "CAPE 백분위 P{pct} ≤ 90 → 목표 비중 100%",
+    "targetWeight": "(현재 목표 비중 {pct}%)"
   }
 }

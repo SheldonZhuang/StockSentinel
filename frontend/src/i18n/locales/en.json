@@ -301,6 +301,11 @@
     "maxUnderwater": "Max underwater",
     "roundTrips": "Round trips in 26y",
     "falseSignals": "False signals",
-    "playbookDoc": "Full playbook: docs/s5-execution-playbook.md"
+    "playbookDoc": "Full playbook: docs/s5-execution-playbook.md",
+    "capeLabel": "CAPE Valuation Layer",
+    "capeUnavailable": "Data unavailable · defaulting to 100% weight",
+    "capeActive": "CAPE {cape} (30y percentile P{pct}) > 90 → TQQQ target weight 55%",
+    "capeInactive": "CAPE percentile P{pct} ≤ 90 → target weight 100%",
+    "targetWeight": "(current target weight {pct}%)"
   }
 }

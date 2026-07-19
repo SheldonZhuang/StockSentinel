@@ -301,6 +301,11 @@
     "maxUnderwater": "Máx. bajo el agua",
     "roundTrips": "Idas y vueltas en 26 años",
     "falseSignals": "Señales falsas",
-    "playbookDoc": "Manual completo: docs/s5-execution-playbook.md"
+    "playbookDoc": "Manual completo: docs/s5-execution-playbook.md",
+    "capeLabel": "Capa de valoración CAPE",
+    "capeUnavailable": "Datos no disponibles · posición al 100% por defecto",
+    "capeActive": "CAPE {cape} (percentil 30 años P{pct}) > 90 → peso objetivo TQQQ 55%",
+    "capeInactive": "Percentil CAPE P{pct} ≤ 90 → peso objetivo 100%",
+    "targetWeight": "(peso objetivo actual {pct}%)"
   }
 }

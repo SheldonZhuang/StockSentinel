@@ -301,6 +301,11 @@
     "maxUnderwater": "最大水下幅度",
     "roundTrips": "26年往返次数",
     "falseSignals": "假信号次数",
-    "playbookDoc": "完整手册见 docs/s5-execution-playbook.md"
+    "playbookDoc": "完整手册见 docs/s5-execution-playbook.md",
+    "capeLabel": "CAPE估值层",
+    "capeUnavailable": "数据不可用·按100%仓位",
+    "capeActive": "CAPE {cape}（30年分位 P{pct}）> 90 → TQQQ目标仓位 55%",
+    "capeInactive": "CAPE分位 P{pct} ≤90 → 目标仓位 100%",
+    "targetWeight": "（当前目标仓位 {pct}%）"
   }
 }

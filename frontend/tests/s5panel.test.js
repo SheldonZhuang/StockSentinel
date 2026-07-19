@@ -28,7 +28,9 @@ const baseS5 = {
   asOf: '2026-07-18',
   downgradePendingSince: null,
   spxAboveSma10: true,
-  playbook: { xirrPct: 37.0, maxUnderwaterPct: -8.8, roundTrips26y: 7, falseSignals: 4, note: '月度回测口径' },
+  capeLayer: { available: true, cape: 32.4, percentile30y: 72, month: '2026-06', active: false },
+  targetWeightPct: 100,
+  playbook: { xirrPct: 40.1, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4, note: '月度回测口径' },
 };
 
 describe('S5Panel', () => {
@@ -67,9 +69,13 @@ describe('S5Panel', () => {
     expect(wrapper.text()).toContain('持有；本月定投+全部现金储备买入TQQQ');
     expect(wrapper.text()).toContain('上升（SPX ≥ 10月SMA）');
     expect(wrapper.findAll('.log-table tr')).toHaveLength(2);
-    expect(wrapper.text()).toContain('37.0%');
-    expect(wrapper.text()).toContain('-8.8%');
+    expect(wrapper.text()).toContain('40.1%');
+    expect(wrapper.text()).toContain('-28.3%');
     expect(wrapper.text()).toContain('docs/s5-execution-playbook.md');
+    // CAPE 未激活：绿色 + 目标仓位提示（非告警态）
+    expect(wrapper.find('.cape-inactive').text()).toBe('CAPE分位 P72 ≤90 → 目标仓位 100%');
+    expect(wrapper.find('.weight-hint').text()).toBe('（当前目标仓位 100%）');
+    expect(wrapper.find('.weight-hint.warn').exists()).toBe(false);
   });
 
   it('renders the literal $ in hold_accumulate copy', async () => {
@@ -89,6 +95,7 @@ describe('S5Panel', () => {
       todayAction: 'sell_all',
       downgradePendingSince: '2026-07-01',
       spxAboveSma10: false,
+      targetWeightPct: 0,
     });
     const wrapper = mountPanel();
     await flushPromises();
@@ -97,5 +104,35 @@ describe('S5Panel', () => {
     // 2026-07-01 + 30 天 = 2026-07-31
     expect(wrapper.text()).toContain('确认期至 2026-07-31');
     expect(wrapper.text()).toContain('下降（SPX < 10月SMA）');
+    // 空仓类动作不显示目标仓位提示
+    expect(wrapper.find('.weight-hint').exists()).toBe(false);
+  });
+
+  it('shows red CAPE row and bold warn hint when the CAPE layer is active (55%)', async () => {
+    useAuthStore().user.value = { id: 1, isAdmin: true };
+    api.getAdminS5.mockResolvedValue({
+      ...baseS5,
+      capeLayer: { available: true, cape: 38.7, percentile30y: 93, month: '2026-06', active: true },
+      targetWeightPct: 55,
+    });
+    const wrapper = mountPanel();
+    await flushPromises();
+    expect(wrapper.find('.cape-active').text()).toBe('CAPE 38.7（30年分位 P93）> 90 → TQQQ目标仓位 55%');
+    const hint = wrapper.find('.weight-hint.warn');
+    expect(hint.exists()).toBe(true);
+    expect(hint.text()).toBe('（当前目标仓位 55%）');
+  });
+
+  it('shows yellow fallback when CAPE data is unavailable', async () => {
+    useAuthStore().user.value = { id: 1, isAdmin: true };
+    api.getAdminS5.mockResolvedValue({
+      ...baseS5,
+      capeLayer: { available: false, cape: null, percentile30y: null, month: null, active: null },
+    });
+    const wrapper = mountPanel();
+    await flushPromises();
+    expect(wrapper.find('.cape-unavailable').text()).toBe('数据不可用·按100%仓位');
+    expect(wrapper.find('.cape-active').exists()).toBe(false);
+    expect(wrapper.find('.cape-inactive').exists()).toBe(false);
   });
 });

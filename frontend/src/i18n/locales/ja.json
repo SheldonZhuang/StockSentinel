@@ -301,6 +301,11 @@
     "maxUnderwater": "最大水面下幅",
     "roundTrips": "26年間の往復回数",
     "falseSignals": "偽シグナル回数",
-    "playbookDoc": "完全マニュアル：docs/s5-execution-playbook.md"
+    "playbookDoc": "完全マニュアル：docs/s5-execution-playbook.md",
+    "capeLabel": "CAPEバリュエーション層",
+    "capeUnavailable": "データ取得不可・100%ポジションで運用",
+    "capeActive": "CAPE {cape}（30年分位 P{pct}）> 90 → TQQQ目標ウェイト 55%",
+    "capeInactive": "CAPE分位 P{pct} ≤ 90 → 目標ウェイト 100%",
+    "targetWeight": "（現在の目標ウェイト {pct}%）"
   }
 }

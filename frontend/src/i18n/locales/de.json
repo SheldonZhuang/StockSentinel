@@ -301,6 +301,11 @@
     "maxUnderwater": "Max. Unterwasser",
     "roundTrips": "Umschichtungen in 26 J.",
     "falseSignals": "Fehlsignale",
-    "playbookDoc": "Vollständiges Handbuch: docs/s5-execution-playbook.md"
+    "playbookDoc": "Vollständiges Handbuch: docs/s5-execution-playbook.md",
+    "capeLabel": "CAPE-Bewertungsebene",
+    "capeUnavailable": "Daten nicht verfügbar · Standard 100% Gewichtung",
+    "capeActive": "CAPE {cape} (30-Jahres-Perzentil P{pct}) > 90 → TQQQ-Zielgewicht 55%",
+    "capeInactive": "CAPE-Perzentil P{pct} ≤ 90 → Zielgewicht 100%",
+    "targetWeight": "(aktuelles Zielgewicht {pct}%)"
   }
 }

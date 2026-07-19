@@ -13,13 +13,24 @@
     <!-- 今日动作卡（最醒目） -->
     <div :class="['action-card', isBoundary ? 'urgent' : '']">
       <div class="action-label">{{ $t('s5.todayTitle') }}</div>
-      <div class="action-text">{{ $t(`s5.action.${data.todayAction}`) }}</div>
+      <div class="action-text">
+        {{ $t(`s5.action.${data.todayAction}`) }}
+        <span v-if="showTargetWeight" :class="['weight-hint', data.targetWeightPct === 55 ? 'warn' : '']">
+          {{ $t('s5.targetWeight', { pct: data.targetWeightPct }) }}
+        </span>
+      </div>
     </div>
 
     <!-- 状态行 -->
     <div class="status-rows">
       <div v-if="data.downgradePendingSince" class="status-row pending">
         {{ $t('s5.downgradePending', { date: downgradeConfirmDate }) }}
+      </div>
+      <div v-if="data.capeLayer" class="status-row cape-row">
+        <span class="cape-label">{{ $t('s5.capeLabel') }}</span>
+        <span v-if="!data.capeLayer.available" class="cape-unavailable">{{ $t('s5.capeUnavailable') }}</span>
+        <span v-else-if="data.capeLayer.active" class="cape-active">{{ $t('s5.capeActive', { cape: capeFmt, pct: capePctFmt }) }}</span>
+        <span v-else class="cape-inactive">{{ $t('s5.capeInactive', { pct: capePctFmt }) }}</span>
       </div>
       <div v-if="data.spxAboveSma10 !== null" class="status-row">
         <span :class="data.spxAboveSma10 ? 'trend-up' : 'trend-down'">
@@ -86,6 +97,23 @@ const isBoundary = computed(() =>
   data.value && ['sell_all', 'buyback_all'].includes(data.value.todayAction)
 );
 
+// 持仓类动作（买回/持有）附目标仓位提示；空仓类动作无意义不显示
+const showTargetWeight = computed(() =>
+  data.value
+  && ['hold_deploy', 'hold_accumulate', 'buyback_all'].includes(data.value.todayAction)
+  && data.value.targetWeightPct != null
+);
+
+// CAPE 数值格式化：估值一位小数，分位取整（后端可能给浮点）
+const capeFmt = computed(() => {
+  const c = data.value?.capeLayer?.cape;
+  return Number.isFinite(c) ? c.toFixed(1) : String(c ?? '');
+});
+const capePctFmt = computed(() => {
+  const p = data.value?.capeLayer?.percentile30y;
+  return Number.isFinite(p) ? String(Math.round(p)) : String(p ?? '');
+});
+
 // 降档确认期截止：pendingSince + 30 天（UTC 日期串运算，避免时区漂移）
 const downgradeConfirmDate = computed(() => {
   const since = data.value?.downgradePendingSince;
@@ -133,10 +161,17 @@ onMounted(async () => {
 .action-label { font-size: var(--fs-xs); color: var(--text-4); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .action-text { font-size: var(--fs-lg); font-weight: 700; color: var(--text-1); line-height: 1.5; }
 .action-card.urgent .action-text { color: var(--red); }
+.weight-hint { font-weight: 400; color: var(--text-3); }
+.weight-hint.warn { font-weight: 700; color: var(--red); }
 
 .status-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .status-row { font-size: var(--fs-md); color: var(--text-2); }
 .status-row.pending { color: var(--yellow); background: var(--yellow-bg); border-radius: 6px; padding: 6px 10px; }
+.cape-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cape-label { font-size: var(--fs-sm); color: var(--text-4); white-space: nowrap; }
+.cape-unavailable { color: var(--yellow); }
+.cape-active { color: var(--red); font-weight: 600; }
+.cape-inactive { color: var(--green); }
 .trend-up { color: var(--green); font-weight: 600; }
 .trend-down { color: var(--red); font-weight: 600; }
 .muted { font-size: var(--fs-sm); color: var(--text-4); }
