@@ -34,16 +34,19 @@ const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000)
  * @param {Array} recs - daily-replay 记录（date/final/sahmLockActive/reactiveLockActive/metrics.rate）
  * @param {Array<{date,close}>} tqqqBars - 合成TQQQ日线（升序）
  * @param {string} tierKey - 'final'（生效档）或 'rawFinal'（无V4迟滞对照）
+ * @param {Array<{date,close}>|null} qqqBars - QQQ(1x)日线（N2 reduce期买QQQ用），可缺省
  */
-export function buildS5Days(recs, tqqqBars, tierKey = 'final') {
+export function buildS5Days(recs, tqqqBars, tierKey = 'final', qqqBars = null) {
   const days = [];
-  let pi = -1;
+  let pi = -1, qi = -1;
   recs.forEach((r, i) => {
     while (pi + 1 < tqqqBars.length && tqqqBars[pi + 1].date <= r.date) pi++;
     if (pi < 0) throw new Error(`合成TQQQ 无 ${r.date} 前的收盘`);
+    if (qqqBars) while (qi + 1 < qqqBars.length && qqqBars[qi + 1].date <= r.date) qi++;
     const isMonthEnd = i === recs.length - 1 || recs[i + 1].date.slice(0, 7) !== r.date.slice(0, 7);
     days.push({
       date: r.date, px: tqqqBars[pi].close, tier: r[tierKey],
+      pxQqq: qqqBars && qi >= 0 ? qqqBars[qi].close : null,
       rate: r.metrics.rate ?? 0, isMonthEnd,
       trigger: r.sahmLockActive ? '萨姆锁' : r.reactiveLockActive ? '应对式锁' : '决策树共振',
     });
@@ -60,16 +63,21 @@ export function buildS5Days(recs, tqqqBars, tierKey = 'final') {
  *  - targetOf（R3 CAPE仓位缩放，2026-07-19 评估，默认null=行为逐位一致）：(month)=>目标TQQQ权重。
  *    动作日（买回执行日/月末买入日）把TQQQ再平衡到 target×组合——超配侧卖回储备，
  *    不足侧从储备补足；非动作日不交易（与月度 simulateS5.targetWeightOf 同语义）
+ *  - newMoneyMode（B系新钱规则，2026-07-19 评估，存量规则不动）：reduce 月末新钱去向——
+ *    'reserve'（现行S5a）入储备 | 'always'（N1）照买TQQQ | 'qqq'（N2）买QQQ(1x)，
+ *    恢复 neutral/attack 当日QQQ换TQQQ、进defense随存量一起清仓 | 'half'（N3）半额TQQQ半额储备。
+ *    注：targetOf 的再平衡只作用于 TQQQ+储备（N2 的QQQ腿不参与），'qqq'+targetOf 组合未定义、不评估
  * @returns {{dailyPoints, monthPoints, episodes, yearFactors, trades, missedMonthEnds}}
  *  episodes: [{signalDate,trigger,sellDate,sellPx,buyDate,buyPx,tqqqChangePct,waitDays}]
  */
-export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null } = {}) {
-  let tqqqU = 0, reserve = 0, invested = 0, prevV = null;
+export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null, newMoneyMode = 'reserve' } = {}) {
+  let tqqqU = 0, qqqU = 0, reserve = 0, invested = 0, prevV = null;
   let openEp = null;   // 已卖出、待买回的往返
-  const pending = [];  // 待执行动作 {execIdx, type:'sell'|'buyback', signalDate, trigger}
+  const pending = [];  // 待执行动作 {execIdx, type:'sell'|'buyback'|'convert', signalDate, trigger}
   const episodes = [], dailyPoints = [], monthPoints = [];
   const yearFactors = new Map();
   let sells = 0, buys = 0, missedMonthEnds = 0;
+  const isBuy = t => t === 'attack' || t === 'neutral';
   // R3：动作日再平衡到目标权重（w=1 时买入分支 = 全额部署，与默认路径数值等价）
   const rebalanceToTarget = (d) => {
     const w = Math.min(1, Math.max(0, targetOf(d.date.slice(0, 7)) ?? 1));
@@ -93,6 +101,8 @@ export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null 
         pending.push({ execIdx: i + execLagDays, type: 'sell', signalDate: d.date, trigger: d.trigger });
       } else if (t !== 'defense' && pt === 'defense') {
         pending.push({ execIdx: i + execLagDays, type: 'buyback', signalDate: d.date });
+      } else if (newMoneyMode === 'qqq' && isBuy(t) && !isBuy(pt) && pt !== 'defense') {
+        pending.push({ execIdx: i + execLagDays, type: 'convert' }); // N2：reduce恢复买入档，QQQ换TQQQ
       }
     }
     // 到期执行（T+0=信号当日收盘；T+1=次日收盘）
@@ -101,10 +111,13 @@ export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null 
       if (a.execIdx > i) continue;
       pending.splice(k--, 1);
       if (a.type === 'sell') {
-        if (tqqqU > 0) {
-          reserve += tqqqU * d.px; tqqqU = 0; sells++;
+        const proceeds = tqqqU * d.px + (qqqU > 0 && d.pxQqq ? qqqU * d.pxQqq : 0);
+        if (proceeds > 0) {
+          reserve += proceeds; tqqqU = 0; qqqU = 0; sells++;
           openEp = { signalDate: a.signalDate, trigger: a.trigger, sellDate: d.date, sellPx: d.px };
         }
+      } else if (a.type === 'convert') {
+        if (qqqU > 0 && d.pxQqq) { tqqqU += (qqqU * d.pxQqq) / d.px; qqqU = 0; buys++; }
       } else {
         if (targetOf) rebalanceToTarget(d);
         else if (reserve > 0) { tqqqU += reserve / d.px; reserve = 0; buys++; }
@@ -123,17 +136,23 @@ export function simulateS5Daily(days, C = 1, { execLagDays = 0, targetOf = null 
     if (d.isMonthEnd) {
       invested += C;
       contribution = C;
-      const isBuyTier = d.tier === 'attack' || d.tier === 'neutral';
+      const isBuyTier = isBuy(d.tier);
       const buybackQueued = openEp !== null || pending.some(a => a.type === 'buyback');
       if (isBuyTier && !buybackQueued) {
         if (targetOf) { reserve += C; rebalanceToTarget(d); }
         else { const amt = C + reserve; tqqqU += amt / d.px; reserve = 0; buys++; }
+      } else if (d.tier === 'reduce' && newMoneyMode === 'always') {
+        tqqqU += C / d.px; buys++;                         // N1：reduce 新钱照买TQQQ
+      } else if (d.tier === 'reduce' && newMoneyMode === 'qqq' && d.pxQqq) {
+        qqqU += C / d.pxQqq; buys++;                       // N2：reduce 新钱买QQQ(1x)
+      } else if (d.tier === 'reduce' && newMoneyMode === 'half') {
+        tqqqU += (C / 2) / d.px; reserve += C / 2; buys++; // N3：半额TQQQ半额储备
       } else {
         reserve += C;
-        if (!isBuyTier) missedMonthEnds++;
+        if (!isBuyTier) missedMonthEnds++;                 // defense/现行reduce：新钱闲置月
       }
     }
-    const v = tqqqU * d.px + reserve;
+    const v = tqqqU * d.px + (qqqU > 0 && d.pxQqq ? qqqU * d.pxQqq : 0) + reserve;
     if (prevV !== null && prevV > 0) {
       const y = d.date.slice(0, 4);
       yearFactors.set(y, (yearFactors.get(y) ?? 1) * ((v - contribution) / prevV));
@@ -299,10 +318,77 @@ async function main() {
     `假信号 ${t0.falseEp.length} vs ${rawD.falseEp.length} 次（踏空 ${f1(compEp(t0.falseEp))}% vs ${f1(compEp(rawD.falseEp))}%）；` +
     `XIRR ${t0.s.xirrPct.toFixed(1)}% vs ${rawD.s.xirrPct.toFixed(1)}%；卖出笔数 ${t0.run.trades.sells} vs ${rawD.run.trades.sells}`);
 
+  // ═════ A系传导（趋势条件化降档确认期，信号层评估见 daily-replay --eval-trendhold）═════
+  // 信号层三档全部未过硬约束（年化 12.13→11.91/11.80/11.71，08覆盖 97.3→94.6/94.1/91.4——
+  // 退出提前的日子集中在熊市反弹段），故此处只作为 S5 执行层参数评估传导效果
+  console.log('\n═════ A系传导：趋势条件化确认期（30→T天，仅SPX≥10月SMA时）对 S5 的影响 ═════');
+  const A_DEFS = [[14, 'A14'], [7, 'A7'], [0, 'A0']];
+  const aRows = [t0.row];
+  const aDetails = new Map();
+  for (const [t, label] of A_DEFS) {
+    const recsT = runDailyReplay(DD, { trendHoldDays: t }).filter(r => r.date >= S5_START && r.date <= S5_END);
+    const run = simulateS5Daily(buildS5Days(recsT, tqqqDaily), 1);
+    const r = statsRow(`${label} 趋势上${t}天`, run);
+    aRows.push(r.row);
+    aDetails.set(label, { run, recsT, ...r });
+  }
+  console.table(aRows);
+  console.log('----- A14 逐笔买回日对照（vs 基线30天；负=提前） -----');
+  const a14 = aDetails.get('A14');
+  const a14BySell = new Map(a14.run.episodes.map(e => [e.sellDate, e]));
+  for (const e0 of t0.run.episodes) {
+    const e1 = a14BySell.get(e0.sellDate);
+    if (!e1) { console.log(`  ${e0.sellDate}: 基线往返在A14下不存在（片段结构变化）`); continue; }
+    const dd = e0.buyDate && e1.buyDate ? dayDiff(e1.buyDate, e0.buyDate) : null;
+    console.log(`  ${e0.sellDate} → 买回 ${e0.buyDate ?? '—'} → ${e1.buyDate ?? '—'}` +
+      `（${dd === null ? '—' : dd > 0 ? `提前${dd}天` : dd < 0 ? `推迟${-dd}天` : '不变'}；` +
+      `期间TQQQ ${f1(e0.tqqqChangePct)}% → ${f1(e1.tqqqChangePct)}%）`);
+  }
+  const a14New = a14.run.episodes.filter(e => !t0.run.episodes.some(b => b.sellDate === e.sellDate));
+  if (a14New.length) console.log(`  A14 新增往返：${a14New.map(e => `${e.sellDate}→${e.buyDate ?? '—'}(${f1(e.tqqqChangePct)}%)`).join('  ')}`);
+
+  // ═════ B系：reduce期新钱规则（存量S5a规则不动）═════
+  console.log('\n═════ B系：减仓期新钱去向（现行=攒现金 vs N1全买TQQQ / N2买QQQ / N3半额）═════');
+  const B_DEFS = [
+    ['现行(reduce攒现金)', 'reserve'],
+    ['N1 reduce照买TQQQ', 'always'],
+    ['N2 reduce买QQQ,恢复时换TQQQ', 'qqq'],
+    ['N3 reduce半额TQQQ半额储备', 'half'],
+  ];
+  const daysWithQqq = buildS5Days(recsO1, tqqqDaily, 'final', qqqBars);
+  const bRows = [];
+  const bDetails = new Map();
+  for (const [name, mode] of B_DEFS) {
+    const run = simulateS5Daily(daysWithQqq, 1, { newMoneyMode: mode });
+    const r = statsRow(name, run);
+    r.row['闲置月(新钱攒现金)'] = `${run.missedMonthEnds}/${run.monthPoints.length}(${f1(run.missedMonthEnds / run.monthPoints.length * 100)}%)`;
+    bRows.push(r.row);
+    bDetails.set(mode, { run, ...r });
+  }
+  console.table(bRows);
+
+  // ═════ A×B 最优组合 ═════
+  // B 内按 XIRR 择优；A 未过信号层硬约束 → 组合仅作为执行层参数展示（信号层判定见 --eval-trendhold）
+  let bestMode = 'reserve', bestX = -Infinity;
+  for (const [, mode] of B_DEFS) {
+    const x = bDetails.get(mode).s.xirrPct;
+    if (x > bestX) { bestX = x; bestMode = mode; }
+  }
+  const bestModeName = B_DEFS.find(([, m]) => m === bestMode)[0];
+  console.log(`\n═════ A×B 组合（B最优=${bestModeName}；A仅执行层参数）═════`);
+  const comboRows = [bDetails.get(bestMode).row];
+  for (const [t, label] of A_DEFS) {
+    const daysT = buildS5Days(aDetails.get(label).recsT, tqqqDaily, 'final', qqqBars);
+    const run = simulateS5Daily(daysT, 1, { newMoneyMode: bestMode });
+    comboRows.push(statsRow(`${label}×${bestModeName}`, run).row);
+  }
+  console.table(comboRows);
+
   console.log(`
 口径声明：日度信号=daily-replay（O1已默认，与线上一致）；月度S5a=dca-schemes原实现原样复跑；
 XIRR均为月度现金流资金加权（可比）；日度新增"日度盯市"浮亏/回撤（月度口径存在月末采样美化）；
-合成TQQQ为反事实推演（真实TQQQ 2010上市），未计摩擦与税——S5a摩擦敏感性见 dca-schemes（0.1%/笔 ≈ -0.2pp XIRR）。`);
+合成TQQQ为反事实推演（真实TQQQ 2010上市），未计摩擦与税——S5a摩擦敏感性见 dca-schemes（0.1%/笔 ≈ -0.2pp XIRR）。
+A系（趋势条件化确认期）信号层评估：node backend/backtest/daily-replay.mjs --eval-trendhold（三档均未过硬约束）。`);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {

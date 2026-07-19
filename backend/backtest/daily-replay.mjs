@@ -34,7 +34,7 @@ import { calcDecisionPrevRate } from '../api/fetch-macro.js';
 import { calcPercentile, calcMaSeries } from '../api/fetch-policy.js';
 import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
 import {
-  loadData, runReplay, evaluate, VARIANTS_DEFAULT,
+  loadData, runReplay, evaluate, VARIANTS_DEFAULT, applyDowngradeHoldWithDays,
   spliceRateSeries, lastTwoWeeklyAsOf, lastDayOfMonth, findPeakTrough, calcMissedPct, ttmChangePct,
   netLiqChangePctAsOf, NET_LIQ_THRESHOLD_PCT, // R系评估（--eval-r）
 } from './run-backtest.js';
@@ -372,7 +372,12 @@ export function runDailyReplay(DD, opts = {}) {
       reactiveLockActive: locks.reactiveLockActive,
       spxAboveSma10: trendState.spxAboveSma10,
     });
-    const hold = applyDowngradeHold(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today);
+    // A系（2026-07-19 评估，默认关）：趋势条件化降档确认期——当日SPX≥10月SMA时确认期缩短为
+    // trendHoldDays 天（V4迟滞的保护价值在趋势线下方的危机中；成本在V型反弹的再入场延迟）；
+    // SPX<SMA 或趋势数据缺失时维持线上 30 天不变。升档不受影响（本就即时）
+    const hold = (opts.trendHoldDays != null && trendState.spxAboveSma10 === true)
+      ? applyDowngradeHoldWithDays(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today, opts.trendHoldDays)
+      : applyDowngradeHold(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today);
 
     const rec = {
       date: today, spx: bar.close,
@@ -806,11 +811,76 @@ async function runEvalR(D, DD) {
   }
 }
 
+// ---------- A系评估（--eval-trendhold）：趋势条件化降档确认期 ----------
+// 动机（S5日度精化发现）：4次假信号踏空的主因是V型反弹跑赢再入场——2019-02/2020-06/2025-06
+// 三次买回都发生在趋势收复附近，而V4迟滞的保护价值全在趋势线下方的危机中（2008/2022解锁窗
+// 均处SPX<SMA，30天确认期在那里维持不变）。变体：当日SPX≥10月SMA时确认期30→T天（T∈{14,7,0}）。
+// 硬约束：六危机日级时点不变差、年化≥12.0%、假阳性不恶化
+
+export const TREND_HOLD_DEFS = [['基线(30天固定)', null], ['A14 趋势上14天', 14], ['A7 趋势上7天', 7], ['A0 趋势上即时', 0]];
+
+async function runEvalTrendHold(D, DD) {
+  const spxBars = D.spx.filter(b => b.date <= REPLAY_END);
+  let base = null;
+  const rows = [];
+  const details = new Map();
+  for (const [name, t] of TREND_HOLD_DEFS) {
+    const recs = runDailyReplay(DD, { trendHoldDays: t }).filter(r => r.date >= REPLAY_START && r.date <= REPLAY_END);
+    const sim = simulateNavDailyRecs(recs);
+    const eps = defenseEpisodesDaily(recs);
+    const fp = eps.map(e => episodeIsFalsePositive(e, spxBars)).filter(v => v === true).length;
+    const cr = crisisRowsDaily(recs, spxBars);
+    if (!base) base = { recs, cr, sim, fp, eps };
+    let timingOk = true;
+    const timingChanges = [];
+    cr.forEach((r, i) => {
+      const b = base.cr[i];
+      if (b.firstDefDate && !r.firstDefDate) { timingOk = false; timingChanges.push(`${r.name}丢失`); }
+      else if (b.leadDays != null && r.leadDays != null && r.leadDays < b.leadDays) {
+        timingOk = false; timingChanges.push(`${r.name} ${b.leadDays}→${r.leadDays}天`);
+      } else if (b.firstDefDate !== r.firstDefDate) timingChanges.push(`${r.name} ${b.firstDefDate}→${r.firstDefDate}`);
+    });
+    const covWorse = cr.some((r, i) => base.cr[i].coveragePct != null && r.coveragePct != null
+      && r.coveragePct < base.cr[i].coveragePct - 5); // 覆盖率恶化>5pp 也视为时点约束破坏
+    const pass = timingOk && !covWorse && sim.cagrPct >= 12.0 && fp <= base.fp;
+    rows.push({
+      组合: name, 年化: sim.cagrPct.toFixed(2) + '%', 回撤: sim.mddPct.toFixed(1) + '%',
+      假阳性: `${fp}/${eps.length}`,
+      防守占比: (recs.filter(r => r.final === 'defense').length / recs.length * 100).toFixed(1) + '%',
+      '08覆盖%': f1(cr.find(x => x.name.startsWith('2008'))?.coveragePct),
+      危机时点变化: timingChanges.join('; ') || '无',
+      硬约束: pass ? '过' : '✗',
+    });
+    details.set(name, { recs, eps, sim, fp });
+  }
+  console.log('\n═════ A系趋势条件化降档确认期（硬约束=六危机时点不变差·年化≥12.0%·假阳性不恶化）═════');
+  console.table(rows);
+
+  // 防守片段起止对照（再入场加速的直接证据 + 2002-04/2008-01解锁窗有没有变糟）
+  console.log('\n----- 防守片段起止对照（start不变=危机入场不受影响；end提前=再入场加速） -----');
+  const baseEps = base.eps;
+  for (const [name, d] of details) {
+    if (name === TREND_HOLD_DEFS[0][0]) {
+      console.log(`${name}: ${baseEps.map(e => `${e.start}~${e.end}(${e.days}天)`).join('  ')}`);
+      continue;
+    }
+    const parts = d.eps.map(e => {
+      const b = baseEps.find(x => x.start === e.start);
+      if (!b) return `${e.start}~${e.end}【新增】`;
+      const dd = dayDiff(e.end, b.end);
+      return `${e.start}~${e.end}${dd > 0 ? `(退出提前${dd}天)` : dd < 0 ? `(退出推迟${-dd}天)` : '(不变)'}`;
+    });
+    const removed = baseEps.filter(b => !d.eps.some(e => e.start === b.start)).map(b => `${b.start}【消失】`);
+    console.log(`${name}: ${[...parts, ...removed].join('  ')}`);
+  }
+}
+
 async function main() {
   const t0 = Date.now();
   const { D, DD } = await loadDailyData();
   if (process.argv.includes('--eval-oil')) return runEvalOil(D, DD);
   if (process.argv.includes('--eval-r')) return runEvalR(D, DD);
+  if (process.argv.includes('--eval-trendhold')) return runEvalTrendHold(D, DD);
 
   console.log('[daily-replay] running daily replay...');
   const all = runDailyReplay(DD);

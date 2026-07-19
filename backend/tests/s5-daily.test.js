@@ -111,3 +111,44 @@ describe('dailyPathExtremes', () => {
     expect(x.minValueToInvestedPct).toBeCloseTo(-40, 6);
   });
 });
+
+describe('simulateS5Daily：B系新钱规则（存量S5a规则不动）', () => {
+  const dayQ = (date, px, pxQqq, tier, isMonthEnd = false) =>
+    ({ date, px, pxQqq, tier, rate: 0, isMonthEnd, trigger: '决策树共振' });
+  it('N1(always)：reduce月末新钱照买TQQQ，不进储备', () => {
+    const days = [
+      dayQ('2020-01-31', 100, 50, 'reduce', true),
+      dayQ('2020-02-28', 120, 55, 'reduce', true),
+    ];
+    const run = simulateS5Daily(days, 1, { newMoneyMode: 'always' });
+    expect(run.missedMonthEnds).toBe(0);
+    const last = run.dailyPoints[1];
+    expect(last.value).toBeCloseTo((1 / 100) * 120 + 1, 10); // 首月0.01股@100涨到120 + 次月新买1
+  });
+  it('N2(qqq)：reduce买QQQ；恢复neutral当日QQQ换TQQQ；进defense随存量一起清仓', () => {
+    const days = [
+      dayQ('2020-01-31', 100, 50, 'reduce', true),   // 买QQQ 1/50=0.02股
+      dayQ('2020-02-03', 100, 60, 'neutral'),        // 转换：0.02*60=1.2 → TQQQ 0.012股
+      dayQ('2020-02-28', 100, 60, 'neutral', true),  // 月末买 C=1 → +0.01股
+      dayQ('2020-03-02', 90, 55, 'defense'),         // 清仓：0.022*90 入储备
+    ];
+    const run = simulateS5Daily(days, 1, { newMoneyMode: 'qqq' });
+    const afterConvert = run.dailyPoints[1];
+    expect(afterConvert.value).toBeCloseTo(1.2, 10); // QQQ 0.02股@60 已转 TQQQ
+    const last = run.dailyPoints[3];
+    expect(last.value).toBeCloseTo(0.022 * 90, 10);  // 全部入储备（防守）
+    expect(run.episodes[0].sellPx).toBe(90);
+  });
+  it('N3(half)：reduce月末半额买TQQQ、半额入储备', () => {
+    const days = [dayQ('2020-01-31', 100, 50, 'reduce', true)];
+    const run = simulateS5Daily(days, 1, { newMoneyMode: 'half' });
+    expect(run.dailyPoints[0].value).toBeCloseTo(0.5 + 0.5, 10); // 0.005股@100 + 储备0.5
+    expect(run.missedMonthEnds).toBe(0);
+  });
+  it('现行(reserve)：reduce月末新钱进储备并计闲置月（回归锁定）', () => {
+    const days = [dayQ('2020-01-31', 100, 50, 'reduce', true)];
+    const run = simulateS5Daily(days, 1);
+    expect(run.missedMonthEnds).toBe(1);
+    expect(run.dailyPoints[0].value).toBeCloseTo(1, 10); // 全在储备
+  });
+});
