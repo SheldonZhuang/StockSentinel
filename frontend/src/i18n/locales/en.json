@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "AI Daily Brief"
+  },
+  "s5": {
+    "title": "S5 Execution Desk",
+    "disclaimer": "Admin only · Personal reference · Not investment advice",
+    "state": {
+      "in_market": "🟢 Holding TQQQ",
+      "in_cash": "🔴 In cash, waiting"
+    },
+    "todayTitle": "Today's Action",
+    "action": {
+      "sell_all": "⚡ Today: sell ALL TQQQ holdings to cash; new contributions go to the reserve",
+      "buyback_all": "⚡ Today: buy back TQQQ in full, all at once (buy back even when recovering only to Reduce — this is S5's lifeline)",
+      "stay_cash": "Stay in cash; this month's contribution goes to the cash reserve while waiting for Defense to lift",
+      "hold_accumulate": "Hold the existing position; this month's contribution goes to the cash reserve (no buying during Reduce)",
+      "hold_deploy": "Hold; buy TQQQ with this month's contribution plus the entire cash reserve"
+    },
+    "downgradePending": "Downgrade pending: the decision tree has turned looser; confirmation period until {date} (+30 days)",
+    "trendAbove": "Trend: up (SPX ≥ 10-month SMA)",
+    "trendBelow": "Trend: down (SPX < 10-month SMA)",
+    "asOf": "Data as of {date}",
+    "logTitle": "S5 Trade Log",
+    "logEmpty": "No trades yet",
+    "kind": {
+      "sell": "Sell → cash",
+      "buyback": "Buy back TQQQ"
+    },
+    "playbookTitle": "Backtest at a Glance",
+    "xirr": "XIRR (annualized)",
+    "maxUnderwater": "Max underwater",
+    "roundTrips": "Round trips in 26y",
+    "falseSignals": "False signals",
+    "playbookDoc": "Full playbook: docs/s5-execution-playbook.md"
   }
 }

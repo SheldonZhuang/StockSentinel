@@ -55,6 +55,7 @@ export const api = {
   getReference: (category) => request(`/admin/reference?category=${category}`),
   setLockOverride: (type, expiresAt, note) =>
     request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),
+  getAdminS5: () => request('/admin/s5'),
 
   // AI Chain Bottleneck
   getBottleneck: () => request('/bottleneck'),

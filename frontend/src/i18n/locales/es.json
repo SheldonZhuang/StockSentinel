@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "Resumen diario IA"
+  },
+  "s5": {
+    "title": "Puesto de ejecución S5",
+    "disclaimer": "Solo admin · Referencia personal · No es asesoramiento de inversión",
+    "state": {
+      "in_market": "🟢 Manteniendo TQQQ",
+      "in_cash": "🔴 En efectivo, a la espera"
+    },
+    "todayTitle": "Acción de hoy",
+    "action": {
+      "sell_all": "⚡ Hoy: vender todo el TQQQ y pasar a efectivo; las nuevas aportaciones van a la reserva",
+      "buyback_all": "⚡ Hoy: recomprar de inmediato todo el TQQQ de una sola vez (recomprar incluso si solo se recupera a Reducir — es el punto vital de S5)",
+      "stay_cash": "Mantenerse en efectivo; la aportación de este mes va a la reserva de efectivo, a la espera de que se levante la Defensa",
+      "hold_accumulate": "Mantener la posición; la aportación de este mes va a la reserva de efectivo (sin compras durante Reducir)",
+      "hold_deploy": "Mantener; comprar TQQQ con la aportación de este mes más toda la reserva de efectivo"
+    },
+    "downgradePending": "Rebaja pendiente: el árbol de decisión se ha vuelto más laxo; período de confirmación hasta {date} (+30 días)",
+    "trendAbove": "Tendencia: alcista (SPX ≥ SMA de 10 meses)",
+    "trendBelow": "Tendencia: bajista (SPX < SMA de 10 meses)",
+    "asOf": "Datos a {date}",
+    "logTitle": "Registro de operaciones S5",
+    "logEmpty": "Sin operaciones",
+    "kind": {
+      "sell": "Venta → efectivo",
+      "buyback": "Recompra de TQQQ"
+    },
+    "playbookTitle": "Backtest de un vistazo",
+    "xirr": "XIRR anualizado",
+    "maxUnderwater": "Máx. bajo el agua",
+    "roundTrips": "Idas y vueltas en 26 años",
+    "falseSignals": "Señales falsas",
+    "playbookDoc": "Manual completo: docs/s5-execution-playbook.md"
   }
 }

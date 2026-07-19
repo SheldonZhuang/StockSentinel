@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "AI 데일리 브리프"
+  },
+  "s5": {
+    "title": "S5 실행 데스크",
+    "disclaimer": "관리자 전용 · 개인 참고 · 투자 조언이 아닙니다",
+    "state": {
+      "in_market": "🟢 TQQQ 보유 중",
+      "in_cash": "🔴 현금 대기"
+    },
+    "todayTitle": "오늘의 액션",
+    "action": {
+      "sell_all": "⚡ 오늘: TQQQ 전량 매도 후 현금화; 신규 적립금은 예비금으로",
+      "buyback_all": "⚡ 오늘: 즉시 TQQQ를 일괄 전액 재매수 (감축 단계로만 회복해도 재매수 — 이것이 S5의 생명선)",
+      "stay_cash": "현금 유지; 이번 달 적립금은 현금 예비금으로, 방어 해제 대기",
+      "hold_accumulate": "보유분 유지; 이번 달 적립금은 현금 예비금으로 (감축 기간에는 매수하지 않음)",
+      "hold_deploy": "보유; 이번 달 적립금 + 현금 예비금 전액으로 TQQQ 매수"
+    },
+    "downgradePending": "하향 대기 중: 결정 트리가 완화로 전환, 확인 기간 {date}까지 (+30일)",
+    "trendAbove": "추세: 상승 (SPX ≥ 10개월 SMA)",
+    "trendBelow": "추세: 하락 (SPX < 10개월 SMA)",
+    "asOf": "데이터 기준일 {date}",
+    "logTitle": "S5 거래 로그",
+    "logEmpty": "거래 기록 없음",
+    "kind": {
+      "sell": "매도→현금",
+      "buyback": "TQQQ 재매수"
+    },
+    "playbookTitle": "백테스트 요약",
+    "xirr": "XIRR 연환산",
+    "maxUnderwater": "최대 수면 아래 낙폭",
+    "roundTrips": "26년간 왕복 횟수",
+    "falseSignals": "거짓 신호 횟수",
+    "playbookDoc": "전체 매뉴얼: docs/s5-execution-playbook.md"
   }
 }

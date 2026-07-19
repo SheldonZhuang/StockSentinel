@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "KI-Tagesbriefing"
+  },
+  "s5": {
+    "title": "S5-Ausführungspult",
+    "disclaimer": "Nur Admin · Persönliche Referenz · Keine Anlageberatung",
+    "state": {
+      "in_market": "🟢 TQQQ im Bestand",
+      "in_cash": "🔴 In Cash, wartend"
+    },
+    "todayTitle": "Heutige Aktion",
+    "action": {
+      "sell_all": "⚡ Heute: gesamten TQQQ-Bestand verkaufen und in Cash gehen; neue Sparraten in die Reserve",
+      "buyback_all": "⚡ Heute: TQQQ sofort in einem Zug vollständig zurückkaufen (auch bei Erholung nur auf Reduzieren zurückkaufen — das ist die Lebensader von S5)",
+      "stay_cash": "In Cash bleiben; die Sparrate dieses Monats geht in die Cash-Reserve, bis die Verteidigung aufgehoben wird",
+      "hold_accumulate": "Bestand halten; die Sparrate dieses Monats geht in die Cash-Reserve (kein Kauf in der Reduzieren-Phase)",
+      "hold_deploy": "Halten; mit der Sparrate dieses Monats plus der gesamten Cash-Reserve TQQQ kaufen"
+    },
+    "downgradePending": "Herabstufung anhängig: Der Entscheidungsbaum ist lockerer geworden; Bestätigungsfrist bis {date} (+30 Tage)",
+    "trendAbove": "Trend: aufwärts (SPX ≥ 10-Monats-SMA)",
+    "trendBelow": "Trend: abwärts (SPX < 10-Monats-SMA)",
+    "asOf": "Datenstand {date}",
+    "logTitle": "S5-Handelsprotokoll",
+    "logEmpty": "Noch keine Trades",
+    "kind": {
+      "sell": "Verkauf → Cash",
+      "buyback": "TQQQ zurückkaufen"
+    },
+    "playbookTitle": "Backtest auf einen Blick",
+    "xirr": "XIRR p.a.",
+    "maxUnderwater": "Max. Unterwasser",
+    "roundTrips": "Umschichtungen in 26 J.",
+    "falseSignals": "Fehlsignale",
+    "playbookDoc": "Vollständiges Handbuch: docs/s5-execution-playbook.md"
   }
 }

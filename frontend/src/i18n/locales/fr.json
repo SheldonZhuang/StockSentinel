@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "Brief quotidien IA"
+  },
+  "s5": {
+    "title": "Poste d'exécution S5",
+    "disclaimer": "Réservé admin · Référence personnelle · Pas un conseil en investissement",
+    "state": {
+      "in_market": "🟢 Position TQQQ",
+      "in_cash": "🔴 En cash, en attente"
+    },
+    "todayTitle": "Action du jour",
+    "action": {
+      "sell_all": "⚡ Aujourd'hui : vendre tout le TQQQ et passer en cash ; les nouveaux versements vont dans la réserve",
+      "buyback_all": "⚡ Aujourd'hui : racheter immédiatement tout le TQQQ en une seule fois (racheter même si l'on ne remonte qu'en Alléger — c'est le point vital de S5)",
+      "stay_cash": "Rester en cash ; le versement de ce mois va dans la réserve de cash, en attendant la levée de la Défense",
+      "hold_accumulate": "Conserver la position ; le versement de ce mois va dans la réserve de cash (pas d'achat en période Alléger)",
+      "hold_deploy": "Conserver ; acheter du TQQQ avec le versement de ce mois plus toute la réserve de cash"
+    },
+    "downgradePending": "Rétrogradation en attente : l'arbre de décision est devenu plus accommodant ; période de confirmation jusqu'au {date} (+30 jours)",
+    "trendAbove": "Tendance : haussière (SPX ≥ SMA 10 mois)",
+    "trendBelow": "Tendance : baissière (SPX < SMA 10 mois)",
+    "asOf": "Données au {date}",
+    "logTitle": "Journal des transactions S5",
+    "logEmpty": "Aucune transaction",
+    "kind": {
+      "sell": "Vente → cash",
+      "buyback": "Rachat TQQQ"
+    },
+    "playbookTitle": "Backtest en bref",
+    "xirr": "XIRR annualisé",
+    "maxUnderwater": "Perte max sous l'eau",
+    "roundTrips": "Allers-retours en 26 ans",
+    "falseSignals": "Faux signaux",
+    "playbookDoc": "Manuel complet : docs/s5-execution-playbook.md"
   }
 }

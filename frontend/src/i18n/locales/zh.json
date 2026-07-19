@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "AI 每日解读"
+  },
+  "s5": {
+    "title": "S5 执行台",
+    "disclaimer": "仅管理员可见 · 个人参考 · 不构成投资建议",
+    "state": {
+      "in_market": "🟢 持有TQQQ",
+      "in_cash": "🔴 空仓等待"
+    },
+    "todayTitle": "今日动作",
+    "action": {
+      "sell_all": "⚡ 今日动作：卖出全部TQQQ存量转现金；新定投进储备",
+      "buyback_all": "⚡ 今日动作：立即一次性全额买回TQQQ（恢复到减仓档也要买回——这是S5的命门）",
+      "stay_cash": "保持空仓；本月定投进现金储备，等待防守解除",
+      "hold_accumulate": "持有存量不动；本月定投{'$'}进现金储备（减仓期不买入）",
+      "hold_deploy": "持有；本月定投+全部现金储备买入TQQQ"
+    },
+    "downgradePending": "降档等待中：决策树已转宽松，确认期至 {date}（+30天）",
+    "trendAbove": "趋势状态：上升（SPX ≥ 10月SMA）",
+    "trendBelow": "趋势状态：下降（SPX < 10月SMA）",
+    "asOf": "数据截至 {date}",
+    "logTitle": "S5 交易日志",
+    "logEmpty": "暂无换手记录",
+    "kind": {
+      "sell": "卖出→现金",
+      "buyback": "买回TQQQ"
+    },
+    "playbookTitle": "回测速览",
+    "xirr": "XIRR 年化",
+    "maxUnderwater": "最大水下幅度",
+    "roundTrips": "26年往返次数",
+    "falseSignals": "假信号次数",
+    "playbookDoc": "完整手册见 docs/s5-execution-playbook.md"
   }
 }

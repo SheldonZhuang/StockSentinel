@@ -270,5 +270,37 @@
   },
   "dailyReport": {
     "title": "AIデイリーブリーフ"
+  },
+  "s5": {
+    "title": "S5 執行デスク",
+    "disclaimer": "管理者のみ · 個人参考 · 投資助言ではありません",
+    "state": {
+      "in_market": "🟢 TQQQ保有中",
+      "in_cash": "🔴 キャッシュで待機"
+    },
+    "todayTitle": "本日のアクション",
+    "action": {
+      "sell_all": "⚡ 本日：TQQQを全量売却して現金化；新規積立は準備金へ",
+      "buyback_all": "⚡ 本日：直ちにTQQQを一括で全額買い戻す（減倉への回復でも買い戻す——これがS5の生命線）",
+      "stay_cash": "キャッシュを維持；今月の積立は現金準備金へ、防御解除を待つ",
+      "hold_accumulate": "保有分は動かさない；今月の積立は現金準備金へ（減倉期間中は買わない）",
+      "hold_deploy": "保有継続；今月の積立＋現金準備金の全額でTQQQを買う"
+    },
+    "downgradePending": "降格待機中：決定木は緩和方向へ転換、確認期間は {date} まで（+30日）",
+    "trendAbove": "トレンド：上昇（SPX ≥ 10か月SMA）",
+    "trendBelow": "トレンド：下降（SPX < 10か月SMA）",
+    "asOf": "データ基準日 {date}",
+    "logTitle": "S5 取引ログ",
+    "logEmpty": "取引記録なし",
+    "kind": {
+      "sell": "売却→現金",
+      "buyback": "TQQQ買い戻し"
+    },
+    "playbookTitle": "バックテスト概要",
+    "xirr": "XIRR 年率",
+    "maxUnderwater": "最大水面下幅",
+    "roundTrips": "26年間の往復回数",
+    "falseSignals": "偽シグナル回数",
+    "playbookDoc": "完全マニュアル：docs/s5-execution-playbook.md"
   }
 }
