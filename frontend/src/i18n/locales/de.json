@@ -67,7 +67,7 @@
     "hints": {
       "modelUsageTrend": "Modellnutzungstrend: 28-Tage-Durchschnittsvolumen vs. Durchschnitt der 28 Tage davor (Glättung auf Monatsebene, verdünnt einwöchiges Feiertagsrauschen). >+3 % (≈ annualisiertes Wachstum ≥+47 %) → starke Nachfrage · locker; <−3 % (anhaltender Rückgang des Monatsdurchschnitts) → schwächelnde Nachfrage · Überangebotswarnung · restriktiv. Quelle: openrouter.ai/rankings — Proxy eines einzelnen Aggregators mit Marktanteilsrauschen.",
       "capexYoY": "Regel: Hyperscaler-Capex (MSFT/AMZN/GOOGL/META, rollierend 4 Quartale) JoJ >+10 % → lockere Stimme (Investitionsboom); <0 % → restriktive Stimme (Capex-Kontraktion · Überangebotswarnung — jedes restriktive Glied des Trios macht KI-Angebot/Nachfrage restriktiv). 2. Ebene des Cashflow-Trios (Investitionsseite): Modellanbieter kaufen Cloud-Rechenleistung",
-      "capexQtrYoY": "Referenzwert (fließt nicht in die Bewertung ein): JoJ des letzten Kalenderquartals, das alle vier gemeldet haben (kalenderquartalsweise ausgerichtet — keine gemischten Quartale mitten in der Berichtssaison). Das Einzelquartal ist der Wendepunkt-Späher — das rollierende 4-Quartals-Mittel verwässert eine Bremsung und hinkt 2-3 Berichtssaisons hinterher; ein negatives Quartal → Warnflagge, zwei in Folge oder folgendes TTM → bestätigte Kontraktion der Kette. Die Bewertung nutzt weiterhin die TTM-Zeile oben.",
+      "capexQtrYoY": "Referenzwert (fließt nicht in die Bewertung ein): JoJ des letzten Kalenderquartals, das alle vier gemeldet haben (kalenderquartalsweise ausgerichtet — keine gemischten Quartale mitten in der Berichtssaison). Das Einzelquartal ist der Wendepunkt-Späher — das rollierende 4-Quartals-Mittel verwässert eine Bremsung und hinkt 2-3 Berichtssaisons hinterher; ein negatives Quartal → Warnflagge, zwei in Folge oder folgendes TTM → bestätigte Kontraktion der Kette. Das Abzeichen nutzt dieselben Schwellen wie TTM (>+10 % locker / <0 % restriktiv / dazwischen neutral), nur zur Referenz — der Divergenzmoment, in dem das Quartalsabzeichen vor dem TTM umschlägt, ist der früheste Wendepunkt-Alarm. Die Bewertung nutzt weiterhin die TTM-Zeile oben.",
       "semiIpYoy": "Regel: Halbleiterproduktion JoJ >+5 % → lockere Stimme; <0 % → restriktive Stimme. Sie ist das angebotsseitige Ende des KI-Angebot/Nachfrage-Cashflow-Trios (Nutzung → Cloud-Capex → Halbleiterproduktion). Konsensregel des Trios: schrumpft ein Glied → restriktiv (Überangebotswarnung); steigt die ganze Kette → locker (Unterangebot); sonst neutral.",
       "rate": "Beurteilt nach der Richtung der letzten FOMC-Entscheidung: eine Anhebung (auch graduelle 25 Bp) → restriktiv, gehalten bis zur nächsten Entscheidung; Senkung oder Pause → locker. Eine Einzelanpassung ≥50 Bp (beliebige Richtung) löst zusätzlich die reaktive Anpassungssperre aus und erzwingt volle Defensive.",
       "balanceSheet": "Bilanzveränderung (WoW): Ausweitung >0,25 % (QE) → Locker-Stimme; Schrumpfung >0,25 % (QT) gilt allein nicht als restriktiv — sie blockiert nur eine Locker-Einstufung (Backtest: In den meisten QT-Jahren stieg der Markt); dazwischen → Pause.",
@@ -87,6 +87,7 @@
     "short": {
       "modelUsage": "Nutzung",
       "capex": "Cloud-Capex",
+      "capexQtr": "Q",
       "semiIp": "Halbleiter-IP",
       "epuDaily": "EPU tägl.",
       "epuTrade": "Handels-EPU",

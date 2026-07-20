@@ -99,7 +99,11 @@ function dimMetric(key) {
     // 按产业链现金流向排列：付费源头（模型调用量）最领先最靠前 → 云capex → 半导体产出
     const parts = [];
     if (ind.modelUsageTrendPct != null) parts.push(`${t('indicators.short.modelUsage')} ${fmtPct(ind.modelUsageTrendPct)}`);
-    if (ind.capexYoY != null) parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}`);
+    // 单季同比为括号附注：拐点侦察兵（参考），TTM为主判定口径，不混排成第四个判定输入
+    if (ind.capexYoY != null) {
+      const qtr = ind.capexQtrYoY != null ? ` (${t('indicators.short.capexQtr')} ${fmtPct(ind.capexQtrYoY)})` : '';
+      parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}${qtr}`);
+    }
     if (ind.semiIpYoy != null) parts.push(`${t('indicators.short.semiIp')} ${fmtPct(ind.semiIpYoy)}`);
     return parts.join(' · ') || null;
   }

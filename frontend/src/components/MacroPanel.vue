@@ -156,9 +156,13 @@ const groups = computed(() => {
             : null,
         },
         {
-          // 单季同比=拐点侦察兵（展示参考，不参与判定；判定用上面的TTM口径）
+          // 单季同比=拐点侦察兵（参考，不参与判定；判定用上面的TTM口径）。
+          // 徽章沿用TTM同阈值（同一个量的增长率无需两套阈值）：>+10% 宽松 / <0% 收紧 / 其间中性；
+          // 单季徽章先于TTM变色的"背离时刻"即最早的事实性拐点警报
           key: 'capexQtrYoY', signed: true, value: ind.capexQtrYoY, unit: '%', change: null,
-          signalBadge: null,
+          signalBadge: ind.capexQtrYoY != null
+            ? (ind.capexQtrYoY > 10 ? 'loose' : ind.capexQtrYoY < 0 ? 'tight' : 'neutral')
+            : null,
           periodDate: ind.capexQtrEnd,
         },
         {
