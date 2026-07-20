@@ -5,3 +5,4 @@ backend/data/*.db
 backend/data/*.db-*
 dist/
 .superpowers/
+server.log
