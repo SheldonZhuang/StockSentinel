@@ -16,7 +16,7 @@ function buildFacts(payload) {
   return [
     `最终信号: ${SIGNAL_CN[payload.finalSignal] || payload.finalSignal}`,
     `四维: AI供需=${SIGNAL_CN[payload.aiSupplySignal]}，货币=${SIGNAL_CN[payload.monetarySignal]}，财政=${SIGNAL_CN[payload.fiscalSignal]}，行政=${SIGNAL_CN[payload.adminSignal]}`,
-    `AI供需: 模型调用量趋势${fmt(i.modelUsageTrendPct)}%，云厂商capex同比${fmt(i.capexYoY)}%，半导体产出同比${fmt(i.semiIpYoy)}%，SMH-SPY 90天${fmt(i.smhSpyRelReturnPct)}%${i.aiBubbleWarning ? '，⚠️泡沫预警触发' : ''}`,
+    `AI供需: 模型调用量趋势${fmt(i.modelUsageTrendPct)}%，云厂商capex同比${fmt(i.capexYoY)}%，半导体产出同比${fmt(i.semiIpYoy)}%${i.aiBubbleWarning ? '，⚠️泡沫预警触发' : ''}`,
     `货币: 联邦基金利率${fmt(i.rate, 2)}%，资产负债表状态=${i.balanceSheetStatus || '无数据'}，萨姆值${fmt(i.sahmValue, 2)}${i.sahmLockActive ? '（萨姆锁激活）' : ''}${i.reactiveAdjustmentLockActive ? '（应对式调整锁激活）' : ''}`,
     `财政: 联邦支出TTM同比${fmt(i.fiscalOutlaysChangePct)}%`,
     `行政: WTI 30天${fmt(i.oilChange30dPct)}%（${i.oilSource || '无数据'}），日频EPU百分位${fmt(i.epuDailyPercentile, 0)}，贸易EPU百分位${fmt(i.epuTradePercentile, 0)}`,

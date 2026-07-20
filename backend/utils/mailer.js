@@ -26,7 +26,7 @@ const BUBBLE_REASON_LABELS = {
  * @param {object} payload - { finalSignal, changes, details }
  *   changes: detectSignalChanges() 的输出
  *   details: { monetary, fiscal, admin, aiSupply, fiscalOutlaysChangePct, epuTradePercentile,
- *              smhSpyRelReturnPct, semiIpYoy, modelUsageTrendPct, capexYoY }
+ *              semiIpYoy, modelUsageTrendPct, capexYoY }
  */
 export function buildAlertEmail(payload) {
   const { finalSignal, changes, details = {} } = payload;
@@ -106,7 +106,7 @@ function dimDetail(dim, d) {
     }
   }
   if (dim === 'monetary') s = d.rateChangeBp != null ? `利率变动 ${d.rateChangeBp}bp` : null;
-  if (dim === 'aiSupply') s = fmt(d.smhSpyRelReturnPct) && `SMH−SPY ${fmt(d.smhSpyRelReturnPct)}`;
+  if (dim === 'aiSupply') s = fmt(d.modelUsageTrendPct) && `模型调用量趋势 ${fmt(d.modelUsageTrendPct)}`;
   return s ? `（${s}）` : '';
 }
 
