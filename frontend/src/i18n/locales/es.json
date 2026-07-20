@@ -31,7 +31,7 @@
     "trimmedPce12m": "PCE Recortado (12M)",
     "unemployment": "Desempleo",
     "sahm": "Regla de Sahm",
-    "yieldCurve": "Curva de rendimientos (10a−3m)",
+    "yieldCurve": "Curva de rendimientos del Tesoro de EE. UU. (10a−3m)",
     "ycInvertedDays": "invertida durante {n} días hábiles consecutivos",
     "yoyChange": "Interanual",
     "epuTrade": "Incertidumbre Política Comercial",
@@ -79,7 +79,7 @@
       "oilWti": "La variación de 30 días del WTI es el precio de mercado en tiempo real de los choques bélicos/geopolíticos, con prioridad sobre los percentiles EPU: subida ≥+20 % Y EPU elevado (>percentil 80) → restrictiva (choque bélico/de oferta); una subida con EPU en calma = recuperación de demanda, sin falsa defensa. Caída ≥20 % Y EPU no elevado → laxa (desescalada); si el EPU está simultáneamente alto, la caída es de tipo crisis — sin laxa. Salvaguarda de nivel del petróleo (2026-07-19): un repunte solo cuenta como shock bélico si el precio del petróleo está además en nivel alto (por encima de su mediana de 2 años) — los rebotes desde niveles bajos justo tras una crisis (45 $ en 2009, 38 $ en 2020) ocurren cuando el EPU sigue inevitablemente elevado y no son shocks bélicos; los repuntes en niveles altos (110 $ en la guerra Rusia-Ucrania de 2022) no se ven afectados.",
       "fiscalOutlaysTtm": "Regla (gobierno pequeño): gasto federal TTM interanual >+5 % → restrictiva (el gobierno crece); <−5 % → laxa (el gobierno adelgaza). Por qué gasto y no déficit: el déficit mezcla el lado de ingresos — un déficit por recortes de impuestos (2017) cumple el principio y no debe leerse como restrictivo. Medido como gasto real (deflactado) interanual: el gasto nominal crece naturalmente ≈5 % y pre-activaría restrictiva de forma crónica; tras deflactar por PCE solo se dispara cuando la expansión/contracción real supera ±5 %"
     },
-    "hintGlobal": "Regla global: Ataque (asimétrico) = oferta/demanda IA laxa (el motor activo encendido) + monetaria/fiscal/administrativa todas no restrictivas (neutral basta; cualquier restrictiva veta) + sin bloqueos + curva de rendimientos fuera de inversión confirmada (10a−3m invertida ≥3 meses / 63 días hábiles → veta el acceso al ataque, rebajado a observar); solo una dimensión restrictiva = reducir y esperar — dejar de aumentar posiciones y elevar la alerta; no hace falta reducir las posiciones existentes (evidencia de backtest: los meses con una sola dimensión restrictiva no rinden de media menos que el resto — una sola restrictiva es señal de atención, no de acción); dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total. Excepción de reentrada por tendencia: cuando el mercado está en tendencia alcista (último cierre ≥ SMA de los 10 últimos cierres de fin de mes), la defensa total dictada por el árbol de decisión se rebaja a reducir y esperar; la defensa dictada por un bloqueo nunca es anulada por la tendencia. Histéresis de rebaja: las subidas de nivel (más defensivas, incl. forzadas por bloqueo) surten efecto de inmediato; las bajadas (más laxas) requieren que el nivel más suave persista 30 días de confirmación, manteniéndose entretanto el nivel anterior Dos ajustes (2026-07-18): una doble restricción puramente monetaria+fiscal (sin dimensión administrativa ni bloqueo) solo llega a Reducir; la defensa activada por el bloqueo Sahm también se rebaja a Reducir en tendencia alcista (el bloqueo de ajuste reactivo nunca es anulado por la tendencia).",
+    "hintGlobal": "Regla global: Ataque (asimétrico) = oferta/demanda IA laxa (el motor activo encendido) + monetaria/fiscal/administrativa todas no restrictivas (neutral basta; cualquier restrictiva veta) + sin bloqueos + curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada (10a−3m invertida ≥3 meses / 63 días hábiles → veta el acceso al ataque, rebajado a observar); solo una dimensión restrictiva = reducir y esperar — dejar de aumentar posiciones y elevar la alerta; no hace falta reducir las posiciones existentes (evidencia de backtest: los meses con una sola dimensión restrictiva no rinden de media menos que el resto — una sola restrictiva es señal de atención, no de acción); dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total. Excepción de reentrada por tendencia: cuando el mercado está en tendencia alcista (último cierre ≥ SMA de los 10 últimos cierres de fin de mes), la defensa total dictada por el árbol de decisión se rebaja a reducir y esperar; la defensa dictada por un bloqueo nunca es anulada por la tendencia. Histéresis de rebaja: las subidas de nivel (más defensivas, incl. forzadas por bloqueo) surten efecto de inmediato; las bajadas (más laxas) requieren que el nivel más suave persista 30 días de confirmación, manteniéndose entretanto el nivel anterior Dos ajustes (2026-07-18): una doble restricción puramente monetaria+fiscal (sin dimensión administrativa ni bloqueo) solo llega a Reducir; la defensa activada por el bloqueo Sahm también se rebaja a Reducir en tendencia alcista (el bloqueo de ajuste reactivo nunca es anulado por la tendencia).",
     "stale": "Datos retrasados",
     "staleHint": "Fuente temporalmente no disponible; se conserva el último juicio válido",
     "epuDaily": "Incertidumbre política (diaria)",
@@ -88,7 +88,7 @@
       "modelUsage": "Uso",
       "capex": "Capex cloud",
       "capexQtr": "trim.",
-      "semiIp": "PI semi",
+      "semiIp": "Prod. semi",
       "epuDaily": "EPU diario",
       "epuTrade": "EPU comerc.",
       "outlaysYoY": "Gasto fed. i.a."
@@ -128,9 +128,9 @@
   "interpret": {
     "title": "Interpretación de la Señal",
     "triggers": "Defensa activada por:",
-    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos + curva de rendimientos fuera de inversión confirmada):",
-    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos, curva de rendimientos fuera de inversión confirmada",
-    "yieldCurveOk": "Curva de rendimientos fuera de inversión confirmada"
+    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos + curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada):",
+    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos, curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada",
+    "yieldCurveOk": "Curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada"
   },
   "auth": {
     "login": "Iniciar Sesión",

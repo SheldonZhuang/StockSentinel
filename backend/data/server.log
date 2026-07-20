@@ -1,0 +1,17 @@
+[cron] Starting daily signal update...
+[server] Stock Sentinel backend running on http://localhost:3001
+login error: TypeError: Cannot read properties of null (reading 'connID')
+    at file:///D:/sheldonproject/StockSentinel/backend/node_modules/futu-api/base.js:408:54
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[moomoo] OpenD WebSocket 连接超时（第1次，目标 127.0.0.1:33333）——本机部署：检查 OpenD 是否运行且设置中开启了 WebSocket 端口；云端部署：OpenD 在用户本地，127.0.0.1 永远不通，需配置 MOOMOO_WS_HOST 指向隧道地址（见 docs/moomoo-cloud-setup.md）
+断开连接 CloseEvent {
+  type: 'close',
+  defaultPrevented: false,
+  cancelable: false,
+  timeStamp: 5016.9676
+}
+[market-data] yahoo 429（数据中心IP限流，已知常态）——后续同类失败静默计数，由 Tiingo/TwelveData 回退链接管
+[market-data] yahoo 429 已累计 ×25（静默中）
+[cron] Signal updated: aiSupply=loose, monetary=loose, fiscal=neutral, admin=tight → final=reduce
+[cron] fundamentals prewarmed for 19 watchlist symbols
+[daily-report] generation failed: no JSON object in LLM output

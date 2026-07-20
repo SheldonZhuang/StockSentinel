@@ -20,7 +20,7 @@ function buildFacts(payload) {
     `货币: 联邦基金利率${fmt(i.rate, 2)}%，资产负债表状态=${i.balanceSheetStatus || '无数据'}，萨姆值${fmt(i.sahmValue, 2)}${i.sahmLockActive ? '（萨姆锁激活）' : ''}${i.reactiveAdjustmentLockActive ? '（应对式调整锁激活）' : ''}`,
     `财政: 联邦支出TTM同比${fmt(i.fiscalOutlaysChangePct)}%`,
     `行政: WTI 30天${fmt(i.oilChange30dPct)}%（${i.oilSource || '无数据'}），日频EPU百分位${fmt(i.epuDailyPercentile, 0)}，贸易EPU百分位${fmt(i.epuTradePercentile, 0)}`,
-    `判定规则: 进攻=四维全宽松且无锁；仅单维收紧=减仓观望；双维以上收紧或锁激活=全面防守`,
+    `判定规则: 进攻(非对称)=AI供需宽松+货币/财政/行政均不收紧(中性即可)+无锁+美债收益率曲线(10y−3m)未处倒挂确认期；仅单维收紧=减仓观望；双维以上收紧或锁激活=全面防守(纯货币+财政共振只到减仓；上升趋势中树驱动与萨姆锁驱动的防守降级为减仓)`,
   ].join('\n');
 }
 

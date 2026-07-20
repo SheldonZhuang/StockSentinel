@@ -31,12 +31,12 @@
     "trimmedPce12m": "Trimmed Mean PCE (12M)",
     "unemployment": "Unemployment Rate",
     "sahm": "Sahm Rule",
-    "yieldCurve": "Yield Curve (10y−3m)",
+    "yieldCurve": "US Treasury Yield Curve (10y−3m)",
     "ycInvertedDays": "inverted for {n} consecutive trading days",
     "yoyChange": "YoY",
     "epuTrade": "Trade Policy Uncertainty",
     "percentile10y": "10-yr percentile",
-    "semiIpYoy": "Semiconductor IP YoY",
+    "semiIpYoy": "Semiconductor Output YoY",
     "dataDate": "Data Date",
     "decisionDate": "FOMC Decision",
     "periodDate": "Reference Period",
@@ -79,7 +79,7 @@
       "oilWti": "WTI 30-day change is the market's real-time pricing of war/geopolitical shocks, taking priority over EPU percentiles: gain ≥+20% AND EPU elevated (>80th pct) → tight (war/supply shock); a surge while EPU is calm = demand recovery, not misread as defense. Drop ≥20% AND EPU not elevated → loose (de-escalation); if EPU is simultaneously high the crash is crisis-type — no loose. Oil-level guard (2026-07-19): a surge only counts as a war shock if the oil price is also at a high level (above its 2-year median) — low-base rebounds right after crises (e.g. $45 in 2009, $38 in 2020) happen while EPU is inevitably still elevated and are not war shocks; high-level surges (e.g. $110 during the 2022 Russia-Ukraine war) are unaffected.",
       "fiscalOutlaysTtm": "Rule (small-government): TTM federal outlays YoY expands >5% → tight (government growing, harmful to markets); shrinks >5% → loose (government slimming). Why outlays not deficit: deficit mixes in the revenue side — tax-cut-driven deficits (e.g. 2017) fit the low-tax principle and should not read as tight. Measured as real (inflation-adjusted) outlays YoY: nominal outlays naturally grow ~5% and would chronically pre-trigger tight; after PCE deflation it only fires when real expansion/contraction exceeds ±5%"
     },
-    "hintGlobal": "Global rule: Attack (asymmetric) = AI supply/demand loose (the active engine firing) + monetary/fiscal/admin all not tight (neutral is fine; any tight vetoes) + no locks + yield curve not in confirmed inversion (10y−3m inverted ≥3 months / 63 trading days vetoes attack entry, downgrading to watch); one dimension tight = reduce & watch — stop adding, raise alertness; no need to trim existing positions (backtest evidence: months with a single tight dimension average market returns no lower than other months — a single tight is an attention signal, not an action signal); two+ tight or Sahm/reactive lock active = full defense. Trend re-entry exception: when the market is in an uptrend (latest close ≥ SMA of the last 10 month-end closes), decision-tree-driven full defense is downgraded to reduce & watch; lock-driven defense is never overridden by the trend. Downgrade hysteresis: upgrades (more defensive, incl. lock-forced) take effect immediately; downgrades (more lenient) require the milder tier to persist for a 30-day confirmation period, keeping the previous tier meanwhile Two refinements (2026-07-18): a pure monetary+fiscal double-tight (no administrative dim, no lock) only reaches Reduce; Sahm-lock-driven defense is likewise downgraded to Reduce in an uptrend (the reactive-adjustment lock is never overridden by trend).",
+    "hintGlobal": "Global rule: Attack (asymmetric) = AI supply/demand loose (the active engine firing) + monetary/fiscal/admin all not tight (neutral is fine; any tight vetoes) + no locks + US Treasury yield curve not in confirmed inversion (10y−3m inverted ≥3 months / 63 trading days vetoes attack entry, downgrading to watch); one dimension tight = reduce & watch — stop adding, raise alertness; no need to trim existing positions (backtest evidence: months with a single tight dimension average market returns no lower than other months — a single tight is an attention signal, not an action signal); two+ tight or Sahm/reactive lock active = full defense. Trend re-entry exception: when the market is in an uptrend (latest close ≥ SMA of the last 10 month-end closes), decision-tree-driven full defense is downgraded to reduce & watch; lock-driven defense is never overridden by the trend. Downgrade hysteresis: upgrades (more defensive, incl. lock-forced) take effect immediately; downgrades (more lenient) require the milder tier to persist for a 30-day confirmation period, keeping the previous tier meanwhile Two refinements (2026-07-18): a pure monetary+fiscal double-tight (no administrative dim, no lock) only reaches Reduce; Sahm-lock-driven defense is likewise downgraded to Reduce in an uptrend (the reactive-adjustment lock is never overridden by trend).",
     "stale": "Data delayed",
     "staleHint": "Data source temporarily unavailable; last valid judgment retained",
     "epuDaily": "Policy Uncertainty (Daily)",
@@ -88,7 +88,7 @@
       "modelUsage": "Usage",
       "capex": "Cloud Capex",
       "capexQtr": "Qtr",
-      "semiIp": "Semi IP",
+      "semiIp": "Semi Output",
       "epuDaily": "Daily EPU",
       "epuTrade": "Trade EPU",
       "outlaysYoY": "Fed Outlays YoY"
@@ -128,9 +128,9 @@
   "interpret": {
     "title": "Signal Interpretation",
     "triggers": "Defense triggered by:",
-    "toAttack": "Toward attack (AI supply/demand loose + monetary/fiscal/admin not tight + no locks + yield curve not in confirmed inversion):",
-    "allLoose": "Attack conditions met: AI supply/demand loose (active engine firing), monetary/fiscal/admin not tight, no locks, yield curve not in confirmed inversion",
-    "yieldCurveOk": "Yield curve not in confirmed inversion"
+    "toAttack": "Toward attack (AI supply/demand loose + monetary/fiscal/admin not tight + no locks + US Treasury yield curve not in confirmed inversion):",
+    "allLoose": "Attack conditions met: AI supply/demand loose (active engine firing), monetary/fiscal/admin not tight, no locks, US Treasury yield curve not in confirmed inversion",
+    "yieldCurveOk": "US Treasury yield curve not in confirmed inversion"
   },
   "recessionLock": {
     "banner": "Defense Lock Active",

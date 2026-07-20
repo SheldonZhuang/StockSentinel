@@ -56,12 +56,12 @@ export function buildAlertEmail(payload) {
   const fmt = (v, suffix = '%') => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}${suffix}`);
   // 顺序遵循策略主线：长线看供需（AI供需），短线看政策（货币/财政/行政）
   const statusRows = [
-    ['AI供需 AI Supply/Demand', details.aiSupply, details.semiIpYoy !== undefined ? `半导体产出 Semi IP ${fmt(details.semiIpYoy)}` : ''],
+    ['AI供需 AI Supply/Demand', details.aiSupply, details.semiIpYoy !== undefined ? `半导体产出 Semi Output ${fmt(details.semiIpYoy)}` : ''],
     ['货币政策 Monetary', details.monetary],
     ['财政政策 Fiscal', details.fiscal, details.fiscalOutlaysChangePct != null ? `联邦支出TTM同比 Outlays YoY ${fmt(details.fiscalOutlaysChangePct)}` : ''],
     ['行政政策 Administrative', details.admin, [
       details.oilChange30dPct != null && Math.abs(details.oilChange30dPct) >= 20 ? `WTI 30D ${fmt(details.oilChange30dPct)}` : null,
-      details.epuTradePercentile != null ? `贸易不确定性 EPU P${Number(details.epuTradePercentile).toFixed(0)}` : null,
+      details.epuTradePercentile != null ? `贸易政策不确定性 Trade EPU P${Number(details.epuTradePercentile).toFixed(0)}` : null,
     ].filter(Boolean).join(' · ')],
   ];
 
@@ -102,7 +102,7 @@ function dimDetail(dim, d) {
     if (d.oilChange30dPct != null && Math.abs(d.oilChange30dPct) >= 20) {
       s = `WTI 30D ${fmt(d.oilChange30dPct)}`;
     } else {
-      s = d.epuTradePercentile != null ? `贸易不确定性10年 P${Number(d.epuTradePercentile).toFixed(0)}` : null;
+      s = d.epuTradePercentile != null ? `贸易政策不确定性指数近10年百分位 P${Number(d.epuTradePercentile).toFixed(0)}` : null;
     }
   }
   if (dim === 'monetary') s = d.rateChangeBp != null ? `利率变动 ${d.rateChangeBp}bp` : null;
