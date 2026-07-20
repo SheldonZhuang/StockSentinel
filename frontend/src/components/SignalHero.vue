@@ -19,6 +19,11 @@
         </div>
       </div>
 
+      <!-- 快照过期警示：云端 cron 停摆时 dataDate 停走，用户须显式知道信号已失效 -->
+      <div v-if="snapshotStaleDays >= 3" class="stale-banner">
+        ⚠️ {{ $t('signal.snapshotStale', { days: snapshotStaleDays }) }}
+      </div>
+
       <!-- 泡沫预警横幅 -->
       <div v-if="signal.indicators?.aiBubbleWarning" class="bubble-banner">
         ⚠️ {{ $t('aiChain.bubbleWarning') }}
@@ -198,6 +203,15 @@ const lockInfo = computed(() => {
   }
   return null;
 });
+
+// 快照距今天数：>=3 天显示失效警示（周末+假日最长2天无cron属正常，3天=真停摆）。
+// 云端 cron 停摆时 dataDate 停走，没有这个警示用户会把过期信号当最新信号执行
+const snapshotStaleDays = computed(() => {
+  const d = props.signal?.dataDate;
+  if (!d) return 0;
+  const age = Math.floor((Date.now() - Date.parse(d + 'T00:00:00Z')) / 86400000);
+  return age > 0 ? age : 0;
+});
 </script>
 
 <style scoped>
@@ -265,6 +279,16 @@ const lockInfo = computed(() => {
   gap: 4px;
 }
 .lock-wait { font-size: var(--fs-xs); color: var(--text-4); }
+
+.stale-banner {
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--red);
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
 
 .interpret {
   display: flex;

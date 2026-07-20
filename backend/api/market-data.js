@@ -94,7 +94,13 @@ function cacheGet(key) {
 }
 
 function cacheSet(key, value, ttl = CACHE_TTL_MS) {
-  cache.set(key, { at: Date.now(), value, ttl });
+  const now = Date.now();
+  // 顺带清扫过期项：closes 的 key 含 startDate:endDate，每天窗口变化后旧 key 永不再被
+  // cacheGet 访问、无法自然淘汰，长驻容器内存单调增长。写入频次低，全表扫一遍成本可忽略。
+  for (const [k, hit] of cache) {
+    if (now - hit.at > hit.ttl) cache.delete(k);
+  }
+  cache.set(key, { at: now, value, ttl });
 }
 
 /** 测试用：清空缓存并重置节流状态 */

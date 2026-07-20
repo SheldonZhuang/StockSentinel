@@ -154,8 +154,10 @@ function persist() {
   if (!db) return;
   const data = db.export();
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  // 先写临时文件再原子改名：进程在写入中途被杀不会留下截断的 db 文件
-  const tmpPath = `${DB_PATH}.tmp`;
+  // 先写临时文件再原子改名：进程在写入中途被杀不会留下截断的 db 文件。
+  // 临时文件名带 pid：本地开发双实例/nodemon 重启重叠时固定名会互相截断写入，
+  // rename 后可能落下损坏文件（生产单容器不触发，属本地开发防护）
+  const tmpPath = `${DB_PATH}.${process.pid}.tmp`;
   fs.writeFileSync(tmpPath, Buffer.from(data));
   fs.renameSync(tmpPath, DB_PATH);
 }
@@ -374,18 +376,34 @@ function run(sql, params = []) {
   persist();
 }
 
+// 用户侧写入监听（server 启动时注册为防抖 GitHub 备份）：
+// 用户注册/自选股/override/API key 是收费产品核心资产，只靠每日 cron 备份
+// 在非持久化文件系统上有最长24小时的丢失窗口；写后即时备份把窗口收窄到分钟级。
+// 用回调而非直接 import backup.js，避免 storage↔backup 循环依赖。
+let userWriteListener = null;
+export function setUserWriteListener(fn) { userWriteListener = fn; }
+function notifyUserWrite() { try { userWriteListener?.(); } catch { /* 备份钩子不砸写路径 */ } }
+
 // --- Users ---
 
 export async function createUser(email, passwordHash) {
   await getDb();
-  run(
-    'INSERT INTO users (email, password_hash) VALUES (?, ?)',
-    [email, passwordHash]
-  );
-  run(
-    'INSERT INTO alert_subscriptions (user_id, enabled) SELECT id, 1 FROM users WHERE email = ?',
-    [email]
-  );
+  // 两条写在同一事务：若分两次 run（各自 persist），第二条失败会留下无订阅行的用户，
+  // getAlertSubscribers 的 INNER JOIN 将静默漏发该用户的所有信号告警
+  db.run('BEGIN');
+  try {
+    db.run('INSERT INTO users (email, password_hash) VALUES (?, ?)', [email, passwordHash]);
+    db.run(
+      'INSERT INTO alert_subscriptions (user_id, enabled) SELECT id, 1 FROM users WHERE email = ?',
+      [email]
+    );
+    db.run('COMMIT');
+  } catch (err) {
+    db.run('ROLLBACK');
+    throw err;
+  }
+  persist();
+  notifyUserWrite();
   return getUserByEmail(email);
 }
 
@@ -402,6 +420,7 @@ export async function getUserById(id) {
 export async function updateUserAlerts(userId, enabled) {
   await getDb();
   run('UPDATE users SET email_alerts = ? WHERE id = ?', [enabled ? 1 : 0, userId]);
+  notifyUserWrite();
 }
 
 // --- Signal Snapshots ---
@@ -490,6 +509,7 @@ export async function setAdminSignal(type, signal, expiresAt, note, setBy) {
     INSERT INTO admin_signal_overrides (type, signal, expires_at, note, set_by)
     VALUES (?, ?, ?, ?, ?)
   `, [type, signal, expiresAt || null, note || null, setBy || null]);
+  notifyUserWrite();
 }
 
 export async function getActiveAdminSignal(type) {
@@ -530,6 +550,7 @@ export async function getWatchlist(userId) {
 export async function addToWatchlist(userId, symbol) {
   await getDb();
   run('INSERT OR IGNORE INTO watchlist (user_id, symbol) VALUES (?, ?)', [userId, symbol.toUpperCase()]);
+  notifyUserWrite();
 }
 
 export async function getAllWatchlistSymbols() {
@@ -540,6 +561,7 @@ export async function getAllWatchlistSymbols() {
 export async function removeFromWatchlist(userId, symbol) {
   await getDb();
   run('DELETE FROM watchlist WHERE user_id = ? AND symbol = ?', [userId, symbol.toUpperCase()]);
+  notifyUserWrite();
 }
 
 // --- Alert Subscribers ---
@@ -566,6 +588,7 @@ export async function setBottleneck(stage, note, setBy) {
     'INSERT INTO ai_chain_bottleneck (stage, note, set_by) VALUES (?, ?, ?)',
     [stage, note || null, setBy || null]
   );
+  notifyUserWrite();
 }
 
 /**
@@ -613,6 +636,7 @@ export async function getLatestAiChainSnapshot() {
 export async function createApiKey(key, name, tier) {
   await getDb();
   run('INSERT INTO api_keys (key, name, tier) VALUES (?, ?, ?)', [key, name || null, tier || 'free']);
+  notifyUserWrite();
   return get('SELECT * FROM api_keys WHERE key = ?', [key]);
 }
 
@@ -629,6 +653,7 @@ export async function listApiKeys() {
 export async function setApiKeyDisabled(id, disabled) {
   await getDb();
   run('UPDATE api_keys SET disabled = ? WHERE id = ?', [disabled ? 1 : 0, id]);
+  notifyUserWrite();
 }
 
 // --- 开放API用量（限流持久化 + 计费对账底账）---

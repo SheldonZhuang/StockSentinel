@@ -9,7 +9,8 @@
     "neutral": "Attente",
     "defense": "Défense",
     "loading": "Chargement...",
-    "reduce": "Alléger"
+    "reduce": "Alléger",
+    "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour"
   },
   "signalPos": {
     "monetary": "Politique Monétaire",

@@ -74,8 +74,12 @@ describe('calcUsageTrend', () => {
 });
 
 describe('calcCapexYoY', () => {
-  // capex 为现金流出（负值）
-  const q = vals => vals.map((v, i) => ({ date: `2026-Q${i}`, capitalExpenditure: v }));
+  // capex 为现金流出（负值）；从 2026Q2 往前生成真实降序日历季末（连续性校验按日历季解析）
+  const QENDS = ['03-31', '06-30', '09-30', '12-31'];
+  const q = vals => vals.map((v, i) => {
+    const totalQ = (2026 * 4 + 1) - i; // 2026Q2 起
+    return { date: `${Math.floor(totalQ / 4)}-${QENDS[totalQ % 4]}`, capitalExpenditure: v };
+  });
 
   it('滚动4季 vs 前4季，用绝对值口径', () => {
     // 最近4季每季-110（TTM=440），前4季每季-100（TTM=400）→ +10%
@@ -96,6 +100,22 @@ describe('calcCapexYoY', () => {
 
   it('全部公司数据不足 → 全 null', () => {
     expect(calcCapexYoY({ MSFT: q([-100, -100]) })).toEqual({ capexYoY: null, capexTtm: null, capexPrevTtm: null });
+  });
+
+  it('季度序列中段缺口（换XBRL标签跳季）→ 该公司剔除，不产出错季拼接的假同比', () => {
+    // 造中段缺 2025Q1/2024Q4 的序列：位置切片会把错季拼进 prevTtm 产出看似合理的错误数字
+    const gapped = [
+      { date: '2026-06-30', capitalExpenditure: -100 }, // 2026Q2
+      { date: '2026-03-31', capitalExpenditure: -100 }, // 2026Q1
+      { date: '2025-12-31', capitalExpenditure: -100 }, // 2025Q4
+      { date: '2025-09-30', capitalExpenditure: -100 }, // 2025Q3
+      { date: '2025-06-30', capitalExpenditure: -100 }, // 2025Q2
+      // 跳过 2025Q1 与 2024Q4
+      { date: '2024-09-30', capitalExpenditure: -100 }, // 2024Q3
+      { date: '2024-06-30', capitalExpenditure: -100 }, // 2024Q2
+      { date: '2024-03-31', capitalExpenditure: -100 }, // 2024Q1
+    ];
+    expect(calcCapexYoY({ MSFT: gapped })).toEqual({ capexYoY: null, capexTtm: null, capexPrevTtm: null });
   });
 
   it('最新季度过期（>400天，如换XBRL标签致数据冻结）→ 该公司剔除', () => {
@@ -234,6 +254,16 @@ describe('deriveQuarterlyCapex', () => {
     const quarters = deriveQuarterlyCapex(facts);
     expect(quarters).toHaveLength(4);
     expect(quarters.find(x => x.date === '2025-06-30').capitalExpenditure).toBe(120);
+  });
+
+  it('同期重复 fact 按 filed 日期取最新（修正案乱序排列也不被旧值覆盖）', () => {
+    // EDGAR 数组顺序不保证 filed 先后；10-Q/A 修正 fact 可能排在原申报之前
+    const facts = [
+      { start: '2025-04-01', end: '2025-06-30', val: 200, form: '10-Q/A', filed: '2025-11-01' }, // 修正后（新）
+      { start: '2025-04-01', end: '2025-06-30', val: 120, form: '10-Q', filed: '2025-07-20' },   // 原申报（旧），数组中反而在后
+    ];
+    const quarters = deriveQuarterlyCapex(facts);
+    expect(quarters.find(x => x.date === '2025-06-30').capitalExpenditure).toBe(200);
   });
 
   it('缺 Q1 时半年累计不会被误当单季（时长超120天跳过）', () => {

@@ -82,6 +82,20 @@ export function calcUsageTrend(dailyTotals, recentDays = USAGE_RECENT_DAYS, prio
   };
 }
 
+// 季度末日期 → 日历季度桶（如 '2026Q1'）。四大家季度末都是日历季（3/6/9/12月末），
+// 但精确日期可能差1-2天，按桶对齐而非按日期对齐
+const quarterKey = date => {
+  const [y, m] = date.split('-').map(Number);
+  return `${y}Q${Math.ceil(m / 3)}`;
+};
+
+// 季度桶键运算：'2026Q1' ± n 季（跨年自动进退位）
+const shiftQuarterKey = (key, n) => {
+  const [y, q] = key.split('Q').map(Number);
+  const total = y * 4 + (q - 1) + n;
+  return `${Math.floor(total / 4)}Q${(total % 4) + 1}`;
+};
+
 /**
  * 单公司季度序列 → 通过口径校验的有效序列；不合格返回 null
  * 口径与 TTM 同比一致：完整8季 + 最新季在400天内（防换XBRL标签后旧数据冻结污染加总）
@@ -92,6 +106,17 @@ function qualifiedCapexQuarters(quarters, staleBeforeMs) {
   const latestEnd = valid[0].date;
   if (latestEnd && new Date(latestEnd).getTime() < staleBeforeMs) return null;
   return valid;
+}
+
+// 前8季是否为严格连续日历季（TTM 位置切片 slice(0,4)/slice(4,8) 假定连续；
+// deriveQuarterlyCapex 在 YTD 链断裂时会静默跳季，中段缺口会把错季拼进 prevTtm 产出
+// 看似合理的错误同比。calcCapexQuarterYoY 用桶查找不受影响，故校验只在 TTM 口径生效）
+function isFirst8Consecutive(valid) {
+  const k0 = quarterKey(valid[0].date);
+  for (let i = 1; i < 8; i++) {
+    if (quarterKey(valid[i].date) !== shiftQuarterKey(k0, -i)) return false;
+  }
+  return true;
 }
 
 /**
@@ -107,7 +132,7 @@ export function calcCapexYoY(quartersBySymbol) {
   const staleBeforeMs = Date.now() - 400 * 86400000; // 最新季度需在400天内，防某公司换XBRL标签后旧数据冻结
   for (const quarters of Object.values(quartersBySymbol || {})) {
     const valid = qualifiedCapexQuarters(quarters, staleBeforeMs);
-    if (!valid) continue;
+    if (!valid || !isFirst8Consecutive(valid)) continue;
     const values = valid.map(q => parseFloat(q.capitalExpenditure));
     qualified++;
     ttm += Math.abs(values.slice(0, 4).reduce((a, b) => a + b, 0));
@@ -122,20 +147,6 @@ export function calcCapexYoY(quartersBySymbol) {
     capexPrevTtm: prevTtm,
   };
 }
-
-// 季度末日期 → 日历季度桶（如 '2026Q1'）。四大家季度末都是日历季（3/6/9/12月末），
-// 但精确日期可能差1-2天，按桶对齐而非按日期对齐
-const quarterKey = date => {
-  const [y, m] = date.split('-').map(Number);
-  return `${y}Q${Math.ceil(m / 3)}`;
-};
-
-// 季度桶键运算：'2026Q1' ± n 季（跨年自动进退位）
-const shiftQuarterKey = (key, n) => {
-  const [y, q] = key.split('Q').map(Number);
-  const total = y * 4 + (q - 1) + n;
-  return `${Math.floor(total / 4)}Q${(total % 4) + 1}`;
-};
 
 /**
  * 最新共同单季资本开支同比（拐点侦察兵，TTM 同比是趋势确认官）：
@@ -317,8 +328,9 @@ export async function fetchModelUsage() {
  * SEC XBRL facts → 离散季度 capex 序列（降序）
  * 现金流量表在 10-Q 中按财年累计(YTD)披露：同一财年起点下，相邻累计值相减得出单季值；
  * 10-K 全年值减去9个月累计得出 Q4；独立披露的单季 fact（时长60-120天）直接采用。
- * 同一季度末重复出现时后者覆盖（EDGAR facts 按申报先后排列，后者为修正值）
- * @param {Array<{start, end, val, form}>} facts - units.USD 数组
+ * 同一季度末重复出现时取 filed 最新者（修正案 10-Q/A 的 fact 未必按申报顺序排在数组末尾，
+ * SEC companyconcept API 不承诺按 filed 排序；显式比较 filed 才能确保采用修正值而非被旧值覆盖）
+ * @param {Array<{start, end, val, form, filed}>} facts - units.USD 数组
  * @returns {Array<{date, capitalExpenditure}>} 按 date 降序
  */
 export function deriveQuarterlyCapex(facts) {
@@ -326,7 +338,9 @@ export function deriveQuarterlyCapex(facts) {
   for (const f of facts || []) {
     if (!f.start || !f.end || typeof f.val !== 'number') continue;
     if (f.form && !f.form.startsWith('10-Q') && !f.form.startsWith('10-K')) continue;
-    seen.set(`${f.start}|${f.end}`, f);
+    const k = `${f.start}|${f.end}`;
+    const old = seen.get(k);
+    if (!old || !f.filed || !old.filed || f.filed >= old.filed) seen.set(k, f);
   }
 
   const byStart = new Map();

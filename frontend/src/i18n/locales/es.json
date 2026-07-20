@@ -9,7 +9,8 @@
     "neutral": "Observar",
     "defense": "Defensa",
     "loading": "Cargando...",
-    "reduce": "Reducir"
+    "reduce": "Reducir",
+    "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente"
   },
   "signalPos": {
     "monetary": "Política Monetaria",

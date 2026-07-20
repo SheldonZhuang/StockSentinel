@@ -9,7 +9,8 @@
     "neutral": "様子見",
     "defense": "防御",
     "loading": "読み込み中...",
-    "reduce": "減倉様子見"
+    "reduce": "減倉様子見",
+    "snapshotStale": "シグナルデータが{days}日間更新されていません——バックエンド停止の可能性があります。現在の档位を最新の判断根拠にしないでください"
   },
   "signalPos": {
     "monetary": "金融政策",

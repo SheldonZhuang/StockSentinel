@@ -9,7 +9,8 @@
     "neutral": "Watch",
     "defense": "Defense",
     "loading": "Loading data...",
-    "reduce": "Reduce"
+    "reduce": "Reduce",
+    "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date"
   },
   "signalPos": {
     "monetary": "Monetary Policy",

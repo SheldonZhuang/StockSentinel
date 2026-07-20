@@ -42,7 +42,7 @@ import {
   getAllWatchlistSymbols,
   getLatestDailyReport,
 } from './utils/storage.js';
-import { sendSignalAlert, sendS5ActionAlert } from './utils/mailer.js';
+import { sendSignalAlert, sendS5ActionAlert, sendOpsAlert } from './utils/mailer.js';
 import { prewarmFundamentals } from './api/fundamentals.js';
 import { normalizeSymbol, getDailyCloses } from './api/market-data.js';
 import { todayET, daysAgoET } from './utils/datetime.js';
@@ -51,7 +51,12 @@ import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
-import { backupDatabase } from './utils/backup.js';
+import { backupDatabase, restoreDatabaseIfMissing, scheduleUserDataBackup } from './utils/backup.js';
+import { setUserWriteListener } from './utils/storage.js';
+
+// 用户侧写入（注册/自选股/override/API key）触发防抖 GitHub 备份：
+// 只靠每日 cron 备份，在 Railway 非持久化文件系统上有最长24小时的用户数据丢失窗口
+setUserWriteListener(() => scheduleUserDataBackup());
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -223,6 +228,13 @@ async function runDailyUpdate() {
     macroData = await fetchMacroData();
   } catch (err) {
     console.error('[cron] FRED fetch failed:', err.message);
+    // 静默停摆是信号产品最大运营风险：FRED 挂=当日快照不生成=track record 断档，
+    // 必须显式告警管理员（告警自身失败只记日志，不砸主链路）
+    await sendOpsAlert(process.env.ADMIN_EMAIL, {
+      stage: 'FRED宏观数据拉取（当日快照未生成）',
+      error: err.message,
+      dataDate: (await getLatestSnapshot().catch(() => null))?.date,
+    }).catch(() => {});
     return;
   }
 
@@ -399,7 +411,36 @@ async function runDailyUpdate() {
     aiSupplyStale,
   });
 
-  await saveAiChainSnapshot({
+  // S5 执行指令邮件（仅管理员，96号）：进/出全面防守是 S5 策略的交易边界，
+  // 单独一封高优邮件给出具体操作指令（进=卖出存量TQQQ；出=立即全额买回，含恢复到reduce）。
+  // 位置必须紧跟 saveSignalSnapshot：档位已落库后，后续任一步骤（产业链快照/日报/备份）崩溃
+  // 都会让次日 prevFinal===finalSignal、这次边界切换的邮件永久丢失——命门指令最先发。
+  // prevFinal 为 null（全新库首跑）且当日即 defense 时也要发：存量在不在场与库新旧无关。
+  const prevFinal = prevSnapshot?.final_signal ?? null;
+  if (process.env.ADMIN_EMAIL && prevFinal !== finalSignal) {
+    const enteredDefense = finalSignal === 'defense' && prevFinal !== 'defense';
+    const exitedDefense = prevFinal === 'defense' && finalSignal !== 'defense';
+    if (enteredDefense || exitedDefense) {
+      const r = await sendS5ActionAlert(process.env.ADMIN_EMAIL, {
+        kind: enteredDefense ? 'enterDefense' : 'exitDefense',
+        from: prevFinal ?? '—',
+        to: finalSignal,
+        dataDate: today,
+      }).catch(err => { console.warn('[cron] S5 action email failed:', err.message); return { failed: 1 }; });
+      // 三次重试全败=交易指令丢失，升级为运维告警（走另一封邮件再试三次，双通道降低同时失败概率）
+      if (r?.failed) {
+        await sendOpsAlert(process.env.ADMIN_EMAIL, {
+          stage: `S5执行指令邮件发送失败（${enteredDefense ? '应卖出' : '应买回'}，请立即查看S5执行台）`,
+          error: `档位 ${prevFinal} → ${finalSignal}`,
+          dataDate: today,
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // 产业链快照独立容错：它的失败不应吞掉后面的示警邮件链
+  try {
+    await saveAiChainSnapshot({
     date: today,
     autoBottleneck: chainData.autoBottleneck,
     stageMetrics: JSON.stringify(chainData.stages),
@@ -420,6 +461,9 @@ async function runDailyUpdate() {
        aiSubSignals.semiSignal === 'tight' && 'semiIp'].filter(Boolean)
     ),
   });
+  } catch (err) {
+    console.warn('[cron] ai chain snapshot save failed:', err.message);
+  }
 
   console.log(`[cron] Signal updated: aiSupply=${aiSupply}, monetary=${monetary}, fiscal=${fiscal}, admin=${admin} → final=${finalSignal}`);
 
@@ -438,22 +482,6 @@ async function runDailyUpdate() {
 
   // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
   await backupDatabase();
-
-  // S5 执行指令邮件（仅管理员，96号）：进/出全面防守是 S5 策略的交易边界，
-  // 单独一封高优邮件给出具体操作指令（进=卖出存量TQQQ；出=立即全额买回，含恢复到reduce）
-  const prevFinal = prevSnapshot?.final_signal ?? null;
-  if (process.env.ADMIN_EMAIL && prevFinal && prevFinal !== finalSignal) {
-    const enteredDefense = finalSignal === 'defense' && prevFinal !== 'defense';
-    const exitedDefense = prevFinal === 'defense' && finalSignal !== 'defense';
-    if (enteredDefense || exitedDefense) {
-      await sendS5ActionAlert(process.env.ADMIN_EMAIL, {
-        kind: enteredDefense ? 'enterDefense' : 'exitDefense',
-        from: prevFinal,
-        to: finalSignal,
-        dataDate: today,
-      }).catch(err => console.warn('[cron] S5 action email failed:', err.message));
-    }
-  }
 
   // 示警：最终信号变化 / 任一维度转收紧（用户策略：任一收紧=立即防守，必须果断）
   // AI供需转收紧(供过于求)已由 dimTight 捕获，不再单列泡沫预警
@@ -499,10 +527,24 @@ app.use((err, req, res, next) => {
 });
 
 // 每天 UTC 06:00 执行（美东01:00夏令时02:00，北京14:00）；cron 回调兜底 catch，防止未处理 rejection 终止进程
-cron.schedule('0 6 * * *', () => runDailyUpdate().catch(err => console.error('[cron] daily update failed:', err)), { timezone: 'UTC' });
+// 兜底层也发运维告警：runDailyUpdate 内部未捕获的异常（存储/判定链）同样意味着当日快照缺失
+const alertCronFailure = (source, err) => {
+  console.error(`[${source}] daily update failed:`, err);
+  sendOpsAlert(process.env.ADMIN_EMAIL, {
+    stage: `${source} 未捕获异常（当日快照可能未生成）`,
+    error: err?.message || String(err),
+  }).catch(() => {});
+};
+cron.schedule('0 6 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'UTC' });
 
-// 启动时立即执行一次
-runDailyUpdate().catch(err => console.error('[startup] initial update failed:', err));
+// 启动顺序（顶层 await）：先尝试从 GitHub 备份恢复丢失的 DB，再开始监听与首次更新。
+// Railway 容器文件系统非持久化，重部署即丢库；恢复必须发生在任何 getDb() 之前——
+// 若先 listen，首个 API 请求就可能用空库初始化 sql.js 内存句柄，随后 persist() 会把
+// 恢复好的文件覆盖回空库（竞态）。恢复失败不阻塞启动（fail-open 空库起步）。
+await restoreDatabaseIfMissing()
+  .catch(err => console.warn('[startup] restore check failed:', err.message));
+
+runDailyUpdate().catch(err => alertCronFailure('startup', err));
 
 const httpServer = app.listen(PORT, () => {
   console.log(`[server] Stock Sentinel backend running on http://localhost:${PORT}`);

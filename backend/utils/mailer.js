@@ -171,8 +171,8 @@ export function buildS5ActionEmail(p) {
     ? '🔴【S5执行】进入全面防守——存量TQQQ应全部卖出'
     : '🟢【S5执行】防守解除——应立即全额买回TQQQ';
   const action = isEnter
-    ? '按 S5 规则：<strong>今日卖出全部 TQQQ 存量转入现金</strong>；本月起新定投资金进入现金储备。'
-    : `按 S5 规则：<strong>今日立即一次性全额买回 TQQQ</strong>（即使当前档位只是恢复到"${SIGNAL_LABELS[p.to] || p.to}"也要买回——等待恢复观望是被回测否决的做法，XIRR 37.0%→18.2%）。历史提示：买回发生在V型反弹中，分批只会越买越贵。<br/><span style="color:#b45309">CAPE估值层已启用：买回前查看S5执行台的当前目标仓位（CAPE&gt;90分位时为55%而非100%）。</span>`;
+    ? '按 S5 规则：<strong>今日卖出全部 TQQQ 存量转入现金</strong>；本月起新定投资金进入现金储备。<br/><span style="color:#b45309">执行前30秒核对：前端四维卡片数据日期是否新鲜、有无"数据延迟"灰标——升档即时生效而降档需30天确认，数据故障导致的误防守系统无法当天自我纠正。</span>'
+    : `按 S5 规则：<strong>今日立即一次性全额买回 TQQQ</strong>（即使当前档位只是恢复到"${SIGNAL_LABELS[p.to] || p.to}"也要买回——等待恢复观望是被回测否决的做法，XIRR 37.0%→18.2%）。历史提示：买回发生在V型反弹中，分批只会越买越贵。<br/><span style="color:#b45309">买回前先查看 S5 执行台的当前目标仓位（CAPE 估值层启用且 &gt;90 分位时为 55% 而非 100%）。</span>`;
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
       <h2 style="color: #1a1a1a;">${isEnter ? '🔴' : '🟢'} S5 执行指令 · ${p.dataDate || ''}</h2>
@@ -204,6 +204,47 @@ export async function sendS5ActionAlert(adminEmail, payload) {
     } catch (err) {
       if (attempt === 3) {
         console.error('[mailer] S5 action email failed after 3 attempts:', err.message);
+        return { sent: 0, failed: 1 };
+      }
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+}
+
+/**
+ * 运维告警邮件（仅发管理员）：cron 主链路失败时的最后防线。
+ * 信号产品的最大运营风险是"静默停摆"——cron 连续失败时前端只会显示越来越旧的
+ * dataDate，用户与管理员都无感知。此邮件把静默失败变成显式告警。
+ * 复用 S5 邮件的单收件人重试语义；自身失败只记日志（告警系统不能反过来砸主链路）。
+ * @param {object} p - { stage: string, error: string, dataDate?: string }
+ */
+export async function sendOpsAlert(adminEmail, p) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey.startsWith('re_placeholder') || !adminEmail) {
+    console.warn('[mailer] ops alert skipped (no RESEND_API_KEY or admin email)');
+    return { sent: 0, failed: 0 };
+  }
+  const resend = new Resend(apiKey);
+  const subject = `⚠️【股哨兵运维】每日信号更新失败：${p.stage}`;
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #b91c1c;">⚠️ 每日信号更新失败</h2>
+      <p style="font-size: 14px; color: #222;">失败环节：<strong>${p.stage}</strong></p>
+      <p style="font-size: 13px; color: #444; line-height: 1.7;">错误：${p.error}</p>
+      <p style="font-size: 13px; color: #444;">最后一次成功快照日期：${p.dataDate || '未知'}</p>
+      <p style="font-size: 12px; color: #888; margin-top: 16px;">
+        今日快照未生成，track record 将出现断档；前端将继续展示旧数据。
+        请检查 Railway 日志与数据源状态。本邮件仅发送给管理员。
+      </p>
+    </div>`;
+  const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await resend.emails.send({ from, to: adminEmail, subject, html });
+      return { sent: 1, failed: 0 };
+    } catch (err) {
+      if (attempt === 3) {
+        console.error('[mailer] ops alert email failed after 3 attempts:', err.message);
         return { sent: 0, failed: 1 };
       }
       await new Promise(r => setTimeout(r, 1000 * attempt));

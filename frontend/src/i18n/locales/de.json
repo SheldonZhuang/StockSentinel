@@ -9,7 +9,8 @@
     "neutral": "Abwarten",
     "defense": "Verteidigung",
     "loading": "Laden...",
-    "reduce": "Reduzieren"
+    "reduce": "Reduzieren",
+    "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln"
   },
   "signalPos": {
     "monetary": "Geldpolitik",

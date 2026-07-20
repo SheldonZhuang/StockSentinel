@@ -9,7 +9,8 @@
     "neutral": "观望",
     "defense": "防守",
     "loading": "数据加载中...",
-    "reduce": "减仓观望"
+    "reduce": "减仓观望",
+    "snapshotStale": "信号数据已 {days} 天未更新，可能云端服务停摆——当前档位不可作为最新判断依据"
   },
   "signalPos": {
     "monetary": "货币政策",

@@ -9,7 +9,8 @@
     "neutral": "관망",
     "defense": "방어",
     "loading": "로딩 중...",
-    "reduce": "감축 관망"
+    "reduce": "감축 관망",
+    "snapshotStale": "신호 데이터가 {days}일간 업데이트되지 않았습니다 — 백엔드가 중단됐을 수 있습니다. 현재 단계를 최신 판단 근거로 삼지 마세요"
   },
   "signalPos": {
     "monetary": "통화 정책",
