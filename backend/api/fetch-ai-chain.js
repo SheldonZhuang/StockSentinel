@@ -26,7 +26,10 @@ const EDGAR_HEADERS = {
 const edgarUrl = (cik, concept) => `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`;
 
 const NULL_USAGE = { modelUsageTrendPct: null, modelUsageLatestTokens: null, modelUsageAsOf: null };
-const NULL_CAPEX = { capexYoY: null, capexTtm: null, capexPrevTtm: null };
+const NULL_CAPEX = {
+  capexYoY: null, capexTtm: null, capexPrevTtm: null,
+  capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null,
+};
 const NULL_RANKING = {
   stages: STAGE_KEYS.map(key => ({ key, relReturnPct: null, rank: null, validTickerCount: 0 })),
   autoBottleneck: null,
@@ -79,6 +82,18 @@ export function calcUsageTrend(dailyTotals, recentDays = USAGE_RECENT_DAYS, prio
 }
 
 /**
+ * 单公司季度序列 → 通过口径校验的有效序列；不合格返回 null
+ * 口径与 TTM 同比一致：完整8季 + 最新季在400天内（防换XBRL标签后旧数据冻结污染加总）
+ */
+function qualifiedCapexQuarters(quarters, staleBeforeMs) {
+  const valid = (quarters || []).filter(q => !isNaN(parseFloat(q.capitalExpenditure)));
+  if (valid.length < 8) return null;
+  const latestEnd = valid[0].date;
+  if (latestEnd && new Date(latestEnd).getTime() < staleBeforeMs) return null;
+  return valid;
+}
+
+/**
  * 云厂商滚动4季资本开支同比。capex 为现金流出（负值），用绝对值口径比较；
  * 不足8个季度的公司从两期中同时剔除，保证同比口径一致
  * @param {Object<string, Array<{date, capitalExpenditure}>>} quartersBySymbol - 各公司季度数据（降序）
@@ -90,23 +105,82 @@ export function calcCapexYoY(quartersBySymbol) {
   let qualified = 0;
   const staleBeforeMs = Date.now() - 400 * 86400000; // 最新季度需在400天内，防某公司换XBRL标签后旧数据冻结
   for (const quarters of Object.values(quartersBySymbol || {})) {
-    const valid = (quarters || [])
-      .filter(q => !isNaN(parseFloat(q.capitalExpenditure)));
-    if (valid.length < 8) continue;
-    // 新鲜度校验：某公司改 capex 科目命名会让旧标签数据停在历史某季，
-    // 与其他公司的当季数据加总会静默污染同比。最新季度过期则整体剔除（口径同 sumTtmRevenue）
-    const latestEnd = valid[0].date;
-    if (latestEnd && new Date(latestEnd).getTime() < staleBeforeMs) continue;
+    const valid = qualifiedCapexQuarters(quarters, staleBeforeMs);
+    if (!valid) continue;
     const values = valid.map(q => parseFloat(q.capitalExpenditure));
     qualified++;
     ttm += Math.abs(values.slice(0, 4).reduce((a, b) => a + b, 0));
     prevTtm += Math.abs(values.slice(4, 8).reduce((a, b) => a + b, 0));
   }
-  if (qualified === 0 || prevTtm === 0) return { ...NULL_CAPEX };
+  if (qualified === 0 || prevTtm === 0) {
+    return { capexYoY: null, capexTtm: null, capexPrevTtm: null };
+  }
   return {
     capexYoY: (ttm / prevTtm - 1) * 100,
     capexTtm: ttm,
     capexPrevTtm: prevTtm,
+  };
+}
+
+// 季度末日期 → 日历季度桶（如 '2026Q1'）。四大家季度末都是日历季（3/6/9/12月末），
+// 但精确日期可能差1-2天，按桶对齐而非按日期对齐
+const quarterKey = date => {
+  const [y, m] = date.split('-').map(Number);
+  return `${y}Q${Math.ceil(m / 3)}`;
+};
+
+/**
+ * 最新共同单季资本开支同比（拐点侦察兵，TTM 同比是趋势确认官）：
+ * TTM 是4季滑动平均，单季刹车会被前三季存量稀释、滞后2-3个财报季才显形；
+ * 单季同比是财报数据里最早的事实性拐点信号。
+ *
+ * 错季对齐：财报季中途四大家发布不同步（MSFT已出新季而AMZN未出），
+ * 取所有合格公司都已披露的最近日历季度桶合计，与去年同季桶比较；
+ * 缺任一期数据的公司从两期同时剔除，保证同比口径一致。
+ * 单季用同比而非环比：capex 有明显季节性（普遍Q4冲高），环比噪声无判读价值。
+ * @param {Object<string, Array<{date, capitalExpenditure}>>} quartersBySymbol - 各公司季度数据（降序）
+ * @returns {{capexQtrYoY, capexQtrSum, capexQtrPrevYearSum, capexQtrEnd}}
+ */
+export function calcCapexQuarterYoY(quartersBySymbol) {
+  const staleBeforeMs = Date.now() - 400 * 86400000;
+  const NULL_QTR = { capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null };
+
+  // 各合格公司：季度桶 → {date, value}（降序首个为准，重复桶忽略旧值）
+  const companies = [];
+  for (const quarters of Object.values(quartersBySymbol || {})) {
+    const valid = qualifiedCapexQuarters(quarters, staleBeforeMs);
+    if (!valid) continue;
+    const byBucket = new Map();
+    for (const q of valid) {
+      const key = quarterKey(q.date);
+      if (!byBucket.has(key)) byBucket.set(key, { date: q.date, value: parseFloat(q.capitalExpenditure) });
+    }
+    companies.push({ byBucket, latestKey: quarterKey(valid[0].date) });
+  }
+  if (!companies.length) return { ...NULL_QTR };
+
+  // 共同最新季 = 各公司最新季桶的最小值（YYYYQn 字符串比较即时间序）
+  const commonKey = companies.map(c => c.latestKey).sort()[0];
+  const [y, qn] = commonKey.split('Q');
+  const prevYearKey = `${Number(y) - 1}Q${qn}`;
+
+  let sum = 0;
+  let prevSum = 0;
+  let qtrEnd = null;
+  for (const c of companies) {
+    const cur = c.byBucket.get(commonKey);
+    const prev = c.byBucket.get(prevYearKey);
+    if (!cur || !prev) continue; // 缺任一期 → 两期同时剔除
+    sum += Math.abs(cur.value);
+    prevSum += Math.abs(prev.value);
+    if (!qtrEnd || cur.date > qtrEnd) qtrEnd = cur.date;
+  }
+  if (prevSum === 0) return { ...NULL_QTR };
+  return {
+    capexQtrYoY: (sum / prevSum - 1) * 100,
+    capexQtrSum: sum,
+    capexQtrPrevYearSum: prevSum,
+    capexQtrEnd: qtrEnd,
   };
 }
 
@@ -278,7 +352,7 @@ export async function fetchHyperscalerCapex() {
     }
     await sleep(150); // EDGAR 限速10次/秒，保守间隔
   }
-  return calcCapexYoY(quartersBySymbol);
+  return { ...calcCapexYoY(quartersBySymbol), ...calcCapexQuarterYoY(quartersBySymbol) };
 }
 
 /**

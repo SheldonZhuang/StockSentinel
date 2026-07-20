@@ -54,7 +54,7 @@
             {{ bubble.modelUsageTrendPct != null ? formatPct(bubble.modelUsageTrendPct) : $t('aiChain.noData') }}
           </span>
         </div>
-        <div class="bubble-cell" :title="$t('indicators.hints.capexYoY') + '\n' + $t('indicators.hintGlobal')">
+        <div class="bubble-cell" :title="$t('indicators.hints.capexYoY') + '\n' + $t('indicators.hints.capexQtrYoY') + '\n' + $t('indicators.hintGlobal')">
           <span class="bubble-label hinted">{{ $t('aiChain.capexYoY') }}</span>
           <span :class="['bubble-value', capexClass]">
             {{ capexDisplay }}
@@ -149,9 +149,9 @@ const semiIpClass = computed(() => {
   return '';
 });
 
-// 资本开支显示：总额（按语言用 亿/億/억 或 B/Mrd/MM）+ 同比%
+// 资本开支显示：总额（按语言用 亿/億/억 或 B/Mrd/MM）+ TTM同比% + 最新单季同比（拐点侦察兵，参考）
 const capexDisplay = computed(() => {
-  const { capexTtm, capexYoY } = bubble.value;
+  const { capexTtm, capexYoY, capexQtrYoY } = bubble.value;
   if (capexTtm == null && capexYoY == null) return t('aiChain.noData');
   const parts = [];
   if (capexTtm != null) {
@@ -161,6 +161,7 @@ const capexDisplay = computed(() => {
     }));
   }
   if (capexYoY != null) parts.push(`(${formatPct(capexYoY)})`);
+  if (capexQtrYoY != null) parts.push(`· ${t('aiChain.capexQtr', { pct: formatPct(capexQtrYoY) })}`);
   return parts.join(' ');
 });
 

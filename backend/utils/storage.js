@@ -111,6 +111,16 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'spx_ma10m REAL',
   'spx_above_sma10 INTEGER',
   'oil_level_low INTEGER',
+  'capex_qtr_yoy REAL',
+  'capex_qtr_end TEXT',
+];
+
+// ai_chain_snapshots 的增量列（与 signal_snapshots 同机制：CREATE TABLE 管新库，ALTER 管存量库）
+const AI_CHAIN_SNAPSHOT_NEW_COLUMNS = [
+  'capex_qtr_yoy REAL',
+  'capex_qtr_sum REAL',
+  'capex_qtr_prev_year_sum REAL',
+  'capex_qtr_end TEXT',
 ];
 
 function migrateSchema() {
@@ -122,6 +132,16 @@ function migrateSchema() {
     const colName = colDef.split(' ')[0];
     if (!existingCols.has(colName)) {
       db.run(`ALTER TABLE signal_snapshots ADD COLUMN ${colDef}`);
+      changed = true;
+    }
+  }
+  const existingChainCols = new Set(
+    all('PRAGMA table_info(ai_chain_snapshots)').map((c) => c.name)
+  );
+  for (const colDef of AI_CHAIN_SNAPSHOT_NEW_COLUMNS) {
+    const colName = colDef.split(' ')[0];
+    if (!existingChainCols.has(colName)) {
+      db.run(`ALTER TABLE ai_chain_snapshots ADD COLUMN ${colDef}`);
       changed = true;
     }
   }
@@ -319,6 +339,10 @@ function initSchema() {
       capex_yoy REAL,
       capex_ttm REAL,
       capex_prev_ttm REAL,
+      capex_qtr_yoy REAL,
+      capex_qtr_sum REAL,
+      capex_qtr_prev_year_sum REAL,
+      capex_qtr_end TEXT,
       bubble_warning INTEGER DEFAULT 0,
       bubble_reasons TEXT,
       created_at TEXT DEFAULT (datetime('now'))
@@ -408,8 +432,9 @@ export async function saveSignalSnapshot(data) {
      credit_spread, credit_spread_percentile, credit_spread_90d_widen_bp, credit_spread_period_date,
      yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date,
      sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
-     spx_close, spx_ma10m, spx_above_sma10, oil_level_low)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     spx_close, spx_ma10m, spx_above_sma10, oil_level_low,
+     capex_qtr_yoy, capex_qtr_end)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -436,6 +461,7 @@ export async function saveSignalSnapshot(data) {
     data.yieldCurveSpread, data.yieldCurveInvertedDays, data.yieldCurvePeriodDate,
     data.sahmLockSince, data.reactiveAdjustmentLockSince, data.finalDowngradePendingSince,
     data.spxClose, data.spxMa10m, data.spxAboveSma10, data.oilLevelLow,
+    data.capexQtrYoY, data.capexQtrEnd,
   ]);
 }
 
@@ -562,12 +588,15 @@ export async function saveAiChainSnapshot(data) {
     INSERT INTO ai_chain_snapshots
     (date, auto_bottleneck, stage_metrics,
      model_usage_trend_pct, model_usage_latest_tokens, model_usage_as_of,
-     capex_yoy, capex_ttm, capex_prev_ttm, bubble_warning, bubble_reasons)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     capex_yoy, capex_ttm, capex_prev_ttm,
+     capex_qtr_yoy, capex_qtr_sum, capex_qtr_prev_year_sum, capex_qtr_end,
+     bubble_warning, bubble_reasons)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.autoBottleneck, data.stageMetrics,
     data.modelUsageTrendPct, data.modelUsageLatestTokens, data.modelUsageAsOf,
     data.capexYoY, data.capexTtm, data.capexPrevTtm,
+    data.capexQtrYoY, data.capexQtrSum, data.capexQtrPrevYearSum, data.capexQtrEnd,
     data.bubbleWarning ? 1 : 0, data.bubbleReasons,
   ]);
 }

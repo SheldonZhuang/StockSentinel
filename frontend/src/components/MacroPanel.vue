@@ -103,6 +103,8 @@ function hintFor(ind) {
   }
   // 收益率曲线是参考指标但有专属提示（唯一判定角色：倒挂确认期否决进攻档准入）
   if (ind.key === 'yieldCurve') return t('indicators.hints.yieldCurve');
+  // capex单季同比：参考指标但有专属提示（拐点侦察兵语义 + 错季对齐口径）
+  if (ind.key === 'capexQtrYoY') return t('indicators.hints.capexQtrYoY');
   return t('indicators.hints.reference');
 }
 
@@ -152,6 +154,12 @@ const groups = computed(() => {
           signalBadge: ind.capexYoY != null
             ? (ind.capexYoY > 10 ? 'loose' : ind.capexYoY < 0 ? 'tight' : 'neutral')
             : null,
+        },
+        {
+          // 单季同比=拐点侦察兵（展示参考，不参与判定；判定用上面的TTM口径）
+          key: 'capexQtrYoY', signed: true, value: ind.capexQtrYoY, unit: '%', change: null,
+          signalBadge: null,
+          periodDate: ind.capexQtrEnd,
         },
         {
           key: 'semiIpYoy', signed: true, value: ind.semiIpYoy, unit: '%', change: null,

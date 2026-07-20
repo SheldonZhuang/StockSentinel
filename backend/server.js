@@ -377,6 +377,8 @@ async function runDailyUpdate() {
     semiIpReleaseDate: policyData.semiIpReleaseDate,
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
+    capexQtrYoY: chainData.capexQtrYoY,
+    capexQtrEnd: chainData.capexQtrEnd,
     aiBubbleWarning: aiSupplyAutoEff === 'tight' ? 1 : 0, // 复用列：AI供需=收紧(供过于求)标记（stale日沿用上次判定，与 ai_supply_signal 同口径）
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,
@@ -402,6 +404,10 @@ async function runDailyUpdate() {
     capexYoY: chainData.capexYoY,
     capexTtm: chainData.capexTtm,
     capexPrevTtm: chainData.capexPrevTtm,
+    capexQtrYoY: chainData.capexQtrYoY,
+    capexQtrSum: chainData.capexQtrSum,
+    capexQtrPrevYearSum: chainData.capexQtrPrevYearSum,
+    capexQtrEnd: chainData.capexQtrEnd,
     bubbleWarning: aiSupplyAutoEff === 'tight',
     bubbleReasons: JSON.stringify(
       [aiSubSignals.usageSignal === 'tight' && 'usage',

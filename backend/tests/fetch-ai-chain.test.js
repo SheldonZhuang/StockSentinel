@@ -13,6 +13,7 @@ import {
   aggregateDailyTokens,
   calcUsageTrend,
   calcCapexYoY,
+  calcCapexQuarterYoY,
   deriveQuarterlyCapex,
   calcStageRelReturns,
   rankStages,
@@ -110,6 +111,69 @@ describe('calcCapexYoY', () => {
     const r = calcCapexYoY(quarters);
     expect(r.capexYoY).toBeCloseTo(10, 5); // 只算 FRESH，STALE 不污染
     expect(r.capexTtm).toBe(440);
+  });
+});
+
+describe('calcCapexQuarterYoY', () => {
+  // 从最近季度末往前按季生成降序序列（真实日历季度末日期）
+  const QUARTER_ENDS = ['03-31', '06-30', '09-30', '12-31'];
+  const dated = (latestEnd, vals) => vals.map((v, i) => {
+    const [y, m] = latestEnd.split('-').map(Number);
+    const qi = Math.ceil(m / 3) - 1; // 最新季的季度序号(0-3)
+    const totalQ = (y * 4 + qi) - i;
+    return { date: `${Math.floor(totalQ / 4)}-${QUARTER_ENDS[totalQ % 4]}`, capitalExpenditure: v };
+  });
+
+  it('最新单季 vs 去年同季，绝对值口径', () => {
+    // 最新季(2026Q2)合计-120，去年同季(2025Q2)-100 → +20%
+    const quarters = { MSFT: dated('2026-06-30', [-120, -110, -110, -110, -100, -100, -100, -100]) };
+    const r = calcCapexQuarterYoY(quarters);
+    expect(r.capexQtrYoY).toBeCloseTo(20, 5);
+    expect(r.capexQtrSum).toBe(120);
+    expect(r.capexQtrPrevYearSum).toBe(100);
+    expect(r.capexQtrEnd).toBe('2026-06-30');
+  });
+
+  it('错季对齐：一家已出新季而另一家未出 → 取共同最近季，不混算', () => {
+    const quarters = {
+      // MSFT 已出 2026Q2：单季-200；其 2026Q1=-130，2025Q1=-100
+      MSFT: dated('2026-06-30', [-200, -130, -110, -110, -110, -100, -100, -100, -100]),
+      // AMZN 最新只到 2026Q1：单季-90，2025Q1=-60
+      AMZN: dated('2026-03-31', [-90, -80, -80, -80, -60, -60, -60, -60]),
+    };
+    const r = calcCapexQuarterYoY(quarters);
+    // 共同季=2026Q1：(130+90)/(100+60)-1 = +37.5%，MSFT 的 2026Q2 新季不参与
+    expect(r.capexQtrYoY).toBeCloseTo(37.5, 5);
+    expect(r.capexQtrEnd).toBe('2026-03-31');
+  });
+
+  it('某公司缺去年同季 → 该公司从两期同时剔除', () => {
+    const quarters = {
+      MSFT: dated('2026-06-30', [-120, -110, -110, -110, -100, -100, -100, -100]),
+      // 合格线是8季，但这家的序列里恰好缺2025Q2桶（模拟标签切换致断档）：
+      // 从2026Q2往前连续8季应含2025Q2，这里手工去掉该季再补一条更早的凑足8条
+      META: [
+        ...dated('2026-06-30', [-500, -50, -50, -50]).filter(q => true),
+        ...dated('2024-12-31', [-40, -40, -40, -40]),
+      ],
+    };
+    const r = calcCapexQuarterYoY(quarters);
+    // META 的桶里没有 2025Q2（序列从2026Q2..2025Q3 + 2024Q4..2024Q1）→ 整体剔除
+    expect(r.capexQtrYoY).toBeCloseTo(20, 5);
+    expect(r.capexQtrSum).toBe(120);
+  });
+
+  it('全部公司不合格 → 全 null', () => {
+    const r = calcCapexQuarterYoY({ MSFT: dated('2026-06-30', [-100, -100]) });
+    expect(r).toEqual({ capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null });
+  });
+
+  it('口径与TTM一致：过期公司同样剔除', () => {
+    const quarters = {
+      FRESH: dated('2026-06-30', [-120, -110, -110, -110, -100, -100, -100, -100]),
+      STALE: dated('2024-01-31', [-999, -999, -999, -999, -1, -1, -1, -1]),
+    };
+    expect(calcCapexQuarterYoY(quarters).capexQtrYoY).toBeCloseTo(20, 5);
   });
 });
 
