@@ -151,11 +151,14 @@ export function computeLocksDaily({ today, currentRate, sahmValue, stepsAsc, pre
     : endpointDiffBp;
 
   const ageDays = since => (since ? Math.floor((Date.parse(today) - Date.parse(since)) / 86400000) : null);
-  const sahmTrigger = sahmValue !== null && sahmValue !== undefined && sahmValue >= cfg.SAHM_TRIGGER_THRESHOLD;
-  const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP;
-
   const prevSahm = !!prev?.sahmLockActive;
   const prevReactive = !!prev?.reactiveLockActive;
+  // 与线上 computeLocks 同步（2026-07-20）：SAHM 缺数日已激活的锁视同触发存续（fail-closed）。
+  // 历史回放中 SAHM 序列完整、此分支不触达，仅为防线上/回测复刻漂移
+  const sahmTrigger = sahmValue !== null && sahmValue !== undefined
+    ? sahmValue >= cfg.SAHM_TRIGGER_THRESHOLD
+    : prevSahm;
+  const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= cfg.RATE_REACTIVE_ADJUSTMENT_BP;
   const sahmLockActive = calcLockActive({
     triggerToday: sahmTrigger, rateDiffBp, currentRate,
     prevLockActive: prevSahm, lockAgeDays: prevSahm ? ageDays(prev.sahmLockSince) : null,

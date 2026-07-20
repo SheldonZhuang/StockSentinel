@@ -263,7 +263,11 @@
         "epuPct": 62.5,
         "oilPct": null,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.059523809579436,
+        "capePct": 100,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -290,7 +294,11 @@
         "epuPct": 31.666666666666664,
         "oilPct": 10.560578661844492,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.505102040825761,
+        "capePct": 99.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -317,7 +325,11 @@
         "epuPct": 13.333333333333334,
         "oilPct": -12.136081125286232,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.075702075695751,
+        "capePct": 98.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -344,7 +356,11 @@
         "epuPct": 41.66666666666667,
         "oilPct": -4.281459419210717,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.514885470073338,
+        "capePct": 99.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -371,7 +387,11 @@
         "epuPct": 37.5,
         "oilPct": 12.913263321664722,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -7.000407000464969,
+        "capePct": 99.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -398,7 +418,11 @@
         "epuPct": 84.16666666666667,
         "oilPct": 11.746469169824307,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.167933191687391,
+        "capePct": 97.22222222222221,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -425,7 +449,11 @@
         "epuPct": 3.3333333333333335,
         "oilPct": -15.22811344019728,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.656985348374023,
+        "capePct": 98.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -452,7 +480,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": 20.327272727272742,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.557897940175589,
+        "capePct": 98.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -479,7 +511,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": -6.708975521305536,
         "sahm": 0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.008014031442777,
+        "capePct": 98.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -506,7 +542,11 @@
         "epuPct": 49.166666666666664,
         "oilPct": 5.92808551992226,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.447727029261452,
+        "capePct": 95.83333333333334,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -533,7 +573,11 @@
         "epuPct": 24.166666666666668,
         "oilPct": 2.7828746177369923,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.431693157291969,
+        "capePct": 94.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -560,7 +604,11 @@
         "epuPct": 70.83333333333334,
         "oilPct": -20.499851234751564,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.877806990245368,
+        "capePct": 93.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -587,7 +635,11 @@
         "epuPct": 49.166666666666664,
         "oilPct": 7.110778443113781,
         "sahm": 0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -10.048874849431078,
+        "capePct": 92.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -614,7 +666,11 @@
         "epuPct": 45.83333333333333,
         "oilPct": -4.4374563242487755,
         "sahm": 0.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -18.629095262946482,
+        "capePct": 92.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -641,7 +697,11 @@
         "epuPct": 7.5,
         "oilPct": -3.5831809872029265,
         "sahm": 0.2,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -22.83321214244739,
+        "capePct": 91.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -668,7 +728,11 @@
         "epuPct": 3.3333333333333335,
         "oilPct": 8.001516875237009,
         "sahm": 0.3,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.240076345978594,
+        "capePct": 87.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -695,7 +759,11 @@
         "epuPct": 40,
         "oilPct": -0.3160112359550557,
         "sahm": 0.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.709602086033648,
+        "capePct": 87.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -722,7 +790,11 @@
         "epuPct": 3.3333333333333335,
         "oilPct": -7.115181401902077,
         "sahm": 0.47,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -18.694437526973307,
+        "capePct": 90.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -749,7 +821,11 @@
         "epuPct": 15,
         "oilPct": 1.251422070534692,
         "sahm": 0.53,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -19.523409425406236,
+        "capePct": 89.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -776,7 +852,11 @@
         "epuPct": 16.666666666666664,
         "oilPct": -0.18726591760299893,
         "sahm": 0.53,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.298284907789814,
+        "capePct": 86.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -803,7 +883,11 @@
         "epuPct": 25.833333333333336,
         "oilPct": -12.045028142589109,
         "sahm": 0.7,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -26.655401036512593,
+        "capePct": 86.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -830,7 +914,11 @@
         "epuPct": 71.66666666666667,
         "oilPct": -9.556313993174069,
         "sahm": 0.83,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -25.490363842017082,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -857,7 +945,11 @@
         "epuPct": 52.5,
         "oilPct": -8.207547169811313,
         "sahm": 1.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.69278413658214,
+        "capePct": 85,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -884,7 +976,11 @@
         "epuPct": 54.166666666666664,
         "oilPct": 2.5693730729701953,
         "sahm": 1.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.066377414328294,
+        "capePct": 85.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -911,7 +1007,11 @@
         "epuPct": 65.83333333333333,
         "oilPct": -1.2525050100200399,
         "sahm": 1.63,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.888826291206115,
+        "capePct": 85.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -938,7 +1038,11 @@
         "epuPct": 47.5,
         "oilPct": 10.502283105022832,
         "sahm": 1.6,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -14.719980514121723,
+        "capePct": 85.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -965,7 +1069,11 @@
         "epuPct": 5,
         "oilPct": 20.339761248852156,
         "sahm": 1.5,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -11.885038419067563,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -992,7 +1100,11 @@
         "epuPct": 45.83333333333333,
         "oilPct": 4.235024799694771,
         "sahm": 1.37,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -17.0094298533106,
+        "capePct": 85.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1019,7 +1131,11 @@
         "epuPct": 2.5,
         "oilPct": -7.137628111273789,
         "sahm": 1.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -15.676406558331157,
+        "capePct": 83.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1046,7 +1162,11 @@
         "epuPct": 30,
         "oilPct": 5.597162002364991,
         "sahm": 1.43,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -19.186830386120256,
+        "capePct": 82.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1073,7 +1193,11 @@
         "epuPct": 25.833333333333336,
         "oilPct": 0.8585293019783518,
         "sahm": 1.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.63362220288805,
+        "capePct": 81.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1100,7 +1224,11 @@
         "epuPct": 64.16666666666667,
         "oilPct": 7.216876387860842,
         "sahm": 1.33,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -21.577968157721074,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1127,7 +1255,11 @@
         "epuPct": 39.166666666666664,
         "oilPct": 5.591991715567833,
         "sahm": 1.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -29.800723544485653,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1154,7 +1286,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": -11.147433801896046,
         "sahm": 0.9,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.024456959622785,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1181,7 +1317,11 @@
         "epuPct": 24.166666666666668,
         "oilPct": -1.1405445180279572,
         "sahm": 0.57,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -19.338206000317605,
+        "capePct": 75.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1208,7 +1348,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 16.151842203200594,
         "sahm": 0.43,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -23.906595316781655,
+        "capePct": 76.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1235,7 +1379,11 @@
         "epuPct": 26.666666666666668,
         "oilPct": 7.369432874078812,
         "sahm": 0.3,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -25.778102321266914,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1262,7 +1410,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": 9.698597433601911,
         "sahm": 0.23,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -26.77853349056839,
+        "capePct": 75.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1289,7 +1441,11 @@
         "epuPct": 35,
         "oilPct": -15.288356909684433,
         "sahm": 0.2,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.783306500965097,
+        "capePct": 73.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1316,7 +1472,11 @@
         "epuPct": 50,
         "oilPct": -16.217084136159283,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -15.719339055626724,
+        "capePct": 73.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1343,7 +1503,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": 13.300114986584893,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -8.046408857837594,
+        "capePct": 75,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1370,7 +1534,11 @@
         "epuPct": 20.833333333333336,
         "oilPct": 1.9959404600811903,
         "sahm": 0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.6162838076057136,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1397,7 +1565,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": 1.3598673300165842,
         "sahm": 0.4,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.8787488442266964,
+        "capePct": 78.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1424,7 +1596,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": 3.926701570680638,
         "sahm": 0.47,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 78.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1451,7 +1627,11 @@
         "epuPct": 25.833333333333336,
         "oilPct": -8.091939546599496,
         "sahm": 0.47,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.076765272283589,
+        "capePct": 77.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1478,7 +1658,11 @@
         "epuPct": 54.166666666666664,
         "oilPct": 0.17129153819800327,
         "sahm": 0.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.10435537034219067,
+        "capePct": 78.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1505,7 +1689,11 @@
         "epuPct": 38.333333333333336,
         "oilPct": 3.727770177838577,
         "sahm": 0.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 80,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1532,7 +1720,11 @@
         "epuPct": 76.66666666666667,
         "oilPct": 7.187603033300362,
         "sahm": 0.23,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 80.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1559,7 +1751,11 @@
         "epuPct": 60.83333333333333,
         "oilPct": 1.9993848046754803,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.0626563718839086,
+        "capePct": 81.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1586,7 +1782,11 @@
         "epuPct": 25,
         "oilPct": 8.805790108564542,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.9899294309292372,
+        "capePct": 81.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1613,7 +1813,11 @@
         "epuPct": 85.83333333333333,
         "oilPct": -0.9146341463414587,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.472923135422722,
+        "capePct": 81.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1640,7 +1844,11 @@
         "epuPct": 39.166666666666664,
         "oilPct": 4.36363636363637,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.318262221561209,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1667,7 +1875,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": 6.941838649155713,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.679874561353357,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1694,7 +1906,11 @@
         "epuPct": 60,
         "oilPct": -7.468671679197987,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.8802066298863487,
+        "capePct": 78.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1721,7 +1937,11 @@
         "epuPct": 17.5,
         "oilPct": 18.418201516793058,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.073713467272055,
+        "capePct": 79.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1748,7 +1968,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": -3.408051235132667,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -3.8400380980670668,
+        "capePct": 77.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1775,7 +1999,11 @@
         "epuPct": 16.666666666666664,
         "oilPct": 17.35732891309497,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.876774892038425,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1802,7 +2030,11 @@
         "epuPct": 11.666666666666666,
         "oilPct": 4.479418886198545,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.625370489425526,
+        "capePct": 76.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1829,7 +2061,11 @@
         "epuPct": 45,
         "oilPct": -5.059868675164165,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7158489256811729,
+        "capePct": 76.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1856,7 +2092,11 @@
         "epuPct": 18.333333333333332,
         "oilPct": -11.798209926769726,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.40375576464015683,
+        "capePct": 79.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1883,7 +2123,11 @@
         "epuPct": 11.666666666666666,
         "oilPct": 11.277675276752769,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.636780630881086,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1910,7 +2154,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 7.253886010362693,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.6588182492371142,
+        "capePct": 79.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1937,7 +2185,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 6.8792270531401005,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.55501048931548,
+        "capePct": 80,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1964,7 +2216,11 @@
         "epuPct": 8.333333333333332,
         "oilPct": -11.046826975230516,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.361922427099364,
+        "capePct": 78.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -1991,7 +2247,11 @@
         "epuPct": 14.166666666666666,
         "oilPct": 5.853658536585357,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.312243694866978,
+        "capePct": 74.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2018,7 +2278,11 @@
         "epuPct": 82.5,
         "oilPct": 8.736559139784955,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.166008171667688,
+        "capePct": 75.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2045,7 +2309,11 @@
         "epuPct": 49.166666666666664,
         "oilPct": 7.204661840014123,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.6662936501398709,
+        "capePct": 77.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2072,7 +2340,11 @@
         "epuPct": 92.5,
         "oilPct": 13.045626750123528,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.7158426738578814,
+        "capePct": 77.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2099,7 +2371,11 @@
         "epuPct": 8.333333333333332,
         "oilPct": -3.5261547428238407,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.9302863400186934,
+        "capePct": 77.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2126,7 +2402,11 @@
         "epuPct": 4.166666666666666,
         "oilPct": -9.681317021597941,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.27337200883977,
+        "capePct": 75.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2153,7 +2433,11 @@
         "epuPct": 14.166666666666666,
         "oilPct": -4.130434782608694,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.352940329287089,
+        "capePct": 71.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2180,7 +2464,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 6.506192220477942,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.0641262506163716,
+        "capePct": 76.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2207,7 +2495,11 @@
         "epuPct": 14.166666666666666,
         "oilPct": 11.136586963642314,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.3997355409917422,
+        "capePct": 78.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2234,7 +2526,11 @@
         "epuPct": 5,
         "oilPct": -9.563807839669911,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.9501088625602061,
+        "capePct": 78.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2261,7 +2557,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": 7.951767964803655,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.6048025035468974,
+        "capePct": 76.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2288,7 +2588,11 @@
         "epuPct": 33.33333333333333,
         "oilPct": 8.377358490566033,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2315,7 +2619,11 @@
         "epuPct": 9.166666666666666,
         "oilPct": -0.5292479108635034,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.853109027694146,
+        "capePct": 76.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2342,7 +2650,11 @@
         "epuPct": 29.166666666666668,
         "oilPct": 3.5284234108092916,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.598858610195277,
+        "capePct": 72.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2369,7 +2681,11 @@
         "epuPct": 10,
         "oilPct": 0.838517717067899,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.167144636122443,
+        "capePct": 68.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2396,7 +2712,11 @@
         "epuPct": 36.666666666666664,
         "oilPct": -5.606223175965674,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.0540138772585972,
+        "capePct": 68.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2423,7 +2743,11 @@
         "epuPct": 25,
         "oilPct": -10.628019323671493,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.11963735162654476,
+        "capePct": 70,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2450,7 +2774,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": -6.645468998410174,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7133636022026879,
+        "capePct": 71.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2477,7 +2805,11 @@
         "epuPct": 11.666666666666666,
         "oilPct": 7.2377384196185295,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.2767520618358277,
+        "capePct": 79.16666666666666,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2504,7 +2836,11 @@
         "epuPct": 32.5,
         "oilPct": -3.3666825472447157,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.6245175996415386,
+        "capePct": 80.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2531,7 +2867,11 @@
         "epuPct": 4.166666666666666,
         "oilPct": -4.404272801972062,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.1389350497495112,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2558,7 +2898,11 @@
         "epuPct": 45,
         "oilPct": 6.2059480832044,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.4990415262323604,
+        "capePct": 80.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2585,7 +2929,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": 6.733570734865648,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.379426562151521,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2612,7 +2960,11 @@
         "epuPct": 10,
         "oilPct": -0.2426448286320846,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.9087878747417344,
+        "capePct": 75,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2639,7 +2991,11 @@
         "epuPct": 20.833333333333336,
         "oilPct": -2.675585284280944,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.10424094616863222,
+        "capePct": 79.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2666,7 +3022,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 10.074976569821937,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.9634783141772472,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2693,7 +3053,11 @@
         "epuPct": 11.666666666666666,
         "oilPct": 10.969206754647374,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.029538645685905,
+        "capePct": 80.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2720,7 +3084,11 @@
         "epuPct": 10.833333333333334,
         "oilPct": -5.3964194373401515,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.823634914741016,
+        "capePct": 80.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2747,7 +3115,11 @@
         "epuPct": 49.166666666666664,
         "oilPct": 10.35414977020816,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.140388217705357,
+        "capePct": 73.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2774,7 +3146,11 @@
         "epuPct": 26.666666666666668,
         "oilPct": 15.335619794218516,
         "sahm": 0.17,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.1694798356112202,
+        "capePct": 77.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2801,7 +3177,11 @@
         "epuPct": 45,
         "oilPct": -5.904842820730674,
         "sahm": 0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.99743877800608,
+        "capePct": 80,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2828,7 +3208,11 @@
         "epuPct": 28.333333333333332,
         "oilPct": 8.295711060948092,
         "sahm": 0.23,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.074022096665555,
+        "capePct": 70.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2855,7 +3239,11 @@
         "epuPct": 34.166666666666664,
         "oilPct": -4.460656591974988,
         "sahm": 0.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -11.752886278520712,
+        "capePct": 71.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2882,7 +3270,11 @@
         "epuPct": 83.33333333333334,
         "oilPct": 11.028689865823061,
         "sahm": 0.4,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -14.033414822949709,
+        "capePct": 62.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2909,7 +3301,11 @@
         "epuPct": 79.16666666666666,
         "oilPct": -0.23580271173117986,
         "sahm": 0.43,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -14.809818982987167,
+        "capePct": 61.111111111111114,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2936,7 +3332,11 @@
         "epuPct": 72.5,
         "oilPct": 11.975576127634426,
         "sahm": 0.47,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -10.749458875417117,
+        "capePct": 58.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2963,7 +3363,11 @@
         "epuPct": 85.83333333333333,
         "oilPct": 12.005277044854873,
         "sahm": 0.5,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -9.400300626795632,
+        "capePct": 60.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -2990,7 +3394,11 @@
         "epuPct": 40,
         "oilPct": 9.901845308205743,
         "sahm": 0.73,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.96528980256383,
+        "capePct": 61.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3017,7 +3425,11 @@
         "epuPct": 42.5,
         "oilPct": -11.281794798513864,
         "sahm": 0.8,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -17.711421991427667,
+        "capePct": 57.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3044,7 +3456,11 @@
         "epuPct": 24.166666666666668,
         "oilPct": -6.942095514214388,
         "sahm": 0.97,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.4397601624905,
+        "capePct": 53.888888888888886,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3071,7 +3487,11 @@
         "epuPct": 39.166666666666664,
         "oilPct": -12.851579402855903,
         "sahm": 1.1,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.325612124202532,
+        "capePct": 56.111111111111114,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3098,7 +3518,11 @@
         "epuPct": 28.333333333333332,
         "oilPct": -32.373386295928505,
         "sahm": 1.27,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -34.99825235121706,
+        "capePct": 49.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3125,7 +3549,11 @@
         "epuPct": 67.5,
         "oilPct": -18.92804698972099,
         "sahm": 1.5,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -39.52280218198384,
+        "capePct": 35.833333333333336,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3152,7 +3580,11 @@
         "epuPct": 81.66666666666667,
         "oilPct": -19.217533055605866,
         "sahm": 1.7,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -36.248765691142246,
+        "capePct": 32.22222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3179,7 +3611,11 @@
         "epuPct": 38.333333333333336,
         "oilPct": -6.434977578475347,
         "sahm": 2.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -41.00137382176779,
+        "capePct": 32.77777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3206,7 +3642,11 @@
         "epuPct": 48.333333333333336,
         "oilPct": 5.7991852384375795,
         "sahm": 2.37,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -47.34071800025907,
+        "capePct": 31.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3233,7 +3673,11 @@
         "epuPct": 47.5,
         "oilPct": 12.434881087202724,
         "sahm": 2.77,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -42.94449563534093,
+        "capePct": 27.500000000000004,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3260,7 +3704,11 @@
         "epuPct": 64.16666666666667,
         "oilPct": 1.4302981466559244,
         "sahm": 3.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -37.27625420506816,
+        "capePct": 23.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3287,7 +3735,11 @@
         "epuPct": 2.5,
         "oilPct": 31.69811320754717,
         "sahm": 3.53,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -32.53932773013928,
+        "capePct": 30.833333333333336,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3314,7 +3766,11 @@
         "epuPct": 7.5,
         "oilPct": 5.293319258030449,
         "sahm": 3.73,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -27.75846711254566,
+        "capePct": 34.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3341,7 +3797,11 @@
         "epuPct": 45.83333333333333,
         "oilPct": -0.8020624462904441,
         "sahm": 3.9,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -22.368831397328016,
+        "capePct": 35.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3368,7 +3828,11 @@
         "epuPct": 8.333333333333332,
         "oilPct": 1.025122725960141,
         "sahm": 3.8,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -17.79042738499482,
+        "capePct": 36.666666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3395,7 +3859,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": 0.700300128626547,
         "sahm": 3.67,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.645080135556891,
+        "capePct": 41.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3422,7 +3890,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 9.338631847856957,
         "sahm": 3.57,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.674469441581776,
+        "capePct": 44.166666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3449,7 +3921,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": 0.19470404984422568,
         "sahm": 3.57,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.2928712514708507,
+        "capePct": 45,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3476,7 +3952,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": 2.8501101178909223,
         "sahm": 3.47,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.135557132754117,
+        "capePct": 46.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3503,7 +3983,11 @@
         "epuPct": 20.833333333333336,
         "oilPct": -8.23781332661545,
         "sahm": 3.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.666087258848242,
+        "capePct": 49.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3530,7 +4014,11 @@
         "epuPct": 86.66666666666667,
         "oilPct": 9.430336307481133,
         "sahm": 2.57,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.754562836854236,
+        "capePct": 51.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3557,7 +4045,11 @@
         "epuPct": 25,
         "oilPct": 4.678876066231816,
         "sahm": 2.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.3492036453359826,
+        "capePct": 46.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3584,7 +4076,11 @@
         "epuPct": 61.66666666666667,
         "oilPct": 3.1396045536249133,
         "sahm": 1.53,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.462851982550196,
+        "capePct": 53.888888888888886,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3611,7 +4107,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": -14.023469269199481,
         "sahm": 1.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -10.212626221204314,
+        "capePct": 56.666666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3638,7 +4138,11 @@
         "epuPct": 67.5,
         "oilPct": 2.1486486486486536,
         "sahm": 0.8,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -14.85853816862759,
+        "capePct": 49.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3665,7 +4169,11 @@
         "epuPct": 56.666666666666664,
         "oilPct": 4.312739780394219,
         "sahm": 0.43,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -9.043315286297815,
+        "capePct": 44.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3692,7 +4200,11 @@
         "epuPct": 67.5,
         "oilPct": -8.776157260621417,
         "sahm": 0.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.134592661718115,
+        "capePct": 43.888888888888886,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3719,7 +4231,11 @@
         "epuPct": 78.33333333333333,
         "oilPct": 11.149728903100229,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.355467144516157,
+        "capePct": 45,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3746,7 +4262,11 @@
         "epuPct": 70.83333333333334,
         "oilPct": 1.8761726078799248,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.7398519403629131,
+        "capePct": 48.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3773,7 +4293,11 @@
         "epuPct": 94.16666666666667,
         "oilPct": 3.278084714548805,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.446870925751122,
+        "capePct": 55.00000000000001,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3800,7 +4324,11 @@
         "epuPct": 77.5,
         "oilPct": 8.630527817403697,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.135006353259004,
+        "capePct": 56.388888888888886,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3827,7 +4355,11 @@
         "epuPct": 81.66666666666667,
         "oilPct": -0.42678923177938344,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.0077698284106318,
+        "capePct": 57.49999999999999,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3854,7 +4386,11 @@
         "epuPct": 87.5,
         "oilPct": 6.715023628970217,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.0257935033245902,
+        "capePct": 58.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3881,7 +4417,11 @@
         "epuPct": 38.333333333333336,
         "oilPct": 9.361483007209067,
         "sahm": -0.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.0152096882312334,
+        "capePct": 60.55555555555555,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3908,7 +4448,11 @@
         "epuPct": 75,
         "oilPct": 6.780299463226296,
         "sahm": -0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 58.333333333333336,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3935,7 +4479,11 @@
         "epuPct": 29.166666666666668,
         "oilPct": -9.42763912161566,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.1214542255543192,
+        "capePct": 58.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3962,7 +4510,11 @@
         "epuPct": 29.166666666666668,
         "oilPct": -7.2054527750730335,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.7912302800303324,
+        "capePct": 58.333333333333336,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -3989,7 +4541,11 @@
         "epuPct": 94.16666666666667,
         "oilPct": 0.39874081846800596,
         "sahm": 0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.73584763287711,
+        "capePct": 55.27777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4016,7 +4572,11 @@
         "epuPct": 80,
         "oilPct": -7.180183946488299,
         "sahm": 0.23,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -9.973055731019043,
+        "capePct": 56.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4043,7 +4603,11 @@
         "epuPct": 75.83333333333333,
         "oilPct": -11.124873325075999,
         "sahm": 0.23,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.22536209616624,
+        "capePct": 43.333333333333336,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4070,7 +4634,11 @@
         "epuPct": 100,
         "oilPct": 18.066641327758763,
         "sahm": 0.2,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.08159914332821,
+        "capePct": 40.27777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4097,7 +4665,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": 7.6939585792467025,
         "sahm": 0.17,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.459195832031973,
+        "capePct": 43.611111111111114,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4124,7 +4696,11 @@
         "epuPct": 53.333333333333336,
         "oilPct": -1.5245117576723806,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.493070086229191,
+        "capePct": 45.27777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4151,7 +4727,11 @@
         "epuPct": 65,
         "oilPct": -0.3743802489122782,
         "sahm": -0.17,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.1567327787100132,
+        "capePct": 47.22222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4178,7 +4758,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": 8.754824294129602,
         "sahm": -0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.3925559755586505,
+        "capePct": 52.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4205,7 +4789,11 @@
         "epuPct": 22.5,
         "oilPct": -3.782218901755694,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5649318550599691,
+        "capePct": 54.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4232,7 +4820,11 @@
         "epuPct": 29.166666666666668,
         "oilPct": 1.8052994273512564,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.388888888868789,
+        "capePct": 54.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4259,7 +4851,11 @@
         "epuPct": 55.833333333333336,
         "oilPct": -17.513585661168847,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -7.311054709508246,
+        "capePct": 53.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4286,7 +4882,11 @@
         "epuPct": 10.833333333333334,
         "oilPct": -1.7105871474803396,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.5544863368920043,
+        "capePct": 49.166666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4313,7 +4913,11 @@
         "epuPct": 43.333333333333336,
         "oilPct": 3.5747883349012133,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.413580554408734,
+        "capePct": 46.666666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4340,7 +4944,11 @@
         "epuPct": 66.66666666666666,
         "oilPct": 9.525431425976386,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7243828679713071,
+        "capePct": 49.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4367,7 +4975,11 @@
         "epuPct": 55.833333333333336,
         "oilPct": -4.446978335233743,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.6983853350398315,
+        "capePct": 52.77777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4394,7 +5006,11 @@
         "epuPct": 72.5,
         "oilPct": -6.454762421349535,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.4873012926479485,
+        "capePct": 53.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4421,7 +5037,11 @@
         "epuPct": 87.5,
         "oilPct": 2.6788820596080276,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.941067412451681,
+        "capePct": 52.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4448,7 +5068,11 @@
         "epuPct": 1.6666666666666667,
         "oilPct": 3.7158346510051863,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.067700442735654,
+        "capePct": 47.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4475,7 +5099,11 @@
         "epuPct": 44.166666666666664,
         "oilPct": 6.3377981051943895,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.6371963361552102,
+        "capePct": 50.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4502,7 +5130,11 @@
         "epuPct": 13.333333333333334,
         "oilPct": -5.755248335893501,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.07014681890234,
+        "capePct": 54.166666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4529,7 +5161,11 @@
         "epuPct": 45.83333333333333,
         "oilPct": 5.661197435618813,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 54.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4556,7 +5192,11 @@
         "epuPct": 34.166666666666664,
         "oilPct": -4.134101192924718,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 56.111111111111114,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4583,7 +5223,11 @@
         "epuPct": 41.66666666666667,
         "oilPct": -1.3838232139025874,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.2252796554705467,
+        "capePct": 56.388888888888886,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4610,7 +5254,11 @@
         "epuPct": 20,
         "oilPct": 4.8188839334276,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.531589717948458,
+        "capePct": 60,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4637,7 +5285,11 @@
         "epuPct": 70.83333333333334,
         "oilPct": 9.070153590701532,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.46607669612304115,
+        "capePct": 57.49999999999999,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4664,7 +5316,11 @@
         "epuPct": 69.16666666666667,
         "oilPct": 2.740247383444348,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.270254460385714,
+        "capePct": 60.55555555555555,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4691,7 +5347,11 @@
         "epuPct": 43.333333333333336,
         "oilPct": -5.204667531024268,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.4359153844583648,
+        "capePct": 59.166666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4718,7 +5378,11 @@
         "epuPct": 87.5,
         "oilPct": -5.930050801094171,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7789129085195912,
+        "capePct": 59.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4745,7 +5409,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": -3.8841001142382483,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.06625441700405243,
+        "capePct": 61.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4772,7 +5440,11 @@
         "epuPct": 30,
         "oilPct": 6.072393300918428,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 63.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4799,7 +5471,11 @@
         "epuPct": 9.166666666666666,
         "oilPct": -0.6315575022919472,
         "sahm": -0.17,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.5248253831216436,
+        "capePct": 64.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4826,7 +5502,11 @@
         "epuPct": 56.666666666666664,
         "oilPct": 5.463864684777036,
         "sahm": -0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 64.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4853,7 +5533,11 @@
         "epuPct": 100,
         "oilPct": -1.2733281493001578,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.2240533377789844,
+        "capePct": 61.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4880,7 +5564,11 @@
         "epuPct": 98.33333333333333,
         "oilPct": -1.4768140198877622,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.3017789072358279,
+        "capePct": 65,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4907,7 +5595,11 @@
         "epuPct": 35,
         "oilPct": 3.327670630558622,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 63.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4934,7 +5626,11 @@
         "epuPct": 13.333333333333334,
         "oilPct": 2.582205029013527,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.11227926913981445,
+        "capePct": 64.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4961,7 +5657,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": -7.3913453379843395,
         "sahm": -0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.79889252452451,
+        "capePct": 67.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -4988,7 +5688,11 @@
         "epuPct": 40,
         "oilPct": -0.37666700600631636,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 70.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5015,7 +5719,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": -6.836296750459839,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.921529493131191,
+        "capePct": 66.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5042,7 +5750,11 @@
         "epuPct": 2.5,
         "oilPct": -11.67050564878798,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 70.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5069,7 +5781,11 @@
         "epuPct": 9.166666666666666,
         "oilPct": -18.117471749658517,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.211905220568398,
+        "capePct": 64.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5096,7 +5812,11 @@
         "epuPct": 25.833333333333336,
         "oilPct": -18.9414619350925,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.5235722498849968,
+        "capePct": 76.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5123,7 +5843,11 @@
         "epuPct": 11.666666666666666,
         "oilPct": -10.589335827876527,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.441356841671085,
+        "capePct": 77.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5150,7 +5874,11 @@
         "epuPct": 50,
         "oilPct": 4.2896003347980844,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5429394268486321,
+        "capePct": 75.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5177,7 +5905,11 @@
         "epuPct": 7.5,
         "oilPct": -4.253611556982352,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.1919886271432487,
+        "capePct": 78.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5204,7 +5936,11 @@
         "epuPct": 38.333333333333336,
         "oilPct": 24.9371332774518,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.5072052917396994,
+        "capePct": 76.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5231,7 +5967,11 @@
         "epuPct": 56.666666666666664,
         "oilPct": 1.0566923851056735,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.1053864168250938,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5258,7 +5998,11 @@
         "epuPct": 92.5,
         "oilPct": -1.278008298755192,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.093194539338606,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5285,7 +6029,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": -20.796906523201073,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.020600131679683,
+        "capePct": 74.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5312,7 +6060,11 @@
         "epuPct": 72.5,
         "oilPct": 4.436425387391219,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.092465431271466,
+        "capePct": 72.22222222222221,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5339,7 +6091,11 @@
         "epuPct": 20,
         "oilPct": -8.414634146341465,
         "sahm": -0.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -9.4142191840204,
+        "capePct": 66.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5366,7 +6122,11 @@
         "epuPct": 17.5,
         "oilPct": 3.4176653351087416,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.68849415386092,
+        "capePct": 56.666666666666664,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5393,7 +6153,11 @@
         "epuPct": 81.66666666666667,
         "oilPct": -13.240343347639488,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.3291581059189483,
+        "capePct": 63.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5420,7 +6184,11 @@
         "epuPct": 19.166666666666668,
         "oilPct": -8.162255750680181,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.024245531559444,
+        "capePct": 70.83333333333334,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5447,7 +6215,11 @@
         "epuPct": 19.166666666666668,
         "oilPct": -9.345542687853502,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.852340939830082,
+        "capePct": 69.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5474,7 +6246,11 @@
         "epuPct": 58.333333333333336,
         "oilPct": -2.7332144979203643,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.928450282278443,
+        "capePct": 55.27777777777778,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5501,7 +6277,11 @@
         "epuPct": 32.5,
         "oilPct": 12.82834453268172,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.7373260760997877,
+        "capePct": 54.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5528,7 +6308,11 @@
         "epuPct": 67.5,
         "oilPct": 24.472116946399566,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.7943854794564396,
+        "capePct": 61.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5555,7 +6339,11 @@
         "epuPct": 59.166666666666664,
         "oilPct": 6.785558938668997,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.19026302822615637,
+        "capePct": 67.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5582,7 +6370,11 @@
         "epuPct": 85,
         "oilPct": -1.6904276985743345,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.845740943801665,
+        "capePct": 65.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5609,7 +6401,11 @@
         "epuPct": 100,
         "oilPct": -13.942407292314074,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.055243047881325946,
+        "capePct": 66.66666666666666,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5636,7 +6432,11 @@
         "epuPct": 95,
         "oilPct": 7.558979297063074,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7804970702739777,
+        "capePct": 75.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5663,7 +6463,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": 6.803939122649953,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7727719276397815,
+        "capePct": 78.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5690,7 +6494,11 @@
         "epuPct": 90,
         "oilPct": -1.8650461022632032,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.4930775222258617,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5717,7 +6525,11 @@
         "epuPct": 84.16666666666667,
         "oilPct": 5.509288917360663,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5146257581022384,
+        "capePct": 73.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5744,7 +6556,11 @@
         "epuPct": 100,
         "oilPct": 8.783647035013162,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.2776532492022707,
+        "capePct": 76.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5771,7 +6587,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": -1.8604651162790697,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.8886213084413064,
+        "capePct": 82.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5798,7 +6618,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": 2.3696682464454977,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.2699169150977787,
+        "capePct": 82.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5825,7 +6649,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": -6.407407407407409,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.2563594024837421,
+        "capePct": 83.33333333333334,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5852,7 +6680,11 @@
         "epuPct": 92.5,
         "oilPct": -2.4337158686189095,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.27621255482054297,
+        "capePct": 84.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5879,7 +6711,11 @@
         "epuPct": 92.5,
         "oilPct": -2.068545933887656,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.13235978098429246,
+        "capePct": 83.33333333333334,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5906,7 +6742,11 @@
         "epuPct": 81.66666666666667,
         "oilPct": -4.7007662041830525,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.1689695713394954,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5933,7 +6773,11 @@
         "epuPct": 80.83333333333333,
         "oilPct": 9.10473707083876,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.26674210889617855,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5960,7 +6804,11 @@
         "epuPct": 84.16666666666667,
         "oilPct": -5.875323640709028,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.1533061685784598,
+        "capePct": 84.72222222222221,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -5987,7 +6835,11 @@
         "epuPct": 83.33333333333334,
         "oilPct": 9.331358442657647,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 84.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6014,7 +6866,11 @@
         "epuPct": 71.66666666666667,
         "oilPct": 5.20611573446874,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.21729851385061671,
+        "capePct": 85,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6041,7 +6897,11 @@
         "epuPct": 85.83333333333333,
         "oilPct": 5.592347314201617,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 85.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6068,7 +6928,11 @@
         "epuPct": 54.166666666666664,
         "oilPct": 5.331010452961676,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.4996271439254074,
+        "capePct": 86.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6095,7 +6959,11 @@
         "epuPct": 95,
         "oilPct": 7.211379424412822,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.63305185287963,
+        "capePct": 86.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6122,7 +6990,11 @@
         "epuPct": 95.83333333333334,
         "oilPct": -5.229867324899713,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.2097145648864025,
+        "capePct": 89.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6149,7 +7021,11 @@
         "epuPct": 66.66666666666666,
         "oilPct": 5.5998697704704625,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -7.808437153323588,
+        "capePct": 85.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6176,7 +7052,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": 5.688299676275625,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -7.3319768627543525,
+        "capePct": 85.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6203,7 +7083,11 @@
         "epuPct": 97.5,
         "oilPct": -2.3045507584597407,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.079300635839379,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6230,7 +7114,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": 10.674828306957288,
         "sahm": -0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.533015668688234,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6257,7 +7145,11 @@
         "epuPct": 100,
         "oilPct": -5.73317145555106,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.9962890669258817,
+        "capePct": 85.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6284,7 +7176,11 @@
         "epuPct": 100,
         "oilPct": -0.05724098454492278,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.40139975299241515,
+        "capePct": 85.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6311,7 +7207,11 @@
         "epuPct": 95.83333333333334,
         "oilPct": 4.753722794959899,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.525632741045523,
+        "capePct": 87.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6338,7 +7238,11 @@
         "epuPct": 94.16666666666667,
         "oilPct": -10.729907053034438,
         "sahm": -0.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.399738541241274,
+        "capePct": 87.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6365,7 +7269,11 @@
         "epuPct": 94.16666666666667,
         "oilPct": -22.24774154034604,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.682067505058552,
+        "capePct": 83.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6392,7 +7300,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": -11.087042142575822,
         "sahm": -0.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.976029296387082,
+        "capePct": 81.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6419,7 +7331,11 @@
         "epuPct": 98.33333333333333,
         "oilPct": 19.246954595791816,
         "sahm": 0.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -7.08846666123536,
+        "capePct": 76.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6446,7 +7362,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": 6.259286775631495,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.076663909719002,
+        "capePct": 76.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6473,7 +7393,11 @@
         "epuPct": 90,
         "oilPct": 5.208879566509346,
         "sahm": 0.17,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.3424752507652413,
+        "capePct": 79.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6500,7 +7424,11 @@
         "epuPct": 89.16666666666667,
         "oilPct": 6.047516198704105,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 79.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6527,7 +7455,11 @@
         "epuPct": 90.83333333333333,
         "oilPct": -16.199279335735543,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.380301329792449,
+        "capePct": 80.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6554,7 +7486,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": 8.80538418395962,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.4844417588586669,
+        "capePct": 78.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6581,7 +7517,11 @@
         "epuPct": 100,
         "oilPct": 0.5670103092783475,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.5165060759718019,
+        "capePct": 78.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6608,7 +7548,11 @@
         "epuPct": 95,
         "oilPct": -5.911498376900736,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.165458097430518,
+        "capePct": 80,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6635,7 +7579,11 @@
         "epuPct": 100,
         "oilPct": -1.779553295805333,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.2792243217525923,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6662,7 +7610,11 @@
         "epuPct": 98.33333333333333,
         "oilPct": -0.12941393973008,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.2663247188837592,
+        "capePct": 77.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6689,7 +7641,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": 7.5897815623842915,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.370863446187053,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6716,7 +7672,11 @@
         "epuPct": 91.66666666666666,
         "oilPct": 5.1961459050240935,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.33442744781030376,
+        "capePct": 79.16666666666666,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6743,7 +7703,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": -15.636244684331047,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.0787769242386465,
+        "capePct": 81.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6770,7 +7734,11 @@
         "epuPct": 91.66666666666666,
         "oilPct": -13.086467623109732,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -12.437193355777564,
+        "capePct": 82.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6797,7 +7765,11 @@
         "epuPct": 85,
         "oilPct": -54.249386571492295,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -23.351243132010246,
+        "capePct": 81.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6824,7 +7796,11 @@
         "epuPct": 75,
         "oilPct": -6.2408581179912295,
         "sahm": 0.3,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.618114859331666,
+        "capePct": 44.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6851,7 +7827,11 @@
         "epuPct": 75,
         "oilPct": 84.97139885595423,
         "sahm": 4,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -9.502426032734135,
+        "capePct": 55.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6878,7 +7858,11 @@
         "epuPct": 70,
         "oilPct": 10.402024177677827,
         "sahm": 7.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -7.8951060507555955,
+        "capePct": 69.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6905,7 +7889,11 @@
         "epuPct": 41.66666666666667,
         "oilPct": 2.1135727018079913,
         "sahm": 9.5,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.470845854504544,
+        "capePct": 74.72222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6932,7 +7920,11 @@
         "epuPct": 58.333333333333336,
         "oilPct": 6.259351620947625,
         "sahm": 8,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.3622568315272856,
+        "capePct": 77.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6959,7 +7951,11 @@
         "epuPct": 66.66666666666666,
         "oilPct": -6.007979347570998,
         "sahm": 6.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.997652453660518,
+        "capePct": 83.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -6986,7 +7982,11 @@
         "epuPct": 60,
         "oilPct": -11.011235955056172,
         "sahm": 5.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -8.341465652048152,
+        "capePct": 81.66666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7013,7 +8013,11 @@
         "epuPct": 81.66666666666667,
         "oilPct": 26.82379349046016,
         "sahm": 4.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.4427090494001584,
+        "capePct": 83.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7040,7 +8044,11 @@
         "epuPct": 73.33333333333333,
         "oilPct": 6.969026548672563,
         "sahm": 3.63,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 86.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7067,7 +8075,11 @@
         "epuPct": 64.16666666666667,
         "oilPct": 7.880041365046525,
         "sahm": 3.23,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.7253830744794603,
+        "capePct": 90,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7094,7 +8106,11 @@
         "epuPct": 46.666666666666664,
         "oilPct": 18.002300613496935,
         "sahm": 3.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.12754686228367,
+        "capePct": 90.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7121,7 +8137,11 @@
         "epuPct": 38.333333333333336,
         "oilPct": -3.834281072298943,
         "sahm": 2.87,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 90.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7148,7 +8168,11 @@
         "epuPct": 35,
         "oilPct": 7.281635411387062,
         "sahm": 2.33,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.657048993001863,
+        "capePct": 90.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7175,7 +8199,11 @@
         "epuPct": 46.666666666666664,
         "oilPct": 4.4251968503937045,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.4927508765050548,
+        "capePct": 91.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7202,7 +8230,11 @@
         "epuPct": 29.166666666666668,
         "oilPct": 10.873171467350314,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 91.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7229,7 +8261,11 @@
         "epuPct": 27.500000000000004,
         "oilPct": 0.5576713819369026,
         "sahm": -0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5691351866117356,
+        "capePct": 91.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7256,7 +8292,11 @@
         "epuPct": 12.5,
         "oilPct": -7.439469768700121,
         "sahm": -0.23,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.14815470003571862,
+        "capePct": 93.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7283,7 +8323,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": 9.922548589799783,
         "sahm": -0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.000452199252692,
+        "capePct": 93.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7310,7 +8354,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 11.00771071523531,
         "sahm": -0.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 92.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7337,7 +8385,11 @@
         "epuPct": 30.833333333333336,
         "oilPct": -20.790419161676645,
         "sahm": -0.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.0166265727093244,
+        "capePct": 91.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7364,7 +8416,11 @@
         "epuPct": 44.166666666666664,
         "oilPct": 13.894768672512846,
         "sahm": -0.33,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5277707966969469,
+        "capePct": 93.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7391,7 +8447,11 @@
         "epuPct": 17.5,
         "oilPct": 18.35921943448825,
         "sahm": -0.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.8194301982213315,
+        "capePct": 93.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7418,7 +8478,11 @@
         "epuPct": 30.833333333333336,
         "oilPct": 7.81740690892777,
         "sahm": -0.2,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -8.599359444017374,
+        "capePct": 90,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7445,7 +8509,11 @@
         "epuPct": 63.33333333333333,
         "oilPct": 4.577135129512125,
         "sahm": -0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -5.166756244448633,
+        "capePct": 87.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7472,7 +8540,11 @@
         "epuPct": 48.333333333333336,
         "oilPct": 4.038595444146028,
         "sahm": -0.1,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.490177071814191,
+        "capePct": 86.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7499,7 +8571,11 @@
         "epuPct": 36.666666666666664,
         "oilPct": 9.360359498996072,
         "sahm": -0.13,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.294900044328827,
+        "capePct": 85.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7526,7 +8602,11 @@
         "epuPct": 51.66666666666667,
         "oilPct": -5.787725126770407,
         "sahm": -0.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -20.44540676091736,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7553,7 +8633,11 @@
         "epuPct": 61.66666666666667,
         "oilPct": -5.985523385300671,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -13.11942513301576,
+        "capePct": 68.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7580,7 +8664,11 @@
         "epuPct": 46.666666666666664,
         "oilPct": -11.074918566775242,
         "sahm": -0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -16.664322978884893,
+        "capePct": 68.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7607,7 +8695,11 @@
         "epuPct": 65,
         "oilPct": -11.299811299811308,
         "sahm": 0.03,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -24.36590528498348,
+        "capePct": 75.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7634,7 +8726,11 @@
         "epuPct": 37.5,
         "oilPct": 8.296833938180466,
         "sahm": 0,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -18.218702839238,
+        "capePct": 65,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7661,7 +8757,11 @@
         "epuPct": 57.49999999999999,
         "oilPct": -7.0025421770279666,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -13.672356421368825,
+        "capePct": 59.72222222222222,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7688,7 +8788,11 @@
         "epuPct": 50,
         "oilPct": -0.3976143141153173,
         "sahm": 0.07,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -18.642740005211355,
+        "capePct": 65.83333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7715,7 +8819,11 @@
         "epuPct": 5.833333333333333,
         "oilPct": -1.509481037924144,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -10.772940743514258,
+        "capePct": 65,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7742,7 +8850,11 @@
         "epuPct": 60.83333333333333,
         "oilPct": -2.6219126029132456,
         "sahm": -0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -13.016348895470264,
+        "capePct": 65.27777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7769,7 +8881,11 @@
         "epuPct": 17.5,
         "oilPct": -1.5608740894900999,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -8.849013690227848,
+        "capePct": 67.77777777777779,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7796,7 +8912,11 @@
         "epuPct": 50.83333333333333,
         "oilPct": 1.4534883720930156,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.974892822251384,
+        "capePct": 63.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7823,7 +8943,11 @@
         "epuPct": 31.666666666666664,
         "oilPct": -11.292003125814016,
         "sahm": 0,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.522393108879394,
+        "capePct": 66.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7850,7 +8974,11 @@
         "epuPct": 54.166666666666664,
         "oilPct": 3.743943620613709,
         "sahm": 0.03,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 66.11111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7877,7 +9005,11 @@
         "epuPct": 30.833333333333336,
         "oilPct": 15.765638267761112,
         "sahm": 0.07,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 72.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7904,7 +9036,11 @@
         "epuPct": 0.8333333333333334,
         "oilPct": 2.139364303178484,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.6251993272158316,
+        "capePct": 76.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7931,7 +9067,11 @@
         "epuPct": 21.666666666666668,
         "oilPct": 8.641532016756432,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -6.287505279099204,
+        "capePct": 73.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7958,7 +9098,11 @@
         "epuPct": 16.666666666666664,
         "oilPct": -10.058389335683591,
         "sahm": 0.2,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -8.321874023869613,
+        "capePct": 70.83333333333334,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -7985,7 +9129,11 @@
         "epuPct": 23.333333333333332,
         "oilPct": -7.324840764331215,
         "sahm": 0.33,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 64.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8012,7 +9160,11 @@
         "epuPct": 6.666666666666667,
         "oilPct": -4.982817869415802,
         "sahm": 0.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.28949631836557854,
+        "capePct": 72.77777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8039,7 +9191,11 @@
         "epuPct": 9.166666666666666,
         "oilPct": 6.10655167617193,
         "sahm": 0.23,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.7078185112044064,
+        "capePct": 79.16666666666666,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8066,7 +9222,11 @@
         "epuPct": 31.666666666666664,
         "oilPct": 3.854221289984265,
         "sahm": 0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 80,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8093,7 +9253,11 @@
         "epuPct": 73.33333333333333,
         "oilPct": 5.983337541024987,
         "sahm": 0.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.019114245831897136,
+        "capePct": 84.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8120,7 +9284,11 @@
         "epuPct": 31.666666666666664,
         "oilPct": -0.5597903763696985,
         "sahm": 0.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -4.0503086950629985,
+        "capePct": 85,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8147,7 +9315,11 @@
         "epuPct": 33.33333333333333,
         "oilPct": -6.61157024793388,
         "sahm": 0.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7509033423613976,
+        "capePct": 83.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8174,7 +9346,11 @@
         "epuPct": 65,
         "oilPct": 6.233166602539438,
         "sahm": 0.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.4579687572597191,
+        "capePct": 85.55555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8201,7 +9377,11 @@
         "epuPct": 40,
         "oilPct": -4.189303392490642,
         "sahm": 0.43,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.4873419962555765,
+        "capePct": 86.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8228,7 +9408,11 @@
         "epuPct": 69.16666666666667,
         "oilPct": -6.0987903225806495,
         "sahm": 0.53,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.20890132069135703,
+        "capePct": 88.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8255,7 +9439,11 @@
         "epuPct": 73.33333333333333,
         "oilPct": -7.742887815351579,
         "sahm": 0.57,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 86.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8282,7 +9470,11 @@
         "epuPct": 55.833333333333336,
         "oilPct": 1.2072727272727246,
         "sahm": 0.5,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -2.72840794403294,
+        "capePct": 88.05555555555556,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8309,7 +9501,11 @@
         "epuPct": 70,
         "oilPct": -1.8970968669157706,
         "sahm": 0.43,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 88.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8336,7 +9532,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": 6.123644887196003,
         "sahm": 0.43,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.254521894857121,
+        "capePct": 91.38888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8363,7 +9563,11 @@
         "epuPct": 97.5,
         "oilPct": 0.552181115405861,
         "sahm": 0.4,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.3005330053294628,
+        "capePct": 92.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8390,7 +9594,11 @@
         "epuPct": 99.16666666666667,
         "oilPct": -3.9401427786930316,
         "sahm": 0.37,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.059076892961188,
+        "capePct": 90,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8417,7 +9625,11 @@
         "epuPct": 100,
         "oilPct": 2.7154494783478715,
         "sahm": 0.27,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -8.460716754148534,
+        "capePct": 90,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8444,7 +9656,11 @@
         "epuPct": 100,
         "oilPct": -17.142062056490897,
         "sahm": 0.27,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -9.254376854870582,
+        "capePct": 84.44444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8471,7 +9687,11 @@
         "epuPct": 100,
         "oilPct": 3.207388748950468,
         "sahm": 0.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -3.551479017737902,
+        "capePct": 78.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8498,7 +9718,11 @@
         "epuPct": 98.33333333333333,
         "oilPct": 7.875040676862994,
         "sahm": 0.27,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 85.27777777777777,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8525,7 +9749,11 @@
         "epuPct": 97.5,
         "oilPct": 6.123680241327304,
         "sahm": 0.17,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.7879453774894407,
+        "capePct": 86.94444444444444,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8552,7 +9780,11 @@
         "epuPct": 96.66666666666667,
         "oilPct": -8.527572484366116,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5963755162303186,
+        "capePct": 91.66666666666666,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8579,7 +9811,11 @@
         "epuPct": 95.83333333333334,
         "oilPct": -1.8489745183343658,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.09897426668901144,
+        "capePct": 92.22222222222223,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8606,7 +9842,11 @@
         "epuPct": 97.5,
         "oilPct": -2.2479024853569762,
         "sahm": 0.23,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.775396790758287,
+        "capePct": 93.33333333333333,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8633,7 +9873,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": -5.1336032388663995,
         "sahm": null,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5819112876211396,
+        "capePct": 93.88888888888889,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8660,7 +9904,11 @@
         "epuPct": 95,
         "oilPct": -2.2533287811539777,
         "sahm": 0.43,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.225412091885436,
+        "capePct": 93.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8687,7 +9935,11 @@
         "epuPct": 94.16666666666667,
         "oilPct": 12.644079636744676,
         "sahm": 0.35,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -0.5061179887631995,
+        "capePct": 94.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8714,7 +9966,11 @@
         "epuPct": 90.83333333333333,
         "oilPct": 3.8139534883720834,
         "sahm": 0.3,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.365943435566075,
+        "capePct": 94.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8741,7 +9997,11 @@
         "epuPct": 93.33333333333333,
         "oilPct": 53.61409796893669,
         "sahm": 0.27,
-        "spxBelowSma10": true
+        "spxBelowSma10": true,
+        "dd52wPct": -6.232741929342456,
+        "capePct": 93.61111111111111,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8768,7 +10028,11 @@
         "epuPct": 89.16666666666667,
         "oilPct": 5.619288353101304,
         "sahm": 0.2,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 90,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8795,7 +10059,11 @@
         "epuPct": 86.66666666666667,
         "oilPct": -16.089837997054495,
         "sahm": 0.13,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": 0,
+        "capePct": 92.5,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     },
     {
@@ -8822,7 +10090,11 @@
         "epuPct": 85.83333333333333,
         "oilPct": -22.597630539710394,
         "sahm": 0.1,
-        "spxBelowSma10": false
+        "spxBelowSma10": false,
+        "dd52wPct": -1.4345494854912877,
+        "capePct": 95,
+        "netLiqPct": null,
+        "cpYoy": null
       }
     }
   ]

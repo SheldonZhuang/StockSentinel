@@ -174,8 +174,13 @@ function computeLocks(macroData, prevSnapshot, overrides) {
   const today = todayET();
   const ageDays = since => (since ? Math.floor((Date.parse(today) - Date.parse(since)) / 86400000) : null);
 
+  // 萨姆触发 fail-closed（2026-07-20 审查修复）：SAHM 数据缺失（FRED故障/429）时，
+  // 已激活的锁视同触发仍存续——否则缺数日恰逢<50bp调整会误解锁，次日数据恢复又重锁，
+  // 产生"单日解锁→次日重锁"翻转和一对方向相反的示警邮件（正是锁设计要避免的模式）。
+  // 未激活的锁在缺数日保持未触发（不无中生有）。
   const sahmTrigger = sahmValue !== null && sahmValue !== undefined
-    && sahmValue >= signalCfg.SAHM_TRIGGER_THRESHOLD;
+    ? sahmValue >= signalCfg.SAHM_TRIGGER_THRESHOLD
+    : prevSahmLockActive;
   const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= signalCfg.RATE_REACTIVE_ADJUSTMENT_BP;
 
   const rawSahmLockActive = calcLockActive({
@@ -271,9 +276,12 @@ async function runDailyUpdate() {
     || Math.abs(policyData.oilChange30dPct) < signalCfg.OIL_SHOCK_PCT;
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
     && oilInconclusive && !!prevSnapshot?.admin_auto_signal;
-  // AI供需 stale：三件套全 null（调用量/capex/半导体产出通道全故障）时沿用上一快照
+  // AI供需 stale：三件套全 null（调用量/capex/半导体产出通道全故障）时沿用上一快照。
+  // 单季 capex 也计入"有数据"（2026-07-20 审查修复）：TTM 缺失但单季口径出数时，
+  // N2 两季连负仍能给出数据驱动的收紧票，不应被 stale-keep 用旧信号覆盖
   const aiDataMissing = aiSupplyInputs.modelUsageTrendPct == null
-    && aiSupplyInputs.capexYoY == null && aiSupplyInputs.semiIpYoy == null;
+    && aiSupplyInputs.capexYoY == null && aiSupplyInputs.semiIpYoy == null
+    && aiSupplyInputs.capexQtrYoY == null;
   const aiSupplyStale = aiDataMissing && !!prevSnapshot?.ai_supply_auto_signal;
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
   const adminAutoEff = adminStale ? prevSnapshot.admin_auto_signal : adminAuto;

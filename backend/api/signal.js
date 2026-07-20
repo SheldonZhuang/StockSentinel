@@ -231,6 +231,11 @@ export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpY
     capexSignal = SIGNAL.TIGHT;                       // N2：两季连负 → 收紧
   } else if (qtrNeg && capexSignal === SIGNAL.LOOSE) {
     capexSignal = SIGNAL.NEUTRAL;                     // N1：单季转负 → 拦截宽松
+  } else if (qtrNeg && capexSignal === null) {
+    // N1 补充（2026-07-20 审查修复）：TTM 缺失（如XBRL断档致TTM失格）而单季口径仍出数且转负时，
+    // capex 子信号应为 neutral 而非 null——null 会被共识剔除，usage+semi 双 loose 即可开进攻档，
+    // 与"单季收缩时最多观望"的 N1 语义矛盾（N2 在 null 时能生效，null 处理必须对称）
+    capexSignal = SIGNAL.NEUTRAL;
   }
   return {
     usageSignal: band(modelUsageTrendPct, AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT),

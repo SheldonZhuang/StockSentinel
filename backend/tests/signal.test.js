@@ -327,6 +327,14 @@ describe('deriveAiSupplySubSignals', () => {
       expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: -3, capexQtrPrevQtrYoY: null }).capexSignal).toBe('neutral');
     });
 
+    it('TTM缺失但单季转负 → capex子信号为 neutral 而非 null（N1对null对称，阻断全loose共识）', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: null, capexQtrYoY: -3 }).capexSignal).toBe('neutral');
+      // 传导：usage+semi 双 loose 也开不了进攻（单季已在收缩）
+      expect(calcAiSupplySignal({ modelUsageTrendPct: 15, semiIpYoy: 8, capexQtrYoY: -3 })).toBe('neutral');
+      // TTM缺失+两季连负 → N2 照常收紧
+      expect(deriveAiSupplySubSignals({ capexYoY: null, capexQtrYoY: -3, capexQtrPrevQtrYoY: -1 }).capexSignal).toBe('tight');
+    });
+
     it('N2 传导到维度合成：两季连负单独把AI供需拖成 tight', () => {
       expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexQtrYoY: -3, capexQtrPrevQtrYoY: -1 })).toBe('tight');
     });
