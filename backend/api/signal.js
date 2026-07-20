@@ -204,21 +204,37 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
 /**
  * AI供需子信号：纯现金流三件套（沿资金流向）——移除原SMH-SPY股价代理。
  * 每个子信号 loose(供不应求/需求投资旺) / neutral / tight(供过于求/收缩)：
- *   usage    模型调用量趋势（需求侧，最前瞻）：>+10% loose；<-10% tight
- *   capex    云厂商资本开支同比（投资侧）：>+10% loose；<0% tight
+ *   usage    模型调用量趋势（需求侧，最前瞻）：>+3% loose；<-3% tight
+ *   capex    云厂商资本开支同比（投资侧）：TTM为主口径 >+10% loose；<0% tight
  *   semiIp   半导体产出同比（供给侧，末端）：>+5% loose；<0% tight
+ *
+ * capex 单季侦察兵规则（N1/N2，2026-07-20 用户拍板）——TTM是4季滑动平均，
+ * 单季刹车被稀释、滞后2-3个财报季，两条规则让单季在关键场景拿到有限判定权：
+ *   N1 拦截宽松：单季同比<0 时 capex 不得判 loose（最多 neutral）——最新一季已在收缩，
+ *      无论TTM多高都不该投"扩产旺"宽松票。同构先例：资产负债表QT只拦截宽松不单独判收紧。
+ *   N2 加速确认收紧：连续两个财报季单季同比<0 → capex 直接判 tight，不等TTM转负
+ *      （两季连负基本排除交付节奏噪声，比TTM转负平均提前1-2个季度）。
+ *   单季数据缺失（null）时两规则不触发，行为退回纯TTM口径。
  * @returns {{usageSignal, capexSignal, semiSignal}}
  */
-export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpYoy }) {
+export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpYoy, capexQtrYoY, capexQtrPrevQtrYoY }) {
   const band = (v, looseTh, tightTh) => {
     if (v === null || v === undefined) return null;
     if (v > looseTh) return SIGNAL.LOOSE;
     if (v < tightTh) return SIGNAL.TIGHT;
     return SIGNAL.NEUTRAL;
   };
+  let capexSignal = band(capexYoY, AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT);
+  const qtrNeg = capexQtrYoY != null && capexQtrYoY < 0;
+  const prevQtrNeg = capexQtrPrevQtrYoY != null && capexQtrPrevQtrYoY < 0;
+  if (qtrNeg && prevQtrNeg) {
+    capexSignal = SIGNAL.TIGHT;                       // N2：两季连负 → 收紧
+  } else if (qtrNeg && capexSignal === SIGNAL.LOOSE) {
+    capexSignal = SIGNAL.NEUTRAL;                     // N1：单季转负 → 拦截宽松
+  }
   return {
     usageSignal: band(modelUsageTrendPct, AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT),
-    capexSignal: band(capexYoY, AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT),
+    capexSignal,
     semiSignal: band(semiIpYoy, AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT),
   };
 }
@@ -228,7 +244,7 @@ export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpY
  * 供不应求(资金流向上)=宽松；供过于求(向下)=收紧。
  * 规则：取所有有数据的子信号——任一为tight即tight（供过于求是防守信号，用户框架"下降→尽快防守"，
  *   任一环节收缩即警示）；否则全部loose才loose（供不应求需全链一致）；其余neutral；全缺→neutral。
- * @param {object} data - 含 modelUsageTrendPct/capexYoY/semiIpYoy
+ * @param {object} data - 含 modelUsageTrendPct/capexYoY/semiIpYoy/capexQtrYoY/capexQtrPrevQtrYoY
  */
 export function calcAiSupplySignal(data) {
   const { usageSignal, capexSignal, semiSignal } = deriveAiSupplySubSignals(data);

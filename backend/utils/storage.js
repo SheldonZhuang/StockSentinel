@@ -113,6 +113,8 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'oil_level_low INTEGER',
   'capex_qtr_yoy REAL',
   'capex_qtr_end TEXT',
+  'capex_signal TEXT',
+  'capex_qtr_prev_qtr_yoy REAL',
 ];
 
 // ai_chain_snapshots 的增量列（与 signal_snapshots 同机制：CREATE TABLE 管新库，ALTER 管存量库）
@@ -433,8 +435,8 @@ export async function saveSignalSnapshot(data) {
      yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date,
      sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
      spx_close, spx_ma10m, spx_above_sma10, oil_level_low,
-     capex_qtr_yoy, capex_qtr_end)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -461,7 +463,7 @@ export async function saveSignalSnapshot(data) {
     data.yieldCurveSpread, data.yieldCurveInvertedDays, data.yieldCurvePeriodDate,
     data.sahmLockSince, data.reactiveAdjustmentLockSince, data.finalDowngradePendingSince,
     data.spxClose, data.spxMa10m, data.spxAboveSma10, data.oilLevelLow,
-    data.capexQtrYoY, data.capexQtrEnd,
+    data.capexQtrYoY, data.capexQtrEnd, data.capexSignal, data.capexQtrPrevQtrYoY,
   ]);
 }
 

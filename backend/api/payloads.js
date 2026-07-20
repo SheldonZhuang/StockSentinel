@@ -135,9 +135,12 @@ export async function buildSignalPayload() {
       aiFundamentalSignal: snapshot.ai_fundamental_signal,
       modelUsageTrendPct: snapshot.model_usage_trend_pct,
       capexYoY: snapshot.capex_yoy,
-      // 单季同比=拐点侦察兵（最新共同季，错季对齐），TTM同比=趋势确认官；两者背离时最有信息量
+      // 单季同比=拐点侦察兵（最新共同季，错季对齐），TTM同比=主判定口径；两者背离时最有信息量
+      // capexSignal=capex子信号生效值（含N1拦截宽松/N2两季连负判收紧），前端徽章直读不再本地算
       capexQtrYoY: snapshot.capex_qtr_yoy ?? null,
       capexQtrEnd: snapshot.capex_qtr_end ?? null,
+      capexQtrPrevQtrYoY: snapshot.capex_qtr_prev_qtr_yoy ?? null,
+      capexSignal: snapshot.capex_signal ?? null,
       aiBubbleWarning: !!snapshot.ai_bubble_warning,
       sahmValue: snapshot.sahm_value,
       sahmPeriodDate: snapshot.sahm_period_date,

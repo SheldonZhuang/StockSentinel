@@ -150,10 +150,11 @@ const groups = computed(() => {
         },
         {
           key: 'capexYoY', signed: true, value: ind.capexYoY, unit: '%', change: null,
-          // 阈值同步 signal.config.js：>+10% 宽松 / <0% 收紧（触发泡沫预警）/ 其间中性
-          signalBadge: ind.capexYoY != null
+          // 优先用后端capex子信号生效值（含N1单季拦截宽松/N2两季连负判收紧，本地阈值算不出）；
+          // 旧快照无该列时回退本地TTM阈值，同步 signal.config.js：>+10% 宽松 / <0% 收紧
+          signalBadge: ind.capexSignal ?? (ind.capexYoY != null
             ? (ind.capexYoY > 10 ? 'loose' : ind.capexYoY < 0 ? 'tight' : 'neutral')
-            : null,
+            : null),
         },
         {
           // 单季同比=拐点侦察兵（参考，不参与判定；判定用上面的TTM口径）。

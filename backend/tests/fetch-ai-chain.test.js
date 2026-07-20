@@ -165,7 +165,7 @@ describe('calcCapexQuarterYoY', () => {
 
   it('全部公司不合格 → 全 null', () => {
     const r = calcCapexQuarterYoY({ MSFT: dated('2026-06-30', [-100, -100]) });
-    expect(r).toEqual({ capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null });
+    expect(r).toEqual({ capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null, capexQtrPrevQtrYoY: null });
   });
 
   it('口径与TTM一致：过期公司同样剔除', () => {
@@ -174,6 +174,34 @@ describe('calcCapexQuarterYoY', () => {
       STALE: dated('2024-01-31', [-999, -999, -999, -999, -1, -1, -1, -1]),
     };
     expect(calcCapexQuarterYoY(quarters).capexQtrYoY).toBeCloseTo(20, 5);
+  });
+
+  it('capexQtrPrevQtrYoY：前一季同比同口径回算（N2连续性输入）', () => {
+    // 2026Q2: 120/100-1=+20%；2026Q1: 110/95-1≈+15.79%（需要9季数据覆盖 2025Q1）
+    const quarters = { MSFT: dated('2026-06-30', [-120, -110, -110, -110, -100, -95, -100, -100, -100]) };
+    const r = calcCapexQuarterYoY(quarters);
+    expect(r.capexQtrYoY).toBeCloseTo(20, 5);
+    expect(r.capexQtrPrevQtrYoY).toBeCloseTo((110 / 95 - 1) * 100, 5);
+  });
+
+  it('capexQtrPrevQtrYoY 跨年边界：共同最新季为Q1时前一季是去年Q4', () => {
+    // 2026Q1: 110/95-1；2025Q4: 105/90-1（去年同季=2024Q4，需10季覆盖）
+    const quarters = { MSFT: dated('2026-03-31', [-110, -105, -100, -100, -95, -90, -100, -100, -100, -100]) };
+    const r = calcCapexQuarterYoY(quarters);
+    expect(r.capexQtrEnd).toBe('2026-03-31');
+    expect(r.capexQtrYoY).toBeCloseTo((110 / 95 - 1) * 100, 5);
+    expect(r.capexQtrPrevQtrYoY).toBeCloseTo((105 / 90 - 1) * 100, 5);
+  });
+
+  it('前一季数据不足 → capexQtrPrevQtrYoY 为 null，主值不受影响', () => {
+    // 序列断档缺 2025Q1（前一季2026Q1的去年同季）：主值(2026Q2 vs 2025Q2)可算，prevQtr 退 null
+    const quarters = { MSFT: [
+      ...dated('2026-06-30', [-120, -110, -110, -110, -100]), // 2026Q2..2025Q2
+      ...dated('2024-12-31', [-100, -100, -100]),             // 2024Q4..2024Q2（跳过2025Q1）
+    ] };
+    const r = calcCapexQuarterYoY(quarters);
+    expect(r.capexQtrYoY).toBeCloseTo(20, 5);
+    expect(r.capexQtrPrevQtrYoY).toBe(null);
   });
 });
 

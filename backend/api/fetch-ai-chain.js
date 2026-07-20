@@ -29,6 +29,7 @@ const NULL_USAGE = { modelUsageTrendPct: null, modelUsageLatestTokens: null, mod
 const NULL_CAPEX = {
   capexYoY: null, capexTtm: null, capexPrevTtm: null,
   capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null,
+  capexQtrPrevQtrYoY: null,
 };
 const NULL_RANKING = {
   stages: STAGE_KEYS.map(key => ({ key, relReturnPct: null, rank: null, validTickerCount: 0 })),
@@ -129,6 +130,13 @@ const quarterKey = date => {
   return `${y}Q${Math.ceil(m / 3)}`;
 };
 
+// 季度桶键运算：'2026Q1' ± n 季（跨年自动进退位）
+const shiftQuarterKey = (key, n) => {
+  const [y, q] = key.split('Q').map(Number);
+  const total = y * 4 + (q - 1) + n;
+  return `${Math.floor(total / 4)}Q${(total % 4) + 1}`;
+};
+
 /**
  * 最新共同单季资本开支同比（拐点侦察兵，TTM 同比是趋势确认官）：
  * TTM 是4季滑动平均，单季刹车会被前三季存量稀释、滞后2-3个财报季才显形；
@@ -138,12 +146,19 @@ const quarterKey = date => {
  * 取所有合格公司都已披露的最近日历季度桶合计，与去年同季桶比较；
  * 缺任一期数据的公司从两期同时剔除，保证同比口径一致。
  * 单季用同比而非环比：capex 有明显季节性（普遍Q4冲高），环比噪声无判读价值。
+ *
+ * capexQtrPrevQtrYoY = 共同最新季的前一季的单季同比（同一套 EDGAR 数据回退一季重算，
+ * 与主值同口径），供 N2"连续两季转负判收紧"用——从数据源直接算而非依赖快照历史，
+ * 快照断档不影响连续性判定。
  * @param {Object<string, Array<{date, capitalExpenditure}>>} quartersBySymbol - 各公司季度数据（降序）
- * @returns {{capexQtrYoY, capexQtrSum, capexQtrPrevYearSum, capexQtrEnd}}
+ * @returns {{capexQtrYoY, capexQtrSum, capexQtrPrevYearSum, capexQtrEnd, capexQtrPrevQtrYoY}}
  */
 export function calcCapexQuarterYoY(quartersBySymbol) {
   const staleBeforeMs = Date.now() - 400 * 86400000;
-  const NULL_QTR = { capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null };
+  const NULL_QTR = {
+    capexQtrYoY: null, capexQtrSum: null, capexQtrPrevYearSum: null, capexQtrEnd: null,
+    capexQtrPrevQtrYoY: null,
+  };
 
   // 各合格公司：季度桶 → {date, value}（降序首个为准，重复桶忽略旧值）
   const companies = [];
@@ -161,26 +176,34 @@ export function calcCapexQuarterYoY(quartersBySymbol) {
 
   // 共同最新季 = 各公司最新季桶的最小值（YYYYQn 字符串比较即时间序）
   const commonKey = companies.map(c => c.latestKey).sort()[0];
-  const [y, qn] = commonKey.split('Q');
-  const prevYearKey = `${Number(y) - 1}Q${qn}`;
 
-  let sum = 0;
-  let prevSum = 0;
-  let qtrEnd = null;
-  for (const c of companies) {
-    const cur = c.byBucket.get(commonKey);
-    const prev = c.byBucket.get(prevYearKey);
-    if (!cur || !prev) continue; // 缺任一期 → 两期同时剔除
-    sum += Math.abs(cur.value);
-    prevSum += Math.abs(prev.value);
-    if (!qtrEnd || cur.date > qtrEnd) qtrEnd = cur.date;
-  }
-  if (prevSum === 0) return { ...NULL_QTR };
+  // 指定季度桶的四家合计同比；任一公司缺任一期 → 该公司两期同剔
+  const yoyAtKey = key => {
+    const prevYearKey = shiftQuarterKey(key, -4);
+    let sum = 0;
+    let prevSum = 0;
+    let qtrEnd = null;
+    for (const c of companies) {
+      const cur = c.byBucket.get(key);
+      const prev = c.byBucket.get(prevYearKey);
+      if (!cur || !prev) continue;
+      sum += Math.abs(cur.value);
+      prevSum += Math.abs(prev.value);
+      if (!qtrEnd || cur.date > qtrEnd) qtrEnd = cur.date;
+    }
+    if (prevSum === 0) return null;
+    return { yoy: (sum / prevSum - 1) * 100, sum, prevSum, qtrEnd };
+  };
+
+  const current = yoyAtKey(commonKey);
+  if (!current) return { ...NULL_QTR };
+  const prevQtr = yoyAtKey(shiftQuarterKey(commonKey, -1));
   return {
-    capexQtrYoY: (sum / prevSum - 1) * 100,
-    capexQtrSum: sum,
-    capexQtrPrevYearSum: prevSum,
-    capexQtrEnd: qtrEnd,
+    capexQtrYoY: current.yoy,
+    capexQtrSum: current.sum,
+    capexQtrPrevYearSum: current.prevSum,
+    capexQtrEnd: current.qtrEnd,
+    capexQtrPrevQtrYoY: prevQtr?.yoy ?? null,
   };
 }
 

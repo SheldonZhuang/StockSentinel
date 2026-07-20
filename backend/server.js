@@ -237,10 +237,13 @@ async function runDailyUpdate() {
   const prevSnapshot = await getLatestSnapshot();
 
   // AI供需现金流三件套：调用量+capex（chainData）+ 半导体产出（policyData）合成一个维度
+  // 单季两值供 capex 侦察兵规则 N1/N2（拦截宽松/两季连负判收紧）
   const aiSupplyInputs = {
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
     semiIpYoy: policyData.semiIpYoy,
+    capexQtrYoY: chainData.capexQtrYoY,
+    capexQtrPrevQtrYoY: chainData.capexQtrPrevQtrYoY,
   };
 
   const fiscalAuto = calcFiscalSignal(policyData);
@@ -379,6 +382,8 @@ async function runDailyUpdate() {
     capexYoY: chainData.capexYoY,
     capexQtrYoY: chainData.capexQtrYoY,
     capexQtrEnd: chainData.capexQtrEnd,
+    capexQtrPrevQtrYoY: chainData.capexQtrPrevQtrYoY,
+    capexSignal: aiSubSignals.capexSignal, // capex子信号生效值（含N1/N2侦察兵规则），前端徽章与payload直读
     aiBubbleWarning: aiSupplyAutoEff === 'tight' ? 1 : 0, // 复用列：AI供需=收紧(供过于求)标记（stale日沿用上次判定，与 ai_supply_signal 同口径）
     sahmLockActive: locks.sahmLockActive ? 1 : 0,
     reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive ? 1 : 0,

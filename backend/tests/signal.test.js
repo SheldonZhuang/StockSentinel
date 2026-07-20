@@ -296,6 +296,45 @@ describe('deriveAiSupplySubSignals', () => {
     expect(subs.capexSignal).toBe(null);
     expect(subs.semiSignal).toBe(null);
   });
+
+  // capex 单季侦察兵规则 N1/N2（2026-07-20 用户拍板）
+  describe('capex单季侦察兵规则', () => {
+    it('N1 拦截宽松：TTM达宽松线但单季<0 → 降为 neutral', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: -3 }).capexSignal).toBe('neutral');
+    });
+
+    it('N1 只拦截宽松：TTM本就 neutral/tight 时单季<0 不改变结果', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 5, capexQtrYoY: -3 }).capexSignal).toBe('neutral');
+      expect(deriveAiSupplySubSignals({ capexYoY: -5, capexQtrYoY: -3 }).capexSignal).toBe('tight');
+    });
+
+    it('N2 两季连负 → 直接 tight，即使TTM仍达宽松线', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: -3, capexQtrPrevQtrYoY: -1 }).capexSignal).toBe('tight');
+    });
+
+    it('仅当季负、上季正 → 只触发N1不触发N2', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: -3, capexQtrPrevQtrYoY: 2 }).capexSignal).toBe('neutral');
+    });
+
+    it('上季负但当季已回正 → 两规则均不触发（TTM口径原样）', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: 4, capexQtrPrevQtrYoY: -1 }).capexSignal).toBe('loose');
+    });
+
+    it('单季数据缺失 → 规则不触发，退回纯TTM口径', () => {
+      expect(deriveAiSupplySubSignals({ capexYoY: 25 }).capexSignal).toBe('loose');
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: null, capexQtrPrevQtrYoY: null }).capexSignal).toBe('loose');
+      // 当季负但上季缺失 → N2 不触发（缺数据不推断连续性），N1 仍生效
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: -3, capexQtrPrevQtrYoY: null }).capexSignal).toBe('neutral');
+    });
+
+    it('N2 传导到维度合成：两季连负单独把AI供需拖成 tight', () => {
+      expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexQtrYoY: -3, capexQtrPrevQtrYoY: -1 })).toBe('tight');
+    });
+
+    it('N1 传导到维度合成：拦截宽松使全链一致性破缺 → neutral', () => {
+      expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexQtrYoY: -3 })).toBe('neutral');
+    });
+  });
 });
 
 // AI供需合成：任一环节收缩=收紧(供过于求)；全链一致宽松=宽松(供不应求)；其余中性；全缺中性
