@@ -34,8 +34,9 @@ function parseJsonLoose(text) {
 
 /**
  * 生成并保存当日日报；成功返回 {zh, en}，任何失败返回 null（不抛）
+ * LLM 偶发输出非 JSON（实测 2026-07-17/19/20 三次），失败自动重试一次
  */
-export async function generateDailyReport(payload) {
+export async function generateDailyReport(payload, attempt = 1) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || !payload) return null;
   const model = process.env.AI_REPORT_MODEL || DEFAULT_MODEL;
@@ -67,7 +68,8 @@ export async function generateDailyReport(payload) {
     console.log(`[daily-report] generated for ${payload.dataDate} via ${model}`);
     return { zh, en };
   } catch (err) {
-    console.warn('[daily-report] generation failed:', err?.message || String(err).slice(0, 120));
+    console.warn(`[daily-report] generation failed (attempt ${attempt}):`, err?.message || String(err).slice(0, 120));
+    if (attempt < 2) return generateDailyReport(payload, attempt + 1);
     return null;
   }
 }
