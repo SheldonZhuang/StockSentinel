@@ -10,7 +10,8 @@
     "defense": "防御",
     "loading": "読み込み中...",
     "reduce": "減倉様子見",
-    "snapshotStale": "シグナルデータが{days}日間更新されていません——バックエンド停止の可能性があります。現在の档位を最新の判断根拠にしないでください"
+    "snapshotStale": "シグナルデータが{days}日間更新されていません——バックエンド停止の可能性があります。現在の档位を最新の判断根拠にしないでください",
+    "capexGuidanceBanner": "ハイパースケーラーのcapexガイダンス下方修正——将来の設備投資縮小とAI供給過剰の先行シグナル。AI需給は引き締めに転換"
   },
   "signalPos": {
     "monetary": "金融政策",
@@ -184,7 +185,8 @@
       "administrative": "行政",
       "ai_supply": "AI需給",
       "sahmLock": "サームロック",
-      "reactiveAdjustmentLock": "対応型調整ロック"
+      "reactiveAdjustmentLock": "対応型調整ロック",
+      "capex_guidance": "capexガイダンス下修"
     },
     "signalCleared": "解除済み",
     "apiKeys": {
@@ -201,7 +203,9 @@
       "disabled": "無効",
       "enable": "有効化",
       "disable": "無効化"
-    }
+    },
+    "capexGuidance": "capexガイダンス下方修正",
+    "capexGuidanceHint": "イベント型入力：档位は引き締め固定。巨头が決算説明会でcapexガイダンスを明確に下方修正した際に記録（どの社/内容を備考に）。AI需給は即時引き締め、購読者にメール通知。EDGAR実績は1〜2決算期遅れ——本イベントはシステム唯一の先行的手動入力。"
   },
   "settings": {
     "title": "設定",

@@ -18,11 +18,17 @@ export async function buildSignalPayload() {
 
   const overrides = await getAllOverrides();
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
+  // N3 capex 指引下修事件：活动期内实时把 AI供需重算为收紧（capex 子信号强制 tight →
+  // 共识必 tight），除非整维已被手动覆盖。与 cron 侧 deriveAiSupplySubSignals 同语义，
+  // 录入后无需等次日 cron 即时生效
+  const capexGuidanceActive = !!overrides.capexGuidance;
 
   // 生效值 = 手动覆盖优先，否则自动判定；旧快照没有 *_auto_signal 时兜底到当时存的生效值
   const fiscalSignal = fiscalOverride?.signal || snapshot.fiscal_auto_signal || snapshot.fiscal_signal;
   const adminSignal = adminOverride?.signal || snapshot.admin_auto_signal || snapshot.admin_signal;
-  const aiSupplySignal = aiSupplyOverride?.signal || snapshot.ai_supply_auto_signal || snapshot.ai_supply_signal;
+  const aiSupplySignal = aiSupplyOverride?.signal
+    || (capexGuidanceActive ? 'tight' : null)
+    || snapshot.ai_supply_auto_signal || snapshot.ai_supply_signal;
 
   const rawSahmLockActive = !!snapshot.sahm_lock_active;
   const rawReactiveLockActive = !!snapshot.reactive_adjustment_lock_active;
@@ -48,7 +54,7 @@ export async function buildSignalPayload() {
   //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）；
   // 存在覆盖时管理员操作需即时生效，用重算值，不做迟滞
   const anyOverride = !!(fiscalOverride || adminOverride || aiSupplyOverride
-    || sahmLockOverridden || reactiveAdjustmentLockOverridden);
+    || sahmLockOverridden || reactiveAdjustmentLockOverridden || capexGuidanceActive);
   const finalSignal = anyOverride ? candidateSignal : (snapshot.final_signal || candidateSignal);
 
   return {
@@ -140,7 +146,10 @@ export async function buildSignalPayload() {
       capexQtrYoY: snapshot.capex_qtr_yoy ?? null,
       capexQtrEnd: snapshot.capex_qtr_end ?? null,
       capexQtrPrevQtrYoY: snapshot.capex_qtr_prev_qtr_yoy ?? null,
-      capexSignal: snapshot.capex_signal ?? null,
+      capexSignal: capexGuidanceActive ? 'tight' : (snapshot.capex_signal ?? null),
+      // N3 指引下修事件（活动中）：note=哪家/什么内容，前端横幅与徽章展示用
+      capexGuidanceDowngrade: capexGuidanceActive,
+      capexGuidanceNote: overrides.capexGuidance?.note ?? null,
       aiBubbleWarning: !!snapshot.ai_bubble_warning,
       sahmValue: snapshot.sahm_value,
       sahmPeriodDate: snapshot.sahm_period_date,

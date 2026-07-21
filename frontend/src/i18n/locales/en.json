@@ -10,7 +10,8 @@
     "defense": "Defense",
     "loading": "Loading data...",
     "reduce": "Reduce",
-    "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date"
+    "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date",
+    "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT"
   },
   "signalPos": {
     "monetary": "Monetary Policy",
@@ -191,7 +192,8 @@
       "administrative": "Administrative",
       "ai_supply": "AI Supply",
       "sahmLock": "Sahm Lock",
-      "reactiveAdjustmentLock": "Reactive Adjustment Lock"
+      "reactiveAdjustmentLock": "Reactive Adjustment Lock",
+      "capex_guidance": "Capex Guidance Cut"
     },
     "signalCleared": "Cleared",
     "apiKeys": {
@@ -208,7 +210,9 @@
       "disabled": "Disabled",
       "enable": "Enable",
       "disable": "Disable"
-    }
+    },
+    "capexGuidance": "Capex Guidance Cut",
+    "capexGuidanceHint": "Event-type input: tier locked to tight. Record when a hyperscaler explicitly cuts capex guidance on an earnings call (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. EDGAR actuals lag 1-2 reporting seasons — this event is the system's only forward-looking manual input. Set an expiry or clear manually when the event lapses."
   },
   "settings": {
     "title": "Settings",

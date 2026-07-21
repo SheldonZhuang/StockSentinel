@@ -10,7 +10,8 @@
     "defense": "방어",
     "loading": "로딩 중...",
     "reduce": "감축 관망",
-    "snapshotStale": "신호 데이터가 {days}일간 업데이트되지 않았습니다 — 백엔드가 중단됐을 수 있습니다. 현재 단계를 최신 판단 근거로 삼지 마세요"
+    "snapshotStale": "신호 데이터가 {days}일간 업데이트되지 않았습니다 — 백엔드가 중단됐을 수 있습니다. 현재 단계를 최신 판단 근거로 삼지 마세요",
+    "capexGuidanceBanner": "하이퍼스케일러 capex 가이던스 하향 — 미래 설비투자 축소와 AI 공급과잉의 선행 신호; AI 수급이 긴축으로 전환"
   },
   "signalPos": {
     "monetary": "통화 정책",
@@ -184,7 +185,8 @@
       "administrative": "행정",
       "ai_supply": "AI 수급",
       "sahmLock": "삼 룰 잠금",
-      "reactiveAdjustmentLock": "대응형 조정 잠금"
+      "reactiveAdjustmentLock": "대응형 조정 잠금",
+      "capex_guidance": "capex 가이던스 하향"
     },
     "signalCleared": "해제됨",
     "apiKeys": {
@@ -201,7 +203,9 @@
       "disabled": "비활성",
       "enable": "활성화",
       "disable": "비활성화"
-    }
+    },
+    "capexGuidance": "capex 가이던스 하향",
+    "capexGuidanceHint": "이벤트형 입력: 단계는 긴축 고정. 하이퍼스케일러가 실적 발표에서 capex 가이던스를 명확히 하향할 때 기록(어느 회사/내용을 비고에); AI 수급 즉시 긴축, 구독자에게 메일 통지. EDGAR 실적은 1~2 실적 시즌 지연 — 본 이벤트는 시스템 유일의 선행 수동 입력."
   },
   "settings": {
     "title": "설정",

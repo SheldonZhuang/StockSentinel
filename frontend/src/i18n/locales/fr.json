@@ -10,7 +10,8 @@
     "defense": "Défense",
     "loading": "Chargement...",
     "reduce": "Alléger",
-    "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour"
+    "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour",
+    "capexGuidanceBanner": "Révision à la baisse des prévisions de capex des hyperscalers — signal avancé de contraction du capex et de suroffre IA ; offre/demande IA passée en resserrement"
   },
   "signalPos": {
     "monetary": "Politique Monétaire",
@@ -184,7 +185,8 @@
       "administrative": "Administratif",
       "ai_supply": "Offre/demande IA",
       "sahmLock": "Verrou Sahm",
-      "reactiveAdjustmentLock": "Verrou d’ajustement réactif"
+      "reactiveAdjustmentLock": "Verrou d’ajustement réactif",
+      "capex_guidance": "Révision capex"
     },
     "signalCleared": "Effacé",
     "apiKeys": {
@@ -201,7 +203,9 @@
       "disabled": "Désactivée",
       "enable": "Activer",
       "disable": "Désactiver"
-    }
+    },
+    "capexGuidance": "Révision capex à la baisse",
+    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. À enregistrer quand un hyperscaler abaisse explicitement ses prévisions de capex en conférence de résultats (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Les données EDGAR ont 1-2 saisons de retard — cet événement est la seule entrée manuelle prospective du système."
   },
   "settings": {
     "title": "Paramètres",

@@ -11,7 +11,9 @@ import {
   setApiKeyDisabled,
   getSnapshotHistory,
   getLatestSnapshot,
+  getAlertSubscribers,
 } from '../utils/storage.js';
+import { sendSignalAlert } from '../utils/mailer.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
 import { fetchAiSupplyNews } from './fetch-rss.js';
 import chainCfg from '../config/ai-chain.config.js';
@@ -21,7 +23,7 @@ import { getCapeState } from '../utils/cape.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
-const VALID_TYPES = ['fiscal', 'administrative', 'ai_supply'];
+const VALID_TYPES = ['fiscal', 'administrative', 'ai_supply', 'capex_guidance'];
 const VALID_LOCK_TYPES = ['sahmLock', 'reactiveAdjustmentLock'];
 const LOCK_CLEAR_SIGNAL = 'cleared';
 // 'auto' 为哨兵值：清除手动设定，回到按环节排名自动识别
@@ -64,6 +66,11 @@ router.post('/signals', requireAdmin, asyncRoute(async (req, res) => {
   if (!VALID_TYPES.includes(type)) {
     return res.status(400).json({ error: `type must be one of: ${VALID_TYPES.join(', ')}` });
   }
+  // capex_guidance 是事件型输入（N3 指引下修）：只有 tight 一个合法档位——
+  // 事件存在即 capex 子信号收紧，"宽松的指引"不构成事件（数据口径自会体现）
+  if (type === 'capex_guidance' && signal !== 'tight') {
+    return res.status(400).json({ error: 'capex_guidance only accepts signal=tight (the event itself means downgrade)' });
+  }
   if (!VALID_SIGNALS.includes(signal)) {
     return res.status(400).json({ error: `signal must be one of: ${VALID_SIGNALS.join(', ')}` });
   }
@@ -73,6 +80,25 @@ router.post('/signals', requireAdmin, asyncRoute(async (req, res) => {
   }
 
   await setAdminSignal(type, signal, normalizedExpiresAt, note || null, req.user.email);
+
+  // N3 指引下修事件（2026-07-21 用户拍板）：这是"未来capex缩减+AI供过于求"的前瞻信号，
+  // 录入即向订阅用户发示警邮件（不等次日 cron）——用户明确要求"立即通知我，在网页上和邮件里"。
+  // 网页侧由 payloads 实时重算生效（capexGuidanceDowngrade 横幅）；邮件失败不影响录入结果。
+  if (type === 'capex_guidance') {
+    try {
+      const subscribers = await getAlertSubscribers();
+      if (subscribers.length) {
+        await sendSignalAlert(subscribers, {
+          finalSignal: 'reduce', // 单维收紧对应档位语义；实际生效档以 /v1/signal 实时值为准
+          changes: [{ kind: 'capexGuidance', note: note || null }],
+          details: {},
+        });
+      }
+    } catch (err) {
+      console.warn('[admin] capex guidance alert email failed:', err.message);
+    }
+  }
+
   res.json({ ok: true, type, signal, expiresAt: normalizedExpiresAt });
 }));
 

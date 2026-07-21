@@ -10,7 +10,8 @@
     "defense": "Verteidigung",
     "loading": "Laden...",
     "reduce": "Reduzieren",
-    "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln"
+    "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln",
+    "capexGuidanceBanner": "Hyperscaler-Capex-Prognosesenkung — Frühsignal für Capex-Kontraktion & KI-Überangebot; KI-Angebot/Nachfrage auf restriktiv"
   },
   "signalPos": {
     "monetary": "Geldpolitik",
@@ -184,7 +185,8 @@
       "administrative": "Administrativ",
       "ai_supply": "KI-Angebot/Nachfrage",
       "sahmLock": "Sahm-Sperre",
-      "reactiveAdjustmentLock": "Reaktive Anpassungssperre"
+      "reactiveAdjustmentLock": "Reaktive Anpassungssperre",
+      "capex_guidance": "Capex-Prognosesenkung"
     },
     "signalCleared": "Aufgehoben",
     "apiKeys": {
@@ -201,7 +203,9 @@
       "disabled": "Deaktiviert",
       "enable": "Aktivieren",
       "disable": "Deaktivieren"
-    }
+    },
+    "capexGuidance": "Capex-Prognosesenkung",
+    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Erfassen, wenn ein Hyperscaler im Earnings Call die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. EDGAR-Ist-Daten hinken 1-2 Berichtssaisons hinterher — dieses Ereignis ist die einzige vorausschauende manuelle Eingabe des Systems."
   },
   "settings": {
     "title": "Einstellungen",

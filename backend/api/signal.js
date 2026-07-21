@@ -217,7 +217,7 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
  *   单季数据缺失（null）时两规则不触发，行为退回纯TTM口径。
  * @returns {{usageSignal, capexSignal, semiSignal}}
  */
-export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpYoy, capexQtrYoY, capexQtrPrevQtrYoY }) {
+export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpYoy, capexQtrYoY, capexQtrPrevQtrYoY, capexGuidanceDowngrade }) {
   const band = (v, looseTh, tightTh) => {
     if (v === null || v === undefined) return null;
     if (v > looseTh) return SIGNAL.LOOSE;
@@ -237,6 +237,11 @@ export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpY
     // 与"单季收缩时最多观望"的 N1 语义矛盾（N2 在 null 时能生效，null 处理必须对称）
     capexSignal = SIGNAL.NEUTRAL;
   }
+  // N3 指引下修人工事件（2026-07-21 用户拍板，108号财报季决策）：巨头财报电话会明确下修
+  // capex 指引是"未来缩减+AI供过于求"的前瞻信号，EDGAR 实际数据要滞后1-2个财报季才显形；
+  // 管理员录入事件（admin override 类型 capex_guidance）后 capex 子信号强制收紧，
+  // 优先级最高（覆盖 N1/N2 与数据口径），直至事件过期或手动清除
+  if (capexGuidanceDowngrade) capexSignal = SIGNAL.TIGHT;
   return {
     usageSignal: band(modelUsageTrendPct, AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT),
     capexSignal,

@@ -253,14 +253,21 @@ async function runDailyUpdate() {
   const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
 
+  // overrides 提前读取：capex_guidance 指引下修事件是 AI供需判定输入（N3），须在合成前可用
+  const overrides = await getAllOverrides();
+  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
+  const capexGuidanceDowngrade = !!overrides.capexGuidance;
+
   // AI供需现金流三件套：调用量+capex（chainData）+ 半导体产出（policyData）合成一个维度
-  // 单季两值供 capex 侦察兵规则 N1/N2（拦截宽松/两季连负判收紧）
+  // 单季两值供 capex 侦察兵规则 N1/N2（拦截宽松/两季连负判收紧）；
+  // capexGuidanceDowngrade=N3 指引下修人工事件（强制 capex 子信号收紧）
   const aiSupplyInputs = {
     modelUsageTrendPct: chainData.modelUsageTrendPct,
     capexYoY: chainData.capexYoY,
     semiIpYoy: policyData.semiIpYoy,
     capexQtrYoY: chainData.capexQtrYoY,
     capexQtrPrevQtrYoY: chainData.capexQtrPrevQtrYoY,
+    capexGuidanceDowngrade,
   };
 
   const fiscalAuto = calcFiscalSignal(policyData);
@@ -286,9 +293,6 @@ async function runDailyUpdate() {
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
   const adminAutoEff = adminStale ? prevSnapshot.admin_auto_signal : adminAuto;
   const aiSupplyAutoEff = aiSupplyStale ? prevSnapshot.ai_supply_auto_signal : aiSupplyAuto;
-
-  const overrides = await getAllOverrides();
-  const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
 
   // 生效值 = 手动覆盖优先，否则自动判定（判定函数保证返回信号串）
   const fiscal = fiscalOverride?.signal || fiscalAutoEff;

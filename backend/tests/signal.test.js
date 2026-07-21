@@ -339,6 +339,17 @@ describe('deriveAiSupplySubSignals', () => {
       expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexQtrYoY: -3, capexQtrPrevQtrYoY: -1 })).toBe('tight');
     });
 
+    it('N3 指引下修事件：强制capex收紧，覆盖一切数据口径（最高优先级）', () => {
+      // 数据全面向好也压不住事件——指引下修是前瞻信号，实际数据要滞后1-2个财报季
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexQtrYoY: 10, capexGuidanceDowngrade: true }).capexSignal).toBe('tight');
+      // 数据缺失时事件独立生效
+      expect(deriveAiSupplySubSignals({ capexGuidanceDowngrade: true }).capexSignal).toBe('tight');
+      // 传导：单事件即把AI供需维拖成收紧
+      expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexGuidanceDowngrade: true })).toBe('tight');
+      // 事件不存在时无影响
+      expect(deriveAiSupplySubSignals({ capexYoY: 25, capexGuidanceDowngrade: false }).capexSignal).toBe('loose');
+    });
+
     it('N1 传导到维度合成：拦截宽松使全链一致性破缺 → neutral', () => {
       expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 25, semiIpYoy: 8, capexQtrYoY: -3 })).toBe('neutral');
     });

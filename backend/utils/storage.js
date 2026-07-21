@@ -537,14 +537,15 @@ export async function getAdminSignalHistory(limit = 50) {
 }
 
 export async function getAllOverrides() {
-  const [fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear] = await Promise.all([
+  const [fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear, capexGuidance] = await Promise.all([
     getActiveAdminSignal('fiscal'),
     getActiveAdminSignal('administrative'),
     getActiveAdminSignal('ai_supply'),
     getActiveAdminSignal('sahmLock'),
     getActiveAdminSignal('reactiveAdjustmentLock'),
+    getActiveAdminSignal('capex_guidance'),
   ]);
-  return { fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear };
+  return { fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear, capexGuidance };
 }
 
 // --- Watchlist ---

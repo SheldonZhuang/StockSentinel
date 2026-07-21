@@ -40,6 +40,9 @@ export function buildAlertEmail(payload) {
     } else if (c.kind === 'bubble') {
       const reasons = (c.reasons || []).map(r => BUBBLE_REASON_LABELS[r] || r).join('；');
       lines.push(`⚠️ AI泡沫预警触发 Bubble warning triggered：${reasons}`);
+    } else if (c.kind === 'capexGuidance') {
+      const noteStr = c.note ? `（${c.note}）` : '';
+      lines.push(`🔴 云厂商capex指引下修事件录入 Hyperscaler capex guidance cut recorded${noteStr}——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维即时转收紧 forward signal of capex contraction & AI oversupply; AI supply/demand dimension turns TIGHT immediately`);
     } else if (c.kind === 'sahmLockOn') {
       const sahmStr = details.sahmValue != null ? `（当前值 ${Number(details.sahmValue).toFixed(2)}）` : '';
       lines.push(`🔴 萨姆规则触发，进入衰退防守锁定 Sahm Rule triggered, recession defense lock activated${sahmStr}`);

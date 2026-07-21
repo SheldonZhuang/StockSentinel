@@ -10,7 +10,8 @@
     "defense": "Defensa",
     "loading": "Cargando...",
     "reduce": "Reducir",
-    "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente"
+    "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente",
+    "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo"
   },
   "signalPos": {
     "monetary": "Política Monetaria",
@@ -184,7 +185,8 @@
       "administrative": "Administrativo",
       "ai_supply": "Oferta/demanda IA",
       "sahmLock": "Bloqueo Sahm",
-      "reactiveAdjustmentLock": "Bloqueo de ajuste reactivo"
+      "reactiveAdjustmentLock": "Bloqueo de ajuste reactivo",
+      "capex_guidance": "Recorte guía capex"
     },
     "signalCleared": "Borrado",
     "apiKeys": {
@@ -201,7 +203,9 @@
       "disabled": "Desactivada",
       "enable": "Activar",
       "disable": "Desactivar"
-    }
+    },
+    "capexGuidance": "Recorte guía capex",
+    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Registrar cuando un hyperscaler recorte explícitamente su guía de capex en la llamada de resultados (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Los datos EDGAR llevan 1-2 temporadas de retraso — este evento es la única entrada manual prospectiva del sistema."
   },
   "settings": {
     "title": "Configuración",

@@ -10,7 +10,8 @@
     "defense": "防守",
     "loading": "数据加载中...",
     "reduce": "减仓观望",
-    "snapshotStale": "信号数据已 {days} 天未更新，可能云端服务停摆——当前档位不可作为最新判断依据"
+    "snapshotStale": "信号数据已 {days} 天未更新，可能云端服务停摆——当前档位不可作为最新判断依据",
+    "capexGuidanceBanner": "云厂商capex指引下修事件——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维已转收紧"
   },
   "signalPos": {
     "monetary": "货币政策",
@@ -191,7 +192,8 @@
       "administrative": "行政",
       "ai_supply": "AI供需",
       "sahmLock": "萨姆锁",
-      "reactiveAdjustmentLock": "应对式调整锁"
+      "reactiveAdjustmentLock": "应对式调整锁",
+      "capex_guidance": "capex指引下修"
     },
     "signalCleared": "已清除",
     "apiKeys": {
@@ -208,7 +210,9 @@
       "disabled": "已禁用",
       "enable": "启用",
       "disable": "禁用"
-    }
+    },
+    "capexGuidance": "capex指引下修事件",
+    "capexGuidanceHint": "事件型输入：档位固定为收紧。巨头财报电话会明确下修capex指引时录入（备注写明哪家/内容），AI供需维即时收紧并邮件通知订阅用户；EDGAR实际数据滞后1-2个财报季，此事件是系统唯一的前瞻性人工输入。设置有效期或事件失效后手动清除。"
   },
   "settings": {
     "title": "设置",

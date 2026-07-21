@@ -12,15 +12,18 @@
             <option value="ai_supply">{{ $t('admin.aiSupply') }}</option>
             <option value="fiscal">{{ $t('admin.fiscal') }}</option>
             <option value="administrative">{{ $t('admin.administrative') }}</option>
+            <option value="capex_guidance">{{ $t('admin.capexGuidance') }}</option>
           </select>
         </div>
         <div class="form-row">
           <label>{{ $t('admin.signal') }}</label>
-          <select v-model="form.signal" class="input">
+          <!-- capex_guidance 是事件型输入：事件本身=下修，只有收紧一个合法档位（后端同校验） -->
+          <select v-model="form.signal" class="input" :disabled="form.type === 'capex_guidance'">
             <option value="loose">{{ $t('signalPos.loose') }}</option>
             <option value="neutral">{{ $t('signalPos.neutral') }}</option>
             <option value="tight">{{ $t('signalPos.tight') }}</option>
           </select>
+          <div v-if="form.type === 'capex_guidance'" class="guidance-hint">{{ $t('admin.capexGuidanceHint') }}</div>
         </div>
         <div class="form-row">
           <label>{{ $t('admin.expiresAt') }}</label>
@@ -196,12 +199,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { api } from '../api/client.js';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const form = ref({ type: 'ai_supply', signal: 'neutral', expiresAt: '', note: '' });
+// capex_guidance 事件型：切到该类型时档位强制 tight（事件本身=下修）
+watch(() => form.value.type, (v) => { if (v === 'capex_guidance') form.value.signal = 'tight'; });
 const saving = ref(false);
 const saveMsg = ref('');
 const lockForm = ref({ type: 'sahmLock', expiresAt: '', note: '' });
@@ -338,6 +343,7 @@ async function toggleKey(k) {
 .lock-note { font-size: var(--fs-sm); color: var(--text-4); margin: 0 0 10px 0; }
 .signal-form { display: flex; flex-direction: column; gap: 10px; }
 .form-row { display: flex; align-items: center; gap: 10px; }
+.guidance-hint { font-size: var(--fs-xs); color: var(--red); }
 .form-row label { width: 90px; font-size: var(--fs-md); color: var(--text-3); }
 .input { flex: 1; background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-1); padding: 7px 10px; font-size: var(--fs-md); }
 

@@ -29,6 +29,11 @@
         ⚠️ {{ $t('aiChain.bubbleWarning') }}
       </div>
 
+      <!-- N3 capex指引下修事件横幅：巨头财报电话会明确下修capex指引（前瞻信号，管理员录入） -->
+      <div v-if="signal.indicators?.capexGuidanceDowngrade" class="bubble-banner">
+        🔴 {{ $t('signal.capexGuidanceBanner') }}<template v-if="signal.indicators?.capexGuidanceNote">：{{ signal.indicators.capexGuidanceNote }}</template>
+      </div>
+
       <!-- 衰退防守锁定横幅 -->
       <div v-if="lockInfo" class="lock-banner">
         ⚠️ {{ $t('recessionLock.banner') }}：{{ lockInfo.reasonText }}
