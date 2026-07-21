@@ -19,6 +19,11 @@
       "raise": "Prognose angehoben",
       "maintain": "Prognose bestätigt",
       "none": "keine Prognose in Mitteilung"
+    },
+    "guidanceDirShort": {
+      "cut": "↓gesenkt",
+      "raise": "↑angehoben",
+      "maintain": "→bestätigt"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "Halbleiterprod.",
       "epuDaily": "EPU tägl.",
       "epuTrade": "Handels-EPU",
-      "outlaysYoY": "Bundesausg. JoJ"
+      "outlaysYoY": "Bundesausg. JoJ",
+      "guidance": "Prognose"
     },
     "oilSource": {
       "futures": "CL=F-Futures",
       "spot": "Spot (verzögert)"
     },
-    "fiscalOutlaysTtm": "Bundesausgaben (TTM)"
+    "fiscalOutlaysTtm": "Bundesausgaben (TTM)",
+    "capexGuidance": "Capex-Prognose (vorausschauende Referenz)"
   },
   "watchlist": {
     "title": "Beobachtungsliste",

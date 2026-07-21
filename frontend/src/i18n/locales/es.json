@@ -19,6 +19,11 @@
       "raise": "guía elevada",
       "maintain": "guía mantenida",
       "none": "sin guía en el comunicado"
+    },
+    "guidanceDirShort": {
+      "cut": "↓recortada",
+      "raise": "↑elevada",
+      "maintain": "→mantenida"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "Prod. semi",
       "epuDaily": "EPU diario",
       "epuTrade": "EPU comerc.",
-      "outlaysYoY": "Gasto fed. i.a."
+      "outlaysYoY": "Gasto fed. i.a.",
+      "guidance": "Guía"
     },
     "oilSource": {
       "futures": "Futuros CL=F",
       "spot": "Spot (retrasado)"
     },
-    "fiscalOutlaysTtm": "Gasto federal (TTM)"
+    "fiscalOutlaysTtm": "Gasto federal (TTM)",
+    "capexGuidance": "Guía capex (referencia prospectiva)"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",

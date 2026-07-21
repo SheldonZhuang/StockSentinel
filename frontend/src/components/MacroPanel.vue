@@ -11,6 +11,13 @@
             <div class="indicator-row">
               <span :class="['ind-label', { hinted: hintFor(ind) }]">{{ $t(`indicators.${ind.key}`) }}</span>
               <span class="ind-value">
+                <!-- 文本型行（capex指引）：textValue 直接展示，跳过数值格式化 -->
+                <template v-if="ind.textChips">
+                  <span v-for="c in ind.textChips" :key="c.symbol" :class="['guidance-chip', c.direction]" :title="c.quote || ''">
+                    {{ c.symbol }}: {{ $t(`signal.guidanceDir.${c.direction}`) }}
+                  </span>
+                </template>
+                <template v-else>
                 {{ ind.value != null ? (ind.signed && ind.value > 0 ? '+' : '') + ind.value.toFixed(2) + ind.unit : '—' }}
                 <span v-if="ind.change !== null" :class="['ind-change', trendClass(ind.change)]">
                   {{ trendArrow(ind.change) }}{{ Math.abs(ind.change).toFixed(2) }}{{ ind.unit }}
@@ -20,6 +27,7 @@
                 <span v-if="ind.ycStatus" :class="['pos-badge', ind.ycStatus]">{{ $t(`indicators.ycStatus.${ind.ycStatus}`) }}</span>
                 <span v-if="ind.extra" class="ind-extra">{{ ind.extra }}</span>
                 <span v-if="ind.signalBadge" :class="['pos-badge', ind.signalBadge]">{{ $t(`signalPos.${ind.signalBadge}`) }}</span>
+                </template>
               </span>
             </div>
             <div class="ind-meta">
@@ -105,7 +113,19 @@ function hintFor(ind) {
   if (ind.key === 'yieldCurve') return t('indicators.hints.yieldCurve');
   // capex单季同比：参考指标但有专属提示（拐点侦察兵语义 + 错季对齐口径）
   if (ind.key === 'capexQtrYoY') return t('indicators.hints.capexQtrYoY');
+  // capex指引：自动检测语义与局限（新闻稿源/none≠无指引）
+  if (ind.key === 'capexGuidance') return t('signal.capexGuidanceRefHint');
   return t('indicators.hints.reference');
+}
+
+// capex指引记录按symbol去重取每家最新一条（signal payload按记录时间排序，首条即最新）
+function dedupeGuidance(records) {
+  const bySymbol = new Map();
+  for (const g of records || []) {
+    if (!bySymbol.has(g.symbol)) bySymbol.set(g.symbol, g);
+  }
+  const DIR_ORDER = { cut: 0, maintain: 1, raise: 2, none: 3 };
+  return [...bySymbol.values()].sort((a, b) => (DIR_ORDER[a.direction] ?? 9) - (DIR_ORDER[b.direction] ?? 9));
 }
 
 function trendKey(change) {
@@ -166,6 +186,11 @@ const groups = computed(() => {
             : null,
           periodDate: ind.capexQtrEnd,
         },
+        // capex指引（前瞻参考）紧跟云Capex口径：每家最近一次检测（含"未给指引"），文本芯片型行
+        ...((ind.capexGuidanceRecords || []).length ? [{
+          key: 'capexGuidance', value: null, change: null,
+          textChips: dedupeGuidance(ind.capexGuidanceRecords),
+        }] : []),
         {
           key: 'semiIpYoy', signed: true, value: ind.semiIpYoy, unit: '%', change: null,
           signalBadge: ind.aiFundamentalSignal,
@@ -326,4 +351,16 @@ const groups = computed(() => {
 .pos-badge.loose { background: var(--green-bg); color: var(--green); }
 .pos-badge.neutral { background: var(--yellow-bg); color: var(--yellow); }
 .pos-badge.tight { background: var(--red-bg); color: var(--red); }
+
+.guidance-chip {
+  font-size: var(--fs-xs);
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-3);
+  margin-left: 4px;
+}
+.guidance-chip.cut { color: var(--red); background: var(--red-bg); }
+.guidance-chip.raise { color: var(--green); background: var(--green-bg); }
+.guidance-chip.maintain { color: var(--text-2); }
 </style>

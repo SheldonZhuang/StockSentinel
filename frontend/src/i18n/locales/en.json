@@ -19,6 +19,11 @@
       "raise": "guidance raised",
       "maintain": "guidance maintained",
       "none": "no guidance in release"
+    },
+    "guidanceDirShort": {
+      "cut": "↓cut",
+      "raise": "↑raised",
+      "maintain": "→maintained"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "Semi Output",
       "epuDaily": "Daily EPU",
       "epuTrade": "Trade EPU",
-      "outlaysYoY": "Fed Outlays YoY"
+      "outlaysYoY": "Fed Outlays YoY",
+      "guidance": "Guidance"
     },
     "oilSource": {
       "futures": "CL=F futures",
       "spot": "Spot (delayed)"
     },
-    "fiscalOutlaysTtm": "Federal Outlays (TTM)"
+    "fiscalOutlaysTtm": "Federal Outlays (TTM)",
+    "capexGuidance": "Capex guidance (forward reference)"
   },
   "watchlist": {
     "title": "Watchlist",

@@ -19,6 +19,11 @@
       "raise": "指引上修",
       "maintain": "维持指引",
       "none": "新闻稿未给指引"
+    },
+    "guidanceDirShort": {
+      "cut": "↓下修",
+      "raise": "↑上修",
+      "maintain": "→维持"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "半导体产出",
       "epuDaily": "日频EPU",
       "epuTrade": "贸易EPU",
-      "outlaysYoY": "联邦支出同比"
+      "outlaysYoY": "联邦支出同比",
+      "guidance": "指引"
     },
     "oilSource": {
       "futures": "期货 CL=F",
       "spot": "现货(发布滞后)"
     },
-    "fiscalOutlaysTtm": "联邦支出 (滚动12个月)"
+    "fiscalOutlaysTtm": "联邦支出 (滚动12个月)",
+    "capexGuidance": "capex指引（前瞻参考）"
   },
   "watchlist": {
     "title": "自选股",

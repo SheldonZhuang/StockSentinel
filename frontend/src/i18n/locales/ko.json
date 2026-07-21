@@ -19,6 +19,11 @@
       "raise": "가이던스 상향",
       "maintain": "가이던스 유지",
       "none": "보도자료에 가이던스 없음"
+    },
+    "guidanceDirShort": {
+      "cut": "↓하향",
+      "raise": "↑상향",
+      "maintain": "→유지"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "반도체 생산",
       "epuDaily": "일간 EPU",
       "epuTrade": "무역 EPU",
-      "outlaysYoY": "연방지출 전년비"
+      "outlaysYoY": "연방지출 전년비",
+      "guidance": "가이던스"
     },
     "oilSource": {
       "futures": "CL=F 선물",
       "spot": "현물(지연)"
     },
-    "fiscalOutlaysTtm": "연방 지출(TTM)"
+    "fiscalOutlaysTtm": "연방 지출(TTM)",
+    "capexGuidance": "capex 가이던스 (선행 참고)"
   },
   "watchlist": {
     "title": "관심 종목",

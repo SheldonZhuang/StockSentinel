@@ -19,6 +19,11 @@
       "raise": "ガイダンス上方修正",
       "maintain": "ガイダンス据え置き",
       "none": "リリースにガイダンスなし"
+    },
+    "guidanceDirShort": {
+      "cut": "↓下方修正",
+      "raise": "↑上方修正",
+      "maintain": "→据え置き"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "半導体生産",
       "epuDaily": "日次EPU",
       "epuTrade": "貿易EPU",
-      "outlaysYoY": "連邦支出前年比"
+      "outlaysYoY": "連邦支出前年比",
+      "guidance": "ガイダンス"
     },
     "oilSource": {
       "futures": "CL=F先物",
       "spot": "現物（遅延）"
     },
-    "fiscalOutlaysTtm": "連邦支出（TTM）"
+    "fiscalOutlaysTtm": "連邦支出（TTM）",
+    "capexGuidance": "capexガイダンス（先行参考）"
   },
   "watchlist": {
     "title": "ウォッチリスト",

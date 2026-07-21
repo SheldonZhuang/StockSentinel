@@ -19,6 +19,11 @@
       "raise": "prévisions relevées",
       "maintain": "prévisions maintenues",
       "none": "pas de prévision dans le communiqué"
+    },
+    "guidanceDirShort": {
+      "cut": "↓abaissées",
+      "raise": "↑relevées",
+      "maintain": "→maintenues"
     }
   },
   "signalPos": {
@@ -101,13 +106,15 @@
       "semiIp": "Prod. semi",
       "epuDaily": "EPU quot.",
       "epuTrade": "EPU comm.",
-      "outlaysYoY": "Dépenses féd. GA"
+      "outlaysYoY": "Dépenses féd. GA",
+      "guidance": "Prévisions"
     },
     "oilSource": {
       "futures": "Contrats CL=F",
       "spot": "Spot (différé)"
     },
-    "fiscalOutlaysTtm": "Dépenses fédérales (12 mois)"
+    "fiscalOutlaysTtm": "Dépenses fédérales (12 mois)",
+    "capexGuidance": "Prévisions capex (référence prospective)"
   },
   "watchlist": {
     "title": "Liste de Suivi",

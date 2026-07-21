@@ -124,6 +124,11 @@ function dimMetric(key) {
       const qtr = ind.capexQtrYoY != null ? ` (${t('indicators.short.capexQtr')} ${fmtPct(ind.capexQtrYoY)})` : '';
       parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}${qtr}`);
     }
+    // capex指引（前瞻参考）紧跟云Capex：有明确方向的检测结果内联展示（仅方向性记录，none不占位）
+    const dirs = (ind.capexGuidanceRecords || []).filter(g => g.direction && g.direction !== 'none');
+    if (dirs.length) {
+      parts.push(`${t('indicators.short.guidance')} ${dirs.map(g => `${g.symbol}${t(`signal.guidanceDirShort.${g.direction}`)}`).join('/')}`);
+    }
     if (ind.semiIpYoy != null) parts.push(`${t('indicators.short.semiIp')} ${fmtPct(ind.semiIpYoy)}`);
     return parts.join(' · ') || null;
   }
