@@ -361,11 +361,14 @@ describe('fetchAiChainData', () => {
     { start: '2026-01-01', end: '2026-12-31', val: 440, form: '10-K' },
   ];
 
-  // axios 按 URL 分发：sec.gov → EDGAR capex；其余（openrouter）→ 调用量数据
-  function mockAxiosByHost({ edgar = { data: { units: { USD: edgarFacts } } }, openrouter = { data: { data: null } } } = {}) {
+  // axios 按 URL 分发：sec.gov → EDGAR capex；financialmodelingprep → FMP备源；其余（openrouter）→ 调用量数据
+  function mockAxiosByHost({ edgar = { data: { units: { USD: edgarFacts } } }, openrouter = { data: { data: null } }, fmp = new Error('no fmp mock') } = {}) {
     axios.get.mockImplementation(url => {
       if (url.includes('sec.gov')) {
         return edgar instanceof Error ? Promise.reject(edgar) : Promise.resolve(edgar);
+      }
+      if (url.includes('financialmodelingprep')) {
+        return fmp instanceof Error ? Promise.reject(fmp) : Promise.resolve(fmp);
       }
       return openrouter instanceof Error ? Promise.reject(openrouter) : Promise.resolve(openrouter);
     });
@@ -401,6 +404,23 @@ describe('fetchAiChainData', () => {
     const d = await fetchAiChainData();
     expect(d.capexYoY).toBe(null);
     expect(d.modelUsageTrendPct).toBeCloseTo(10, 5);
+  });
+
+  it('EDGAR 挂但 FMP 备源可用：capex 从 FMP 恢复（双源冗余）', async () => {
+    process.env.FMP_API_KEY = 'test-fmp-key';
+    yahooFinance.historical.mockResolvedValue(flatBars);
+    // FMP 现金流：离散单季值、capex 为负（现金流出）——与 EDGAR 派生的正值同经 Math.abs 归一
+    const fmpRows = [
+      { date: '2026-12-31', capitalExpenditure: -110 }, { date: '2026-09-30', capitalExpenditure: -110 },
+      { date: '2026-06-30', capitalExpenditure: -110 }, { date: '2026-03-31', capitalExpenditure: -110 },
+      { date: '2025-12-31', capitalExpenditure: -100 }, { date: '2025-09-30', capitalExpenditure: -100 },
+      { date: '2025-06-30', capitalExpenditure: -100 }, { date: '2025-03-31', capitalExpenditure: -100 },
+    ];
+    mockAxiosByHost({ edgar: new Error('503'), fmp: { data: fmpRows }, openrouter: { data: { data: orRows } } });
+
+    const d = await fetchAiChainData();
+    expect(d.capexYoY).toBeCloseTo(10, 5); // TTM 440 vs 400 → +10%，与 EDGAR 口径一致
+    delete process.env.FMP_API_KEY;
   });
 
   it('OpenRouter 响应异常：调用量 null，资本开支不受影响', async () => {

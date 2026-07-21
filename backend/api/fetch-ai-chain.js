@@ -386,10 +386,36 @@ export async function fetchHyperscalerCapex() {
       quartersBySymbol[sym] = deriveQuarterlyCapex(res.data?.units?.USD);
     } catch (err) {
       console.warn(`[fetch-ai-chain] EDGAR capex(${sym}) failed:`, err.message);
+      // FMP 备源（2026-07-21 双源冗余）：EDGAR 单家失败时用 FMP 现金流量表补位。
+      // FMP capex 已是离散单季值（无需 YTD 差分），映射为同一 {date, capitalExpenditure} 形状；
+      // 免费层250次/天，仅在 EDGAR 失败时按需调用不烧配额。备源也失败则该公司剔除（原有语义）
+      const fb = await fetchCapexFromFmp(sym).catch(() => null);
+      if (fb?.length) {
+        quartersBySymbol[sym] = fb;
+        console.log(`[fetch-ai-chain] capex(${sym}) recovered from FMP fallback (${fb.length} quarters)`);
+      }
     }
     await sleep(150); // EDGAR 限速10次/秒，保守间隔
   }
   return { ...calcCapexYoY(quartersBySymbol), ...calcCapexQuarterYoY(quartersBySymbol) };
+}
+
+// FMP 现金流量表备源：季度 capex（FMP 免费层可用；stable 接口，v3 对新 key 已关闭）
+const FMP_CASHFLOW_URL = 'https://financialmodelingprep.com/stable/cash-flow-statement';
+const fmpApiKey = () => process.env.FMP_API_KEY || process.env.financialmodelingprep_API_KEY;
+
+async function fetchCapexFromFmp(symbol) {
+  const key = fmpApiKey();
+  if (!key) return null;
+  const res = await axios.get(FMP_CASHFLOW_URL, {
+    params: { symbol, period: 'quarter', limit: 12, apikey: key },
+    timeout: 20000,
+  });
+  const rows = Array.isArray(res.data) ? res.data : [];
+  return rows
+    .filter(r => r.date && typeof r.capitalExpenditure === 'number')
+    .map(r => ({ date: r.date, capitalExpenditure: r.capitalExpenditure }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
 /**
