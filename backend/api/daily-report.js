@@ -55,6 +55,9 @@ export async function generateDailyReport(payload, attempt = 1) {
         },
       ],
       temperature: 0.3,
+      // 必设：不设时 OpenRouter 按模型最大值(65536)预扣余额校验，免费额度账户直接 402
+      // ——此前 7-17/19/20 三天日报失败的"no JSON object in LLM output"正是这个 402 被吞
+      max_tokens: 1200,
     }, {
       headers: { Authorization: `Bearer ${apiKey}` },
       timeout: 60000,

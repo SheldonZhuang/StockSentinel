@@ -5,6 +5,7 @@ import {
   getAllOverrides,
   getEffectiveBottleneck,
   getLatestAiChainSnapshot,
+  getRecentGuidance,
 } from '../utils/storage.js';
 import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyTrendReentry } from './signal.js';
 
@@ -17,6 +18,7 @@ export async function buildSignalPayload() {
   if (!snapshot) return null;
 
   const overrides = await getAllOverrides();
+  const recentGuidance = await getRecentGuidance().catch(() => []);
   const { fiscal: fiscalOverride, administrative: adminOverride, aiSupply: aiSupplyOverride } = overrides;
   // N3 capex 指引下修事件：活动期内实时把 AI供需重算为收紧（capex 子信号强制 tight →
   // 共识必 tight），除非整维已被手动覆盖。与 cron 侧 deriveAiSupplySubSignals 同语义，
@@ -150,6 +152,15 @@ export async function buildSignalPayload() {
       // N3 指引下修事件（活动中）：note=哪家/什么内容，前端横幅与徽章展示用
       capexGuidanceDowngrade: capexGuidanceActive,
       capexGuidanceNote: overrides.capexGuidance?.note ?? null,
+      // 自动检测的历史指引记录（前瞻性参考展示，不参与判定；仅"明确下修"才升级为上面的活动事件）
+      capexGuidanceRecords: recentGuidance.map(g => ({
+        symbol: g.symbol,
+        filingDate: g.filing_date,
+        direction: g.direction,
+        quote: g.quote,
+        confidence: g.confidence,
+        autoEvent: !!g.auto_event_created,
+      })),
       aiBubbleWarning: !!snapshot.ai_bubble_warning,
       sahmValue: snapshot.sahm_value,
       sahmPeriodDate: snapshot.sahm_period_date,

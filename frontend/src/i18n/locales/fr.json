@@ -11,7 +11,14 @@
     "loading": "Chargement...",
     "reduce": "Alléger",
     "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour",
-    "capexGuidanceBanner": "Révision à la baisse des prévisions de capex des hyperscalers — signal avancé de contraction du capex et de suroffre IA ; offre/demande IA passée en resserrement"
+    "capexGuidanceBanner": "Révision à la baisse des prévisions de capex des hyperscalers — signal avancé de contraction du capex et de suroffre IA ; offre/demande IA passée en resserrement",
+    "capexGuidanceRefTitle": "Prévisions de capex (référence prospective)",
+    "capexGuidanceRefHint": "Détection automatique : direction des prévisions de capex extraite par LLM des nouveaux communiqués de résultats sur EDGAR. Référence uniquement — ne détermine pas directement le signal (seule une « révision à la baisse explicite + confiance élevée » est automatiquement promue en événement de resserrement). Survolez pour voir la citation.",
+    "guidanceDir": {
+      "cut": "prévisions abaissées",
+      "raise": "prévisions relevées",
+      "maintain": "prévisions maintenues"
+    }
   },
   "signalPos": {
     "monetary": "Politique Monétaire",

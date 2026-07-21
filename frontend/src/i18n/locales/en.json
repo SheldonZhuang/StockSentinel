@@ -11,7 +11,14 @@
     "loading": "Loading data...",
     "reduce": "Reduce",
     "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date",
-    "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT"
+    "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT",
+    "capexGuidanceRefTitle": "Capex guidance (forward-looking reference)",
+    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction extracted by LLM from new earnings press releases on EDGAR. Reference only — does not directly drive the signal (only \"explicit cut + high confidence\" auto-escalates to a tightening event). Hover to see the quoted text.",
+    "guidanceDir": {
+      "cut": "guidance cut",
+      "raise": "guidance raised",
+      "maintain": "guidance maintained"
+    }
   },
   "signalPos": {
     "monetary": "Monetary Policy",

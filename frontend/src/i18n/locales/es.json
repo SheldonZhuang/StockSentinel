@@ -11,7 +11,14 @@
     "loading": "Cargando...",
     "reduce": "Reducir",
     "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente",
-    "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo"
+    "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo",
+    "capexGuidanceRefTitle": "Guía de capex (referencia prospectiva)",
+    "capexGuidanceRefHint": "Detección automática: dirección de la guía prospectiva de capex extraída por LLM de los nuevos comunicados de resultados en EDGAR. Solo referencia — no determina directamente la señal (solo \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo). Pase el cursor para ver la cita.",
+    "guidanceDir": {
+      "cut": "guía recortada",
+      "raise": "guía elevada",
+      "maintain": "guía mantenida"
+    }
   },
   "signalPos": {
     "monetary": "Política Monetaria",

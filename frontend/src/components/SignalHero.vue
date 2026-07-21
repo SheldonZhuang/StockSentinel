@@ -34,6 +34,16 @@
         🔴 {{ $t('signal.capexGuidanceBanner') }}<template v-if="signal.indicators?.capexGuidanceNote">：{{ signal.indicators.capexGuidanceNote }}</template>
       </div>
 
+      <!-- capex指引自动检测参考（前瞻性，不参与判定；仅展示新闻稿含明确指引方向的记录） -->
+      <div v-if="guidanceRefs.length" class="guidance-refs" :title="$t('signal.capexGuidanceRefHint')">
+        <span class="guidance-refs-label">{{ $t('signal.capexGuidanceRefTitle') }}</span>
+        <span v-for="g in guidanceRefs" :key="g.symbol + g.filingDate"
+              :class="['guidance-ref', g.direction]"
+              :title="g.quote || ''">
+          {{ g.symbol }} {{ $t(`signal.guidanceDir.${g.direction}`) }}<template v-if="g.filingDate"> · {{ g.filingDate }}</template>
+        </span>
+      </div>
+
       <!-- 衰退防守锁定横幅 -->
       <div v-if="lockInfo" class="lock-banner">
         ⚠️ {{ $t('recessionLock.banner') }}：{{ lockInfo.reasonText }}
@@ -178,6 +188,12 @@ const tightDims = computed(() =>
   positions.value.filter(p => p.value === 'tight').map(p => ({ ...p, detail: dimDetail(p.key) }))
 );
 
+// capex指引自动检测：仅展示新闻稿中含明确指引方向的记录（none 表示新闻稿未给指引，不展示）
+const guidanceRefs = computed(() =>
+  (props.signal?.indicators?.capexGuidanceRecords || []).filter(g => g.direction && g.direction !== 'none')
+);
+
+
 // "距进攻"清单 = 四维达成状态 + 收益率曲线否决器。
 // 曲线项同步 backend/api/signal.js applyYieldCurveVeto：10y−3m 连续倒挂 ≥63 个交易日
 // （≈3个月，signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS）时否决进攻档准入；
@@ -270,6 +286,26 @@ const snapshotStaleDays = computed(() => {
   border-radius: 8px;
   padding: 8px 14px;
 }
+
+.guidance-refs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.guidance-refs-label { color: var(--text-muted); }
+.guidance-ref {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+}
+.guidance-ref.cut { color: var(--red); }
+.guidance-ref.raise { color: var(--green); }
+.guidance-ref.maintain { color: var(--text-muted); }
 
 .lock-banner {
   text-align: center;

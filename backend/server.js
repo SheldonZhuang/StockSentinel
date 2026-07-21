@@ -51,6 +51,7 @@ import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
+import { processCapexGuidance } from './api/fetch-guidance.js';
 import { backupDatabase, restoreDatabaseIfMissing, scheduleUserDataBackup } from './utils/backup.js';
 import { setUserWriteListener } from './utils/storage.js';
 
@@ -487,6 +488,18 @@ async function runDailyUpdate() {
     console.log(`[cron] fundamentals prewarmed for ${symbols.length} watchlist symbols`);
   } catch (err) {
     console.warn('[cron] fundamentals prewarm failed:', err.message);
+  }
+
+  // capex 指引自动检测（前瞻信号，失败静默）：财报季检查四大云厂商新业绩8-K的
+  // capex指引方向，明确下修自动录入N3事件+邮件；结果存档供前端参考展示。
+  // 自动录入的override会在次日cron进入信号判定，当日已由其自身即时邮件通知。
+  try {
+    const guidance = await processCapexGuidance();
+    if (guidance.checked) {
+      console.log(`[guidance] checked ${guidance.checked} new earnings filing(s), ${guidance.autoEvents || 0} auto N3 event(s)`);
+    }
+  } catch (err) {
+    console.warn('[cron] capex guidance detection failed:', err.message);
   }
 
   // AI 日报（增值内容，失败静默）：基于刚保存的快照生成中英双语解读

@@ -11,7 +11,14 @@
     "loading": "Laden...",
     "reduce": "Reduzieren",
     "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln",
-    "capexGuidanceBanner": "Hyperscaler-Capex-Prognosesenkung — Frühsignal für Capex-Kontraktion & KI-Überangebot; KI-Angebot/Nachfrage auf restriktiv"
+    "capexGuidanceBanner": "Hyperscaler-Capex-Prognosesenkung — Frühsignal für Capex-Kontraktion & KI-Überangebot; KI-Angebot/Nachfrage auf restriktiv",
+    "capexGuidanceRefTitle": "Capex-Prognose (vorausschauende Referenz)",
+    "capexGuidanceRefHint": "Automatisch erkannt: vom LLM aus neuen Ergebnismitteilungen auf EDGAR extrahierte Richtung der Capex-Prognose. Nur Referenz — fließt nicht direkt ins Signal ein (nur \"explizite Senkung + hohe Konfidenz\" wird automatisch zum Straffungs-Ereignis). Zum Zitat den Mauszeiger darüber halten.",
+    "guidanceDir": {
+      "cut": "Prognose gesenkt",
+      "raise": "Prognose angehoben",
+      "maintain": "Prognose bestätigt"
+    }
   },
   "signalPos": {
     "monetary": "Geldpolitik",

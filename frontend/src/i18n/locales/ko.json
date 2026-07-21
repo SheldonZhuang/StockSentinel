@@ -11,7 +11,14 @@
     "loading": "로딩 중...",
     "reduce": "감축 관망",
     "snapshotStale": "신호 데이터가 {days}일간 업데이트되지 않았습니다 — 백엔드가 중단됐을 수 있습니다. 현재 단계를 최신 판단 근거로 삼지 마세요",
-    "capexGuidanceBanner": "하이퍼스케일러 capex 가이던스 하향 — 미래 설비투자 축소와 AI 공급과잉의 선행 신호; AI 수급이 긴축으로 전환"
+    "capexGuidanceBanner": "하이퍼스케일러 capex 가이던스 하향 — 미래 설비투자 축소와 AI 공급과잉의 선행 신호; AI 수급이 긴축으로 전환",
+    "capexGuidanceRefTitle": "capex 가이던스 (선행 참고)",
+    "capexGuidanceRefHint": "자동 감지: EDGAR의 신규 실적 보도자료에서 LLM이 추출한 선행 capex 가이던스 방향. 참고용이며 판정에 직접 관여하지 않습니다(\"명확한 하향 + 높은 신뢰도\"만 자동으로 긴축 이벤트로 승격). 마우스를 올리면 원문을 확인할 수 있습니다.",
+    "guidanceDir": {
+      "cut": "가이던스 하향",
+      "raise": "가이던스 상향",
+      "maintain": "가이던스 유지"
+    }
   },
   "signalPos": {
     "monetary": "통화 정책",

@@ -359,6 +359,20 @@ function initSchema() {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS capex_guidance_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT NOT NULL,
+      filing_date TEXT,
+      accession TEXT NOT NULL UNIQUE,
+      direction TEXT,
+      quote TEXT,
+      confidence TEXT,
+      auto_event_created INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 // --- 通用查询工具 ---
@@ -546,6 +560,34 @@ export async function getAllOverrides() {
     getActiveAdminSignal('capex_guidance'),
   ]);
   return { fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear, capexGuidance };
+}
+
+// --- Capex 指引自动检测记录 ---
+
+export async function getProcessedGuidanceAccessions() {
+  await getDb();
+  return all('SELECT accession FROM capex_guidance_records').map(r => r.accession);
+}
+
+export async function saveGuidanceRecord(rec) {
+  await getDb();
+  // accession UNIQUE：同一申报重复检测幂等（每日窗口重叠不重复插入）
+  run(`
+    INSERT OR IGNORE INTO capex_guidance_records
+      (symbol, filing_date, accession, direction, quote, confidence, auto_event_created)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `, [rec.symbol, rec.filingDate || null, rec.accession, rec.direction || 'none',
+      rec.quote || null, rec.confidence || null, rec.autoEventCreated ? 1 : 0]);
+}
+
+/** 前端参考展示用：最近的指引记录（默认取含前瞻指引的，兜底取全部最近条） */
+export async function getRecentGuidance(limit = 8) {
+  await getDb();
+  return all(`
+    SELECT symbol, filing_date, direction, quote, confidence, auto_event_created, created_at
+    FROM capex_guidance_records
+    ORDER BY filing_date DESC, id DESC LIMIT ?
+  `, [limit]);
 }
 
 // --- Watchlist ---
