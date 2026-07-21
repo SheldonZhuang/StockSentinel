@@ -3,7 +3,19 @@ import { closesFromMoomoo, quoteFromMoomoo, moomooEnabled } from './moomoo-data.
 import yahooFinance from 'yahoo-finance2';
 
 // historical() 已被 Yahoo 移除、库内部映射到 chart()——废弃提示每容器打一次，无信息量，静默
-yahooFinance.suppressNotices?.(['ripHistorical']);
+// yahoo-finance2 一次性调查问卷与废弃接口提示——只出现一次，但 Railway 每次重部署是新进程会重复显示
+// 把两个已知 id 都屏蔽，防止 deploy logs 里出现无意义噪音
+yahooFinance.suppressNotices?.(['ripHistorical', 'yahooSurvey']);
+// crumb/cookie 握手过程的 debug 输出（"Fetching crumb..."/"New crumb: xxx"）直接打进部署日志，
+// 且会泄露会话 crumb 值——降噪为静默，warn/error 保留（429 等真实故障仍可见）
+yahooFinance.setGlobalConfig?.({
+  logger: {
+    info: () => {},
+    debug: () => {},
+    warn: (...args) => console.warn(...args),
+    error: (...args) => console.error(...args),
+  },
+});
 
 // Yahoo 429 日志去重：数据中心 IP 被限流是已知常态（回退链接管），逐标的刷屏会把真正的
 // 异常淹没在噪声里。首个 429 打一条说明，之后静默计数、每25次汇总一条；非 429 失败照常打印

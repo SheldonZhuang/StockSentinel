@@ -4,7 +4,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/stock-sentinel.db');
+// DB 路径优先级：显式 DB_PATH > Railway 持久卷（挂载后自动注入 RAILWAY_VOLUME_MOUNT_PATH，
+// 数据落卷后重部署不再丢库，GitHub 备份降级为二级兜底）> 本地 data 目录。
+// 注意：挂卷后首次启动卷是空的，server.js 的 restoreDatabaseIfMissing 会从 GitHub 备份
+// 拉回历史数据落到卷上，完成一次性迁移；此后卷成为主存储。
+export const DB_PATH = process.env.DB_PATH
+  || (process.env.RAILWAY_VOLUME_MOUNT_PATH
+    ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'stock-sentinel.db')
+    : path.join(__dirname, '../data/stock-sentinel.db'));
 
 let db = null;
 let dbInitPromise = null;
