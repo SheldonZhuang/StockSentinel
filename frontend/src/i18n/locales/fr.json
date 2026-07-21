@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "prévisions abaissées",
       "raise": "prévisions relevées",
-      "maintain": "prévisions maintenues"
+      "maintain": "prévisions maintenues",
+      "none": "pas de prévision dans le communiqué"
     }
   },
   "signalPos": {
@@ -258,7 +259,8 @@
       "packaging": "Équipement / Packaging / Test",
       "power": "Énergie",
       "optical": "Modules Optiques"
-    }
+    },
+    "guidanceTitle": "Détection prévisions capex"
   },
   "recessionLock": {
     "banner": "Verrou de Défense Actif",

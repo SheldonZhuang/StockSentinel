@@ -70,6 +70,16 @@
       <div v-if="bubble.modelUsageAsOf" class="bubble-source">
         Source: OpenRouter (openrouter.ai/rankings), as of {{ bubble.modelUsageAsOf }}
       </div>
+
+      <!-- capex指引自动检测（常驻）：每家最近一次财报新闻稿的前瞻指引方向，含"未给指引"。
+           数据归集在capex口径旁便于对照判读（实际数据加速中 vs 某家指引已下修一眼可见） -->
+      <div v-if="guidanceRows.length" class="guidance-row" :title="$t('signal.capexGuidanceRefHint')">
+        <span class="guidance-label hinted">{{ $t('aiChain.guidanceTitle') }}</span>
+        <span v-for="g in guidanceRows" :key="g.symbol"
+              :class="['guidance-chip', g.direction]" :title="g.quote || ''">
+          {{ g.symbol }}: {{ $t(`signal.guidanceDir.${g.direction}`) }}<template v-if="g.filingDate">（{{ g.filingDate }}）</template>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -96,6 +106,11 @@ async function load() {
 
 const bottleneck = computed(() => chainData.value?.bottleneck || { stage: null, source: 'auto', note: null });
 const bubble = computed(() => chainData.value?.bubble || {});
+// capex指引检测：每家最近一条（后端已按symbol去重），下修排最前
+const DIR_ORDER = { cut: 0, maintain: 1, raise: 2, none: 3 };
+const guidanceRows = computed(() =>
+  [...(chainData.value?.guidance || [])].sort((a, b) => (DIR_ORDER[a.direction] ?? 9) - (DIR_ORDER[b.direction] ?? 9))
+);
 
 // 静态标的清单 + 后端排名/相对收益按环节合并
 const stages = computed(() => {
@@ -269,4 +284,23 @@ onMounted(load);
 .bubble-value.neg { color: var(--red); }
 .bubble-value.neutral { color: var(--yellow); }
 .bubble-source { font-size: var(--fs-xs); color: var(--text-4); }
+
+.guidance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+}
+.guidance-label { color: var(--text-4); }
+.guidance-chip {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-3);
+}
+.guidance-chip.cut { color: var(--red); background: var(--red-bg); }
+.guidance-chip.raise { color: var(--green); background: var(--green-bg); }
+.guidance-chip.maintain { color: var(--text-2); }
 </style>

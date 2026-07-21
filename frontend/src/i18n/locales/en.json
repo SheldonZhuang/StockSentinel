@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "guidance cut",
       "raise": "guidance raised",
-      "maintain": "guidance maintained"
+      "maintain": "guidance maintained",
+      "none": "no guidance in release"
     }
   },
   "signalPos": {
@@ -265,7 +266,8 @@
       "packaging": "Equipment / Packaging / Testing",
       "power": "Power & Energy",
       "optical": "Optical Modules"
-    }
+    },
+    "guidanceTitle": "Capex guidance scan"
   },
   "footer": {
     "sources": "Data: FRED · SEC EDGAR · OpenRouter · Market feeds",

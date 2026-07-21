@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "ガイダンス下方修正",
       "raise": "ガイダンス上方修正",
-      "maintain": "ガイダンス据え置き"
+      "maintain": "ガイダンス据え置き",
+      "none": "リリースにガイダンスなし"
     }
   },
   "signalPos": {
@@ -258,7 +259,8 @@
       "packaging": "設備／パッケージング／テスト",
       "power": "電力エネルギー",
       "optical": "光モジュール"
-    }
+    },
+    "guidanceTitle": "capexガイダンス検出"
   },
   "recessionLock": {
     "banner": "防御ロック中",

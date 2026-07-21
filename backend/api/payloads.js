@@ -188,10 +188,11 @@ export async function buildSignalPayload() {
  * AI 产业链载荷（环节排名 + 卡点 + 泡沫监测）
  */
 export async function buildAiChainPayload() {
-  const [bottleneck, chainSnap, signalSnap] = await Promise.all([
+  const [bottleneck, chainSnap, signalSnap, guidance] = await Promise.all([
     getEffectiveBottleneck(),
     getLatestAiChainSnapshot(),
     getLatestSnapshot(),
+    getRecentGuidance().catch(() => []),
   ]);
 
   let stages = chainCfg.STAGE_KEYS.map(key => ({ key, relReturnPct: null, rank: null, validTickerCount: 0 }));
@@ -226,6 +227,19 @@ export async function buildAiChainPayload() {
       warning: !!chainSnap?.bubble_warning,
       reasons: bubbleReasons,
     },
+    // capex指引自动检测：每家取最近一条记录（含 direction=none 的"未给指引"，产业链面板常驻展示）
+    guidance: (() => {
+      const bySymbol = new Map();
+      for (const g of guidance) {
+        if (!bySymbol.has(g.symbol)) {
+          bySymbol.set(g.symbol, {
+            symbol: g.symbol, filingDate: g.filing_date, direction: g.direction,
+            quote: g.quote, confidence: g.confidence, autoEvent: !!g.auto_event_created,
+          });
+        }
+      }
+      return [...bySymbol.values()];
+    })(),
     dataDate: chainSnap?.date ?? null,
   };
 }

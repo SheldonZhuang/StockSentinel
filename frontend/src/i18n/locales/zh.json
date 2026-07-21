@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "指引下修",
       "raise": "指引上修",
-      "maintain": "维持指引"
+      "maintain": "维持指引",
+      "none": "新闻稿未给指引"
     }
   },
   "signalPos": {
@@ -265,7 +266,8 @@
       "packaging": "设备/封装/测试",
       "power": "电力能源",
       "optical": "光模块"
-    }
+    },
+    "guidanceTitle": "capex指引检测"
   },
   "footer": {
     "sources": "数据源：FRED · SEC EDGAR · OpenRouter · 市场行情",

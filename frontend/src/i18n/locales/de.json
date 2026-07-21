@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "Prognose gesenkt",
       "raise": "Prognose angehoben",
-      "maintain": "Prognose bestätigt"
+      "maintain": "Prognose bestätigt",
+      "none": "keine Prognose in Mitteilung"
     }
   },
   "signalPos": {
@@ -258,7 +259,8 @@
       "packaging": "Ausrüstung / Packaging / Test",
       "power": "Energie",
       "optical": "Optische Module"
-    }
+    },
+    "guidanceTitle": "Capex-Prognose-Scan"
   },
   "recessionLock": {
     "banner": "Verteidigungssperre Aktiv",

@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "가이던스 하향",
       "raise": "가이던스 상향",
-      "maintain": "가이던스 유지"
+      "maintain": "가이던스 유지",
+      "none": "보도자료에 가이던스 없음"
     }
   },
   "signalPos": {
@@ -258,7 +259,8 @@
       "packaging": "장비 / 패키징 / 테스트",
       "power": "전력 에너지",
       "optical": "광모듈"
-    }
+    },
+    "guidanceTitle": "capex 가이던스 감지"
   },
   "recessionLock": {
     "banner": "방어 잠금 활성화",

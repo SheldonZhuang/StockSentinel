@@ -17,7 +17,8 @@
     "guidanceDir": {
       "cut": "guía recortada",
       "raise": "guía elevada",
-      "maintain": "guía mantenida"
+      "maintain": "guía mantenida",
+      "none": "sin guía en el comunicado"
     }
   },
   "signalPos": {
@@ -258,7 +259,8 @@
       "packaging": "Equipos / Empaquetado / Pruebas",
       "power": "Energía",
       "optical": "Módulos Ópticos"
-    }
+    },
+    "guidanceTitle": "Detección guía capex"
   },
   "recessionLock": {
     "banner": "Bloqueo de Defensa Activo",
