@@ -160,6 +160,9 @@ export async function buildSignalPayload() {
         quote: g.quote,
         confidence: g.confidence,
         autoEvent: !!g.auto_event_created,
+        source: g.source ?? null,
+        fyGuidance: g.fy_guidance ?? null,
+        forwardGuidance: g.forward_guidance ?? null,
       })),
       aiBubbleWarning: !!snapshot.ai_bubble_warning,
       sahmValue: snapshot.sahm_value,
@@ -227,7 +230,8 @@ export async function buildAiChainPayload() {
       warning: !!chainSnap?.bubble_warning,
       reasons: bubbleReasons,
     },
-    // capex指引自动检测：每家取最近一条记录（含 direction=none 的"未给指引"，产业链面板常驻展示）
+    // capex指引自动检测：每家取最近一条记录（含 direction=none 的"未检测到指引"，产业链面板常驻展示）；
+    // 113号补源后附带财报快报（单季/TTM额度与同比、本财年/未来指引、来源）
     guidance: (() => {
       const bySymbol = new Map();
       for (const g of guidance) {
@@ -235,6 +239,15 @@ export async function buildAiChainPayload() {
           bySymbol.set(g.symbol, {
             symbol: g.symbol, filingDate: g.filing_date, direction: g.direction,
             quote: g.quote, confidence: g.confidence, autoEvent: !!g.auto_event_created,
+            source: g.source ?? null,
+            fyGuidance: g.fy_guidance ?? null,
+            forwardGuidance: g.forward_guidance ?? null,
+            sources: (() => { try { return g.sources ? JSON.parse(g.sources) : []; } catch { return []; } })(),
+            qtrEnd: g.qtr_end ?? null,
+            qtrCapex: g.qtr_capex ?? null,
+            qtrCapexYoY: g.qtr_capex_yoy ?? null,
+            ttmCapex: g.ttm_capex ?? null,
+            ttmCapexYoY: g.ttm_capex_yoy ?? null,
           });
         }
       }

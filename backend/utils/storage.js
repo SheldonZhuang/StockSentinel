@@ -132,6 +132,20 @@ const AI_CHAIN_SNAPSHOT_NEW_COLUMNS = [
   'capex_qtr_end TEXT',
 ];
 
+// capex_guidance_records 的增量列（113号补源：web检索指引 + 单公司财报快报）
+// 注意：新列须同时进 CREATE TABLE 与此列表（新库缺列是历史高危bug，见第二轮专家复查）
+const GUIDANCE_RECORD_NEW_COLUMNS = [
+  'source TEXT',            // 指引来源：press_release | web | null(未检测到)
+  'fy_guidance TEXT',       // 本财年capex指引摘要（如 "FY2026 $195-205B, raised from $185B"）
+  'forward_guidance TEXT',  // 对之后年度capex的表述摘要
+  'sources TEXT',           // web来源URL列表（JSON数组字符串）
+  'qtr_end TEXT',           // 快报对应季度末
+  'qtr_capex REAL',         // 单季capex（USD）
+  'qtr_capex_yoy REAL',     // 单季同比 %
+  'ttm_capex REAL',         // 滚动4季capex（USD）
+  'ttm_capex_yoy REAL',     // 滚动4季同比 %
+];
+
 function migrateSchema() {
   const existingCols = new Set(
     all('PRAGMA table_info(signal_snapshots)').map((c) => c.name)
@@ -151,6 +165,16 @@ function migrateSchema() {
     const colName = colDef.split(' ')[0];
     if (!existingChainCols.has(colName)) {
       db.run(`ALTER TABLE ai_chain_snapshots ADD COLUMN ${colDef}`);
+      changed = true;
+    }
+  }
+  const existingGuidanceCols = new Set(
+    all('PRAGMA table_info(capex_guidance_records)').map((c) => c.name)
+  );
+  for (const colDef of GUIDANCE_RECORD_NEW_COLUMNS) {
+    const colName = colDef.split(' ')[0];
+    if (!existingGuidanceCols.has(colName)) {
+      db.run(`ALTER TABLE capex_guidance_records ADD COLUMN ${colDef}`);
       changed = true;
     }
   }
@@ -370,6 +394,15 @@ function initSchema() {
       quote TEXT,
       confidence TEXT,
       auto_event_created INTEGER DEFAULT 0,
+      source TEXT,
+      fy_guidance TEXT,
+      forward_guidance TEXT,
+      sources TEXT,
+      qtr_end TEXT,
+      qtr_capex REAL,
+      qtr_capex_yoy REAL,
+      ttm_capex REAL,
+      ttm_capex_yoy REAL,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -574,17 +607,24 @@ export async function saveGuidanceRecord(rec) {
   // accession UNIQUE：同一申报重复检测幂等（每日窗口重叠不重复插入）
   run(`
     INSERT OR IGNORE INTO capex_guidance_records
-      (symbol, filing_date, accession, direction, quote, confidence, auto_event_created)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (symbol, filing_date, accession, direction, quote, confidence, auto_event_created,
+       source, fy_guidance, forward_guidance, sources,
+       qtr_end, qtr_capex, qtr_capex_yoy, ttm_capex, ttm_capex_yoy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [rec.symbol, rec.filingDate || null, rec.accession, rec.direction || 'none',
-      rec.quote || null, rec.confidence || null, rec.autoEventCreated ? 1 : 0]);
+      rec.quote || null, rec.confidence || null, rec.autoEventCreated ? 1 : 0,
+      rec.source || null, rec.fyGuidance || null, rec.forwardGuidance || null, rec.sources || null,
+      rec.qtrEnd || null, rec.qtrCapex ?? null, rec.qtrCapexYoY ?? null,
+      rec.ttmCapex ?? null, rec.ttmCapexYoY ?? null]);
 }
 
 /** 前端参考展示用：最近的指引记录（默认取含前瞻指引的，兜底取全部最近条） */
 export async function getRecentGuidance(limit = 8) {
   await getDb();
   return all(`
-    SELECT symbol, filing_date, direction, quote, confidence, auto_event_created, created_at
+    SELECT symbol, filing_date, direction, quote, confidence, auto_event_created,
+           source, fy_guidance, forward_guidance, sources,
+           qtr_end, qtr_capex, qtr_capex_yoy, ttm_capex, ttm_capex_yoy, created_at
     FROM capex_guidance_records
     ORDER BY filing_date DESC, id DESC LIMIT ?
   `, [limit]);

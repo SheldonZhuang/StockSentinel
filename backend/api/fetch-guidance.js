@@ -3,11 +3,22 @@
 // 截取 capex 相关段落 → LLM 判断是否含前瞻指引及方向 → 存档供前端参考展示；
 // 判定为"明确下修"(cut/high) 时自动录入 N3 事件（capex_guidance）并邮件通知订阅用户。
 //
-// 已知局限（诚实声明）：新闻稿是唯一免费结构化源（FMP transcript 付费）。META 通常在新闻稿
-// 给全年 capex 指引；GOOGL/MSFT/AMZN 多在电话会口头给（新闻稿检测不到）——检测结果为
-// none 不代表"没有指引"，只代表"新闻稿中未给出"。电话会口头下修仍需人工录入兜底。
+// 2026-07-23 补源（113号，GOOGL Q2实证新闻稿单源不够）：GOOGL/MSFT/AMZN 惯例在
+// 电话会口头给指引，新闻稿检测不到 → 新闻稿无指引时用 OpenRouter web 插件检索
+// 电话会实录/主流财经媒体报道二次判定（fy_guidance/forward_guidance/来源URL 一并入档）。
+// 同时生成单公司财报快报：单季 capex 及同比、TTM capex 及同比（EDGAR 历史序列 +
+// 新季度值，FMP 优先、新闻稿 LLM 提取兜底）。
+//
+// 判定层边界（"新增判定输入须醒目告知"原则）：新闻稿源 cut/high 自动录 N3 不变；
+// web 源 cut/high 只入档展示 + 醒目日志，不自动建 N3（媒体转述有幻觉风险，人工确认兜底）。
 import axios from 'axios';
 import chainCfg from '../config/ai-chain.config.js';
+import {
+  fetchCapexSeriesForSymbol,
+  fetchCapexFromFmp,
+  quarterKey,
+  shiftQuarterKey,
+} from './fetch-ai-chain.js';
 import {
   getProcessedGuidanceAccessions,
   saveGuidanceRecord,
@@ -24,6 +35,9 @@ const EDGAR_HEADERS = {
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const GUIDANCE_MODEL = () => process.env.AI_REPORT_MODEL || 'deepseek/deepseek-chat-v3-0324';
 const LOOKBACK_DAYS = 10; // 只看最近10天的申报（每日跑，窗口重叠防漏）
+
+// web 检索用公司全名（裸 ticker 检索命中率低）
+const COMPANY_NAMES = { MSFT: 'Microsoft', AMZN: 'Amazon', GOOGL: 'Alphabet (Google)', META: 'Meta Platforms' };
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -97,9 +111,24 @@ export function extractCapexParagraphs(text, maxLen = 4000) {
   return merged.map(([s, e]) => text.slice(s, e)).join('\n...\n').slice(0, maxLen);
 }
 
+// LLM 回复 → JSON（截取首尾大括号，方向不合法返回 null）
+function parseGuidanceJson(text) {
+  const s = text.indexOf('{');
+  const e = text.lastIndexOf('}');
+  if (s < 0 || e < 0) return null;
+  try {
+    const j = JSON.parse(text.slice(s, e + 1));
+    if (!['raise', 'maintain', 'cut', 'none'].includes(j.direction)) return null;
+    return j;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * LLM 判断段落是否含前瞻 capex 指引；失败/无 key 返回 null（增值功能不砸主链路）
- * @returns {{hasGuidance, direction: 'raise'|'maintain'|'cut'|'none', quote, confidence}|null}
+ * LLM 判断新闻稿段落是否含前瞻 capex 指引；失败/无 key 返回 null（增值功能不砸主链路）
+ * @returns {{hasGuidance, direction: 'raise'|'maintain'|'cut'|'none', quote, confidence,
+ *            fyGuidance, forwardGuidance, qtrCapexUsdMillions}|null}
  */
 export async function analyzeGuidance(symbol, paragraphs) {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -109,19 +138,13 @@ export async function analyzeGuidance(symbol, paragraphs) {
       model: GUIDANCE_MODEL(),
       messages: [
         { role: 'system', content: '你是严谨的财报分析师。只依据给定文本判断，不推测文本之外的内容。输出严格的JSON。' },
-        { role: 'user', content: `以下是 ${symbol} 财报新闻稿中与资本开支(capex)相关的段落。判断其中是否包含**前瞻性**的资本开支指引（对未来季度/年度capex的预期表述，历史数字和自由现金流定义不算）。\n\n${paragraphs}\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "指引原文英文摘录(无指引则空串)", "confidence": "high"|"low"}。direction判断标准：明确高于此前指引或大幅同比增长计划=raise；重申此前水平=maintain；明确低于此前指引或表述将削减/放缓=cut；无前瞻指引=none。` },
+        { role: 'user', content: `以下是 ${symbol} 财报新闻稿中与资本开支(capex)相关的段落。判断其中是否包含**前瞻性**的资本开支指引（对未来季度/年度capex的预期表述，历史数字和自由现金流定义不算），并提取本次财报季度的实际capex数值（现金流量表中 purchases of property and equipment，取最近一个完整季度的单季值，注意表格可能并列多个季度——取最新季）。\n\n${paragraphs}\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "指引原文英文摘录(无指引则空串)", "confidence": "high"|"low", "fyGuidance": "本财年capex指引摘要(如'FY2026 $72B'，无则空串)", "forwardGuidance": "对之后年度capex的表述摘要(无则空串)", "qtrCapexUsdMillions": 最新单季capex数值(百万美元,正数;文本中无法确定则null)}。direction判断标准：明确高于此前指引或大幅同比增长计划=raise；重申此前水平=maintain；明确低于此前指引或表述将削减/放缓=cut；无前瞻指引=none。` },
       ],
       temperature: 0,
       // 必设：不设时 OpenRouter 按模型最大值(65536)预扣余额，免费额度账户直接 402
-      max_tokens: 500,
+      max_tokens: 600,
     }, { headers: { Authorization: `Bearer ${apiKey}` }, timeout: 60000 });
-    const text = res.data?.choices?.[0]?.message?.content || '';
-    const s = text.indexOf('{');
-    const e = text.lastIndexOf('}');
-    if (s < 0 || e < 0) return null;
-    const j = JSON.parse(text.slice(s, e + 1));
-    if (!['raise', 'maintain', 'cut', 'none'].includes(j.direction)) return null;
-    return j;
+    return parseGuidanceJson(res.data?.choices?.[0]?.message?.content || '');
   } catch (err) {
     console.warn(`[guidance] LLM analyze(${symbol}) failed:`, err.message);
     return null;
@@ -129,8 +152,136 @@ export async function analyzeGuidance(symbol, paragraphs) {
 }
 
 /**
- * 主入口（每日 cron 调用）：检测→分析→存档；明确下修自动录入 N3 + 邮件。
- * 全程容错不 throw。非财报季无新 8-K，开销仅为 4 次 submissions 查询。
+ * web 检索兜底（113号补源）：新闻稿无指引时，用 OpenRouter web 插件检索财报电话会
+ * 实录/主流财经媒体报道（CNBC/Reuters/Bloomberg等），判定 capex 指引方向并提取
+ * 本财年/未来指引与来源URL。失败/无 key 返回 null（调用方沿用"不落档、窗口内重试"语义）。
+ * @returns {{hasGuidance, direction, quote, confidence, fyGuidance, forwardGuidance, sources: string[]}|null}
+ */
+export async function analyzeGuidanceFromWeb(symbol, filingDate) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return null;
+  const company = COMPANY_NAMES[symbol] || symbol;
+  try {
+    const res = await axios.post(OPENROUTER_CHAT_URL, {
+      model: GUIDANCE_MODEL(),
+      // OpenRouter web 插件：自动检索并把结果注入上下文，回答须给出可核查来源
+      plugins: [{ id: 'web', max_results: 5 }],
+      messages: [
+        { role: 'system', content: '你是严谨的财报分析师。只依据检索到的可靠来源（财报电话会实录、CNBC/Reuters/Bloomberg等主流财经媒体）作答，找不到依据就如实说没有，绝不编造数字。输出严格的JSON。' },
+        { role: 'user', content: `${company} (${symbol}) 于 ${filingDate} 前后发布了季度财报。请检索其财报电话会与媒体报道，判断管理层本次是否给出了**前瞻性**资本开支(capex)指引：本财年全年 capex 预期金额/区间、与此前指引相比的方向（上修/维持/下修）、以及对未来年度 capex 的表述。\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "管理层原话或媒体转述的英文摘录(无则空串)", "confidence": "high"|"low", "fyGuidance": "本财年capex指引摘要(如'FY2026 $195-205B, raised from $185B'，无则空串)", "forwardGuidance": "对之后年度capex的表述摘要(无则空串)", "sources": ["来源URL", ...]}。direction判断标准：明确高于此前指引=raise；重申此前水平=maintain；明确低于此前指引或将削减/放缓=cut；检索不到指引信息=none。confidence：多个可靠来源相互印证且有具体数字=high，否则=low。` },
+      ],
+      temperature: 0,
+      max_tokens: 800,
+    }, { headers: { Authorization: `Bearer ${apiKey}` }, timeout: 120000 });
+    const j = parseGuidanceJson(res.data?.choices?.[0]?.message?.content || '');
+    if (!j) return null;
+    j.sources = Array.isArray(j.sources) ? j.sources.filter(u => typeof u === 'string').slice(0, 5) : [];
+    return j;
+  } catch (err) {
+    console.warn(`[guidance] web analyze(${symbol}) failed:`, err.message);
+    return null;
+  }
+}
+
+/** 申报日前最近一个已结束的日历季度末（四大家季度末都是日历季）：'2026-07-22' → '2026-06-30' */
+export function latestCompletedQuarterEnd(filingDate) {
+  const [y, m] = filingDate.split('-').map(Number);
+  const q = Math.ceil(m / 3) - 1; // 上一个日历季（1季度申报的是去年4季）
+  if (q === 0) return `${y - 1}-12-31`;
+  return `${y}-${['03-31', '06-30', '09-30'][q - 1]}`;
+}
+
+/**
+ * 单公司财报快报统计（纯函数）：EDGAR 历史序列 + 新季度值 → 单季/TTM 额度与同比。
+ * newQtr 为 null 时按 EDGAR 已有最新季计算（qtrEnd 如实标注是哪一季）。
+ * 缺任一对比期 → 对应字段 null，绝不拿错季凑数。
+ * @param {Array<{date, capitalExpenditure}>|null} edgarQuarters - 降序
+ * @param {{date, value}|null} newQtr - 新季度（value 为正数 USD）
+ * @returns {{qtrEnd, qtrCapex, qtrCapexYoY, ttmCapex, ttmCapexYoY}}
+ */
+export function computeCapexStats(edgarQuarters, newQtr) {
+  const NULL_STATS = { qtrEnd: null, qtrCapex: null, qtrCapexYoY: null, ttmCapex: null, ttmCapexYoY: null };
+  const byBucket = new Map();
+  for (const q of edgarQuarters || []) {
+    const v = Math.abs(parseFloat(q.capitalExpenditure));
+    if (isNaN(v)) continue;
+    const key = quarterKey(q.date);
+    if (!byBucket.has(key)) byBucket.set(key, { date: q.date, value: v }); // 降序首个为准
+  }
+  if (newQtr?.value > 0) {
+    // 新季值只增不改：EDGAR 已有该季（10-Q 已出）时以官方 XBRL 为准
+    const key = quarterKey(newQtr.date);
+    if (!byBucket.has(key)) byBucket.set(key, { date: newQtr.date, value: newQtr.value });
+  }
+  if (!byBucket.size) return NULL_STATS;
+
+  const latestKey = [...byBucket.keys()].sort().pop();
+  const latest = byBucket.get(latestKey);
+  const at = n => byBucket.get(shiftQuarterKey(latestKey, n))?.value ?? null;
+
+  const prevYearQtr = at(-4);
+  // TTM：最新4个连续季桶；上年TTM：再前4桶。任一缺失 → null
+  const sumRange = (from, to) => {
+    let s = 0;
+    for (let n = from; n <= to; n++) {
+      const v = at(n);
+      if (v == null) return null;
+      s += v;
+    }
+    return s;
+  };
+  const ttm = sumRange(-3, 0);
+  const prevTtm = sumRange(-7, -4);
+  return {
+    qtrEnd: latest.date,
+    qtrCapex: latest.value,
+    qtrCapexYoY: prevYearQtr ? (latest.value / prevYearQtr - 1) * 100 : null,
+    ttmCapex: ttm,
+    ttmCapexYoY: ttm != null && prevTtm ? (ttm / prevTtm - 1) * 100 : null,
+  };
+}
+
+/**
+ * 财报后单公司 capex 快报：EDGAR 历史序列 + 新季度值（FMP 优先，新闻稿 LLM 提取兜底）。
+ * LLM 值须过理智带（与去年同季比 [0.2x, 5x]，防表格取错列/幻觉）；FMP 为结构化源直接信任。
+ * 任何一步失败只降级为 null 字段，不 throw（快报是展示增值，不砸指引主链路）。
+ */
+export async function buildCapexSnapshot(symbol, filingDate, llmQtrUsdMillions) {
+  let edgar = null;
+  try {
+    edgar = await fetchCapexSeriesForSymbol(symbol);
+  } catch (err) {
+    console.warn(`[guidance] capex series(${symbol}) failed:`, err.message);
+  }
+  const expectedEnd = latestCompletedQuarterEnd(filingDate);
+  const expectedKey = quarterKey(expectedEnd);
+  const edgarHasIt = (edgar || []).some(q => quarterKey(q.date) === expectedKey);
+
+  let newQtr = null;
+  if (!edgarHasIt) {
+    // FMP 通常财报后数小时内更新现金流量表，是新季值的首选结构化源
+    const fmp = await fetchCapexFromFmp(symbol).catch(() => null);
+    const hit = (fmp || []).find(q => quarterKey(q.date) === expectedKey);
+    if (hit) {
+      newQtr = { date: hit.date, value: Math.abs(hit.capitalExpenditure) };
+    } else if (llmQtrUsdMillions > 0) {
+      const value = llmQtrUsdMillions * 1e6;
+      const prevYear = (edgar || []).find(q => quarterKey(q.date) === shiftQuarterKey(expectedKey, -4));
+      const ratio = prevYear ? value / Math.abs(parseFloat(prevYear.capitalExpenditure)) : null;
+      if (ratio != null && ratio >= 0.2 && ratio <= 5) {
+        newQtr = { date: expectedEnd, value };
+      } else {
+        console.warn(`[guidance] ${symbol} LLM qtr capex ${llmQtrUsdMillions}M rejected (yoy ratio ${ratio == null ? 'no anchor' : ratio.toFixed(2)})`);
+      }
+    }
+  }
+  return computeCapexStats(edgar, newQtr);
+}
+
+/**
+ * 主入口（每日 cron 调用）：检测→分析（新闻稿→web兜底）→单公司快报→存档；
+ * 新闻稿源明确下修自动录入 N3 + 邮件。全程容错不 throw。
+ * 非财报季无新 8-K，开销仅为 4 次 submissions 查询。
  */
 export async function processCapexGuidance() {
   const processed = await getProcessedGuidanceAccessions();
@@ -142,6 +293,8 @@ export async function processCapexGuidance() {
     let record = {
       symbol: f.symbol, filingDate: f.filingDate, accession: f.accession,
       direction: 'none', quote: null, confidence: null, autoEventCreated: 0,
+      source: null, fyGuidance: null, forwardGuidance: null, sources: null,
+      qtrEnd: null, qtrCapex: null, qtrCapexYoY: null, ttmCapex: null, ttmCapexYoY: null,
     };
     // 抓取/LLM 失败时不存档也不标已处理——否则该财报被永久跳过，档案定格为错误的 none
     // （实测 2026-07-23：OpenRouter 余额耗尽 402 会走到这里；LOOKBACK 10天窗口内每日重试）
@@ -151,13 +304,47 @@ export async function processCapexGuidance() {
       const paragraphs = extractCapexParagraphs(text);
       const analysis = paragraphs ? await analyzeGuidance(f.symbol, paragraphs) : null;
       if (paragraphs && !analysis) retryNextRun = true;
+
       if (analysis?.hasGuidance) {
         record.direction = analysis.direction;
         record.quote = (analysis.quote || '').slice(0, 500);
         record.confidence = analysis.confidence;
+        record.source = 'press_release';
+        record.fyGuidance = (analysis.fyGuidance || '').slice(0, 300) || null;
+        record.forwardGuidance = (analysis.forwardGuidance || '').slice(0, 300) || null;
+      } else if (!retryNextRun) {
+        // 新闻稿未给指引（GOOGL/MSFT/AMZN 惯例在电话会口头给）→ web 检索兜底；
+        // web 失败视同 LLM 失败：不落档、窗口内每日重试，防档案定格为错误的 none
+        const web = await analyzeGuidanceFromWeb(f.symbol, f.filingDate);
+        if (!web) {
+          retryNextRun = true;
+        } else if (web.hasGuidance) {
+          record.direction = web.direction;
+          record.quote = (web.quote || '').slice(0, 500);
+          record.confidence = web.confidence;
+          record.source = 'web';
+          record.fyGuidance = (web.fyGuidance || '').slice(0, 300) || null;
+          record.forwardGuidance = (web.forwardGuidance || '').slice(0, 300) || null;
+          record.sources = web.sources.length ? JSON.stringify(web.sources).slice(0, 1000) : null;
+          // 判定层边界：web 源下修不自动建 N3（媒体转述有幻觉风险），醒目日志请人工确认
+          if (web.direction === 'cut') {
+            console.warn(`[guidance] ⚠️ WEB-DETECTED CUT: ${f.symbol} ${f.filingDate} capex指引疑似下修（来源:媒体/电话会检索，非新闻稿原文）——请人工核实后在管理面板录入 N3 事件。quote: ${record.quote}`);
+          }
+        } else {
+          record.source = 'web'; // none + source=web：新闻稿和网络检索都未见指引（强否定）
+        }
       }
 
-      // 明确下修 + 高置信 → 自动录入 N3（幂等：已有活动事件不重复录）
+      // 单公司财报快报（展示增值，失败只留 null 不重试——常规 XBRL 汇总链路照常兜底）
+      if (!retryNextRun) {
+        const snap = await buildCapexSnapshot(f.symbol, f.filingDate, analysis?.qtrCapexUsdMillions ?? null);
+        Object.assign(record, {
+          qtrEnd: snap.qtrEnd, qtrCapex: snap.qtrCapex, qtrCapexYoY: snap.qtrCapexYoY,
+          ttmCapex: snap.ttmCapex, ttmCapexYoY: snap.ttmCapexYoY,
+        });
+      }
+
+      // 明确下修 + 高置信（仅新闻稿源）→ 自动录入 N3（幂等：已有活动事件不重复录）
       if (analysis?.direction === 'cut' && analysis.confidence === 'high') {
         const existing = await getActiveAdminSignal('capex_guidance');
         if (!existing) {
@@ -186,11 +373,11 @@ export async function processCapexGuidance() {
       console.warn(`[guidance] process(${f.symbol} ${f.accession}) failed:`, err.message);
     }
     if (retryNextRun) {
-      console.warn(`[guidance] ${f.symbol} ${f.filingDate}: incomplete (fetch/LLM unavailable), NOT marked processed — will retry next run`);
+      console.warn(`[guidance] ${f.symbol} ${f.filingDate}: incomplete (fetch/LLM/web unavailable), NOT marked processed — will retry next run`);
       continue;
     }
     await saveGuidanceRecord(record).catch(err => console.warn('[guidance] save failed:', err.message));
-    console.log(`[guidance] ${f.symbol} ${f.filingDate}: direction=${record.direction}${record.confidence ? '/' + record.confidence : ''}`);
+    console.log(`[guidance] ${f.symbol} ${f.filingDate}: direction=${record.direction}${record.confidence ? '/' + record.confidence : ''}${record.source ? ' src=' + record.source : ''}${record.qtrCapex ? ` qtr=$${(record.qtrCapex / 1e9).toFixed(1)}B` : ''}`);
   }
   return { checked: filings.length, autoEvents };
 }

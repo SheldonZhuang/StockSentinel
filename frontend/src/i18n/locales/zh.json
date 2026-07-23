@@ -13,12 +13,12 @@
     "snapshotStale": "信号数据已 {days} 天未更新，可能云端服务停摆——当前档位不可作为最新判断依据",
     "capexGuidanceBanner": "云厂商capex指引下修事件——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维已转收紧",
     "capexGuidanceRefTitle": "capex指引（前瞻参考）",
-    "capexGuidanceRefHint": "自动检测：EDGAR新财报新闻稿中LLM识别出的前瞻性capex指引方向，仅供前瞻参考、不直接参与判定（仅『明确下修+高置信』才自动升级为收紧事件）。悬停查看原文摘录。",
+    "capexGuidanceRefHint": "自动检测：新财报的前瞻性capex指引方向——先读EDGAR新闻稿，新闻稿未给指引时用网络检索电话会实录/主流财经媒体报道兜底，并附单季/TTM capex财报快报。仅供前瞻参考、不直接参与判定（仅『新闻稿明确下修+高置信』才自动升级为收紧事件；媒体检索到的下修需人工核实后录入）。悬停查看原文摘录。",
     "guidanceDir": {
       "cut": "指引下修",
       "raise": "指引上修",
       "maintain": "维持指引",
-      "none": "新闻稿未给指引"
+      "none": "未检测到指引"
     },
     "guidanceDirShort": {
       "cut": "↓下修",
@@ -227,7 +227,7 @@
       "disable": "禁用"
     },
     "capexGuidance": "capex指引下修事件",
-    "capexGuidanceHint": "事件型输入：档位固定为收紧。巨头财报电话会明确下修capex指引时录入（备注写明哪家/内容），AI供需维即时收紧并邮件通知订阅用户；EDGAR实际数据滞后1-2个财报季，此事件是系统唯一的前瞻性人工输入。设置有效期或事件失效后手动清除。"
+    "capexGuidanceHint": "事件型输入：档位固定为收紧。巨头财报电话会明确下修capex指引时录入（备注写明哪家/内容），AI供需维即时收紧并邮件通知订阅用户。自动检测已覆盖新闻稿（下修自动录入）与电话会/媒体网络检索（检测到下修只醒目提示，须人工核实后在此录入）。设置有效期或事件失效后手动清除。"
   },
   "settings": {
     "title": "设置",
@@ -274,7 +274,15 @@
       "power": "电力能源",
       "optical": "光模块"
     },
-    "guidanceTitle": "capex指引检测"
+    "guidanceTitle": "capex指引检测",
+    "guidanceSource": {
+      "press_release": "来源：新闻稿",
+      "web": "来源：电话会/媒体检索"
+    },
+    "guidanceQtr": "单季",
+    "guidanceTtm": "TTM",
+    "guidanceFy": "本财年指引:",
+    "guidanceFwd": "未来:"
   },
   "footer": {
     "sources": "数据源：FRED · SEC EDGAR · OpenRouter · 市场行情",

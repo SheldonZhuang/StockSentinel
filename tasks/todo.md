@@ -1,3 +1,48 @@
+# 113号:capex 指引检测补源(电话会/媒体)+ 财报后单公司 capex 快报 — 2026-07-23
+
+背景:用户问"capex指引检测 GOOGL: 新闻稿未给指引(2026-07-22)"是为什么,并要求
+财报后立即更新各云厂商:TTM capex 及同比、单季 capex 及同比、本财年指引、未来指引,
+数据源扩展到电话会实录/PPT/媒体报道。
+
+**根因(已查实,非 bug)**:实拉 GOOGL 8-K (0001652044-26-000066) EX-99 新闻稿全文,
+不含 "expect"/"guidance"/"outlook"/"195" 任何前瞻表述,只有历史数字(Q2 capex $44,924M)。
+LLM 判 none 正确;$195-205B 指引是 CFO 电话会口头给的——新闻稿单源覆盖不到
+(代码"已知局限"注释早有声明)。本次补源。
+
+**方案**:新 8-K 检测后两层增强:
+1. 指引兜底:新闻稿无指引 → OpenRouter web 插件检索电话会/媒体报道二次判定,
+   产出方向/本财年指引/未来指引/引用/来源URL;失败沿用"不落档、窗口内重试"语义。
+2. 单公司快报:EDGAR XBRL 历史序列 + 新季度值(FMP 优先,LLM 提取兜底,理智带校验)
+   → 单季额度/同比、TTM 额度/同比入档展示。
+
+**判定层边界(遵守"新增判定输入须醒目告知"原则)**:新闻稿源 cut/high 自动 N3 不变;
+**web 源 cut/high 只展示+醒目日志,不自动建 N3**(媒体转述幻觉风险),待用户拍板。
+
+- [x] fetch-ai-chain.js 导出单公司 capex 序列(EDGAR+FMP 备源复用)
+- [x] fetch-guidance.js:LLM#1 扩展 + web 兜底 + 快报计算 + 主流程整合
+- [x] storage.js:capex_guidance_records 新列(CREATE+ALTER 双处,防新库缺列)
+- [x] payloads.js 透出新字段
+- [x] AiChainPanel 指引行升级为快报卡;i18n 7 语种同步(none 文案+hint 补源语义)
+- [x] docs/capex-signal-rules.md 规则同步
+- [x] 测试补全,全量通过
+- [x] 回填 GOOGL:删 none 记录重跑,验证 $195-205B 入档
+
+## Review
+
+- 全量测试 526/526 通过(fetch-guidance 21 个,新增 9 个:web 兜底×4、快报纯函数×5)。
+  前端 build 通过,7 语种 JSON 解析校验通过。
+- GOOGL 回填实测(真实调用):direction=raise/high,source=web,
+  FY指引 "$195-205B, raised from $180-190B"(CFO 原话入档),
+  未来指引 "capex to increase significantly in 2027",3 个来源URL;
+  单季 $44.9B(+100.1%),TTM $132.4B(+97.7%),qtr_end 2026-06-30。
+  单季值与新闻稿 $44,924M 精确一致(FMP 结构化源命中)。
+- 判定层零改动:N3 自动录入仍仅限新闻稿源 cut/high;web 源 cut 只醒目日志+红色芯片,
+  是否放开 web 源自动录 N3 待用户拍板(docs/capex-signal-rules.md N3 节已留档)。
+- 语义升级:前端 none 文案由"新闻稿未给指引"改为"未检测到指引"(新闻稿+网络检索双源均无
+  才落 none;web 检索失败不落档、10天窗口每日重试)。
+
+---
+
 # 日度粒度历史重放（daily-replay.mjs）— 2026-07-18
 
 目标：复刻线上每日 cron 判定路径，2000-01-01~2026-06-30 逐交易日推进，测出真实日级时点

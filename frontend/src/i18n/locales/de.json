@@ -13,12 +13,12 @@
     "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln",
     "capexGuidanceBanner": "Hyperscaler-Capex-Prognosesenkung — Frühsignal für Capex-Kontraktion & KI-Überangebot; KI-Angebot/Nachfrage auf restriktiv",
     "capexGuidanceRefTitle": "Capex-Prognose (vorausschauende Referenz)",
-    "capexGuidanceRefHint": "Automatisch erkannt: vom LLM aus neuen Ergebnismitteilungen auf EDGAR extrahierte Richtung der Capex-Prognose. Nur Referenz — fließt nicht direkt ins Signal ein (nur \"explizite Senkung + hohe Konfidenz\" wird automatisch zum Straffungs-Ereignis). Zum Zitat den Mauszeiger darüber halten.",
+    "capexGuidanceRefHint": "Automatisch erkannt: Richtung der Capex-Prognose je neuem Bericht — zuerst die Mitteilung auf EDGAR, bei fehlender Prognose Websuche (Call-Transkripte/Finanzmedien) als Fallback, plus Quartals-/TTM-Capex-Snapshot. Nur Referenz — fließt nicht direkt ins Signal ein (nur \"explizite Senkung in der Mitteilung + hohe Konfidenz\" wird automatisch zum Straffungs-Ereignis; eine über Medien gefundene Senkung erfordert manuelle Bestätigung). Zum Zitat den Mauszeiger darüber halten.",
     "guidanceDir": {
       "cut": "Prognose gesenkt",
       "raise": "Prognose angehoben",
       "maintain": "Prognose bestätigt",
-      "none": "keine Prognose in Mitteilung"
+      "none": "keine Prognose erkannt"
     },
     "guidanceDirShort": {
       "cut": "↓gesenkt",
@@ -220,7 +220,7 @@
       "disable": "Deaktivieren"
     },
     "capexGuidance": "Capex-Prognosesenkung",
-    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Erfassen, wenn ein Hyperscaler im Earnings Call die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. EDGAR-Ist-Daten hinken 1-2 Berichtssaisons hinterher — dieses Ereignis ist die einzige vorausschauende manuelle Eingabe des Systems."
+    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Erfassen, wenn ein Hyperscaler im Earnings Call die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. Die automatische Erkennung deckt Mitteilungen (Senkung wird automatisch erfasst) und Call-/Medien-Websuche ab (erkannte Senkung wird nur markiert — manuell prüfen und hier erfassen)."
   },
   "settings": {
     "title": "Einstellungen",
@@ -267,7 +267,15 @@
       "power": "Energie",
       "optical": "Optische Module"
     },
-    "guidanceTitle": "Capex-Prognose-Scan"
+    "guidanceTitle": "Capex-Prognose-Scan",
+    "guidanceSource": {
+      "press_release": "Quelle: Mitteilung",
+      "web": "Quelle: Call/Medien"
+    },
+    "guidanceQtr": "Quartal",
+    "guidanceTtm": "TTM",
+    "guidanceFy": "GJ-Prognose:",
+    "guidanceFwd": "Darüber hinaus:"
   },
   "recessionLock": {
     "banner": "Verteidigungssperre Aktiv",

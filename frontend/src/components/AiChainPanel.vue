@@ -71,14 +71,37 @@
         Source: OpenRouter (openrouter.ai/rankings), as of {{ bubble.modelUsageAsOf }}
       </div>
 
-      <!-- capex指引自动检测（常驻）：每家最近一次财报新闻稿的前瞻指引方向，含"未给指引"。
-           数据归集在capex口径旁便于对照判读（实际数据加速中 vs 某家指引已下修一眼可见） -->
-      <div v-if="guidanceRows.length" class="guidance-row" :title="$t('signal.capexGuidanceRefHint')">
+      <!-- capex指引自动检测 + 财报快报（常驻）：每家最近一次财报的指引方向（新闻稿→电话会/媒体
+           web检索兜底）与单季/TTM capex 快报。数据归集在capex口径旁便于对照判读
+           （实际数据加速中 vs 某家指引已下修一眼可见） -->
+      <div v-if="guidanceRows.length" class="guidance-block" :title="$t('signal.capexGuidanceRefHint')">
         <span class="guidance-label hinted">{{ $t('aiChain.guidanceTitle') }}</span>
-        <span v-for="g in guidanceRows" :key="g.symbol"
-              :class="['guidance-chip', g.direction]" :title="g.quote || ''">
-          {{ g.symbol }}: {{ $t(`signal.guidanceDir.${g.direction}`) }}<template v-if="g.filingDate">（{{ g.filingDate }}）</template>
-        </span>
+        <div v-for="g in guidanceRows" :key="g.symbol" class="guidance-card">
+          <div class="guidance-card-head">
+            <span class="guidance-symbol">{{ g.symbol }}</span>
+            <span :class="['guidance-chip', g.direction]" :title="g.quote || ''">
+              {{ $t(`signal.guidanceDir.${g.direction}`) }}
+            </span>
+            <span v-if="g.filingDate" class="guidance-date">{{ g.filingDate }}</span>
+            <span v-if="g.source" class="guidance-source" :title="(g.sources || []).join('\n')">
+              {{ $t(`aiChain.guidanceSource.${g.source}`) }}
+            </span>
+          </div>
+          <div class="guidance-stats">
+            <span v-if="g.qtrCapex != null" class="guidance-stat">
+              {{ $t('aiChain.guidanceQtr') }} {{ formatUsdB(g.qtrCapex) }}<template v-if="g.qtrCapexYoY != null">（{{ formatPct(g.qtrCapexYoY) }}）</template>
+            </span>
+            <span v-if="g.ttmCapex != null" class="guidance-stat">
+              {{ $t('aiChain.guidanceTtm') }} {{ formatUsdB(g.ttmCapex) }}<template v-if="g.ttmCapexYoY != null">（{{ formatPct(g.ttmCapexYoY) }}）</template>
+            </span>
+            <span v-if="g.fyGuidance" class="guidance-stat guidance-fy" :title="g.quote || ''">
+              {{ $t('aiChain.guidanceFy') }} {{ g.fyGuidance }}
+            </span>
+            <span v-if="g.forwardGuidance" class="guidance-stat" :title="g.quote || ''">
+              {{ $t('aiChain.guidanceFwd') }} {{ g.forwardGuidance }}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -135,6 +158,11 @@ const stageRows = computed(() => {
 
 function formatPct(v) {
   return `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+}
+
+// 财报快报金额：USD → $X.XB（快报卡单季/TTM展示）
+function formatUsdB(v) {
+  return `$${(v / 1e9).toFixed(1)}B`;
 }
 
 // 统一颜色语义：绿=宽松/利好进攻，黄=中性/观望，红=收紧/利好防守（与信号位徽章一致）
@@ -285,19 +313,41 @@ onMounted(load);
 .bubble-value.neutral { color: var(--yellow); }
 .bubble-source { font-size: var(--fs-xs); color: var(--text-4); }
 
-.guidance-row {
+.guidance-block {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: var(--fs-xs);
 }
 .guidance-label { color: var(--text-4); }
+.guidance-card {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+.guidance-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.guidance-symbol { color: var(--text-2); font-weight: 600; }
+.guidance-date { color: var(--text-4); }
+.guidance-source { color: var(--text-4); cursor: help; }
+.guidance-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 2px;
+  color: var(--text-3);
+  font-family: var(--font-num);
+}
+.guidance-fy { color: var(--text-2); }
 .guidance-chip {
   padding: 2px 8px;
   border-radius: 6px;
-  background: var(--bg-input);
+  background: var(--bg-card);
   color: var(--text-3);
 }
 .guidance-chip.cut { color: var(--red); background: var(--red-bg); }

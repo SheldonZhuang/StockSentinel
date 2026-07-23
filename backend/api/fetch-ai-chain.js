@@ -84,13 +84,14 @@ export function calcUsageTrend(dailyTotals, recentDays = USAGE_RECENT_DAYS, prio
 
 // 季度末日期 → 日历季度桶（如 '2026Q1'）。四大家季度末都是日历季（3/6/9/12月末），
 // 但精确日期可能差1-2天，按桶对齐而非按日期对齐
-const quarterKey = date => {
+// （fetch-guidance 的单公司快报计算复用同一套桶运算，导出）
+export const quarterKey = date => {
   const [y, m] = date.split('-').map(Number);
   return `${y}Q${Math.ceil(m / 3)}`;
 };
 
 // 季度桶键运算：'2026Q1' ± n 季（跨年自动进退位）
-const shiftQuarterKey = (key, n) => {
+export const shiftQuarterKey = (key, n) => {
   const [y, q] = key.split('Q').map(Number);
   const total = y * 4 + (q - 1) + n;
   return `${Math.floor(total / 4)}Q${(total % 4) + 1}`;
@@ -371,30 +372,42 @@ export function deriveQuarterlyCapex(facts) {
 }
 
 /**
+ * 单公司季度 capex 序列（降序）：EDGAR 主源 + FMP 备源（2026-07-21 双源冗余）。
+ * fetch-guidance 财报后单公司快报复用（新 8-K 检测时按公司取历史序列算同比/TTM）。
+ * 两源都失败返回 null。
+ */
+export async function fetchCapexSeriesForSymbol(sym) {
+  const { cik, concept } = HYPERSCALER_CIK[sym] || {};
+  if (!cik) return null;
+  try {
+    const res = await axios.get(edgarUrl(cik, concept), {
+      headers: EDGAR_HEADERS,
+      timeout: 20000,
+    });
+    return deriveQuarterlyCapex(res.data?.units?.USD);
+  } catch (err) {
+    console.warn(`[fetch-ai-chain] EDGAR capex(${sym}) failed:`, err.message);
+    // FMP capex 已是离散单季值（无需 YTD 差分），映射为同一 {date, capitalExpenditure} 形状；
+    // 免费层250次/天，仅在 EDGAR 失败时按需调用不烧配额。备源也失败返回 null
+    const fb = await fetchCapexFromFmp(sym).catch(() => null);
+    if (fb?.length) {
+      console.log(`[fetch-ai-chain] capex(${sym}) recovered from FMP fallback (${fb.length} quarters)`);
+      return fb;
+    }
+    return null;
+  }
+}
+
+/**
  * 云厂商季度资本开支：SEC EDGAR 官方财报数据（Yahoo 财报接口对数据中心IP限流，弃用）
  * 单公司失败 → 剔除（calcCapexYoY 只聚合有完整8季数据的公司）
  */
 export async function fetchHyperscalerCapex() {
   const quartersBySymbol = {};
 
-  for (const [sym, { cik, concept }] of Object.entries(HYPERSCALER_CIK)) {
-    try {
-      const res = await axios.get(edgarUrl(cik, concept), {
-        headers: EDGAR_HEADERS,
-        timeout: 20000,
-      });
-      quartersBySymbol[sym] = deriveQuarterlyCapex(res.data?.units?.USD);
-    } catch (err) {
-      console.warn(`[fetch-ai-chain] EDGAR capex(${sym}) failed:`, err.message);
-      // FMP 备源（2026-07-21 双源冗余）：EDGAR 单家失败时用 FMP 现金流量表补位。
-      // FMP capex 已是离散单季值（无需 YTD 差分），映射为同一 {date, capitalExpenditure} 形状；
-      // 免费层250次/天，仅在 EDGAR 失败时按需调用不烧配额。备源也失败则该公司剔除（原有语义）
-      const fb = await fetchCapexFromFmp(sym).catch(() => null);
-      if (fb?.length) {
-        quartersBySymbol[sym] = fb;
-        console.log(`[fetch-ai-chain] capex(${sym}) recovered from FMP fallback (${fb.length} quarters)`);
-      }
-    }
+  for (const sym of Object.keys(HYPERSCALER_CIK)) {
+    const series = await fetchCapexSeriesForSymbol(sym);
+    if (series?.length) quartersBySymbol[sym] = series;
     await sleep(150); // EDGAR 限速10次/秒，保守间隔
   }
   return { ...calcCapexYoY(quartersBySymbol), ...calcCapexQuarterYoY(quartersBySymbol) };
@@ -404,7 +417,7 @@ export async function fetchHyperscalerCapex() {
 const FMP_CASHFLOW_URL = 'https://financialmodelingprep.com/stable/cash-flow-statement';
 const fmpApiKey = () => process.env.FMP_API_KEY || process.env.financialmodelingprep_API_KEY;
 
-async function fetchCapexFromFmp(symbol) {
+export async function fetchCapexFromFmp(symbol) {
   const key = fmpApiKey();
   if (!key) return null;
   const res = await axios.get(FMP_CASHFLOW_URL, {
