@@ -13,7 +13,7 @@
     "snapshotStale": "Signaldaten seit {days} Tagen nicht aktualisiert — das Backend ist möglicherweise ausgefallen; die aktuelle Stufe nicht als aktuell behandeln",
     "capexGuidanceBanner": "Hyperscaler-Capex-Prognosesenkung — Frühsignal für Capex-Kontraktion & KI-Überangebot; KI-Angebot/Nachfrage auf restriktiv",
     "capexGuidanceRefTitle": "Capex-Prognose (vorausschauende Referenz)",
-    "capexGuidanceRefHint": "Automatisch erkannt: Richtung der Capex-Prognose je neuem Bericht — zuerst die Mitteilung auf EDGAR, bei fehlender Prognose Websuche (Call-Transkripte/Finanzmedien) als Fallback, plus Quartals-/TTM-Capex-Snapshot. Nur Referenz — fließt nicht direkt ins Signal ein (nur \"explizite Senkung in der Mitteilung + hohe Konfidenz\" wird automatisch zum Straffungs-Ereignis; eine über Medien gefundene Senkung erfordert manuelle Bestätigung). Zum Zitat den Mauszeiger darüber halten.",
+    "capexGuidanceRefHint": "Automatisch erkannt: Richtung der Capex-Prognose je neuem Bericht — EDGAR-Mitteilung und Websuche (Call-Transkripte/Folien/Finanzmedien) laufen parallel und ergänzen einander, plus Quartals-/TTM-Capex-Snapshot. Nur Referenz — fließt nicht direkt ins Signal ein; \"explizite Senkung + hohe Konfidenz\" wird automatisch zum Straffungs-Ereignis (Senkung in der Mitteilung: sofort erfasst; über das Web erkannte Senkung: Bestätigung nötig — Management-Originalworte aus Primärquelle oder ≥2 unabhängige Quellen, sonst nur Hinweis zur manuellen Prüfung). Zum Zitat den Mauszeiger darüber halten.",
     "guidanceDir": {
       "cut": "Prognose gesenkt",
       "raise": "Prognose angehoben",
@@ -220,7 +220,7 @@
       "disable": "Deaktivieren"
     },
     "capexGuidance": "Capex-Prognosesenkung",
-    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Erfassen, wenn ein Hyperscaler im Earnings Call die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. Die automatische Erkennung deckt Mitteilungen (Senkung wird automatisch erfasst) und Call-/Medien-Websuche ab (erkannte Senkung wird nur markiert — manuell prüfen und hier erfassen)."
+    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Wird wirksam, wenn ein Hyperscaler die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. Automatische Erkennung aus beiden Quellen: Senkung in der Mitteilung wird sofort erfasst; über das Web erkannte Senkung (Call/Medien) braucht Bestätigung — Management-Originalworte oder ≥2 unabhängige Quellen, sonst nur Hinweis — manuell prüfen und hier erfassen."
   },
   "settings": {
     "title": "Einstellungen",

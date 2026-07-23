@@ -4,13 +4,16 @@
 // 判定为"明确下修"(cut/high) 时自动录入 N3 事件（capex_guidance）并邮件通知订阅用户。
 //
 // 2026-07-23 补源（113号，GOOGL Q2实证新闻稿单源不够）：GOOGL/MSFT/AMZN 惯例在
-// 电话会口头给指引，新闻稿检测不到 → 新闻稿无指引时用 OpenRouter web 插件检索
-// 电话会实录/主流财经媒体报道二次判定（fy_guidance/forward_guidance/来源URL 一并入档）。
+// 电话会口头给指引，新闻稿检测不到 → 每次财报同时用 OpenRouter web 插件检索
+// 电话会实录/PPT/主流财经媒体报道（与新闻稿同等高度的必需源，2026-07-23 用户拍板），
+// 补齐 fy_guidance/forward_guidance/来源URL；任一源失败即不落档、窗口内重试。
 // 同时生成单公司财报快报：单季 capex 及同比、TTM capex 及同比（EDGAR 历史序列 +
 // 新季度值，FMP 优先、新闻稿 LLM 提取兜底）。
 //
-// 判定层边界（"新增判定输入须醒目告知"原则）：新闻稿源 cut/high 自动录 N3 不变；
-// web 源 cut/high 只入档展示 + 醒目日志，不自动建 N3（媒体转述有幻觉风险，人工确认兜底）。
+// N3 自动录入（2026-07-23 用户拍板放开 web 源）：新闻稿 cut/high，或 web 源 cut/high
+// 且有佐证——管理层原话（实录/PPT/公告）或 ≥2 个独立来源方向一致。佐证门槛防的是
+// 单条媒体标题党/LLM幻觉误触发全员减仓邮件（误报下修的代价不对称）；
+// 未达佐证门槛的 web 下修只醒目日志+展示，请人工核实。
 import axios from 'axios';
 import chainCfg from '../config/ai-chain.config.js';
 import {
@@ -152,10 +155,12 @@ export async function analyzeGuidance(symbol, paragraphs) {
 }
 
 /**
- * web 检索兜底（113号补源）：新闻稿无指引时，用 OpenRouter web 插件检索财报电话会
- * 实录/主流财经媒体报道（CNBC/Reuters/Bloomberg等），判定 capex 指引方向并提取
- * 本财年/未来指引与来源URL。失败/无 key 返回 null（调用方沿用"不落档、窗口内重试"语义）。
- * @returns {{hasGuidance, direction, quote, confidence, fyGuidance, forwardGuidance, sources: string[]}|null}
+ * web 检索源（113号补源，2026-07-23 拍板升级为与新闻稿同等高度的必需源）：
+ * 用 OpenRouter web 插件检索财报电话会实录/官方PPT/主流财经媒体报道
+ * （CNBC/Reuters/Bloomberg等），判定 capex 指引方向并提取本财年/未来指引与来源URL。
+ * 每次财报都调用（补齐新闻稿缺失字段）。失败/无 key 返回 null（调用方"不落档、窗口内重试"）。
+ * @returns {{hasGuidance, direction, quote, confidence, fyGuidance, forwardGuidance,
+ *            sources: string[], primarySource: bool}|null}
  */
 export async function analyzeGuidanceFromWeb(symbol, filingDate) {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -168,7 +173,7 @@ export async function analyzeGuidanceFromWeb(symbol, filingDate) {
       plugins: [{ id: 'web', max_results: 5 }],
       messages: [
         { role: 'system', content: '你是严谨的财报分析师。只依据检索到的可靠来源（财报电话会实录、CNBC/Reuters/Bloomberg等主流财经媒体）作答，找不到依据就如实说没有，绝不编造数字。输出严格的JSON。' },
-        { role: 'user', content: `${company} (${symbol}) 于 ${filingDate} 前后发布了季度财报。请检索其财报电话会与媒体报道，判断管理层本次是否给出了**前瞻性**资本开支(capex)指引：本财年全年 capex 预期金额/区间、与此前指引相比的方向（上修/维持/下修）、以及对未来年度 capex 的表述。\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "管理层原话或媒体转述的英文摘录(无则空串)", "confidence": "high"|"low", "fyGuidance": "本财年capex指引摘要(如'FY2026 $195-205B, raised from $185B'，无则空串)", "forwardGuidance": "对之后年度capex的表述摘要(无则空串)", "sources": ["来源URL", ...]}。direction判断标准：明确高于此前指引=raise；重申此前水平=maintain；明确低于此前指引或将削减/放缓=cut；检索不到指引信息=none。confidence：多个可靠来源相互印证且有具体数字=high，否则=low。` },
+        { role: 'user', content: `${company} (${symbol}) 于 ${filingDate} 前后发布了季度财报。请检索其财报电话会与媒体报道，判断管理层本次是否给出了**前瞻性**资本开支(capex)指引：本财年全年 capex 预期金额/区间、与此前指引相比的方向（上修/维持/下修）、以及对未来年度 capex 的表述。\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "管理层原话或媒体转述的英文摘录(无则空串)", "confidence": "high"|"low", "fyGuidance": "本财年capex指引摘要(如'FY2026 $195-205B, raised from $185B'，无则空串)", "forwardGuidance": "对之后年度capex的表述摘要(无则空串)", "sources": ["来源URL", ...], "primarySource": bool}。direction判断标准：明确高于此前指引=raise；重申此前水平=maintain；明确低于此前指引或将削减/放缓=cut；检索不到指引信息=none。confidence：多个可靠来源相互印证且有具体数字=high，否则=low。primarySource：quote 是否来自公司财报电话会实录/官方PPT/新闻公告等一手来源（管理层原话），而非仅媒体转述解读=true，否则=false。` },
       ],
       temperature: 0,
       max_tokens: 800,
@@ -176,11 +181,22 @@ export async function analyzeGuidanceFromWeb(symbol, filingDate) {
     const j = parseGuidanceJson(res.data?.choices?.[0]?.message?.content || '');
     if (!j) return null;
     j.sources = Array.isArray(j.sources) ? j.sources.filter(u => typeof u === 'string').slice(0, 5) : [];
+    j.primarySource = j.primarySource === true;
     return j;
   } catch (err) {
     console.warn(`[guidance] web analyze(${symbol}) failed:`, err.message);
     return null;
   }
+}
+
+/**
+ * web 源下修是否达到 N3 自动录入的佐证门槛（2026-07-23 用户拍板放开 web 源自动录入）：
+ * cut + 高置信，且（管理层原话一手来源 或 ≥2 个独立来源方向一致）。
+ * 佐证门槛防单条媒体标题党/LLM幻觉——误报下修=全员减仓邮件，代价不对称，只对 cut 设防。
+ */
+export function webCutQualified(web) {
+  return !!web && web.hasGuidance === true && web.direction === 'cut' && web.confidence === 'high'
+    && (web.primarySource === true || (web.sources || []).length >= 2);
 }
 
 /** 申报日前最近一个已结束的日历季度末（四大家季度末都是日历季）：'2026-07-22' → '2026-06-30' */
@@ -279,9 +295,35 @@ export async function buildCapexSnapshot(symbol, filingDate, llmQtrUsdMillions) 
 }
 
 /**
- * 主入口（每日 cron 调用）：检测→分析（新闻稿→web兜底）→单公司快报→存档；
- * 新闻稿源明确下修自动录入 N3 + 邮件。全程容错不 throw。
- * 非财报季无新 8-K，开销仅为 4 次 submissions 查询。
+ * 录入 N3 收紧事件 + 订阅用户邮件（幂等：已有活动事件返回 false 不重复录）。
+ * origin 写明来源（新闻稿/电话会检索+URL），供横幅与档案核查。
+ */
+async function createN3Event(f, quote, origin) {
+  const existing = await getActiveAdminSignal('capex_guidance');
+  if (existing) return false;
+  const expires = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+  const note = `[自动检测] ${f.symbol} ${f.filingDate} ${origin}：${quote || 'capex指引下修'}`;
+  await setAdminSignal('capex_guidance', 'tight', expires, note, 'auto-detector');
+  try {
+    const subscribers = await getAlertSubscribers();
+    if (subscribers.length) {
+      await sendSignalAlert(subscribers, {
+        finalSignal: 'reduce',
+        changes: [{ kind: 'capexGuidance', note }],
+        details: {},
+      });
+    }
+  } catch (err) {
+    console.warn('[guidance] auto-event alert email failed:', err.message);
+  }
+  console.log(`[guidance] AUTO N3 EVENT: ${f.symbol} capex guidance cut (${origin}) → capex_guidance recorded + alerts sent`);
+  return true;
+}
+
+/**
+ * 主入口（每日 cron 调用）：检测→分析（新闻稿+web检索双源，互相补齐）→单公司快报→存档；
+ * "明确下修+高置信"（新闻稿源，或 web 源达佐证门槛）自动录入 N3 + 邮件。
+ * 全程容错不 throw。非财报季无新 8-K，开销仅为 4 次 submissions 查询。
  */
 export async function processCapexGuidance() {
   const processed = await getProcessedGuidanceAccessions();
@@ -296,8 +338,10 @@ export async function processCapexGuidance() {
       source: null, fyGuidance: null, forwardGuidance: null, sources: null,
       qtrEnd: null, qtrCapex: null, qtrCapexYoY: null, ttmCapex: null, ttmCapexYoY: null,
     };
-    // 抓取/LLM 失败时不存档也不标已处理——否则该财报被永久跳过，档案定格为错误的 none
-    // （实测 2026-07-23：OpenRouter 余额耗尽 402 会走到这里；LOOKBACK 10天窗口内每日重试）
+    // 抓取/LLM/web 任一失败时不存档也不标已处理——否则该财报被永久跳过，档案定格为
+    // 不完整的结果（实测 2026-07-23：OpenRouter 余额耗尽 402 会走到这里；10天窗口内每日重试）。
+    // N3 录入不受重试影响：新闻稿检出下修即刻录入，不等 web 补齐（防守动作不过夜；
+    // 重试日因活动事件已存在而幂等跳过，档案 autoEventCreated 可能为 0 属可接受的展示误差）
     let retryNextRun = false;
     try {
       const text = await fetchPressReleaseText(f.cik, f.accession);
@@ -312,26 +356,51 @@ export async function processCapexGuidance() {
         record.source = 'press_release';
         record.fyGuidance = (analysis.fyGuidance || '').slice(0, 300) || null;
         record.forwardGuidance = (analysis.forwardGuidance || '').slice(0, 300) || null;
-      } else if (!retryNextRun) {
-        // 新闻稿未给指引（GOOGL/MSFT/AMZN 惯例在电话会口头给）→ web 检索兜底；
-        // web 失败视同 LLM 失败：不落档、窗口内每日重试，防档案定格为错误的 none
-        const web = await analyzeGuidanceFromWeb(f.symbol, f.filingDate);
-        if (!web) {
-          retryNextRun = true;
-        } else if (web.hasGuidance) {
+      }
+      // 新闻稿源明确下修+高置信 → 立即录 N3（不等 web，防守动作优先于字段补齐）
+      const pressCut = analysis?.direction === 'cut' && analysis.confidence === 'high';
+      if (pressCut && await createN3Event(f, record.quote, '业绩新闻稿')) {
+        record.autoEventCreated = 1;
+        autoEvents++;
+      }
+
+      // web 检索与新闻稿同等高度（每次财报都跑）：新闻稿没给的字段由电话会/PPT/媒体补齐
+      let web = null;
+      if (!retryNextRun) {
+        web = await analyzeGuidanceFromWeb(f.symbol, f.filingDate);
+        if (!web) retryNextRun = true;
+      }
+
+      if (!retryNextRun) {
+        // 方向归集：新闻稿（公司原文）优先；web 补位。特例：web 达佐证门槛的下修
+        // 覆盖新闻稿的非下修方向——电话会披露了新闻稿未提的下修正是本补源要抓的场景
+        const webCut = webCutQualified(web);
+        if (web.hasGuidance && (!analysis?.hasGuidance || (webCut && record.direction !== 'cut'))) {
           record.direction = web.direction;
           record.quote = (web.quote || '').slice(0, 500);
           record.confidence = web.confidence;
           record.source = 'web';
-          record.fyGuidance = (web.fyGuidance || '').slice(0, 300) || null;
-          record.forwardGuidance = (web.forwardGuidance || '').slice(0, 300) || null;
-          record.sources = web.sources.length ? JSON.stringify(web.sources).slice(0, 1000) : null;
-          // 判定层边界：web 源下修不自动建 N3（媒体转述有幻觉风险），醒目日志请人工确认
-          if (web.direction === 'cut') {
-            console.warn(`[guidance] ⚠️ WEB-DETECTED CUT: ${f.symbol} ${f.filingDate} capex指引疑似下修（来源:媒体/电话会检索，非新闻稿原文）——请人工核实后在管理面板录入 N3 事件。quote: ${record.quote}`);
-          }
-        } else {
+        }
+        if (web.hasGuidance) {
+          // 字段补齐：新闻稿缺什么补什么（两源都有时保留新闻稿口径）
+          record.fyGuidance = record.fyGuidance || (web.fyGuidance || '').slice(0, 300) || null;
+          record.forwardGuidance = record.forwardGuidance || (web.forwardGuidance || '').slice(0, 300) || null;
+        }
+        record.sources = web.sources.length ? JSON.stringify(web.sources).slice(0, 1000) : null;
+        if (!analysis?.hasGuidance && !web.hasGuidance) {
           record.source = 'web'; // none + source=web：新闻稿和网络检索都未见指引（强否定）
+        }
+
+        // web 源达佐证门槛的下修 → 录 N3（2026-07-23 用户拍板放开；createN3Event 幂等去重）
+        if (webCut && !pressCut) {
+          const origin = `电话会/媒体检索(${web.sources.slice(0, 2).join('; ') || '来源见档案'})`;
+          if (await createN3Event(f, record.quote, origin)) {
+            record.autoEventCreated = 1;
+            autoEvents++;
+          }
+        } else if (!pressCut && web.hasGuidance && web.direction === 'cut') {
+          // 未达佐证门槛的 web 下修（单一媒体转述/低置信）：只醒目提示，请人工核实
+          console.warn(`[guidance] ⚠️ WEB-DETECTED CUT (未达佐证门槛): ${f.symbol} ${f.filingDate} capex指引疑似下修——confidence=${web.confidence}, primarySource=${web.primarySource}, sources=${web.sources.length}。请人工核实后在管理面板录入 N3 事件。quote: ${record.quote}`);
         }
       }
 
@@ -342,31 +411,6 @@ export async function processCapexGuidance() {
           qtrEnd: snap.qtrEnd, qtrCapex: snap.qtrCapex, qtrCapexYoY: snap.qtrCapexYoY,
           ttmCapex: snap.ttmCapex, ttmCapexYoY: snap.ttmCapexYoY,
         });
-      }
-
-      // 明确下修 + 高置信（仅新闻稿源）→ 自动录入 N3（幂等：已有活动事件不重复录）
-      if (analysis?.direction === 'cut' && analysis.confidence === 'high') {
-        const existing = await getActiveAdminSignal('capex_guidance');
-        if (!existing) {
-          const expires = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
-          const note = `[自动检测] ${f.symbol} ${f.filingDate} 业绩新闻稿：${record.quote || 'capex指引下修'}`;
-          await setAdminSignal('capex_guidance', 'tight', expires, note, 'auto-detector');
-          record.autoEventCreated = 1;
-          autoEvents++;
-          try {
-            const subscribers = await getAlertSubscribers();
-            if (subscribers.length) {
-              await sendSignalAlert(subscribers, {
-                finalSignal: 'reduce',
-                changes: [{ kind: 'capexGuidance', note }],
-                details: {},
-              });
-            }
-          } catch (err) {
-            console.warn('[guidance] auto-event alert email failed:', err.message);
-          }
-          console.log(`[guidance] AUTO N3 EVENT: ${f.symbol} capex guidance cut detected → capex_guidance recorded + alerts sent`);
-        }
       }
     } catch (err) {
       retryNextRun = true;

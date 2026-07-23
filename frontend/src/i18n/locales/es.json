@@ -13,7 +13,7 @@
     "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente",
     "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo",
     "capexGuidanceRefTitle": "Guía de capex (referencia prospectiva)",
-    "capexGuidanceRefHint": "Detección automática: dirección de la guía de capex de cada nuevo informe — primero el comunicado en EDGAR y, si no da guía, búsqueda web (transcripciones de la llamada/medios financieros) como respaldo, más un resumen de capex trimestral/TTM. Solo referencia — no determina directamente la señal (solo \"recorte explícito en el comunicado + alta confianza\" se eleva automáticamente a evento restrictivo; un recorte hallado vía medios requiere confirmación manual). Pase el cursor para ver la cita.",
+    "capexGuidanceRefHint": "Detección automática: dirección de la guía de capex de cada nuevo informe — comunicado EDGAR y búsqueda web (transcripciones/presentaciones/medios financieros) en paralelo, complementándose, más un resumen de capex trimestral/TTM. Solo referencia — no determina directamente la señal; \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo (recorte del comunicado: registro inmediato; recorte detectado vía web: requiere corroboración — palabras de la dirección en fuente primaria o ≥2 fuentes independientes, si no solo se señala para revisión manual). Pase el cursor para ver la cita.",
     "guidanceDir": {
       "cut": "guía recortada",
       "raise": "guía elevada",
@@ -220,7 +220,7 @@
       "disable": "Desactivar"
     },
     "capexGuidance": "Recorte guía capex",
-    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Registrar cuando un hyperscaler recorte explícitamente su guía de capex en la llamada de resultados (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. La detección automática cubre comunicados (recorte registrado automáticamente) y búsqueda web de llamada/medios (recorte detectado solo se señala — verificar y registrar aquí manualmente)."
+    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente."
   },
   "settings": {
     "title": "Configuración",

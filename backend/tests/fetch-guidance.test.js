@@ -24,6 +24,7 @@ import {
   processCapexGuidance,
   computeCapexStats,
   latestCompletedQuarterEnd,
+  webCutQualified,
 } from '../api/fetch-guidance.js';
 import {
   saveGuidanceRecord,
@@ -114,6 +115,8 @@ describe('findNewEarningsFilings', () => {
 describe('processCapexGuidance', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks 不清 mockResolvedValue 实现——幂等用例改写的 getActiveAdminSignal 会泄漏，显式复位
+    getActiveAdminSignal.mockResolvedValue(null);
     delete process.env.OPENROUTER_API_KEY;
     // FMP 备源 key 清空：快报统计在单测中走"无 key → null"路径，不发真实请求
     delete process.env.FMP_API_KEY;
@@ -314,7 +317,7 @@ describe('processCapexGuidance', () => {
     }));
   });
 
-  it('web 源检出下修 → 只存档不自动建 N3（判定层边界：媒体转述需人工核实）', async () => {
+  it('web 源下修未达佐证门槛（单一来源+非一手）→ 只存档不建 N3，醒目日志请人工核实', async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     const today = new Date().toISOString().slice(0, 10);
     axios.get.mockImplementation(url => {
@@ -333,17 +336,161 @@ describe('processCapexGuidance', () => {
     });
     axios.post.mockResolvedValue(llmReply({
       hasGuidance: true, direction: 'cut', quote: 'capex will be significantly lower',
-      confidence: 'high', fyGuidance: 'FY2026 cut to $80B', forwardGuidance: '', sources: ['https://reuters.com/x'],
+      confidence: 'high', fyGuidance: 'FY2026 cut to $80B', forwardGuidance: '',
+      sources: ['https://reuters.com/x'], primarySource: false,
     }));
 
     const r = await processCapexGuidance();
     expect(r.autoEvents).toBe(0);
-    expect(setAdminSignal).not.toHaveBeenCalled(); // 关键断言：web源下修不自动录N3
+    expect(setAdminSignal).not.toHaveBeenCalled(); // 关键断言：单源非一手的下修不自动录N3
     expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
       direction: 'cut', source: 'web', autoEventCreated: 0,
     }));
   });
 
+  it('web 源下修达佐证门槛（≥2独立来源）→ 自动录入 N3（2026-07-23 用户拍板放开）', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0001018724')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0001018724-26-000078'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'ex991.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'no relevant keywords here' });
+    });
+    axios.post.mockResolvedValue(llmReply({
+      hasGuidance: true, direction: 'cut', quote: 'we are reducing our capex plans for the year',
+      confidence: 'high', fyGuidance: 'FY2026 cut to $80B', forwardGuidance: '',
+      sources: ['https://reuters.com/x', 'https://cnbc.com/y'], primarySource: false,
+    }));
+
+    const r = await processCapexGuidance();
+    expect(r.autoEvents).toBe(1);
+    expect(setAdminSignal).toHaveBeenCalledWith(
+      'capex_guidance', 'tight', expect.any(String), expect.stringContaining('电话会/媒体检索'), 'auto-detector');
+    expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
+      direction: 'cut', source: 'web', autoEventCreated: 1,
+    }));
+  });
+
+  it('新闻稿判维持但 web 检出达标下修（一手来源）→ 方向覆盖为 cut 并录 N3', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0000789019')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0000789019-26-000101'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'ex991.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'capital expenditures in line with prior expectations' });
+    });
+    axios.post.mockImplementation((url, body) => {
+      if (body.plugins) {
+        return Promise.resolve(llmReply({
+          hasGuidance: true, direction: 'cut', quote: 'on the call, CFO said capex will come down meaningfully next fiscal year',
+          confidence: 'high', fyGuidance: 'FY2027 capex to decline', forwardGuidance: '',
+          sources: ['https://fool.com/transcript'], primarySource: true,
+        }));
+      }
+      return Promise.resolve(llmReply({
+        hasGuidance: true, direction: 'maintain', quote: 'in line with prior expectations',
+        confidence: 'high', fyGuidance: '', forwardGuidance: '',
+      }));
+    });
+
+    const r = await processCapexGuidance();
+    expect(r.autoEvents).toBe(1);
+    expect(setAdminSignal).toHaveBeenCalled();
+    expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
+      direction: 'cut', source: 'web', autoEventCreated: 1, // 电话会下修覆盖新闻稿maintain
+    }));
+  });
+
+  it('新闻稿有指引但 web 检索失败 → 不落档窗口内重试；新闻稿下修的 N3 仍即刻录入不等 web', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0000789019')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0000789019-26-000102'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'ex991.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'we now expect capital expenditures to be significantly lower than prior guidance' });
+    });
+    axios.post.mockImplementation((url, body) => {
+      if (body.plugins) return Promise.reject(new Error('web plugin 503'));
+      return Promise.resolve(llmReply({
+        hasGuidance: true, direction: 'cut', quote: 'significantly lower than prior guidance', confidence: 'high',
+        fyGuidance: '', forwardGuidance: '',
+      }));
+    });
+
+    const r = await processCapexGuidance();
+    expect(r.checked).toBe(1);
+    expect(saveGuidanceRecord).not.toHaveBeenCalled(); // web 是必需源：失败不落档，窗口内重试
+    expect(setAdminSignal).toHaveBeenCalledWith( // 但防守动作不过夜：新闻稿下修即刻录N3
+      'capex_guidance', 'tight', expect.any(String), expect.stringContaining('业绩新闻稿'), 'auto-detector');
+    expect(r.autoEvents).toBe(1);
+  });
+
+  it('新闻稿有指引但缺未来指引 → web 补齐 forwardGuidance，方向保留新闻稿口径', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0001326801')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0001326801-26-000051'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'pressrelease.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'we anticipate capital expenditures in the range of $66-72 billion' });
+    });
+    axios.post.mockImplementation((url, body) => {
+      if (body.plugins) {
+        return Promise.resolve(llmReply({
+          hasGuidance: true, direction: 'raise', quote: 'meaningfully higher capex in 2027',
+          confidence: 'high', fyGuidance: 'FY2026 $66-72B', forwardGuidance: 'meaningfully higher capex growth in 2027',
+          sources: ['https://cnbc.com/meta'], primarySource: true,
+        }));
+      }
+      return Promise.resolve(llmReply({
+        hasGuidance: true, direction: 'raise', quote: 'raised to $66-72 billion', confidence: 'high',
+        fyGuidance: 'FY2026 $66-72B', forwardGuidance: '',
+      }));
+    });
+
+    const r = await processCapexGuidance();
+    expect(r.autoEvents).toBe(0);
+    expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
+      symbol: 'META', direction: 'raise', source: 'press_release', // 方向保留新闻稿
+      forwardGuidance: 'meaningfully higher capex growth in 2027', // 未来指引由web补齐
+      sources: JSON.stringify(['https://cnbc.com/meta']),
+    }));
+  });
   it('新闻稿无指引且 web 检索失败 → 不存档不标已处理（次日重试）', async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     const today = new Date().toISOString().slice(0, 10);
@@ -365,8 +512,27 @@ describe('processCapexGuidance', () => {
 
     const r = await processCapexGuidance();
     expect(r.checked).toBe(1);
-    // 关键断言：web 兜底不可用时不能落档——落了就永久标记已处理，档案定格为错误的 none
+    // 关键断言：web 检索不可用时不能落档——落了就永久标记已处理，档案定格为错误的 none
     expect(saveGuidanceRecord).not.toHaveBeenCalled();
+  });
+});
+
+describe('webCutQualified（N3 佐证门槛纯函数）', () => {
+  const base = { hasGuidance: true, direction: 'cut', confidence: 'high', sources: [], primarySource: false };
+  it('cut/high + 一手来源 → 达标', () => {
+    expect(webCutQualified({ ...base, primarySource: true })).toBe(true);
+  });
+  it('cut/high + ≥2 独立来源 → 达标', () => {
+    expect(webCutQualified({ ...base, sources: ['a', 'b'] })).toBe(true);
+  });
+  it('cut/high 但单一来源且非一手 → 不达标', () => {
+    expect(webCutQualified({ ...base, sources: ['a'] })).toBe(false);
+  });
+  it('低置信/非cut/无指引/null → 不达标', () => {
+    expect(webCutQualified({ ...base, confidence: 'low', primarySource: true })).toBe(false);
+    expect(webCutQualified({ ...base, direction: 'maintain', primarySource: true })).toBe(false);
+    expect(webCutQualified({ ...base, hasGuidance: false, primarySource: true })).toBe(false);
+    expect(webCutQualified(null)).toBe(false);
   });
 });
 

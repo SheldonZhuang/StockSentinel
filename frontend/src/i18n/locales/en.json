@@ -13,7 +13,7 @@
     "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date",
     "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT",
     "capexGuidanceRefTitle": "Capex guidance (forward-looking reference)",
-    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction for each new earnings report — press release on EDGAR first, with web search of call transcripts/major financial media as fallback when the release gives none, plus a quarterly/TTM capex snapshot. Reference only — does not directly drive the signal (only \"explicit cut in the press release + high confidence\" auto-escalates to a tightening event; a cut found via media search requires manual confirmation). Hover to see the quoted text.",
+    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction for each new earnings report — EDGAR press release and web search of call transcripts/slides/major financial media run in parallel and fill each other's gaps, plus a quarterly/TTM capex snapshot. Reference only — does not directly drive the signal; \"explicit cut + high confidence\" auto-escalates to a tightening event (press-release cuts record immediately; web-detected cuts require corroboration — management's own words from a primary source or ≥2 independent sources; otherwise only flagged for manual review). Hover to see the quoted text.",
     "guidanceDir": {
       "cut": "guidance cut",
       "raise": "guidance raised",
@@ -227,7 +227,7 @@
       "disable": "Disable"
     },
     "capexGuidance": "Capex Guidance Cut",
-    "capexGuidanceHint": "Event-type input: tier locked to tight. Record when a hyperscaler explicitly cuts capex guidance on an earnings call (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection covers press releases (cuts auto-recorded) and call/media web search (detected cuts are only flagged prominently — verify and enter here manually). Set an expiry or clear manually when the event lapses."
+    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses."
   },
   "settings": {
     "title": "Settings",
