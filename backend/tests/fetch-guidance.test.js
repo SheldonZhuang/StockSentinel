@@ -202,7 +202,7 @@ describe('processCapexGuidance', () => {
     }));
   });
 
-  it('LLM 失败 → direction=none 存档，主链路不抛', async () => {
+  it('LLM 失败 → 不存档不标已处理（次日重试），主链路不抛', async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     const today = new Date().toISOString().slice(0, 10);
     axios.get.mockImplementation(url => {
@@ -219,10 +219,36 @@ describe('processCapexGuidance', () => {
       }
       return Promise.resolve({ data: 'capital expenditures were $35.7 billion' });
     });
-    axios.post.mockRejectedValue(new Error('LLM 500'));
+    axios.post.mockRejectedValue(new Error('LLM 402'));
 
     const r = await processCapexGuidance();
     expect(r.checked).toBe(1);
+    // 关键断言：LLM 不可用时不能落档——落了就永久标记已处理，档案定格为错误的 none
+    expect(saveGuidanceRecord).not.toHaveBeenCalled();
+    expect(setAdminSignal).not.toHaveBeenCalled();
+  });
+
+  it('新闻稿无 capex 段落 → 正常存档 none（不属于失败，不重试）', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0001652044')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0001652044-26-000061'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'ex99.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'revenue grew 20% year over year' });
+    });
+
+    const r = await processCapexGuidance();
+    expect(r.checked).toBe(1);
+    expect(axios.post).not.toHaveBeenCalled(); // 无段落不调 LLM
     expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
       symbol: 'GOOGL', direction: 'none', autoEventCreated: 0,
     }));

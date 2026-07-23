@@ -143,10 +143,14 @@ export async function processCapexGuidance() {
       symbol: f.symbol, filingDate: f.filingDate, accession: f.accession,
       direction: 'none', quote: null, confidence: null, autoEventCreated: 0,
     };
+    // 抓取/LLM 失败时不存档也不标已处理——否则该财报被永久跳过，档案定格为错误的 none
+    // （实测 2026-07-23：OpenRouter 余额耗尽 402 会走到这里；LOOKBACK 10天窗口内每日重试）
+    let retryNextRun = false;
     try {
       const text = await fetchPressReleaseText(f.cik, f.accession);
       const paragraphs = extractCapexParagraphs(text);
       const analysis = paragraphs ? await analyzeGuidance(f.symbol, paragraphs) : null;
+      if (paragraphs && !analysis) retryNextRun = true;
       if (analysis?.hasGuidance) {
         record.direction = analysis.direction;
         record.quote = (analysis.quote || '').slice(0, 500);
@@ -178,7 +182,12 @@ export async function processCapexGuidance() {
         }
       }
     } catch (err) {
+      retryNextRun = true;
       console.warn(`[guidance] process(${f.symbol} ${f.accession}) failed:`, err.message);
+    }
+    if (retryNextRun) {
+      console.warn(`[guidance] ${f.symbol} ${f.filingDate}: incomplete (fetch/LLM unavailable), NOT marked processed — will retry next run`);
+      continue;
     }
     await saveGuidanceRecord(record).catch(err => console.warn('[guidance] save failed:', err.message));
     console.log(`[guidance] ${f.symbol} ${f.filingDate}: direction=${record.direction}${record.confidence ? '/' + record.confidence : ''}`);
