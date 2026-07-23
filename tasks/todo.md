@@ -1,5 +1,12 @@
 # 113号:capex 指引检测补源(电话会/媒体)+ 财报后单公司 capex 快报 — 2026-07-23
 
+**追加(113c,文档归档+全端同步)**:Q2追踪档(电话会指引/新闻稿时差两项人工追踪转自动化+GOOGL
+闭环结果)、SKILL.md N3描述、openapi /ai-chain摘要、README(499→534,移除已自动化的待办)。
+**云端自愈迁移**:云Railway库在新代码部署前已把GOOGL落成旧语义none且标已处理——增加自愈:
+旧none无source的遗留档不算已处理(窗口内重检)+saveGuidanceRecord改upsert覆盖;推送后Railway
+重启触发startup runDailyUpdate,云端GOOGL自动补齐($195-205B/单季$44.9B/TTM+97.7%),实测通过。
++2真实临时库测试(自愈语义/upsert),536/536。前端Vercel、云后端Railway均随push自动部署。
+
 **追加(113b,用户拍板)**:放开 web 源自动录 N3,web 检索升为与新闻稿同等高度的必需源:
 - 双源每次财报都跑、互相补齐字段(新闻稿口径优先,缺什么 web 补什么;来源URL常驻入档);
   任一源失败不落档、窗口内重试。none = 双源均未见指引。
