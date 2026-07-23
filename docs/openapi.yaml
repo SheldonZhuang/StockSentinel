@@ -68,7 +68,7 @@ paths:
   /ai-chain:
     get:
       operationId: getAiChain
-      summary: AI产业链环节排名 + 当前卡点 + 泡沫监测（调用量/云capex/半导体产出）
+      summary: AI产业链环节排名 + 当前卡点 + 泡沫监测（调用量/云capex/半导体产出）+ 四大云厂商capex指引检测与财报快报（单季/TTM额度同比、本财年/未来指引、来源）
       responses:
         "200": { description: 产业链状态 }
   /stock/{symbol}:
