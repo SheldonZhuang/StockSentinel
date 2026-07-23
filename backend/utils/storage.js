@@ -599,14 +599,21 @@ export async function getAllOverrides() {
 
 export async function getProcessedGuidanceAccessions() {
   await getDb();
-  return all('SELECT accession FROM capex_guidance_records').map(r => r.accession);
+  // 113号自愈迁移：direction='none' 且 source 为空的记录是补源前旧代码落的档
+  // （旧语义"新闻稿未给指引"，未经 web 检索）——视为未完成检测，不算已处理；
+  // 10天窗口内的该类申报会被重新检测并覆盖（云端/本机各实例自动收敛，无需人工修库）
+  return all(`
+    SELECT accession FROM capex_guidance_records
+    WHERE NOT (direction = 'none' AND source IS NULL)
+  `).map(r => r.accession);
 }
 
 export async function saveGuidanceRecord(rec) {
   await getDb();
-  // accession UNIQUE：同一申报重复检测幂等（每日窗口重叠不重复插入）
+  // accession 冲突时整行覆盖（upsert）：同一申报重复检测幂等（每日窗口重叠），
+  // 且 113号自愈迁移重跑旧 none 记录时能覆盖为补源后的完整结果
   run(`
-    INSERT OR IGNORE INTO capex_guidance_records
+    INSERT OR REPLACE INTO capex_guidance_records
       (symbol, filing_date, accession, direction, quote, confidence, auto_event_created,
        source, fy_guidance, forward_guidance, sources,
        qtr_end, qtr_capex, qtr_capex_yoy, ttm_capex, ttm_capex_yoy)
