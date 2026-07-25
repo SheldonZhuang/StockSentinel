@@ -13,7 +13,7 @@ function addDays(dateStr, n) {
   return d.toISOString().slice(0, 10);
 }
 
-// FRED 在美东凌晨维护窗口（每日 cron 06:00 UTC 恰在其中）常见 15s 超时与 502/503，
+// FRED 偶发 15s 超时与 502/503（美东凌晨维护窗口尤甚，7/25 曾致参考指标整天空窗），
 // 单发失败=该指标当日空窗到次日。仅对瞬时故障（无响应/超时、429、5xx）退避重试；
 // 4xx 参数错误重试无意义，立即抛出。FRED_FETCH_RETRIES=0 可关闭（测试用）。
 const isTransientError = err => !err.response || err.response.status === 429 || err.response.status >= 500;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { staleKeepIndicators } from '../utils/stale-keep.js';
+import { staleKeepIndicators, checkIndicatorFreshness } from '../utils/stale-keep.js';
 
 // 模拟 fetchMacroData/fetchPolicyData 输出（仅相关字段）与上一快照 DB 行
 function freshMacro() {
@@ -69,5 +69,32 @@ describe('staleKeepIndicators（114号：参考指标组级 stale-keep）', () =
     const kept = staleKeepIndicators(macro, null, prevSnapshot);
     expect(kept).not.toContain('yieldCurve');
     expect(macro.yieldCurveSpread).toBe(0);
+  });
+});
+
+describe('checkIndicatorFreshness（114b号：超龄看门狗，防 stale-keep 掩盖序列永久失效）', () => {
+  it('参考期在预算内 → 不告警（月度数据滞后2个月属正常）', () => {
+    const macro = { corePce: 2.5, corePcePeriodDate: '2026-05-01' }; // 85天 < 100天预算
+    expect(checkIndicatorFreshness(macro, null, '2026-07-25')).toEqual([]);
+  });
+
+  it('月度组参考期超100天 → 上榜，带天数与预算', () => {
+    const macro = { corePce: 2.5, corePcePeriodDate: '2026-03-01' }; // 146天
+    const overdue = checkIndicatorFreshness(macro, null, '2026-07-25');
+    expect(overdue).toHaveLength(1);
+    expect(overdue[0]).toMatchObject({ name: 'corePce', periodDate: '2026-03-01', budgetDays: 100 });
+    expect(overdue[0].ageDays).toBe(146);
+  });
+
+  it('日频组预算10天：曲线参考期11天前 → 上榜；EPUTRADE 编制慢享160天豁免', () => {
+    const macro = { yieldCurveSpread: 0.5, yieldCurvePeriodDate: '2026-07-14' }; // 11天 > 10
+    const policy = { epuTrade: 1600, epuTradePercentile: 85, epuTradePeriodDate: '2026-03-01' }; // 146天 < 160
+    const overdue = checkIndicatorFreshness(macro, policy, '2026-07-25');
+    expect(overdue.map(o => o.name)).toEqual(['yieldCurve']);
+  });
+
+  it('值为 null（无历史可沿用的新库）或参考期缺失 → 不上榜，不报错', () => {
+    const macro = { corePce: null, corePcePeriodDate: null, unemployment: 4.2, unemploymentPeriodDate: null };
+    expect(checkIndicatorFreshness(macro, null, '2026-07-25')).toEqual([]);
   });
 });

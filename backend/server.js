@@ -28,7 +28,7 @@ import {
   calcTrendState,
 } from './api/signal.js';
 import signalCfg from './config/signal.config.js';
-import { staleKeepIndicators } from './utils/stale-keep.js';
+import { staleKeepIndicators, checkIndicatorFreshness } from './utils/stale-keep.js';
 import {
   getLatestSnapshot,
   saveSignalSnapshot,
@@ -341,6 +341,20 @@ async function runDailyUpdate() {
     console.warn(`[cron] stale-keep: 当日拉取失败，沿用上一快照参考指标组: ${staleKeptGroups.join(', ')}`);
   }
 
+  // 新鲜度看门狗（114b号）：stale-keep 会无限沿用旧值，序列改名/停更这类永久失效会被静默掩盖。
+  // 参考期超过该组新鲜度预算（月度100天/日频10天/EPUTRADE 160天）→ 运维告警（不砸主链路）
+  const overdueIndicators = checkIndicatorFreshness(macroData, policyData, today);
+  if (overdueIndicators.length) {
+    const desc = overdueIndicators
+      .map(o => `${o.name}(参考期${o.periodDate}，已${o.ageDays}天>预算${o.budgetDays}天)`).join('；');
+    console.error(`[cron] 参考指标超龄未更新（疑似序列失效或持续故障）: ${desc}`);
+    await sendOpsAlert(process.env.ADMIN_EMAIL, {
+      stage: '参考指标超龄未更新（stale-keep 连续沿用旧值，须人工核查数据源）',
+      error: desc,
+      dataDate: today,
+    }).catch(() => {});
+  }
+
   await saveSignalSnapshot({
     date: today,
     monetarySignal: monetary,
@@ -560,8 +574,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'internal server error' });
 });
 
-// 每天 UTC 06:00 执行（美东01:00夏令时02:00，北京14:00）；cron 回调兜底 catch，防止未处理 rejection 终止进程
-// 兜底层也发运维告警：runDailyUpdate 内部未捕获的异常（存储/判定链）同样意味着当日快照缺失
+// 每天美东 21:00 执行（114b号，用户拍板）：盘后财报新闻稿/8-K(16:01-16:30)、电话会及其实录
+// 媒体报道(18:00-21:00)、H.15日频利率序列晚间入库、当日SPY收盘价均已就绪，且完全避开
+// FRED 美东凌晨维护窗口（此前 06:00 UTC=美东1-2点正撞上，7/25 大面积超时空窗的根因）。
+// timezone 钉美东本地时钟，夏令时自动切换（EDT=北京次日09:00，EST=10:00）；
+// cron 回调兜底 catch，防止未处理 rejection 终止进程
 const alertCronFailure = (source, err) => {
   console.error(`[${source}] daily update failed:`, err);
   sendOpsAlert(process.env.ADMIN_EMAIL, {
@@ -569,7 +586,7 @@ const alertCronFailure = (source, err) => {
     error: err?.message || String(err),
   }).catch(() => {});
 };
-cron.schedule('0 6 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'UTC' });
+cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
 
 // 启动顺序（顶层 await）：先尝试从 GitHub 备份恢复丢失的 DB，再开始监听与首次更新。
 // Railway 容器文件系统非持久化，重部署即丢库；恢复必须发生在任何 getDb() 之前——
