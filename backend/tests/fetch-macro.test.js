@@ -21,6 +21,8 @@ function makeObs(values) {
 
 beforeEach(() => {
   process.env.FRED_API_KEY = 'test-key';
+  // 大部分用例用调用序号模拟"第N个序列失败"，重试会移动序号，故默认关闭；重试行为单独测
+  process.env.FRED_FETCH_RETRIES = '0';
   vi.clearAllMocks();
 });
 
@@ -147,6 +149,42 @@ describe('fetchMacroData', () => {
     expect(data.creditSpread).toBe(2.0);
     expect(data.creditSpreadPercentile).toBeCloseTo(1, 0); // 最新2.0是最低 → ~1分位
     expect(data.creditSpread90dWidenBp).not.toBeNull();
+  });
+});
+
+describe('fetchSeries 瞬时故障重试（114号：FRED凌晨维护窗口超时/502）', () => {
+  beforeEach(() => {
+    process.env.FRED_FETCH_RETRIES = '2';
+    process.env.FRED_RETRY_DELAY_MS = '1'; // 测试不等真实退避
+  });
+
+  async function callSeries() {
+    const { fetchSeries } = await import('../api/fetch-macro.js');
+    return fetchSeries('UNRATE', '2025-01-01', 'test-key');
+  }
+
+  it('超时后重试成功，返回数据', async () => {
+    const timeoutErr = new Error('timeout of 15000ms exceeded'); // axios 超时无 response
+    axios.get
+      .mockRejectedValueOnce(timeoutErr)
+      .mockResolvedValueOnce({ data: { observations: makeObs([4.2]) } });
+    const obs = await callSeries();
+    expect(obs).toHaveLength(1);
+    expect(axios.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('5xx 重试，连续失败耗尽次数后抛出', async () => {
+    const err502 = Object.assign(new Error('Request failed with status code 502'), { response: { status: 502 } });
+    axios.get.mockRejectedValue(err502);
+    await expect(callSeries()).rejects.toThrow('502');
+    expect(axios.get).toHaveBeenCalledTimes(3); // 1次原始 + 2次重试
+  });
+
+  it('4xx 参数错误不重试，立即抛出', async () => {
+    const err400 = Object.assign(new Error('Request failed with status code 400'), { response: { status: 400 } });
+    axios.get.mockRejectedValue(err400);
+    await expect(callSeries()).rejects.toThrow('400');
+    expect(axios.get).toHaveBeenCalledTimes(1);
   });
 });
 

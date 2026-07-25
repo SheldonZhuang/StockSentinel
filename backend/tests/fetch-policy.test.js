@@ -127,6 +127,8 @@ describe('fetchPolicyData', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.FRED_API_KEY = 'test-key';
+    // 失败路径用例的 reject mock 会被 fetchSeries 重试拉长（114号），测试中关闭重试
+    process.env.FRED_FETCH_RETRIES = '0';
     // 防止 market-data 回退层缓存跨用例串数据 / 备用源key污染
     clearMarketDataCache();
     delete process.env.TIINGO_API_KEY;

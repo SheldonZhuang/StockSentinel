@@ -28,6 +28,7 @@ import {
   calcTrendState,
 } from './api/signal.js';
 import signalCfg from './config/signal.config.js';
+import { staleKeepIndicators } from './utils/stale-keep.js';
 import {
   getLatestSnapshot,
   saveSignalSnapshot,
@@ -331,6 +332,14 @@ async function runDailyUpdate() {
     today
   );
   const finalSignal = hold.signal;
+
+  // 参考指标 stale-keep（114号）：FRED 凌晨维护窗口瞬时故障打成 null 的指标组沿用上一快照
+  // （值+参考期整组，展示如实显示旧参考期）。必须位于四维信号/锁/曲线否决计算之后——
+  // 只回填落库展示字段，判定链与信号级 stale 标志（上面按原始 null 判定）语义零变化
+  const staleKeptGroups = staleKeepIndicators(macroData, policyData, prevSnapshot);
+  if (staleKeptGroups.length) {
+    console.warn(`[cron] stale-keep: 当日拉取失败，沿用上一快照参考指标组: ${staleKeptGroups.join(', ')}`);
+  }
 
   await saveSignalSnapshot({
     date: today,

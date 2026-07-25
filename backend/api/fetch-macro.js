@@ -13,10 +13,34 @@ function addDays(dateStr, n) {
   return d.toISOString().slice(0, 10);
 }
 
+// FRED 在美东凌晨维护窗口（每日 cron 06:00 UTC 恰在其中）常见 15s 超时与 502/503，
+// 单发失败=该指标当日空窗到次日。仅对瞬时故障（无响应/超时、429、5xx）退避重试；
+// 4xx 参数错误重试无意义，立即抛出。FRED_FETCH_RETRIES=0 可关闭（测试用）。
+const isTransientError = err => !err.response || err.response.status === 429 || err.response.status >= 500;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function getWithRetry(url) {
+  const retries = process.env.FRED_FETCH_RETRIES !== undefined
+    ? parseInt(process.env.FRED_FETCH_RETRIES, 10) : 2;
+  const baseDelayMs = process.env.FRED_RETRY_DELAY_MS !== undefined
+    ? parseInt(process.env.FRED_RETRY_DELAY_MS, 10) : 4000;
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await sleep(baseDelayMs * attempt);
+    try {
+      return await axios.get(url, { timeout: 15000 });
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientError(err) || attempt === retries) throw err;
+    }
+  }
+  throw lastErr;
+}
+
 export async function fetchSeries(seriesId, startDate, apiKey, units = '') {
   const unitsParam = units ? `&units=${units}` : '';
   const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${startDate}&api_key=${apiKey}&file_type=json&sort_order=desc${unitsParam}`;
-  const res = await axios.get(url, { timeout: 15000 });
+  const res = await getWithRetry(url);
   return res.data.observations || [];
 }
 
@@ -28,7 +52,7 @@ export async function fetchReleaseDate(seriesId, periodDate, apiKey) {
   // realtime_end 用 FRED 的"最大实时值" 9999-12-31 表示"截止到最新"，
   // 避免本机时钟与 FRED 服务器时钟存在偏差时被 FRED 判定为"未来日期"而返回 400
   const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${periodDate}&observation_end=${periodDate}&realtime_start=2020-01-01&realtime_end=9999-12-31&api_key=${apiKey}&file_type=json`;
-  const res = await axios.get(url, { timeout: 15000 });
+  const res = await getWithRetry(url);
   const obs = res.data.observations || [];
   return obs[0]?.realtime_start || null;
 }

@@ -1,3 +1,28 @@
+# 114号:参考指标大面积"暂无数据"——FRED凌晨维护窗口超时,加重试+指标级stale-keep — 2026-07-25
+
+**根因(已查实)**:云端(Railway)与本机日志同现 `timeout of 15000ms exceeded`/502——每日
+cron 定在 UTC 06:00 = 美东凌晨1-2点,恰是 FRED 夜间维护/高延迟窗口;fetchMacroData 一次并发
+10路请求,独立降级序列(核心PCE/截尾PCE 1M/6M/失业率/萨姆/信用利差/收益率曲线,加 fetch-policy
+的日频EPU/半导体产出)超时即静默 null 落库,页面整天显示"—"。非 API key、非限流(429会显示状态码)。
+必须成功的利率/资产负债表当天恰好抢通,12M截尾PCE云端偶然成功,故呈"部分有部分无"。
+
+**方案(两层,均不改判定语义)**:
+- [ ] ① fetchSeries/fetchReleaseDate 加重试:超时/429/5xx 重试2次(4s/8s退避),env可配
+      (FRED_FETCH_RETRIES/FRED_RETRY_DELAY_MS);fetch-policy 复用同函数自动受益
+- [ ] ② 指标级 stale-keep(backend/utils/stale-keep.js 纯函数):保存快照前,值仍为 null 的
+      参考指标组(值+参考期+发布日整组)沿用上一快照——月度/日频序列昨日观测依然有效,
+      参考期如实显示旧日期。放在四维信号/锁/曲线否决计算**之后**,判定链与既有信号级
+      stale-keep 语义零变化
+- [ ] 测试:现有 mock 计数用例设 FRED_FETCH_RETRIES=0;新增重试用例+stale-keep 单测
+- [ ] 全量测试通过后 commit+push(Railway/Vercel 自动部署,startup runDailyUpdate 会当天回填)
+- [ ] 验证:云端 /api/signal 缺失字段恢复;本机重启后端同步恢复
+
+**诚实披露(不在本次范围,留观察)**:萨姆值/曲线倒挂天数当日拉取失败时,锁触发与进攻否决
+仍按 null fail-open(既有行为)。stale-keep 只回填展示层;若要让防守侧判定也用昨日值,
+属判定输入变更,须单独醒目告知用户拍板(授权边界原则)。
+
+---
+
 # 113号:capex 指引检测补源(电话会/媒体)+ 财报后单公司 capex 快报 — 2026-07-23
 
 **追加(113c,文档归档+全端同步)**:Q2追踪档(电话会指引/新闻稿时差两项人工追踪转自动化+GOOGL
