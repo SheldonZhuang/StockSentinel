@@ -23,6 +23,7 @@ import {
   calcLockActive,
   detectSignalChanges,
   applyYieldCurveVeto,
+  applyCreditSpreadVeto,
   applyDowngradeHold,
   applyTrendReentry,
   calcTrendState,
@@ -39,16 +40,18 @@ import {
   getLatestAiChainSnapshot,
   getAllOverrides,
   getUserById,
+  getUserByEmail,
   updateUserAlerts,
   getAllWatchlistSymbols,
   getLatestDailyReport,
 } from './utils/storage.js';
-import { sendSignalAlert, sendS5ActionAlert, sendOpsAlert } from './utils/mailer.js';
+import { sendSignalAlert, sendS5ActionAlert, sendOpsAlert, unsubscribeToken } from './utils/mailer.js';
 import { prewarmFundamentals } from './api/fundamentals.js';
 import { normalizeSymbol, getDailyCloses } from './api/market-data.js';
 import { todayET, daysAgoET } from './utils/datetime.js';
 import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
+import { computeLocks } from './api/locks.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
@@ -154,95 +157,21 @@ app.patch('/api/user/alerts', requireAuth, asyncRoute(async (req, res) => {
   res.json({ ok: true, emailAlerts: enabled });
 }));
 
-/**
- * 根据当天 macroData 和前一条快照，计算两个锁的 effective 状态（应用管理员清锁 override 后）
- * @returns {{sahmValue, rateDiffBp, sahmLockActive, reactiveAdjustmentLockActive, reactiveAdjustmentLockTriggerBp,
- *            sahmLockOverridden, reactiveAdjustmentLockOverridden}}
- */
-function computeLocks(macroData, prevSnapshot, overrides) {
-  const { currentRate, prevRate, sahmValue, rateSteps } = macroData;
-  // 利率变动基线优先用上一快照：FRED 序列相邻观测差只在变动次日非零，
-  // 当天 cron 恰好缺跑就永久漏检；快照差跨任意天数仍能捕捉调整事件（首次运行退回序列前值）
-  const baselineRate = prevSnapshot?.fred_rate ?? prevRate;
-  const endpointDiffBp = currentRate !== null && baselineRate !== null && baselineRate !== undefined
-    ? Math.round((currentRate - baselineRate) * 100)
-    : null;
-
-  // 调整事件判定优先用 FRED 序列在 (上次快照日, 今天] 内的逐笔台阶：
-  // 端点差会把停机窗口内两次渐进 25bp 聚合成一次假 50bp"应对式"触发；
-  // 台阶扫描保留每次调整的真实幅度（取窗口内幅度最大的一笔）。
-  // 首跑（无快照）只看最近一笔台阶（与旧行为等价）；
-  // 序列回看窗口覆盖不到快照日或无台阶时，退回端点差兜底。
-  const sinceDate = prevSnapshot?.date ?? null;
-  const allSteps = rateSteps || [];
-  const stepsSince = sinceDate ? allSteps.filter(s => s.date > sinceDate) : allSteps.slice(0, 1);
-  const rateDiffBp = stepsSince.length
-    ? stepsSince.reduce((a, b) => (Math.abs(b.diffBp) > Math.abs(a.diffBp) ? b : a)).diffBp
-    : endpointDiffBp;
-
-  // raw 锁状态还原（2026-07-30 审查修复）：快照的 *_lock_active 存的是 override 清锁后的
-  // effective 值，但 *_lock_since 按 raw 状态存（非空即 raw 激活）——override 期间必须以 raw
-  // 为基线演进锁龄，否则 since 每日被重置为今天，override 到期后 60 天最短锁存期从零重跑
-  const prevSahmLockActive = prevSnapshot
-    ? !!(prevSnapshot.sahm_lock_active || prevSnapshot.sahm_lock_since) : false;
-  const prevReactiveLockActive = prevSnapshot
-    ? !!(prevSnapshot.reactive_adjustment_lock_active || prevSnapshot.reactive_adjustment_lock_since) : false;
-  const prevTriggerBp = prevSnapshot ? prevSnapshot.reactive_adjustment_lock_trigger_bp : null;
-  // 锁存起始日（V3 最短锁存期用）：旧快照无此列时为 null → calcLockActive fail-open 兼容旧行为
-  const prevSahmLockSince = prevSnapshot?.sahm_lock_since ?? null;
-  const prevReactiveLockSince = prevSnapshot?.reactive_adjustment_lock_since ?? null;
-  const today = todayET();
-  const ageDays = since => (since ? Math.floor((Date.parse(today) - Date.parse(since)) / 86400000) : null);
-
-  // 萨姆触发 fail-closed（2026-07-20 审查修复）：SAHM 数据缺失（FRED故障/429）时，
-  // 已激活的锁视同触发仍存续——否则缺数日恰逢<50bp调整会误解锁，次日数据恢复又重锁，
-  // 产生"单日解锁→次日重锁"翻转和一对方向相反的示警邮件（正是锁设计要避免的模式）。
-  // 未激活的锁在缺数日保持未触发（不无中生有）。
-  const sahmTrigger = sahmValue !== null && sahmValue !== undefined
-    ? sahmValue >= signalCfg.SAHM_TRIGGER_THRESHOLD
-    : prevSahmLockActive;
-  const reactiveTrigger = rateDiffBp !== null && Math.abs(rateDiffBp) >= signalCfg.RATE_REACTIVE_ADJUSTMENT_BP;
-
-  const rawSahmLockActive = calcLockActive({
-    triggerToday: sahmTrigger, rateDiffBp, currentRate, prevLockActive: prevSahmLockActive,
-    lockAgeDays: prevSahmLockActive ? ageDays(prevSahmLockSince) : null,
-  });
-  const rawReactiveLockActive = calcLockActive({
-    triggerToday: reactiveTrigger, rateDiffBp, currentRate, prevLockActive: prevReactiveLockActive,
-    lockAgeDays: prevReactiveLockActive ? ageDays(prevReactiveLockSince) : null,
-  });
-
-  // 锁存起始日演进：新激活 → 今天；持续激活 → 沿用（旧快照缺列则从今天起算）；解除 → 清空
-  const sahmLockSince = rawSahmLockActive
-    ? (prevSahmLockActive ? (prevSahmLockSince ?? today) : today)
-    : null;
-  const reactiveAdjustmentLockSince = rawReactiveLockActive
-    ? (prevReactiveLockActive ? (prevReactiveLockSince ?? today) : today)
-    : null;
-
-  let reactiveAdjustmentLockTriggerBp = null;
-  if (reactiveTrigger) {
-    reactiveAdjustmentLockTriggerBp = rateDiffBp;
-  } else if (rawReactiveLockActive) {
-    reactiveAdjustmentLockTriggerBp = prevTriggerBp;
+// 一键退订（116号）：邮件 List-Unsubscribe 头指向此端点。POST=RFC 8058 一键退订（邮箱客户端
+// 直接调用）；GET=用户点链接的确认路径（同样直接生效，退订宁可过度顺畅不设摩擦）。
+// token=HMAC(email, JWT_SECRET)，无会话要求（收件人未必登录着）
+const handleUnsubscribe = asyncRoute(async (req, res) => {
+  const email = String(req.query.e || '');
+  const token = String(req.query.t || '');
+  if (!email || !token || token !== unsubscribeToken(email)) {
+    return res.status(400).send('Invalid unsubscribe link');
   }
-
-  const sahmLockOverridden = !!overrides.sahmLockClear;
-  const reactiveAdjustmentLockOverridden = !!overrides.reactiveAdjustmentLockClear;
-
-  return {
-    sahmValue,
-    rateDiffBp,
-    sahmLockActive: sahmLockOverridden ? false : rawSahmLockActive,
-    reactiveAdjustmentLockActive: reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive,
-    reactiveAdjustmentLockTriggerBp: reactiveAdjustmentLockOverridden ? null : reactiveAdjustmentLockTriggerBp,
-    sahmLockOverridden,
-    reactiveAdjustmentLockOverridden,
-    // 锁存起始日按 raw 状态记录（override 清锁不清起始日——override 撤销后锁龄延续）
-    sahmLockSince,
-    reactiveAdjustmentLockSince,
-  };
-}
+  const user = await getUserByEmail(email);
+  if (user) await updateUserAlerts(user.id, false);
+  res.send('已退订股哨兵示警邮件。You have been unsubscribed from Stock Sentinel alerts. 登录网站可随时重新开启 / Log in to re-enable anytime.');
+});
+app.get('/api/unsubscribe', handleUnsubscribe);
+app.post('/api/unsubscribe', handleUnsubscribe);
 
 // --- cron 任务 ---
 // 重入护栏（2026-07-30 审查修复）：启动跑与 21:00 cron 可能重叠（部署恰在 20:5x、
@@ -356,19 +285,24 @@ async function runDailyUpdateInner() {
   const fiscal = fiscalOverride?.signal || fiscalAutoEff;
   const admin = adminOverride?.signal || adminAutoEff;
   const aiSupply = aiSupplyOverride?.signal || aiSupplyAutoEff;
-  const decisionTreeSignal = applyYieldCurveVeto(
-    calcFinalSignal(aiSupply, monetary, fiscal, admin),
-    macroData.yieldCurveInvertedDays
+  const decisionTreeSignal = applyCreditSpreadVeto(
+    applyYieldCurveVeto(
+      calcFinalSignal(aiSupply, monetary, fiscal, admin),
+      macroData.yieldCurveInvertedDays
+    ),
+    macroData.creditSpread90dWidenBp
   );
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
   const lockActiveNow = locks.sahmLockActive || locks.reactiveAdjustmentLockActive;
 
   // 趋势状态（W5 趋势再入场）：SPY 日线≈SPX代理，约13个月窗口保证10个月末收盘；
+  // 复权价优先（116号，2026-07-30 用户拍板）：与回测的 Tiingo 总回报口径对齐，
+  // 消除生价 SMA 系统性偏高约0.5-0.7%造成的边界月档位漂移；
   // 拉取失败 → 全 null → applyTrendReentry fail-open（不降级，保持原防守行为）
   let trendState = { spxClose: null, spxMa10m: null, spxAboveSma10: null };
   try {
-    trendState = calcTrendState(await getDailyCloses('SPY', daysAgoET(400), today));
+    trendState = calcTrendState(await getDailyCloses('SPY', daysAgoET(400), today, { adjustedPreferred: true }));
   } catch (err) {
     console.warn('[cron] trend state fetch failed (fail-open):', err.message);
   }

@@ -1,4 +1,16 @@
 import { Resend } from 'resend';
+import crypto from 'crypto';
+
+// 一键退订（116号，Gmail/Yahoo 2024 起对群发者强制 List-Unsubscribe）：
+// token = HMAC(email, JWT_SECRET)，退订端点在 server.js /api/unsubscribe（GET 确认 + POST 一键）
+export function unsubscribeToken(email) {
+  return crypto.createHmac('sha256', process.env.JWT_SECRET || 'no-secret')
+    .update(email.trim().toLowerCase()).digest('hex').slice(0, 32);
+}
+function unsubscribeUrl(email) {
+  const base = process.env.BACKEND_PUBLIC_URL || 'https://stocksentinel-production-55ed.up.railway.app';
+  return `${base}/api/unsubscribe?e=${encodeURIComponent(email)}&t=${unsubscribeToken(email)}`;
+}
 
 // 双实例架构（2026-07-30，H2）：本机 Windows 计划任务与 Railway 云端各自独立跑每日 cron，
 // 两边都配了 Resend 时订阅用户会在信号变更日收到两封（内容还可能因两库快照差异互相矛盾）。
@@ -168,7 +180,15 @@ export async function sendSignalAlert(subscribers, payload) {
     const stillFailing = [];
     for (const sub of pending) {
       try {
-        await sendOne(resend, { from, to: sub.email, subject, html });
+        const unsub = unsubscribeUrl(sub.email);
+        await sendOne(resend, {
+          from, to: sub.email, subject,
+          html: html.replace('</div>\n  ', `<p style="font-size: 11px; color: #aaa;"><a href="${unsub}" style="color: #aaa;">退订示警邮件 Unsubscribe</a></p></div>\n  `),
+          headers: {
+            'List-Unsubscribe': `<${unsub}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
+        });
         sent++;
       } catch (err) {
         console.warn(`[mailer] send to ${sub.email} failed (attempt ${attempt}):`, err.message);

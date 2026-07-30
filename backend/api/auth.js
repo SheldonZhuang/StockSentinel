@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserByEmail } from '../utils/storage.js';
+import { createUser, getUserByEmail, getUserById, revokeUserTokens } from '../utils/storage.js';
 import { asyncRoute } from '../utils/async-route.js';
 import { ipRateLimit } from '../utils/ip-rate-limit.js';
 
@@ -107,18 +107,34 @@ router.get('/me', requireAuth, asyncRoute(async (req, res) => {
   res.json({ id: req.user.id, email: req.user.email });
 }));
 
+// POST /api/auth/logout-all — 吊销本账户所有既发 token（116号：JWT 30天有效期的止损开关，
+// token 疑似泄漏时调用；之后所有旧 token 失效，需重新登录）
+router.post('/logout-all', requireAuth, asyncRoute(async (req, res) => {
+  await revokeUserTokens(req.user.id);
+  res.json({ ok: true, message: 'all tokens revoked, please log in again' });
+}));
+
 // --- JWT 中间件 ---
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'unauthorized' });
 
+  let decoded;
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
   } catch {
-    res.status(401).json({ error: 'invalid or expired token' });
+    return res.status(401).json({ error: 'invalid or expired token' });
   }
+  // 吊销检查（116号）：iat 早于用户 token_min_iat 的 token 已被 logout-all 作废。
+  // sql.js 全内存查询，单次 get 开销微秒级，不构成每请求性能问题
+  getUserById(decoded.id).then(user => {
+    if (user?.token_min_iat && (decoded.iat ?? 0) < user.token_min_iat) {
+      return res.status(401).json({ error: 'token revoked, please log in again' });
+    }
+    req.user = decoded;
+    next();
+  }).catch(next);
 }
 
 // --- 可选管理员中间件 ---

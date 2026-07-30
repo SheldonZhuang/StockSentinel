@@ -146,9 +146,10 @@
   "interpret": {
     "title": "Signal Interpretation",
     "triggers": "Defense triggered by:",
-    "toAttack": "Toward attack (AI supply/demand loose + monetary/fiscal/admin not tight + no locks + US Treasury yield curve not in confirmed inversion):",
-    "allLoose": "Attack conditions met: AI supply/demand loose (active engine firing), monetary/fiscal/admin not tight, no locks, US Treasury yield curve not in confirmed inversion",
-    "yieldCurveOk": "US Treasury yield curve not in confirmed inversion"
+    "toAttack": "Toward attack (AI supply/demand loose + monetary/fiscal/admin not tight + no locks + US Treasury yield curve not in confirmed inversion + credit spread not widening sharply):",
+    "allLoose": "Attack conditions met: AI supply/demand loose (active engine firing), monetary/fiscal/admin not tight, no locks, US Treasury yield curve not in confirmed inversion, credit spread not widening sharply",
+    "yieldCurveOk": "US Treasury yield curve not in confirmed inversion",
+    "creditSpreadOk": "Credit spread not widening sharply (90d < +60bp)"
   },
   "recessionLock": {
     "banner": "Defense Lock Active",

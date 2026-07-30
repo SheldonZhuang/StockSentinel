@@ -146,9 +146,10 @@
   "interpret": {
     "title": "Interprétation du Signal",
     "triggers": "Défense déclenchée par :",
-    "toAttack": "Vers l'attaque (offre/demande IA accommodante + monétaire/fiscale/administrative non resserrées + aucun verrou + courbe des taux du Trésor US hors inversion confirmée) :",
-    "allLoose": "Conditions d'attaque réunies : offre/demande IA accommodante (moteur actif enclenché), monétaire/fiscale/administrative non resserrées, aucun verrou, courbe des taux du Trésor US hors inversion confirmée",
-    "yieldCurveOk": "Courbe des taux du Trésor US hors inversion confirmée"
+    "toAttack": "Vers l'attaque (offre/demande IA accommodante + monétaire/fiscale/administrative non resserrées + aucun verrou + courbe des taux du Trésor US hors inversion confirmée + écart de crédit sans élargissement brutal) :",
+    "allLoose": "Conditions d'attaque réunies : offre/demande IA accommodante (moteur actif enclenché), monétaire/fiscale/administrative non resserrées, aucun verrou, courbe des taux du Trésor US hors inversion confirmée, écart de crédit sans élargissement brutal",
+    "yieldCurveOk": "Courbe des taux du Trésor US hors inversion confirmée",
+    "creditSpreadOk": "Écart de crédit sans élargissement brutal (90 j < +60 pb)"
   },
   "auth": {
     "login": "Connexion",

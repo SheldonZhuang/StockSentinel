@@ -146,9 +146,10 @@
   "interpret": {
     "title": "Signal-Interpretation",
     "triggers": "Verteidigung ausgelöst durch:",
-    "toAttack": "Richtung Angriff (KI Angebot/Nachfrage locker + Geld-/Fiskal-/Verwaltungspolitik nicht restriktiv + keine Sperren + US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion):",
-    "allLoose": "Angriffsbedingungen erfüllt: KI Angebot/Nachfrage locker (aktiver Motor läuft), Geld-/Fiskal-/Verwaltungspolitik nicht restriktiv, keine Sperren, US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion",
-    "yieldCurveOk": "US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion"
+    "toAttack": "Richtung Angriff (KI Angebot/Nachfrage locker + Geld-/Fiskal-/Verwaltungspolitik nicht restriktiv + keine Sperren + US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion + Kreditspread ohne starke Ausweitung):",
+    "allLoose": "Angriffsbedingungen erfüllt: KI Angebot/Nachfrage locker (aktiver Motor läuft), Geld-/Fiskal-/Verwaltungspolitik nicht restriktiv, keine Sperren, US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion, Kreditspread ohne starke Ausweitung",
+    "yieldCurveOk": "US-Treasury-Zinsstrukturkurve nicht in bestätigter Inversion",
+    "creditSpreadOk": "Kreditspread ohne starke Ausweitung (90 T. < +60 Bp)"
   },
   "auth": {
     "login": "Anmelden",

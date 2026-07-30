@@ -47,7 +47,15 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const S = cfg.SIGNAL;
 
 const REPLAY_START = '2000-01-01';
-const REPLAY_END = '2026-06-30';
+// 重放终点=最近一个已收官的日历月末（116号，2026-07-30）：原硬编码 '2026-06-30' 会让
+// 月度回测（滚动到当月）与日度重放在下次重跑时悄悄错窗，"日 vs 月"对照失去可比性。
+// 可用环境变量 REPLAY_END 覆盖（复现历史口径用）。
+const REPLAY_END = process.env.REPLAY_END || (() => {
+  const d = new Date();
+  const firstOfMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+  const lastOfPrev = new Date(firstOfMonth.getTime() - 86400000);
+  return lastOfPrev.toISOString().slice(0, 10);
+})();
 const WARMUP_START = '1999-01-01'; // 锁/迟滞状态热身年（1999无≥50bp调整、萨姆低位，2000-01起状态干净）
 
 // O1 油价水平护栏（2026-07-19 采纳为 runDailyReplay 默认）：油价30天涨幅≥+20%且EPU高位时，
@@ -410,15 +418,19 @@ export function runDailyReplay(DD, opts = {}) {
 
 // ---------- 评估 ----------
 
-/** 日度净值模拟：曝险由上一交易日档位决定；defense→现金（目标利率/252 单日计息） */
-export function simulateNavDailyRecs(recs, { reduceWeight = 1, buyHold = false, signalKey = 'final' } = {}) {
+/** 日度净值模拟：曝险由上一交易日档位决定；defense→现金（目标利率/252 单日计息）。
+ * execLagDays（116号，2026-07-30）：执行滞后敏感性——默认0=信号日收盘成交（含轻微前视：
+ * 趋势门判定输入含成交那根收盘）；1=次日收盘成交（线上真实时序：21:00 ET 出信号、最早
+ * 次日执行）。头条口径仍为 T+0（与月度口径一致），T+1 差值写进报告局限。 */
+export function simulateNavDailyRecs(recs, { reduceWeight = 1, buyHold = false, signalKey = 'final', execLagDays = 0 } = {}) {
   if (recs.length < 2) return null;
   let nav = 1, peak = 1, mdd = 0, trades = 0;
   let prevExposed = null;
   for (let i = 1; i < recs.length; i++) {
     const ret = recs[i].spx / recs[i - 1].spx;
     const cash = 1 + ((recs[i - 1].metrics.rate ?? 0) / 100) / 252;
-    const f = recs[i - 1][signalKey];
+    const sigIdx = Math.max(0, i - 1 - execLagDays);
+    const f = recs[sigIdx][signalKey];
     const w = buyHold ? 1 : f === 'defense' ? 0 : f === 'reduce' ? reduceWeight : 1;
     nav *= w * ret + (1 - w) * cash;
     if (prevExposed !== null && w !== prevExposed) trades++;
@@ -970,10 +982,18 @@ async function main() {
   const vetoDays = recs.filter(r => r.metrics.invertedDays !== null && r.metrics.invertedDays >= cfg.YIELD_CURVE_INVERSION_CONFIRM_DAYS).length;
   console.log(`\nT10Y3M 曲线否决：确认期内共 ${vetoDays} 个交易日，但 AI维恒neutral→attack不可达→实际否决 0 次（结构性无操作，如实报告）`);
 
+  // T+1 执行敏感性（116号）：线上真实时序=收盘后出信号、最早次日成交；T+0 头条口径含轻微前视
+  const simDT1 = simulateNavDailyRecs(recs, { execLagDays: 1 });
+  console.log(`\nT+1 执行敏感性：T+0 年化 ${simD.cagrPct.toFixed(2)}%/回撤 ${simD.mddPct.toFixed(1)}% vs T+1 ${simDT1.cagrPct.toFixed(2)}%/${simDT1.mddPct.toFixed(1)}%（差 ${(simD.cagrPct - simDT1.cagrPct).toFixed(2)}pp）`);
+
   fs.writeFileSync(path.join(__dirname, 'daily-replay-raw.json'), JSON.stringify({
     generatedAt: new Date().toISOString(), replayRange: [REPLAY_START, REPLAY_END],
     crisisDaily: daily, monthlyCrisis: sM.crisisRows,
-    overall: { daily: { ...simD, defDays, reduceDays, totalDays: recs.length, episodes: epsD.length, falsePositives: fpCount }, monthly: sM.overall },
+    overall: {
+      daily: { ...simD, defDays, reduceDays, totalDays: recs.length, episodes: epsD.length, falsePositives: fpCount },
+      dailyT1: { cagrPct: simDT1.cagrPct, mddPct: simDT1.mddPct },
+      monthly: sM.overall,
+    },
     flips: { changes: fd.changes.length, roundTrips: fd.roundTrips, holdDays: fd.holdDays, confirmed: fd.confirmed, absorbed: fd.absorbed },
     episodes: epsD.map((e, i) => ({ ...e, falsePositive: fpVerdicts[i] })),
     timeline: recs,

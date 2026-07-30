@@ -146,9 +146,10 @@
   "interpret": {
     "title": "Interpretación de la Señal",
     "triggers": "Defensa activada por:",
-    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos + curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada):",
-    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos, curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada",
-    "yieldCurveOk": "Curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada"
+    "toAttack": "Hacia ataque (oferta/demanda IA laxa + monetaria/fiscal/administrativa no restrictivas + sin bloqueos + curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada + diferencial de crédito sin ampliación brusca):",
+    "allLoose": "Condiciones de ataque cumplidas: oferta/demanda IA laxa (motor activo encendido), monetaria/fiscal/administrativa no restrictivas, sin bloqueos, curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada, diferencial de crédito sin ampliación brusca",
+    "yieldCurveOk": "Curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada",
+    "creditSpreadOk": "Diferencial de crédito sin ampliación brusca (90 d < +60 pb)"
   },
   "auth": {
     "login": "Iniciar Sesión",

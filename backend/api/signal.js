@@ -364,6 +364,22 @@ export function applyYieldCurveVeto(signal, invertedDays) {
 }
 
 /**
+ * 信用利差否决器（2026-07-30 用户拍板，116号建议采纳）：BAA10Y 90日走阔 ≥ 阈值(+60bp)时，
+ * 进攻档降级为观望——信用市场急剧恶化是 2008/2020 最快的确认信号，"不在信用恐慌中开最激进
+ * 档位"与非对称进攻哲学一致。与曾被否决的"信用利差防守锁"不同：只否决 attack、不触发防守、
+ * 不做锁，没有复苏期高位回落慢的误锁问题（回落慢只推迟进攻）。阈值 +60bp≈1990年起分布 P96，
+ * 命中年份全部为真实压力期（1990/1998/2000-02/2008-09/2010-11/2020/2022）。
+ * server 层与 payloads 层共用本函数；widenBp 为 null（数据缺失）时 fail-open 不否决。
+ * @param {string} signal - applyYieldCurveVeto 之后的档位
+ * @param {number|null} widenBp - creditSpread90dWidenBp
+ */
+export function applyCreditSpreadVeto(signal, widenBp) {
+  if (signal !== FINAL_SIGNAL.ATTACK) return signal;
+  if (widenBp === null || widenBp === undefined) return signal;
+  return widenBp >= cfg.CREDIT_SPREAD_ATTACK_VETO_WIDEN_BP ? FINAL_SIGNAL.NEUTRAL : signal;
+}
+
+/**
  * 趋势状态（W5 趋势再入场用）：SPY 最新收盘 vs 含当月的最近10个"月末收盘"简单均线。
  * 与回测同口径：回测在月末采样，SMA 含当月月末收盘；线上日频的当月等价值=最新收盘。
  * @param {Array<{date: string, close: number}>} bars - 日线（升序或乱序均可，内部按日期排序）

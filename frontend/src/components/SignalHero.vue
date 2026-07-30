@@ -199,9 +199,10 @@ const tightDims = computed(() =>
 // AI供需维度卡内联（dimMetric）+ 参考指标区 + 产业链面板三处足够
 
 
-// "距进攻"清单 = 四维达成状态 + 收益率曲线否决器。
+// "距进攻"清单 = 四维达成状态 + 收益率曲线否决器 + 信用利差否决器。
 // 曲线项同步 backend/api/signal.js applyYieldCurveVeto：10y−3m 连续倒挂 ≥63 个交易日
 // （≈3个月，signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS）时否决进攻档准入；
+// 信用项同步 applyCreditSpreadVeto（2026-07-30 采纳）：BAA10Y 90日走阔 ≥+60bp 时否决进攻；
 // 数据缺失(null)视为达成——与后端 fail-open 同口径。
 const attackChecklist = computed(() => [
   ...positions.value.map(d => ({ key: d.key, labelKey: `signalPos.${d.key}`, ok: attackReady(d) })),
@@ -209,6 +210,11 @@ const attackChecklist = computed(() => [
     key: 'yieldCurve',
     labelKey: 'interpret.yieldCurveOk',
     ok: (props.signal?.indicators?.yieldCurveInvertedDays ?? 0) < 63,
+  },
+  {
+    key: 'creditSpread',
+    labelKey: 'interpret.creditSpreadOk',
+    ok: (props.signal?.indicators?.creditSpread90dWidenBp ?? 0) < 60,
   },
 ]);
 

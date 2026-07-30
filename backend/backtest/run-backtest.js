@@ -1448,6 +1448,18 @@ export function runEvalR(D) {
 }
 
 function writeReport(s, timeline) {
+  // 不确定性区间行（116号）：bootstrap-ci.json 存在则引用其数字（重跑回测后须重跑
+  // node backtest/bootstrap-ci.mjs 刷新，脚本自带"复现官方口径才出区间"守卫）
+  function bootstrapLine() {
+    try {
+      const ci = JSON.parse(fs.readFileSync(path.join(__dirname, 'bootstrap-ci.json'), 'utf8'));
+      const d = ci.ci90.diffPp;
+      const sc = ci.ci90.stratCagrPct, bc = ci.ci90.buyHoldCagrPct;
+      return `- **不确定性区间（循环块自助法，2026-07-30 采纳）**：对逐月配对收益(策略,买持)做块长12个月、B=10000 的循环块自助——90% 区间：策略年化 [${sc.p5}%, ${sc.p95}%]、买持 [${bc.p5}%, ${bc.p95}%]、**年化差 [${d.p5}pp, ${d.p95}pp]（优势为正概率约${Math.round(ci.probDiffPositive * 100)}%）**。区间下界${d.p5 < 0 ? '跨零：与"优势集中于2000/2008两段大熊、无灾长牛期防守系统是净成本"的披露一致——引用点估计时应连同区间' : '为正'}。复现：\`node backtest/bootstrap-ci.mjs\`（固定种子，读 backtest-raw.json 离线运行，重建口径与官方 summary 复现一致后才出区间；生成于 ${ci.generatedAt.slice(0, 10)}）。`;
+    } catch {
+      return '- **不确定性区间**：本次重跑后尚未刷新——运行 `node backtest/bootstrap-ci.mjs` 生成（116号采纳的块自助置信区间）。';
+    }
+  }
   const f = v => v === null || v === undefined ? '—' : (typeof v === 'number' ? v.toFixed(1) : v);
   const missedCell = c => c.missedKind === 'preTop' ? `信号后再涨+${f(c.missedPct)}%见顶`
     : c.missedKind === 'postTop' ? `已回落${f(c.missedPct)}%` : '—';
@@ -1487,6 +1499,7 @@ ${rows}
 - **全面防守占比：${(s.defMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%**，减仓观望占比：${(s.reduceMonths / (s.defMonths + s.reduceMonths + s.nonDefMonths) * 100).toFixed(0)}%（防守分级后，单维收紧不再全仓防守）
 - 全期（${s.overall.years.toFixed(1)}年）：买入持有 年化 ${f(s.overall.buyHoldCagr)}%、最大回撤 ${f(s.overall.buyHoldMdd)}%；策略（仅defense离场，defense月计现金利息）年化 ${f(s.overall.stratCagr)}%、最大回撤 ${f(s.overall.stratMdd)}%
 - **敏感性（照档位建议执行）**："reduce=50%仓"策略（reduce 月 50% SPY + 50% 现金利息；defense 月全现金；其余满仓）：年化 ${f(s.overall.reduceHalfCagr)}%、最大回撤 ${f(s.overall.reduceHalfMdd)}%——与上行"仅defense离场"口径并列，反映严格按档位执行的真实预期
+${bootstrapLine()}
 - **子样本稳健性（2010-01 起，${f(s.overall.sub2010Years)}年）**：策略年化 ${f(s.overall.sub2010StratCagr)}%（最大回撤 ${f(s.overall.sub2010StratMdd)}%）vs 买入持有年化 ${f(s.overall.sub2010BuyHoldCagr)}%（最大回撤 ${f(s.overall.sub2010BuyHoldMdd)}%）——策略的超额收益高度依赖起点包含 2000 年泡沫顶；后半段策略主要贡献是降回撤而非增收益
 - 各维度收紧月数：货币 ${s.dimTight.monetary}、财政 ${s.dimTight.fiscal}、行政 ${s.dimTight.admin}；锁激活 ${s.dimTight.lockMonths} 个月
 - 防守信号片段共 **${s.episodes}** 段，其中 **${s.falsePositives}** 段未伴随随后12个月内 >15% 的回撤（假阳性率 ${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}%）
@@ -1506,6 +1519,7 @@ ${rows}
 4. **修订版 vs vintage**：EPUTRADE/MTS财政支出/PCEPI 用的都是 FRED 最新修订版而非当时可见的原始值（财政与 PCEPI 均有后续修订），与实时决策存在残余偏差；SAHMREALTIME 为实时构建、不回改的序列（已抽查 2024-07 初值同样 ≥0.5），萨姆锁触发时点不受此影响。
 5. **SPY 代理 SPX**：ETF 价格与指数走势一致，顶部/底部日期可能相差1个交易日以内。
 6. **假阳性为保守上界**：假阳性判定用月末采样价，月中盘中出现过 >15% 但月末收复的回撤会被漏计，${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 是保守上界。
+7. **执行时点敏感性（T+1 实测，2026-07-30）**：头条口径为信号日收盘成交（T+0，趋势门判定输入含成交那根收盘，理论上有轻微前视）。日度重放实测 T+1（次日收盘成交，即线上真实时序）：年化 12.82% vs T+0 12.13%（T+0 反而偏保守 0.7pp）、盯市回撤同为 -19.3%——同收盘假设未美化头条数字；注意 2xQQQ 执行层结论不同（2022 年 T+0 -45.3% vs T+1 -36.5%，见 S5 手册），杠杆执行按 T+1 建模。重跑后最新值见 daily-replay-raw.json 的 overall.dailyT1。
 
 ## 结论与建议
 

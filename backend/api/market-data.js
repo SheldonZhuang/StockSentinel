@@ -139,7 +139,7 @@ async function closesFromYahoo(symbol, startDate, endDate) {
   try {
     const bars = await yahooFinance.historical(symbol, { period1: startDate, period2: endDate });
     const closes = (bars || [])
-      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.close }))
+      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.adjClose ?? b.close }))
       .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
     if (closes.length) return closes;
   } catch (err) {
@@ -199,11 +199,16 @@ async function closesFromTwelveData(symbol, startDate, endDate) {
 
 /**
  * 日线收盘价（三层回退 + 10分钟缓存）
+ * @param {object} [opts] - adjustedPreferred: 复权价优先（116号，2026-07-30 用户拍板）——
+ *   趋势门(10月SMA)的回测口径是 Tiingo 总回报复权价，线上若走 moomoo/twelvedata 生价，
+ *   SMA 会系统性偏高约0.5-0.7%，边界月档位可能与回测漂移；该选项把复权价源
+ *   （yahoo两路均取 adjclose、tiingo adjClose）排到生价源（moomoo/twelvedata）之前。
+ *   兜底仍保留生价源：口径微漂 < 数据断供（fail-open 哲学）。
  * @returns {Array<{date: string, close: number}>|null} 升序；全部失败 → null
  */
-export async function getDailyCloses(symbol, startDate, endDate) {
+export async function getDailyCloses(symbol, startDate, endDate, opts = {}) {
   symbol = normalizeSymbol(symbol);
-  const key = `closes:${symbol}:${startDate}:${endDate}`;
+  const key = `closes:${symbol}:${startDate}:${endDate}:${opts.adjustedPreferred ? 'adj' : 'std'}`;
   const cached = cacheGet(key);
   if (cached !== undefined) return cached;
 
@@ -211,13 +216,21 @@ export async function getDailyCloses(symbol, startDate, endDate) {
     const cachedAgain = cacheGet(key); // 排队期间可能已被同 key 请求填充
     if (cachedAgain !== undefined) return cachedAgain;
 
-    const providers = [
-      // moomoo OpenD 本地网关（美股LV3，仅 MOOMOO_WS_PORT 配置时参与；失败静默回落）
-      ...(moomooEnabled() ? [['moomoo', closesFromMoomoo]] : []),
-      ['yahoo', closesFromYahoo],
-      ['tiingo', closesFromTiingo],
-      ['twelvedata', closesFromTwelveData],
-    ];
+    const providers = opts.adjustedPreferred
+      ? [
+          // 复权价优先（趋势门用）：yahoo(adjclose) → tiingo(adjClose) → 生价源兜底
+          ['yahoo', closesFromYahoo],
+          ['tiingo', closesFromTiingo],
+          ...(moomooEnabled() ? [['moomoo', closesFromMoomoo]] : []),
+          ['twelvedata', closesFromTwelveData],
+        ]
+      : [
+          // moomoo OpenD 本地网关（美股LV3，仅 MOOMOO_WS_PORT 配置时参与；失败静默回落）
+          ...(moomooEnabled() ? [['moomoo', closesFromMoomoo]] : []),
+          ['yahoo', closesFromYahoo],
+          ['tiingo', closesFromTiingo],
+          ['twelvedata', closesFromTwelveData],
+        ];
     for (const [name, fn] of providers) {
       try {
         const closes = await fn(symbol, startDate, endDate);

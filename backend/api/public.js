@@ -119,7 +119,8 @@ async function resolveTier(req) {
     keyCache.set(key, { record, at: Date.now() });
   }
   if (!record) return null; // 无效或已禁用的 key
-  return { id: `key:${key}`, tier: record.tier in TIER_DAILY_LIMITS ? record.tier : 'free' };
+  // 用量底账 identifier 用 key 前缀（116号）：完整 key 写入 api_usage 表=备份仓里另一份明文底账
+  return { id: `key:${key.slice(0, 12)}`, tier: record.tier in TIER_DAILY_LIMITS ? record.tier : 'free' };
 }
 
 export async function rateLimit(req, res, next) {

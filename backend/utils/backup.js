@@ -5,10 +5,48 @@
 //   GITHUB_BACKUP_TOKEN  fine-grained PAT，仅授予该仓库的 Contents: Read and write
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import axios from 'axios';
 import { DB_PATH, getLatestSnapshot } from './storage.js';
 
 const API = 'https://api.github.com';
+
+// 备份加密（116号，2026-07-30 用户拍板）：GitHub 私仓里的整库含用户邮箱/密码哈希/API key，
+// PAT 泄漏即全量泄漏。配置 BACKUP_ENCRYPTION_KEY（64位hex=32字节）后上传前 AES-256-GCM 加密；
+// 未配置则保持明文（向后兼容）。格式：magic "SSENCv1" + iv(12B) + authTag(16B) + 密文。
+// ⚠️ 密钥丢失=全部加密备份作废——本机与 Railway 必须配同一把钥匙，并在密码管理器留底。
+const ENC_MAGIC = Buffer.from('SSENCv1');
+
+function encryptionKey() {
+  const hex = process.env.BACKUP_ENCRYPTION_KEY;
+  if (!hex) return null;
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
+    console.warn('[backup] BACKUP_ENCRYPTION_KEY must be 64 hex chars (32 bytes) — encryption disabled');
+    return null;
+  }
+  return Buffer.from(hex, 'hex');
+}
+
+export function encryptBackup(buf) {
+  const key = encryptionKey();
+  if (!key) return buf;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const enc = Buffer.concat([cipher.update(buf), cipher.final()]);
+  return Buffer.concat([ENC_MAGIC, iv, cipher.getAuthTag(), enc]);
+}
+
+export function decryptBackupIfNeeded(buf) {
+  if (!buf.slice(0, ENC_MAGIC.length).equals(ENC_MAGIC)) return buf; // 明文旧备份
+  const key = encryptionKey();
+  if (!key) throw new Error('backup is encrypted but BACKUP_ENCRYPTION_KEY not set');
+  const iv = buf.slice(ENC_MAGIC.length, ENC_MAGIC.length + 12);
+  const tag = buf.slice(ENC_MAGIC.length + 12, ENC_MAGIC.length + 28);
+  const data = buf.slice(ENC_MAGIC.length + 28);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(data), decipher.final()]);
+}
 
 function headers() {
   return {
@@ -78,7 +116,14 @@ export async function restoreDatabaseIfMissing() {
     const res = await axios.get(url, { headers: headers(), timeout: 60000 });
     const b64 = res.data?.content;
     if (!b64) return { skipped: true, reason: 'no latest.db in backup repo' };
-    const buf = Buffer.from(b64.replace(/\n/g, ''), 'base64');
+    let buf = Buffer.from(b64.replace(/\n/g, ''), 'base64');
+    // 加密备份先解密（明文旧备份原样通过）；密钥缺失/错误 → fail-open 空库启动
+    try {
+      buf = decryptBackupIfNeeded(buf);
+    } catch (err) {
+      console.warn('[backup] decrypt failed (starting with empty db):', err.message);
+      return { skipped: true, reason: `decrypt failed: ${err.message}` };
+    }
     // 完整性护栏（2026-07-30，L4）：坏文件落盘会让 sql.js 初始化永久 rejected → 全接口 500。
     // 校验 SQLite 文件头魔数与最小体积，不合格视同无备份（fail-open 空库启动，好过全站瘫痪）
     if (buf.length < 4096 || !buf.slice(0, 16).toString('latin1').startsWith('SQLite format 3')) {
@@ -119,7 +164,7 @@ export async function backupDatabase() {
   }
   try {
     if (!fs.existsSync(DB_PATH)) return { ok: false, error: `db file not found: ${DB_PATH}` };
-    const buf = fs.readFileSync(DB_PATH);
+    const buf = encryptBackup(fs.readFileSync(DB_PATH));
     const b64 = buf.toString('base64');
     const day = new Date().toISOString().slice(0, 10);
     const dated = `backups/${day.slice(0, 4)}/stock-sentinel-${day}.db`;

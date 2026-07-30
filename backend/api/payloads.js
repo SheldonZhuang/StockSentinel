@@ -7,7 +7,7 @@ import {
   getLatestAiChainSnapshot,
   getRecentGuidance,
 } from '../utils/storage.js';
-import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyTrendReentry } from './signal.js';
+import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyCreditSpreadVeto, applyTrendReentry } from './signal.js';
 
 /**
  * 当前信号完整载荷（读取时实时重算决策树+锁强制，与快照解耦以反映最新 override）
@@ -39,9 +39,12 @@ export async function buildSignalPayload() {
   const sahmLockActive = sahmLockOverridden ? false : rawSahmLockActive;
   const reactiveAdjustmentLockActive = reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive;
 
-  const decisionTreeSignal = applyYieldCurveVeto(
-    calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
-    snapshot.yield_curve_inverted_days ?? null
+  const decisionTreeSignal = applyCreditSpreadVeto(
+    applyYieldCurveVeto(
+      calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
+      snapshot.yield_curve_inverted_days ?? null
+    ),
+    snapshot.credit_spread_90d_widen_bp ?? null
   );
   const lockActiveNow = sahmLockActive || reactiveAdjustmentLockActive;
   const candidateSignal = applyTrendReentry(

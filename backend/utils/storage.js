@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -179,8 +180,46 @@ function migrateSchema() {
       changed = true;
     }
   }
+  // API key 哈希化（116号，2026-07-30）：明文 key 是"备份仓/日志泄漏=全部已售密钥泄漏"的
+  // 单点。加 key_hash 列（sha256），存量明文 key 迁移为哈希+前缀展示；完整 key 仅签发时
+  // 返回一次（业界标准）。幂等：只处理 key_hash IS NULL 且 key 仍是完整格式的行
+  const existingKeyCols = new Set(all('PRAGMA table_info(api_keys)').map((c) => c.name));
+  if (!existingKeyCols.has('key_hash')) {
+    db.run('ALTER TABLE api_keys ADD COLUMN key_hash TEXT');
+    changed = true;
+  }
+  // JWT 吊销支持（116号）：token_min_iat 之前签发的 token 一律拒绝（改密/怀疑泄漏时置为当前时间）
+  const existingUserCols = new Set(all('PRAGMA table_info(users)').map((c) => c.name));
+  if (!existingUserCols.has('token_min_iat')) {
+    db.run('ALTER TABLE users ADD COLUMN token_min_iat INTEGER');
+    changed = true;
+  }
+  const plainKeys = all("SELECT id, key FROM api_keys WHERE key_hash IS NULL AND key NOT LIKE '%…'");
+  for (const row of plainKeys) {
+    db.run('UPDATE api_keys SET key_hash = ?, key = ? WHERE id = ?',
+      [sha256Hex(row.key), `${row.key.slice(0, 12)}…`, row.id]);
+    changed = true;
+  }
+  if (plainKeys.length) console.log(`[migrate] 116号：${plainKeys.length} 个明文 API key 已哈希化（仅存前缀+sha256）`);
+  // api_usage 历史底账同款脱敏：identifier 'key:<完整key>' → 'key:<前缀12位>'（同前缀合并计数）
+  const longUsage = all("SELECT COUNT(*) AS n FROM api_usage WHERE identifier LIKE 'key:%' AND length(identifier) > 16")[0];
+  if (longUsage?.n > 0) {
+    db.run(`
+      INSERT INTO api_usage (day, identifier, count)
+      SELECT day, 'key:' || substr(identifier, 5, 12), SUM(count) FROM api_usage
+      WHERE identifier LIKE 'key:%' AND length(identifier) > 16 GROUP BY day, substr(identifier, 5, 12)
+      ON CONFLICT(day, identifier) DO UPDATE SET count = count + excluded.count
+    `);
+    db.run("DELETE FROM api_usage WHERE identifier LIKE 'key:%' AND length(identifier) > 16");
+    console.log(`[migrate] 116号：${longUsage.n} 条 api_usage 明文 key 底账已脱敏为前缀`);
+    changed = true;
+  }
   if (changed) persist();
   patchGuidanceData();
+}
+
+function sha256Hex(s) {
+  return crypto.createHash('sha256').update(s).digest('hex');
 }
 
 // 115号一次性数据补丁（2026-07-30）：MSFT FY26Q4 财报当晚 web 检索命中财报前预览稿，
@@ -511,6 +550,15 @@ export async function updateUserAlerts(userId, enabled) {
   notifyUserWrite();
 }
 
+// JWT 吊销（116号）：置 token_min_iat=now 使该用户所有既发 token 失效（需重新登录）
+export async function revokeUserTokens(userId) {
+  await getDb();
+  const now = Math.floor(Date.now() / 1000);
+  run('UPDATE users SET token_min_iat = ? WHERE id = ?', [now, userId]);
+  notifyUserWrite();
+  return now;
+}
+
 // --- Signal Snapshots ---
 
 export async function saveSignalSnapshot(data) {
@@ -779,19 +827,23 @@ export async function getLatestAiChainSnapshot() {
 
 export async function createApiKey(key, name, tier) {
   await getDb();
-  run('INSERT INTO api_keys (key, name, tier) VALUES (?, ?, ?)', [key, name || null, tier || 'free']);
+  // 只存哈希+前缀（116号）：完整 key 仅在本次响应中返回一次，之后无法再查看
+  const hash = sha256Hex(key);
+  run('INSERT INTO api_keys (key, key_hash, name, tier) VALUES (?, ?, ?, ?)',
+    [`${key.slice(0, 12)}…`, hash, name || null, tier || 'free']);
   notifyUserWrite();
-  return get('SELECT * FROM api_keys WHERE key = ?', [key]);
+  const row = get('SELECT * FROM api_keys WHERE key_hash = ?', [hash]);
+  return { ...row, key }; // 响应携带完整 key（仅此一次）
 }
 
 export async function getApiKeyRecord(key) {
   await getDb();
-  return get('SELECT * FROM api_keys WHERE key = ? AND disabled = 0', [key]);
+  return get('SELECT * FROM api_keys WHERE key_hash = ? AND disabled = 0', [sha256Hex(key)]);
 }
 
 export async function listApiKeys() {
   await getDb();
-  return all('SELECT id, key, name, tier, disabled, created_at FROM api_keys ORDER BY id DESC');
+  return all('SELECT id, key, name, tier, disabled, created_at FROM api_keys ORDER BY id DESC'); // key 列已是前缀展示
 }
 
 export async function setApiKeyDisabled(id, disabled) {

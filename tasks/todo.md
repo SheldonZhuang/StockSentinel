@@ -290,3 +290,18 @@ LLM 判 none 正确;$195-205B 指引是 CFO 电话会口头给的——新闻稿
 **邮件库的失败语义必须实测不能靠假设**：Resend SDK 从不 reject，三套精心设计的重试/升级链路
 全是死代码，单测还全绿（mock 按想象的 reject 语义写）。教训：对外部 SDK 的错误路径，
 先读一遍它的源码再写错误处理；mock 语义要对着真实 SDK 校准。
+
+
+## 116b号（2026-07-30 三条建议+待议项全部执行，用户拍板）
+
+- [x] 信用利差进攻否决：+60bp/90日阈值（1990年起分布P96实证）；只否决attack不触发防守；cron/payload/前端清单/7语言/SKILL/README全同步；9条新单测
+- [x] 回测置信区间：块自助（12月块×10000次），策略−买持年化差90%区间[−0.39,+8.65]pp、P(优势>0)≈93%；复现守卫+报告/SKILL入档
+- [x] 对外数字单一来源化：tests/doc-numbers.test.js 把 SKILL/报告数字与引擎json逐一对比，漂移即红灯
+- [x] T+1执行敏感性实测：T+1年化12.82% vs T+0 12.13%——头条口径反而保守0.7pp，写入报告局限
+- [x] 趋势门价格口径统一（用户单独授权）：复权价源优先，与回测口径对齐
+- [x] computeLocks抽出api/locks.js + 8场景漂移测试（线上vs回放镜像逐位对比）
+- [x] REPLAY_END自动滚动到最近收官月（防日/月对照错窗）
+- [x] 备份AES-256-GCM加密（本机.env已生成钥匙；**用户待办：同钥配到Railway+密码管理器留底**）
+- [x] API key哈希化（sha256+前缀展示；存量key与usage底账启动迁移自动脱敏，已冒烟验证）
+- [x] JWT吊销（POST /api/auth/logout-all）+ 一键退订（List-Unsubscribe RFC 8058 + /api/unsubscribe）
+- [x] Railway已加ADMIN_PASSWORD（用户完成）；574测试全过；全端部署

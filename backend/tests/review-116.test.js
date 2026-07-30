@@ -7,6 +7,7 @@ import { describe, it, expect, vi, afterAll } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { applyCreditSpreadVeto } from '../api/signal.js';
 
 const tmpDb = path.join(os.tmpdir(), `stock-sentinel-r116-${process.pid}-${Date.now()}.db`);
 process.env.DB_PATH = tmpDb;
@@ -76,5 +77,23 @@ describe('mailer 对 Resend {data,error} 语义的处理（116号修复）', () 
     expect(sendMock).not.toHaveBeenCalled();
     delete process.env.INSTANCE_ROLE;
     vi.doUnmock('resend');
+  });
+});
+
+describe('applyCreditSpreadVeto 信用利差进攻否决（2026-07-30 采纳）', () => {
+  it('走阔 ≥+60bp 时进攻降级观望', () => {
+    expect(applyCreditSpreadVeto('attack', 60)).toBe('neutral');
+    expect(applyCreditSpreadVeto('attack', 150)).toBe('neutral');
+  });
+  it('走阔 <+60bp / 收窄 / null（fail-open）不否决', () => {
+    expect(applyCreditSpreadVeto('attack', 59)).toBe('attack');
+    expect(applyCreditSpreadVeto('attack', -30)).toBe('attack');
+    expect(applyCreditSpreadVeto('attack', null)).toBe('attack');
+    expect(applyCreditSpreadVeto('attack', undefined)).toBe('attack');
+  });
+  it('只否决 attack，其他档位原样通过（不触发防守）', () => {
+    expect(applyCreditSpreadVeto('neutral', 200)).toBe('neutral');
+    expect(applyCreditSpreadVeto('reduce', 200)).toBe('reduce');
+    expect(applyCreditSpreadVeto('defense', 200)).toBe('defense');
   });
 });
