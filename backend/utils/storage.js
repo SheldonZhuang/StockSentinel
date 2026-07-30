@@ -179,6 +179,37 @@ function migrateSchema() {
     }
   }
   if (changed) persist();
+  patchGuidanceData();
+}
+
+// 115号一次性数据补丁（2026-07-30）：MSFT FY26Q4 财报当晚 web 检索命中财报前预览稿，
+// 指引字段落档为旧计划/分析师推测（本机与云端各自污染）。按 accession 定点覆盖为
+// 财报后多源核实值；幂等（以 'restated' 关键词判断是否已修），云端/本机部署即收敛。
+// 检索 prompt 已同步加"只采用财报后报道"护栏，防同类复发（fetch-guidance.js）。
+function patchGuidanceData() {
+  const msft = all(`SELECT id FROM capex_guidance_records
+    WHERE accession = '0001193125-26-323632'
+      AND (fy_guidance IS NULL OR fy_guidance NOT LIKE '%restated%')`);
+  const meta = all(`SELECT id FROM capex_guidance_records
+    WHERE accession = '0001628280-26-050596' AND forward_guidance LIKE '%Analyst%'`);
+  if (!msft.length && !meta.length) return;
+  if (msft.length) {
+    db.run(`UPDATE capex_guidance_records SET
+        direction = 'maintain', confidence = 'high',
+        quote = 'CFO Amy Hood: calendar 2026 investment plans unchanged; extending useful life of datacenter/office buildings from 15 to 25 years (and shifting more future datacenter leases to operating leases) restates CY2026 capex+finance leases to ~$175B, comparable to the prior ~$190B — no change in actual spending. Q4 capex+finance leases $41B (+70% YoY), cash PP&E $35.8B. FY27 Q1 capex expected to exceed $50B; FY27 capex to grow YoY.',
+        fy_guidance = 'CY2026 ~$175B capex+finance leases (restated from ~$190B by useful-life accounting change 15y->25y; actual spending unchanged)',
+        forward_guidance = 'FY2027 Q1 capex >$50B; FY2027 capex expected to grow YoY on demand exceeding capacity',
+        sources = '["https://www.cnbc.com/2026/07/29/microsoft-msft-q4-earnings-report-2026.html","https://www.theregister.com/software/2026/07/30/microsoft-earnings-q4-26-cloud-brings-revenue-rain/5280798","https://www.zerohedge.com/markets/msft-bounces-after-revenue-beat-cloud-strength-capex-line","https://convergedigest.com/microsoft-plans-175-billion-in-2026-capital-spending/"]'
+      WHERE accession = '0001193125-26-323632'`);
+    console.log('[migrate] 115号补丁：MSFT FY26Q4 指引记录已由预览稿污染值修正为财报后核实值');
+  }
+  if (meta.length) {
+    // 分析师推测不是管理层指引——置空，方向/全年区间(新闻稿原文)不动
+    db.run(`UPDATE capex_guidance_records SET forward_guidance = NULL
+      WHERE accession = '0001628280-26-050596'`);
+    console.log('[migrate] 115号补丁：META 前瞻指引字段清除分析师推测（非管理层表述）');
+  }
+  persist();
 }
 
 function persist() {
