@@ -167,3 +167,18 @@ v-html）、7语言 hints 与现行规则逐条一致（0 缺 key）、回测分
 
 - **Railway 加环境变量 `BACKUP_ENCRYPTION_KEY`**：值=本机 backend/.env 里同名值（两端必须同钥），
   并在密码管理器留底。不配则云端备份继续明文（功能不受影响，只是加密未启用）。
+
+---
+
+## 七、收尾批次（116c，同日）
+
+- **月度回测漂移测试**（`tests/monthly-replay-drift.test.js`）：报告第四节承诺的最后一项——
+  同一输入喂 replayMonth 内联判定与线上 calcMonetarySignal/calcFiscalSignal/calcAdminSignal，
+  货币 5×4 组合、财政 10 阈值点、行政 8×6 组合（含油价事件层/O1护栏/fail-closed 暴跌侧）
+  逐位对比，漂移即红灯。已知合法口径差（prevRate 语义/EPU 单双代理）在测试头注明并排除出对比域。
+- **管理面板清除入口**：后端 `auto` 清除哨兵此前只有 API 没有界面——补"清除覆盖（回自动）"
+  按钮（误报 N3 的手动清除路径）与"撤销清锁覆盖"按钮（误清锁的回退路径），7 语言文案。
+- **openapi.yaml 补档**：进攻档双否决器（曲线倒挂/信用利差）、降档迟滞与
+  finalDowngradePendingSince、staleFlags（含新增 monetary）schema。
+- 578 测试全过。至此 116号 报告第四节"评估后未实施"清单全部清零或有明确归宿：
+  1-4/6 已实施（116b/116c），5 已实施（备份加密+key哈希化），7 为维持现状的设计决策。

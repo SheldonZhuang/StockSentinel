@@ -55,6 +55,9 @@ export const api = {
   getReference: (category) => request(`/admin/reference?category=${category}`),
   setLockOverride: (type, expiresAt, note) =>
     request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),
+  // 116号：撤销现存清锁覆盖（锁按 raw 状态恢复）
+  cancelLockOverride: (type, note) =>
+    request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, cancel: true, note }) }),
   getAdminS5: () => request('/admin/s5'),
 
   // AI Chain Bottleneck

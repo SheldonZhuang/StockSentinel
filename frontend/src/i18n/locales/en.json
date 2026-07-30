@@ -229,7 +229,9 @@
       "disable": "Disable"
     },
     "capexGuidance": "Capex Guidance Cut",
-    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses. Two guardrails: web search only trusts post-earnings coverage (previews/analyst expectations are not guidance); accounting-basis changes that shift nominal guidance with unchanged actual plans are \"maintain\" and do not trigger this event."
+    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses. Two guardrails: web search only trusts post-earnings coverage (previews/analyst expectations are not guidance); accounting-basis changes that shift nominal guidance with unchanged actual plans are \"maintain\" and do not trigger this event.",
+    "clearOverride": "Clear override (back to auto)",
+    "cancelLockOverride": "Cancel lock-clear (lock restored per data)"
   },
   "settings": {
     "title": "Settings",

@@ -222,7 +222,9 @@
       "disable": "Désactiver"
     },
     "capexGuidance": "Révision capex à la baisse",
-    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de capex (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement. Deux garde-fous : la recherche web ne retient que les articles postérieurs aux résultats (avant-papiers/attentes d'analystes exclus) ; un changement comptable modifiant la valeur nominale sans changer les plans réels vaut « maintien » et ne déclenche pas cet événement."
+    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de capex (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement. Deux garde-fous : la recherche web ne retient que les articles postérieurs aux résultats (avant-papiers/attentes d'analystes exclus) ; un changement comptable modifiant la valeur nominale sans changer les plans réels vaut « maintien » et ne déclenche pas cet événement.",
+    "clearOverride": "Supprimer le forçage (retour auto)",
+    "cancelLockOverride": "Annuler l'effacement du verrou (rétabli selon les données)"
   },
   "settings": {
     "title": "Paramètres",

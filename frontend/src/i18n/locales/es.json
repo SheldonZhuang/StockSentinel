@@ -222,7 +222,9 @@
       "disable": "Desactivar"
     },
     "capexGuidance": "Recorte guía capex",
-    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente. Dos salvaguardas: la búsqueda web solo acepta coberturas posteriores a los resultados (los avances/expectativas de analistas no cuentan); los cambios contables que alteran la guía nominal sin cambiar los planes reales se clasifican como «mantener» y no activan este evento."
+    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente. Dos salvaguardas: la búsqueda web solo acepta coberturas posteriores a los resultados (los avances/expectativas de analistas no cuentan); los cambios contables que alteran la guía nominal sin cambiar los planes reales se clasifican como «mantener» y no activan este evento.",
+    "clearOverride": "Quitar anulación (volver a auto)",
+    "cancelLockOverride": "Cancelar el borrado del bloqueo (se restaura según datos)"
   },
   "settings": {
     "title": "Configuración",

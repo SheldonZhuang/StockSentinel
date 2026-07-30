@@ -305,3 +305,12 @@ LLM 判 none 正确;$195-205B 指引是 CFO 电话会口头给的——新闻稿
 - [x] API key哈希化（sha256+前缀展示；存量key与usage底账启动迁移自动脱敏，已冒烟验证）
 - [x] JWT吊销（POST /api/auth/logout-all）+ 一键退订（List-Unsubscribe RFC 8058 + /api/unsubscribe）
 - [x] Railway已加ADMIN_PASSWORD（用户完成）；574测试全过；全端部署
+
+
+## 116c号（2026-07-30 收尾批次）
+
+- [x] 月度回测漂移测试：replayMonth vs 线上calc*逐位对比（货币20组合/财政10点/行政48组合），漂移即红灯——第四节承诺清单至此全部清零
+- [x] 管理面板补"清除覆盖(回自动)"与"撤销清锁覆盖"按钮（后端auto哨兵此前无界面入口），7语言
+- [x] openapi.yaml：进攻档双否决器/降档迟滞/staleFlags(含monetary) 补档
+- [x] Railway已加BACKUP_ENCRYPTION_KEY（用户完成）——备份加密全端启用，无剩余用户待办
+- [x] 578测试全过，推送部署

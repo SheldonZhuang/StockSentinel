@@ -34,6 +34,9 @@
           <input v-model="form.note" class="input" type="text" />
         </div>
         <button type="submit" class="save-btn" :disabled="saving">{{ $t('admin.save') }}</button>
+        <!-- 116号：signal='auto' 清除哨兵——撤销该类型当前覆盖回到自动判定；
+             也是误报 N3 事件（capex_guidance）唯一的手动清除路径 -->
+        <button type="button" class="save-btn clear-btn" :disabled="saving" @click="clearOverride">{{ $t('admin.clearOverride') }}</button>
         <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
       </form>
     </section>
@@ -59,6 +62,8 @@
           <input v-model="lockForm.note" class="input" type="text" />
         </div>
         <button type="submit" class="save-btn" :disabled="lockSaving">{{ $t('admin.clearLock') }}</button>
+        <!-- 116号：撤销现存清锁覆盖（锁按 raw 状态恢复；误清后的回退路径） -->
+        <button type="button" class="save-btn clear-btn" :disabled="lockSaving" @click="cancelLockClear">{{ $t('admin.cancelLockOverride') }}</button>
         <span v-if="lockMsg" class="save-msg">{{ lockMsg }}</span>
       </form>
     </section>
@@ -260,6 +265,35 @@ async function clearLock() {
   }
 }
 
+// 116号：撤销该维度当前覆盖（signal='auto' 清除哨兵）——误报 N3 的手动清除路径
+async function clearOverride() {
+  saving.value = true;
+  saveMsg.value = '';
+  try {
+    await api.setAdminSignal(form.value.type, 'auto', null, form.value.note || null);
+    saveMsg.value = t('admin.clearedMsg');
+    await loadData();
+  } catch (e) {
+    saveMsg.value = '✗ ' + e.message;
+  } finally {
+    saving.value = false;
+  }
+}
+
+// 116号：撤销现存清锁覆盖（锁恢复由 raw 状态决定）
+async function cancelLockClear() {
+  lockSaving.value = true;
+  lockMsg.value = '';
+  try {
+    await api.cancelLockOverride(lockForm.value.type, lockForm.value.note || null);
+    lockMsg.value = t('admin.clearedMsg');
+  } catch (e) {
+    lockMsg.value = '✗ ' + e.message;
+  } finally {
+    lockSaving.value = false;
+  }
+}
+
 async function loadData() {
   const [signals, hist] = await Promise.all([
     api.getAdminSignals().catch(() => null),
@@ -348,6 +382,7 @@ async function toggleKey(k) {
 .input { flex: 1; background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-1); padding: 7px 10px; font-size: var(--fs-md); }
 
 .save-btn { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); border-radius: 8px; padding: 8px 20px; cursor: pointer; font-weight: 600; width: fit-content; }
+.clear-btn { background: none; color: var(--text-3); border-color: var(--border-3); margin-left: 8px; }
 .save-msg { font-size: var(--fs-md); color: var(--text-3); }
 
 .current-signals { display: flex; flex-direction: column; gap: 8px; }

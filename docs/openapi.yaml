@@ -10,6 +10,15 @@ info:
     数据源瞬时故障自动重试；参考指标故障日沿用上一快照，各指标的 `*PeriodDate` 字段
     如实反映数据参考期，客户端应据此判断新鲜度（个别指标参考期偏旧属正常降级，非系统故障）。
 
+    **进攻档准入否决器（2026-07-30 起）**：进攻档除四维条件与无锁外，还须
+    ①美债收益率曲线（10y−3m）未处倒挂确认期（连续倒挂 ≥63 个交易日否决）；
+    ②信用利差（BAA10Y）90日走阔 <+60bp（急剧走阔否决）。两者都只把 attack 降级为
+    neutral，不触发防守。相关字段见 indicators.yieldCurveInvertedDays /
+    indicators.creditSpread90dWidenBp。
+
+    **降档迟滞**：档位升档（更防守方向）即时生效；降档需持续满30天确认期，
+    indicators.finalDowngradePendingSince 非空表示正处等待期（期间沿用上一档）。
+
     **鉴权**：请求头 `X-API-Key`。无 key 可试用（每日25次/IP）。
     档位：free 250次/日，pro 10000次/日。获取 key：联系管理员。
 
@@ -51,6 +60,14 @@ paths:
                   monetarySignal: { $ref: "#/components/schemas/DimSignal" }
                   fiscalSignal: { $ref: "#/components/schemas/DimSignal" }
                   adminSignal: { $ref: "#/components/schemas/DimSignal" }
+                  staleFlags:
+                    type: object
+                    description: 各维度当日数据源故障标志（true=沿用上一次有效判定，"数据延迟"）
+                    properties:
+                      monetary: { type: boolean }
+                      fiscal: { type: boolean }
+                      administrative: { type: boolean }
+                      aiSupply: { type: boolean }
                   indicators:
                     type: object
                     description: 全部参考指标（利率/资产负债表/萨姆/联邦支出/EPU/油价/AI链等）

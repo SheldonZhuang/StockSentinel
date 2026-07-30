@@ -222,7 +222,9 @@
       "disable": "Deaktivieren"
     },
     "capexGuidance": "Capex-Prognosesenkung",
-    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Wird wirksam, wenn ein Hyperscaler die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. Automatische Erkennung aus beiden Quellen: Senkung in der Mitteilung wird sofort erfasst; über das Web erkannte Senkung (Call/Medien) braucht Bestätigung — Management-Originalworte oder ≥2 unabhängige Quellen, sonst nur Hinweis — manuell prüfen und hier erfassen. Zwei Leitplanken: Die Websuche berücksichtigt nur Berichte nach der Veröffentlichung (Vorschauen/Analystenerwartungen zählen nicht); Bilanzierungsänderungen, die nur die nominale Guidance verschieben, gelten als „beibehalten“ und lösen dieses Ereignis nicht aus."
+    "capexGuidanceHint": "Ereignis-Eingabe: Stufe fest auf restriktiv. Wird wirksam, wenn ein Hyperscaler die Capex-Prognose explizit senkt (Notiz: wer/was); KI-Angebot/Nachfrage wird sofort restriktiv, Abonnenten werden per E-Mail benachrichtigt. Automatische Erkennung aus beiden Quellen: Senkung in der Mitteilung wird sofort erfasst; über das Web erkannte Senkung (Call/Medien) braucht Bestätigung — Management-Originalworte oder ≥2 unabhängige Quellen, sonst nur Hinweis — manuell prüfen und hier erfassen. Zwei Leitplanken: Die Websuche berücksichtigt nur Berichte nach der Veröffentlichung (Vorschauen/Analystenerwartungen zählen nicht); Bilanzierungsänderungen, die nur die nominale Guidance verschieben, gelten als „beibehalten“ und lösen dieses Ereignis nicht aus.",
+    "clearOverride": "Override löschen (zurück zu Auto)",
+    "cancelLockOverride": "Sperr-Löschung zurücknehmen (Sperre gemäß Daten)"
   },
   "settings": {
     "title": "Einstellungen",
