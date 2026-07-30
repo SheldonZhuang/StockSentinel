@@ -177,7 +177,7 @@ const groups = computed(() => {
             : null),
         },
         {
-          // 单季同比=拐点侦察兵（参考，不参与判定；判定用上面的TTM口径）。
+          // 单季同比=拐点侦察兵（有限判定权：N1拦截宽松/N2两季连负判收紧；TTM仍是主口径）。
           // 徽章沿用TTM同阈值（同一个量的增长率无需两套阈值）：>+10% 宽松 / <0% 收紧 / 其间中性；
           // 单季徽章先于TTM变色的"背离时刻"即最早的事实性拐点警报
           key: 'capexQtrYoY', signed: true, value: ind.capexQtrYoY, unit: '%', change: null,
@@ -203,7 +203,7 @@ const groups = computed(() => {
       items: [
         {
           key: 'rate', value: ind.rate, unit: '%',
-          change: ind.rate !== null && ind.ratePrev !== null ? ind.rate - ind.ratePrev : null,
+          change: ind.rate != null && ind.ratePrev != null ? ind.rate - ind.ratePrev : null,
           signalBadge: ind.rateSignal,
           decisionDate: ind.rateDecisionDate,
         },
@@ -213,36 +213,36 @@ const groups = computed(() => {
         },
         {
           key: 'corePce', value: ind.corePce, unit: '%',
-          change: ind.corePce !== null && ind.corePcePrev !== null ? ind.corePce - ind.corePcePrev : null,
+          change: ind.corePce != null && ind.corePcePrev != null ? ind.corePce - ind.corePcePrev : null,
           periodDate: ind.corePcePeriodDate, releaseDate: ind.corePceReleaseDate, periodIsMonth: true,
         },
         {
           key: 'trimmedPce1m', value: ind.trimmedPce1m, unit: '%',
-          change: ind.trimmedPce1m !== null && ind.trimmedPce1mPrev !== null ? ind.trimmedPce1m - ind.trimmedPce1mPrev : null,
+          change: ind.trimmedPce1m != null && ind.trimmedPce1mPrev != null ? ind.trimmedPce1m - ind.trimmedPce1mPrev : null,
           periodDate: ind.trimmedPce1mPeriodDate, releaseDate: ind.trimmedPce1mReleaseDate, periodIsMonth: true,
         },
         {
           key: 'trimmedPce', value: ind.trimmedPce, unit: '%',
-          change: ind.trimmedPce !== null && ind.trimmedPcePrev !== null ? ind.trimmedPce - ind.trimmedPcePrev : null,
+          change: ind.trimmedPce != null && ind.trimmedPcePrev != null ? ind.trimmedPce - ind.trimmedPcePrev : null,
           periodDate: ind.trimmedPcePeriodDate, releaseDate: ind.trimmedPceReleaseDate, periodIsMonth: true,
         },
         {
           key: 'trimmedPce12m', value: ind.trimmedPce12m, unit: '%',
-          change: ind.trimmedPce12m !== null && ind.trimmedPce12mPrev !== null ? ind.trimmedPce12m - ind.trimmedPce12mPrev : null,
+          change: ind.trimmedPce12m != null && ind.trimmedPce12mPrev != null ? ind.trimmedPce12m - ind.trimmedPce12mPrev : null,
           periodDate: ind.trimmedPce12mPeriodDate, releaseDate: ind.trimmedPce12mReleaseDate, periodIsMonth: true,
         },
         {
           key: 'sahm', value: ind.sahmValue, unit: '%',
           change: null,
           // 阈值同步 signal.config.js：≥0.5 触发萨姆锁
-          extra: ind.sahmValue != null ? '(< 0.5%)' : null,
+          extra: ind.sahmValue != null ? (ind.sahmValue >= 0.5 ? '(≥ 0.5%)' : '(< 0.5%)') : null,
           signalBadge: ind.sahmLockActive ? 'tight'
             : ind.sahmValue != null ? (ind.sahmValue >= 0.5 ? 'tight' : 'loose') : null,
           periodDate: ind.sahmPeriodDate, releaseDate: ind.sahmReleaseDate, periodIsMonth: true,
         },
         {
           key: 'unemployment', value: ind.unemployment, unit: '%',
-          change: ind.unemployment !== null && ind.unemploymentPrev !== null ? ind.unemployment - ind.unemploymentPrev : null,
+          change: ind.unemployment != null && ind.unemploymentPrev != null ? ind.unemployment - ind.unemploymentPrev : null,
           periodDate: ind.unemploymentPeriodDate, releaseDate: ind.unemploymentReleaseDate, periodIsMonth: true,
         },
         {

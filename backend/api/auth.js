@@ -11,8 +11,13 @@ const SALT_ROUNDS = 10;
 // 固定 dummy hash：登录时对不存在的用户也跑一次等价 bcrypt.compare，消除"邮箱是否注册"的时序差
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing-safety', SALT_ROUNDS);
 
-// bcrypt 是 CPU 密集操作，注册/登录不限流会被匿名高频请求打满 CPU 拖垮信号主链路
-const authLimiter = ipRateLimit({ max: 20 });
+// bcrypt 是 CPU 密集操作，注册/登录不限流会被匿名高频请求打满 CPU 拖垮信号主链路。
+// 键=IP+邮箱（2026-07-30，M2）：前端流量经 Vercel 代理后同出口 IP，纯 IP 键会让
+// 一个人的暴力尝试封掉全站登录；带上邮箱后误伤面收敛到单个账号
+const authLimiter = ipRateLimit({
+  max: 20,
+  keyFn: req => `${req.ip}|${typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''}`,
+});
 router.use(['/register', '/login'], authLimiter);
 
 function signToken(user) {
@@ -23,27 +28,65 @@ function signToken(user) {
   );
 }
 
+// 邮箱归一：去空白+小写。大小写不同的"重复"账号、ADMIN_EMAIL 大小写不一致锁死管理员
+// 都源于未归一比较
+const normalizeEmail = e => (typeof e === 'string' ? e.trim().toLowerCase() : e);
+const adminEmail = () => normalizeEmail(process.env.ADMIN_EMAIL || '');
+
+/**
+ * 管理员账户种子（2026-07-30，H3）：配置 ADMIN_PASSWORD 时确保管理员账户存在。
+ * 配合注册接口拒绝 ADMIN_EMAIL，堵住空库窗口的管理员邮箱抢注。
+ * 未配置 ADMIN_PASSWORD 时不种子（沿用旧行为：管理员自行注册，日志提示风险）。
+ */
+export async function ensureAdminUser() {
+  const email = adminEmail();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email) return;
+  if (!password) {
+    console.warn('[auth] ADMIN_PASSWORD not set — admin account not seeded; first registration of ADMIN_EMAIL becomes admin (set ADMIN_PASSWORD to close this window)');
+    return;
+  }
+  const existing = await getUserByEmail(email);
+  if (existing) return;
+  const hash = await bcrypt.hash(password, SALT_ROUNDS);
+  await createUser(email, hash);
+  console.log('[auth] admin account seeded from ADMIN_EMAIL/ADMIN_PASSWORD');
+}
+
 // POST /api/auth/register
 router.post('/register', asyncRoute(async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
   // 必须校验类型：非字符串 password 会让 bcrypt.hash 抛错
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(400).json({ error: 'email and password required' });
   }
   if (password.length < 8) return res.status(400).json({ error: 'password must be at least 8 characters' });
+  // ADMIN_PASSWORD 已配置时管理员账户由启动种子创建，公开注册一律拒绝该邮箱（防抢注）
+  if (email === adminEmail() && process.env.ADMIN_PASSWORD) {
+    return res.status(403).json({ error: 'this email is reserved' });
+  }
 
   const existing = await getUserByEmail(email);
   if (existing) return res.status(409).json({ error: 'email already registered' });
 
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
-  const user = await createUser(email, hash);
+  let user;
+  try {
+    user = await createUser(email, hash);
+  } catch (err) {
+    // 并发重复注册撞 UNIQUE 约束：返回 409 而非 500
+    if (/UNIQUE/i.test(err.message)) return res.status(409).json({ error: 'email already registered' });
+    throw err;
+  }
   const token = signToken(user);
   res.json({ token, user: { id: user.id, email: user.email } });
 }));
 
 // POST /api/auth/login
 router.post('/login', asyncRoute(async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
   if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(400).json({ error: 'email and password required' });
   }
@@ -81,11 +124,13 @@ export function requireAuth(req, res, next) {
 // --- 可选管理员中间件 ---
 export function requireAdmin(req, res, next) {
   requireAuth(req, res, () => {
-    if (req.user.email !== process.env.ADMIN_EMAIL) {
+    if (normalizeEmail(req.user.email) !== adminEmail()) {
       return res.status(403).json({ error: 'admin only' });
     }
     next();
   });
 }
+
+export { normalizeEmail };
 
 export default router;

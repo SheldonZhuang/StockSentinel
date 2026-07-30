@@ -57,7 +57,7 @@
 
 - **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT
 - **前端**：Vue 3 + Vite + vue-i18n（中/英/法/德/西/日/韩 七语言）
-- **测试**：Vitest（499 用例）
+- **测试**：Vitest（556 用例）
 - **数据源**：FRED API（宏观/财政/行政/半导体产出/收益率曲线）、行情三层回退 Yahoo→Tiingo→TwelveData（+FMP估值）、SEC EDGAR XBRL（云厂商capex，双口径）、OpenRouter（模型调用量）、Federal Register API（政策参考素材）
 - **部署**：Railway（后端）+ Vercel（前端）；数据库每日备份至 GitHub 私有仓库
 
@@ -100,6 +100,8 @@ FMP_API_KEY=your_fmp_key               # P/E、P/S 估值补全（可选）
 OPENROUTER_API_KEY=your_openrouter_key # 模型调用量监测 + AI日报（可选）
 GITHUB_BACKUP_REPO=owner/private-repo  # 数据库每日备份（可选）
 GITHUB_BACKUP_TOKEN=fine_grained_pat   # 仅需该仓库 Contents 读写（可选）
+ADMIN_PASSWORD=strong_password         # 强烈建议：启动种子管理员账户并封锁 ADMIN_EMAIL 抢注（116号）
+INSTANCE_ROLE=primary                  # primary(默认,云端)|replica(本机第二实例：不群发订阅邮件、不上传备份)
 PORT=3001
 ```
 
@@ -123,6 +125,6 @@ npm run build
 
 ## 当前状态
 
-信号体系已过六轮专家复查与多轮方法论审查（判定逻辑 v2、防守分级、收益率曲线否决、趋势再入场、降档迟滞、capex 单季侦察兵与指引下修事件 N3 均已实证定案），534 测试用例全过，每日云端自动运行并公开存档。capex 指引自动检测为双源（EDGAR 新闻稿 + web 检索电话会/媒体），财报后单公司 capex 快报（单季/TTM 额度同比、本财年/未来指引）自动入档。
+信号体系已过七轮专家复查与多轮方法论审查（判定逻辑 v2、防守分级、收益率曲线否决、趋势再入场、降档迟滞、capex 单季侦察兵与指引下修事件 N3 均已实证定案），556 测试用例全过，每日云端自动运行并公开存档。capex 指引自动检测为双源（EDGAR 新闻稿 + web 检索电话会/媒体），财报后单公司 capex 快报（单季/TTM 额度同比、本财年/未来指引）自动入档。第七轮系统性审查（116号，2026-07-30）修复了 FOMC 决议日货币维闪变、N3 事件绕过降档迟滞、邮件发送库错误语义（失败被计成功）、双实例重复群发与备份互踩等 30 余处，详见 [docs/systematic-review-2026-07-30.md](docs/systematic-review-2026-07-30.md)。
 
 **后续迭代**：付费订阅墙的实际启用、移动端原生 App/小程序、Google OAuth 登录接入。

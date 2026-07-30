@@ -28,7 +28,8 @@ const usage = new Map(); // identifier → { day, count }
 const USAGE_MAX = 50_000; // 容量上限：keyless 条目是 `ip:x`，轮换 IPv6 可无限造新键，无上限会撑到 OOM
 
 // 用量持久化：进程重启不清零（限流公平性 + 计费对账底账）。
-// 写路径批量化：内存实时计数，60秒脏刷盘，避免每请求整库 persist
+// 写路径批量化：内存实时计数，10分钟脏刷盘（2026-07-30 由60秒放宽，M4：sql.js persist
+// 是 O(库体积) 的全库导出+同步写，常态高频刷盘的写放大随库只增不减；崩溃最多丢10分钟计数）
 let usageLoadedDay = null;
 let usageDirty = false;
 
@@ -69,9 +70,25 @@ const flushTimer = setInterval(async () => {
     usageDirty = true; // 下轮重试
     console.warn('[public-api] usage flush failed:', err.message);
   }
-}, 60_000);
+}, 600_000);
 flushTimer.unref(); // 不阻塞进程退出
 const keyCache = new Map(); // key → { record, at }
+
+// IPv6 按 /64 归桶（2026-07-30，L6）：家宽 IPv6 前缀内可轮换 2^64 个地址，
+// 完整 IP 计额度=keyless 日额度可无限刷新；/64 是单用户典型分配粒度
+export function normalizeIpForQuota(ip) {
+  if (!ip || !ip.includes(':')) return ip || 'unknown';
+  const bare = ip.replace(/^::ffff:/, ''); // IPv4-mapped 原样走 IPv4 路径
+  if (!bare.includes(':')) return bare;
+  const full = bare.includes('::') ? expandIpv6(bare) : bare.split(':');
+  return full.slice(0, 4).join(':') + '::/64';
+}
+function expandIpv6(ip) {
+  const [head, tail] = ip.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  return [...h, ...Array(8 - h.length - t.length).fill('0'), ...t];
+}
 const KEY_CACHE_TTL_MS = 5 * 60 * 1000;
 const KEY_CACHE_MAX = 5000; // 上限防投毒：轮换随机无效 key 会让缓存无界增长直至 OOM
 
@@ -85,7 +102,7 @@ async function resolveTier(req) {
   // 只认 X-API-Key 请求头：查询参数 ?api_key= 会泄漏到代理/平台日志、浏览器历史、Referer，
   // 等于把长期有效的付费密钥写进多处明文日志，已移除该支持
   const key = req.get('X-API-Key');
-  if (!key) return { id: `ip:${req.ip}`, tier: 'keyless' };
+  if (!key) return { id: `ip:${normalizeIpForQuota(req.ip)}`, tier: 'keyless' };
 
   const cached = keyCache.get(key);
   let record = cached && Date.now() - cached.at < KEY_CACHE_TTL_MS ? cached.record : undefined;

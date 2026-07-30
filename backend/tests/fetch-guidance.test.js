@@ -518,20 +518,29 @@ describe('processCapexGuidance', () => {
 });
 
 describe('webCutQualified（N3 佐证门槛纯函数）', () => {
+  // 2026-07-30 加固：来源 URL 须落在可信域白名单（SEC/公司IR/主流财经媒体）才计数——
+  // 三个门槛字段全出自同一次 LLM 输出，纯数 URL 条数可被注入内容/无关引文凑满
   const base = { hasGuidance: true, direction: 'cut', confidence: 'high', sources: [], primarySource: false };
-  it('cut/high + 一手来源 → 达标', () => {
-    expect(webCutQualified({ ...base, primarySource: true })).toBe(true);
+  it('cut/high + 一手来源（含≥1可信域URL佐证） → 达标', () => {
+    expect(webCutQualified({ ...base, primarySource: true, sources: ['https://www.sec.gov/Archives/edgar/x.htm'] })).toBe(true);
   });
-  it('cut/high + ≥2 独立来源 → 达标', () => {
-    expect(webCutQualified({ ...base, sources: ['a', 'b'] })).toBe(true);
+  it('cut/high + 一手来源但无任何可信域URL → 不达标（自证不算佐证）', () => {
+    expect(webCutQualified({ ...base, primarySource: true })).toBe(false);
+    expect(webCutQualified({ ...base, primarySource: true, sources: ['https://random-blog.example.com/a'] })).toBe(false);
   });
-  it('cut/high 但单一来源且非一手 → 不达标', () => {
-    expect(webCutQualified({ ...base, sources: ['a'] })).toBe(false);
+  it('cut/high + ≥2 个不同可信域 → 达标', () => {
+    expect(webCutQualified({ ...base, sources: ['https://www.reuters.com/a', 'https://www.cnbc.com/b'] })).toBe(true);
+  });
+  it('cut/high + 2 条同域URL → 不达标（独立来源须不同域）', () => {
+    expect(webCutQualified({ ...base, sources: ['https://www.reuters.com/a', 'https://www.reuters.com/b'] })).toBe(false);
+  });
+  it('cut/high + 1 可信域 + 1 不可信域 → 不达标', () => {
+    expect(webCutQualified({ ...base, sources: ['https://www.reuters.com/a', 'https://seo-spam.example.com/b'] })).toBe(false);
   });
   it('低置信/非cut/无指引/null → 不达标', () => {
-    expect(webCutQualified({ ...base, confidence: 'low', primarySource: true })).toBe(false);
-    expect(webCutQualified({ ...base, direction: 'maintain', primarySource: true })).toBe(false);
-    expect(webCutQualified({ ...base, hasGuidance: false, primarySource: true })).toBe(false);
+    expect(webCutQualified({ ...base, confidence: 'low', primarySource: true, sources: ['https://www.sec.gov/x'] })).toBe(false);
+    expect(webCutQualified({ ...base, direction: 'maintain', primarySource: true, sources: ['https://www.sec.gov/x'] })).toBe(false);
+    expect(webCutQualified({ ...base, hasGuidance: false, primarySource: true, sources: ['https://www.sec.gov/x'] })).toBe(false);
     expect(webCutQualified(null)).toBe(false);
   });
 });

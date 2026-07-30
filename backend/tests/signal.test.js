@@ -371,9 +371,10 @@ describe('calcAiSupplySignal', () => {
     expect(calcAiSupplySignal({ modelUsageTrendPct: 15, capexYoY: 5, semiIpYoy: 8 })).toBe('neutral');
   });
 
-  it('单/双件套可用：有数据的子信号一致才定档', () => {
-    expect(calcAiSupplySignal({ semiIpYoy: 8 })).toBe('loose');
-    expect(calcAiSupplySignal({ capexYoY: -5 })).toBe('tight');
+  it('单/双件套可用：收紧票照常，宽松票要求三件套齐备（2026-07-30 修复：失明环节不点火进攻）', () => {
+    expect(calcAiSupplySignal({ semiIpYoy: 8 })).toBe('neutral');            // 仅供给侧宽松 → 不点火
+    expect(calcAiSupplySignal({ capexYoY: -5 })).toBe('tight');              // 任一收缩仍收紧
+    expect(calcAiSupplySignal({ modelUsageTrendPct: 15, semiIpYoy: 8 })).toBe('neutral'); // 双宽松但capex失明 → 不点火
     expect(calcAiSupplySignal({ modelUsageTrendPct: 15, semiIpYoy: 2 })).toBe('neutral');
   });
 

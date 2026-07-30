@@ -132,6 +132,8 @@ onMounted(() => auth.init());
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap; /* 116号：管理员登录态含6+控件，窄屏不换行会横向溢出 */
+  justify-content: flex-end;
 }
 
 .lang-select {
@@ -170,5 +172,6 @@ onMounted(() => auth.init());
 
 @media (max-width: 600px) {
   .main-content { padding: 16px 12px; }
+  .nav-right { gap: 8px; }
 }
 </style>

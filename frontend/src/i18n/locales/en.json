@@ -13,7 +13,7 @@
     "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date",
     "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT",
     "capexGuidanceRefTitle": "Capex guidance (forward-looking reference)",
-    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction for each new earnings report — EDGAR press release and web search of call transcripts/slides/major financial media run in parallel and fill each other's gaps, plus a quarterly/TTM capex snapshot. Reference only — does not directly drive the signal; \"explicit cut + high confidence\" auto-escalates to a tightening event (press-release cuts record immediately; web-detected cuts require corroboration — management's own words from a primary source or ≥2 independent sources; otherwise only flagged for manual review). Hover to see the quoted text.",
+    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction for each new earnings report — EDGAR press release and web search of call transcripts/slides/major financial media run in parallel and fill each other's gaps, plus a quarterly/TTM capex snapshot. Reference only — does not directly drive the signal; \"explicit cut + high confidence\" auto-escalates to a tightening event (press-release cuts record immediately; web-detected cuts require corroboration — management's own words from a primary source or ≥2 independent sources; otherwise only flagged for manual review). Hover to see the quoted text. Detection has two guardrails: ① only post-earnings coverage counts — pre-earnings previews and analyst expectations are not management guidance; ② when an accounting change (depreciation life, lease reclassification) shifts the nominal guidance figure while actual investment plans are unchanged, the direction is \"maintain\", not a cut (e.g. MSFT's useful-life change restated CY2026 guidance from $190B to ~$175B with plans unchanged).",
     "guidanceDir": {
       "cut": "guidance cut",
       "raise": "guidance raised",
@@ -24,7 +24,8 @@
       "cut": "↓cut",
       "raise": "↑raised",
       "maintain": "→maintained"
-    }
+    },
+    "downgradePendingBanner": "Downgrade confirmation in progress: conditions point to a looser tier; it takes effect only after holding for 30 days since {date}. The current tier stays until then (upgrades are immediate)."
   },
   "signalPos": {
     "monetary": "Monetary Policy",
@@ -227,7 +228,7 @@
       "disable": "Disable"
     },
     "capexGuidance": "Capex Guidance Cut",
-    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses."
+    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses. Two guardrails: web search only trusts post-earnings coverage (previews/analyst expectations are not guidance); accounting-basis changes that shift nominal guidance with unchanged actual plans are \"maintain\" and do not trigger this event."
   },
   "settings": {
     "title": "Settings",

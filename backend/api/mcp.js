@@ -123,7 +123,20 @@ function bodyHasToolCall(body) {
   return body?.method === 'tools/call';
 }
 
+// 批量放大护栏（2026-07-30 审查修复，M1）：rateLimit 按 HTTP 请求扣 1 次日额度，
+// 一个数组体塞 N 条 tools/call 就是 N 倍执行只计 1 次（含外呼行情链的放大）。
+// JSON-RPC batching 已在新版 MCP 协议中移除，多于 1 条 tools/call 的批量直接拒绝
+function batchToolCallCount(body) {
+  return Array.isArray(body) ? body.filter(m => m?.method === 'tools/call').length : 0;
+}
+
 router.post('/', (req, res, next) => {
+  if (batchToolCallCount(req.body) > 1) {
+    return res.status(400).json({
+      jsonrpc: '2.0', id: null,
+      error: { code: -32600, message: 'JSON-RPC batching of tools/call is not supported; send one call per request' },
+    });
+  }
   // 仅工具调用计入每日额度；握手与能力发现免费（Smithery/客户端扫描不吃配额）
   if (bodyHasToolCall(req.body)) return rateLimit(req, res, next).catch(next);
   next();

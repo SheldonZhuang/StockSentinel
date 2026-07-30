@@ -2,7 +2,11 @@
   <div class="home-view">
     <!-- Hero：当前进攻/防守信号 + 解读 + 四维信号卡 -->
     <div class="hero-section panel">
-      <SignalHero :signal="signal" />
+      <div v-if="signalError" class="signal-error">
+        <span>⚠️ {{ $t('error.fetchFailed') }}</span>
+        <button class="retry-btn" @click="loadSignal">{{ $t('error.retry') }}</button>
+      </div>
+      <SignalHero v-else :signal="signal" />
     </div>
 
     <!-- AI 日报：LLM 基于当日快照生成的双语解读 -->
@@ -53,18 +57,26 @@ import { api } from '../api/client.js';
 
 const { locale } = useI18n();
 
-// /api/signal 只拉一次，下发给 Hero 与指标明细
+// /api/signal 只拉一次，下发给 Hero 与指标明细。
+// 失败要有用户可见反馈（116号修复）：只 console.error 会让最核心的信号永远停在"加载中"
 const signal = ref(null);
+const signalError = ref(false);
 const report = ref(null);
 
-onMounted(async () => {
+async function loadSignal() {
+  signalError.value = false;
   try {
     const res = await api.getSignal();
     // 后端无快照时返回 {status:'loading'}（HTTP 200），视同加载中，否则维度卡会渲染出 undefined 的 i18n key
     signal.value = res?.finalSignal ? res : null;
   } catch (e) {
     console.error('Failed to load signal', e);
+    signalError.value = true;
   }
+}
+
+onMounted(async () => {
+  await loadSignal();
   try {
     const r = await api.getDailyReport();
     if (r?.date) report.value = r;
@@ -92,6 +104,13 @@ onMounted(async () => {
 }
 
 .hero-section { padding: 28px 20px; }
+
+.signal-error { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-2); font-size: var(--fs-md); padding: 12px 0; }
+.retry-btn {
+  background: none; border: 1px solid var(--border-3); border-radius: 6px;
+  color: var(--text-2); padding: 4px 12px; cursor: pointer; font-size: var(--fs-sm);
+}
+.retry-btn:hover { border-color: var(--text-3); }
 
 .report-panel { padding: 16px 20px; }
 .report-panel .section-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 8px; }

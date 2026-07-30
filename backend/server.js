@@ -6,7 +6,7 @@ import cron from 'node-cron';
 import authRouter from './api/auth.js';
 import adminRouter from './api/admin.js';
 import watchlistRouter from './api/watchlist.js';
-import { requireAuth } from './api/auth.js';
+import { requireAuth, ensureAdminUser, normalizeEmail } from './api/auth.js';
 
 import { fetchMacroData } from './api/fetch-macro.js';
 import { fetchPolicyData } from './api/fetch-policy.js';
@@ -122,9 +122,22 @@ app.get('/api/ai-chain', asyncRoute(async (req, res) => {
   res.json(await buildAiChainPayload());
 }));
 
+// GET /api/backtest/summary — 内部路由（前端 track record 页用，不占开放API配额）：
+// 2026-07-30 M2 修复配套——前端经 Vercel 代理访问 /v1 时全站访客塌缩进同一 keyless
+// IP 桶（25次/日共享），/v1 代理已从 vercel.json 移除，前端改走本内部路由
+app.get('/api/backtest/summary', asyncRoute(async (req, res) => {
+  const fs = await import('fs');
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
+  const p = path.join(path.dirname(fileURLToPath(import.meta.url)), 'backtest/backtest-raw.json');
+  if (!fs.existsSync(p)) return res.status(404).json({ error: 'not_available' });
+  const { summary } = JSON.parse(fs.readFileSync(p, 'utf8'));
+  res.json({ summary });
+}));
+
 // GET /api/user/me — 当前用户信息 + 是否是 admin + 邮件提醒开关状态
 app.get('/api/user/me', requireAuth, asyncRoute(async (req, res) => {
-  const isAdmin = req.user.email === process.env.ADMIN_EMAIL;
+  const isAdmin = normalizeEmail(req.user.email) === normalizeEmail(process.env.ADMIN_EMAIL || '');
   const user = await getUserById(req.user.id);
   res.json({
     id: req.user.id,
@@ -167,8 +180,13 @@ function computeLocks(macroData, prevSnapshot, overrides) {
     ? stepsSince.reduce((a, b) => (Math.abs(b.diffBp) > Math.abs(a.diffBp) ? b : a)).diffBp
     : endpointDiffBp;
 
-  const prevSahmLockActive = prevSnapshot ? !!prevSnapshot.sahm_lock_active : false;
-  const prevReactiveLockActive = prevSnapshot ? !!prevSnapshot.reactive_adjustment_lock_active : false;
+  // raw 锁状态还原（2026-07-30 审查修复）：快照的 *_lock_active 存的是 override 清锁后的
+  // effective 值，但 *_lock_since 按 raw 状态存（非空即 raw 激活）——override 期间必须以 raw
+  // 为基线演进锁龄，否则 since 每日被重置为今天，override 到期后 60 天最短锁存期从零重跑
+  const prevSahmLockActive = prevSnapshot
+    ? !!(prevSnapshot.sahm_lock_active || prevSnapshot.sahm_lock_since) : false;
+  const prevReactiveLockActive = prevSnapshot
+    ? !!(prevSnapshot.reactive_adjustment_lock_active || prevSnapshot.reactive_adjustment_lock_since) : false;
   const prevTriggerBp = prevSnapshot ? prevSnapshot.reactive_adjustment_lock_trigger_bp : null;
   // 锁存起始日（V3 最短锁存期用）：旧快照无此列时为 null → calcLockActive fail-open 兼容旧行为
   const prevSahmLockSince = prevSnapshot?.sahm_lock_since ?? null;
@@ -227,7 +245,23 @@ function computeLocks(macroData, prevSnapshot, overrides) {
 }
 
 // --- cron 任务 ---
+// 重入护栏（2026-07-30 审查修复）：启动跑与 21:00 cron 可能重叠（部署恰在 20:5x、
+// 或 LLM/行情链路拖长数分钟），并发跑会读到同一 prevSnapshot → 变更告警双发
+let dailyUpdateRunning = false;
 async function runDailyUpdate() {
+  if (dailyUpdateRunning) {
+    console.warn('[cron] previous daily update still running, skipping this trigger');
+    return;
+  }
+  dailyUpdateRunning = true;
+  try {
+    await runDailyUpdateInner();
+  } finally {
+    dailyUpdateRunning = false;
+  }
+}
+
+async function runDailyUpdateInner() {
   console.log('[cron] Starting daily signal update...');
 
   let macroData;
@@ -245,15 +279,34 @@ async function runDailyUpdate() {
     return;
   }
 
-  const monetary = calcMonetarySignal(macroData);
+  const today = todayET();
+  const prevSnapshot = await getLatestSnapshot();
+
+  // FOMC 决议日 FRED 生效滞后窗口（2026-07-30 审查修复，H1）：DFEDTARU 新台阶在决议
+  // 次日（叠加发布滞后可达次二日）才出现。这 1-2 天内 calcDecisionPrevRate 会把
+  // "决议已开、数据未生效"误判为"按兵不动→宽松"——加息周期每次决议都会产生
+  // 单日 tight→loose→tight 的快照污染与一封假"货币转收紧"邮件。修复：该窗口内
+  // 沿用上一快照的决议前基线（利率未变时方向自然与前日一致），台阶落地后自动恢复
+  const lastRateStepDate = macroData.rateSteps?.[0]?.date ?? null;
+  const decisionDataPending = !!macroData.rateDecisionDate
+    && (lastRateStepDate === null || lastRateStepDate < macroData.rateDecisionDate)
+    && (Date.parse(today) - Date.parse(macroData.rateDecisionDate)) / 86400000 <= 2
+    && prevSnapshot?.fred_rate_prev != null;
+  if (decisionDataPending) {
+    console.log(`[cron] FOMC decision ${macroData.rateDecisionDate} not yet in FRED series, keeping previous rate baseline`);
+    macroData.prevRate = prevSnapshot.fred_rate_prev;
+  }
+
+  // 货币维 stale-keep（2026-07-30 审查修复，L5）：FRED 返回 200+空观测（不抛错）时
+  // currentRate=null 会让货币维静默转 neutral、无声解除收紧——与其他三维的 stale-keep
+  // 语义对齐：数据缺失日沿用上一快照判定
+  const monetaryStale = macroData.currentRate == null && !!prevSnapshot?.monetary_signal;
+  const monetary = monetaryStale ? prevSnapshot.monetary_signal : calcMonetarySignal(macroData);
 
   // 财政/行政/AI供需自动判定（内部各维度独立容错，永不 throw）
   const policyData = await fetchPolicyData();
   // AI产业链数据串行在 policy 之后拉取，避免与其他 Yahoo 调用并发触发限流
   const chainData = await fetchAiChainData();
-
-  const today = todayET();
-  const prevSnapshot = await getLatestSnapshot();
 
   // overrides 提前读取：capex_guidance 指引下修事件是 AI供需判定输入（N3），须在合成前可用
   const overrides = await getAllOverrides();
@@ -280,17 +333,20 @@ async function runDailyUpdate() {
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
   const fiscalStale = policyData.outlaysChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
-  // 行政 stale：EPU双路全黑，且油价拿不到或未触发事件层（即没有任何一路能给出数据驱动结论）
-  const oilInconclusive = policyData.oilChange30dPct == null
-    || Math.abs(policyData.oilChange30dPct) < signalCfg.OIL_SHOCK_PCT;
+  // 行政 stale（2026-07-30 审查修复，M3）：EPU 双路全黑即 stale——油价事件层的两个分支
+  // （飙升需 EPU 高位、暴跌需 EPU 有数护栏）在 EPU 全缺时都给不出结论，
+  // 旧条件"|油价|≥20% 就算有结论"会让 EPU 故障日行政维错误落 neutral（虚假解除收紧）
   const adminStale = policyData.epuTradePercentile == null && policyData.epuDailyPercentile == null
-    && oilInconclusive && !!prevSnapshot?.admin_auto_signal;
+    && !!prevSnapshot?.admin_auto_signal;
   // AI供需 stale：三件套全 null（调用量/capex/半导体产出通道全故障）时沿用上一快照。
   // 单季 capex 也计入"有数据"（2026-07-20 审查修复）：TTM 缺失但单季口径出数时，
-  // N2 两季连负仍能给出数据驱动的收紧票，不应被 stale-keep 用旧信号覆盖
+  // N2 两季连负仍能给出数据驱动的收紧票，不应被 stale-keep 用旧信号覆盖。
+  // N3 活动事件不算"数据缺失"（2026-07-30 审查修复，M1）：指引下修强制收紧是
+  // 最高优先级判定，数据全断日也不得被上一快照的旧信号覆盖（与 payload 层同口径）
   const aiDataMissing = aiSupplyInputs.modelUsageTrendPct == null
     && aiSupplyInputs.capexYoY == null && aiSupplyInputs.semiIpYoy == null
-    && aiSupplyInputs.capexQtrYoY == null;
+    && aiSupplyInputs.capexQtrYoY == null
+    && !capexGuidanceDowngrade;
   const aiSupplyStale = aiDataMissing && !!prevSnapshot?.ai_supply_auto_signal;
   const fiscalAutoEff = fiscalStale ? prevSnapshot.fiscal_auto_signal : fiscalAuto;
   const adminAutoEff = adminStale ? prevSnapshot.admin_auto_signal : adminAuto;
@@ -324,11 +380,23 @@ async function runDailyUpdate() {
     reactiveLockActive: locks.reactiveAdjustmentLockActive,
     spxAboveSma10: trendState.spxAboveSma10,
   });
-  // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）
+  // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）。
+  // 断档不计时（2026-07-30 审查修复，L2）：快照断档期间没有任何"候选档持续温和"的观测，
+  // 日历差直接跨隙累计会让停摆 N 天后只观测 1-2 天就满足 30 天确认（过早退出防守，
+  // 恰是迟滞要防的方向）——把 pendingSince 前移未观测的天数，只计入有快照的日子
+  let pendingSince = prevSnapshot?.final_downgrade_pending_since ?? null;
+  if (pendingSince && prevSnapshot?.date) {
+    const gapDays = Math.floor((Date.parse(today) - Date.parse(prevSnapshot.date)) / 86400000);
+    if (gapDays > 1) {
+      const shifted = new Date(Date.parse(pendingSince) + (gapDays - 1) * 86400000);
+      pendingSince = shifted.toISOString().slice(0, 10);
+      console.warn(`[cron] snapshot gap of ${gapDays} days — downgrade confirm clock shifted to ${pendingSince}`);
+    }
+  }
   const hold = applyDowngradeHold(
     rawFinalSignal,
     prevSnapshot?.final_signal ?? null,
-    prevSnapshot?.final_downgrade_pending_since ?? null,
+    pendingSince,
     today
   );
   const finalSignal = hold.signal;
@@ -445,6 +513,7 @@ async function runDailyUpdate() {
     fiscalStale,
     adminStale,
     aiSupplyStale,
+    monetaryStale,
   });
 
   // S5 执行指令邮件（仅管理员，96号）：进/出全面防守是 S5 策略的交易边界，
@@ -471,6 +540,43 @@ async function runDailyUpdate() {
           dataDate: today,
         }).catch(() => {});
       }
+    }
+  }
+
+  // 示警：最终信号变化 / 任一维度转收紧（用户策略：任一收紧=立即防守，必须果断）。
+  // 位置紧跟快照落库与 S5 邮件（2026-07-30 审查修复，M6）：原在日报（2×LLM 60-120s）
+  // 与 GitHub 备份之后，进程在这几分钟内崩溃/被平台重启会让订阅者告警永久丢失
+  //（次日 prev===final 不再触发）——与 S5 邮件同理，通知先行、增值内容垫后
+  const changes = detectSignalChanges(prevSnapshot, {
+    finalSignal,
+    monetary,
+    fiscal,
+    admin,
+    aiSupply,
+    sahmLockActive: locks.sahmLockActive,
+    reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive,
+    reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
+  });
+  if (changes.length > 0) {
+    const subscribers = await getAlertSubscribers();
+    if (subscribers.length > 0) {
+      console.log(`[cron] ${changes.length} alert-worthy change(s), alerting ${subscribers.length} users`);
+      await sendSignalAlert(subscribers, {
+        finalSignal,
+        changes,
+        details: {
+          monetary, fiscal, admin, aiSupply,
+          fiscalOutlaysChangePct: policyData.outlaysChangePct,
+          epuTradePercentile: policyData.epuTradePercentile,
+          epuDailyPercentile: policyData.epuDailyPercentile,
+          oilChange30dPct: policyData.oilChange30dPct,
+          semiIpYoy: policyData.semiIpYoy,
+          modelUsageTrendPct: chainData.modelUsageTrendPct,
+          capexYoY: chainData.capexYoY,
+          rateChangeBp: locks.rateDiffBp,
+          sahmValue: macroData.sahmValue,
+        },
+      });
     }
   }
 
@@ -530,41 +636,6 @@ async function runDailyUpdate() {
 
   // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
   await backupDatabase();
-
-  // 示警：最终信号变化 / 任一维度转收紧（用户策略：任一收紧=立即防守，必须果断）
-  // AI供需转收紧(供过于求)已由 dimTight 捕获，不再单列泡沫预警
-  const changes = detectSignalChanges(prevSnapshot, {
-    finalSignal,
-    monetary,
-    fiscal,
-    admin,
-    aiSupply,
-    sahmLockActive: locks.sahmLockActive,
-    reactiveAdjustmentLockActive: locks.reactiveAdjustmentLockActive,
-    reactiveAdjustmentLockTriggerBp: locks.reactiveAdjustmentLockTriggerBp,
-  });
-  if (changes.length > 0) {
-    const subscribers = await getAlertSubscribers();
-    if (subscribers.length > 0) {
-      console.log(`[cron] ${changes.length} alert-worthy change(s), alerting ${subscribers.length} users`);
-      await sendSignalAlert(subscribers, {
-        finalSignal,
-        changes,
-        details: {
-          monetary, fiscal, admin, aiSupply,
-          fiscalOutlaysChangePct: policyData.outlaysChangePct,
-          epuTradePercentile: policyData.epuTradePercentile,
-          epuDailyPercentile: policyData.epuDailyPercentile,
-          oilChange30dPct: policyData.oilChange30dPct,
-          semiIpYoy: policyData.semiIpYoy,
-          modelUsageTrendPct: chainData.modelUsageTrendPct,
-          capexYoY: chainData.capexYoY,
-          rateChangeBp: locks.rateDiffBp,
-          sahmValue: macroData.sahmValue,
-        },
-      });
-    }
-  }
 }
 
 // 统一错误中间件：asyncRoute 捕获的异常在此收口为 500，而不是 unhandledRejection 崩溃进程
@@ -580,7 +651,9 @@ app.use((err, req, res, next) => {
 // timezone 钉美东本地时钟，夏令时自动切换（EDT=北京次日09:00，EST=10:00）；
 // cron 回调兜底 catch，防止未处理 rejection 终止进程
 const alertCronFailure = (source, err) => {
-  console.error(`[${source}] daily update failed:`, err);
+  // 只打 message+stack，不打完整 err 对象：axios 错误对象携带 config.url（FRED api_key 在
+  // query 里），整对象落日志等于把密钥写进平台日志
+  console.error(`[${source}] daily update failed:`, err?.stack || err?.message || String(err));
   sendOpsAlert(process.env.ADMIN_EMAIL, {
     stage: `${source} 未捕获异常（当日快照可能未生成）`,
     error: err?.message || String(err),
@@ -595,10 +668,21 @@ cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure
 await restoreDatabaseIfMissing()
   .catch(err => console.warn('[startup] restore check failed:', err.message));
 
-runDailyUpdate().catch(err => alertCronFailure('startup', err));
+// 管理员账户种子（2026-07-30 审查修复，H3）：配置 ADMIN_PASSWORD 时启动即确保管理员
+// 账户存在，且公开注册接口拒绝注册 ADMIN_EMAIL——堵住"空库窗口内任何人抢注管理员
+// 邮箱即获管理员权限"的身份抢注面（恢复失败 fail-open 空库启动时该窗口真实存在）
+await ensureAdminUser().catch(err => console.warn('[startup] admin seed failed:', err.message));
 
 const httpServer = app.listen(PORT, () => {
   console.log(`[server] Stock Sentinel backend running on http://localhost:${PORT}`);
+  // 首次更新放在 listen 成功之后（2026-07-30 审查修复，M8）：端口被占（本机计划任务
+  // 实例已在跑，又手动 npm run dev）时进程应立刻退出，而不是先跑一轮完整每日更新
+  // （两进程各持独立 sql.js 内存副本，后 persist 者整库覆盖前者的写入）
+  runDailyUpdate().catch(err => alertCronFailure('startup', err));
+});
+httpServer.on('error', err => {
+  console.error(`[server] listen failed (${err.code}): ${err.message} — exiting`);
+  process.exit(1);
 });
 
 // Railway 滚动重部署时向旧容器发 SIGTERM：优雅关闭并以 0 退出，

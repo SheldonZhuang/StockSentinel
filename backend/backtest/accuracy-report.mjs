@@ -85,12 +85,18 @@ export function crisisSpansOf(crisisRows, minDrawdownPct = 15) {
  */
 export function episodeVerdict(ep, timeline, idxOfMonth, crisisSpans) {
   const i0 = idxOfMonth.get(ep.start);
-  const horizon = timeline.slice(i0, i0 + 13).map(t => t.spx).filter(v => v !== null && v !== undefined && !isNaN(v));
+  const horizonSlice = timeline.slice(i0, i0 + 13);
+  const complete = horizonSlice.length >= 13;
+  const horizon = horizonSlice.map(t => t.spx).filter(v => v !== null && v !== undefined && !isNaN(v));
   const startPx = timeline[i0]?.spx;
-  const maxDD12 = startPx && horizon.length ? (Math.min(...horizon) / startPx - 1) * 100 : null;
+  let maxDD12 = startPx && horizon.length ? (Math.min(...horizon) / startPx - 1) * 100 : null;
+  const strictTrue = maxDD12 !== null && maxDD12 <= -15;
+  // 末端截断护栏（2026-07-30）：视界不足13个采样点时，已观测到>15%回撤仍可证真；
+  // 未观测到回撤不能证伪（"还没跌"≠假阳性）——maxDD12 置 null 表示未定
+  if (!complete && !strictTrue) maxDD12 = null;
   const lastMonth = ep.months[ep.months.length - 1].month;
   const overlap = crisisSpans.find(s => ep.start <= s.end && lastMonth >= s.start) ?? null;
-  return { maxDD12, strictTrue: maxDD12 !== null && maxDD12 <= -15, overlapCrisis: overlap?.name ?? null };
+  return { maxDD12, strictTrue, overlapCrisis: overlap?.name ?? null };
 }
 
 // ---------- 展示辅助 ----------

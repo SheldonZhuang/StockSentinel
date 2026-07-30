@@ -13,7 +13,7 @@
     "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour",
     "capexGuidanceBanner": "Révision à la baisse des prévisions de capex des hyperscalers — signal avancé de contraction du capex et de suroffre IA ; offre/demande IA passée en resserrement",
     "capexGuidanceRefTitle": "Prévisions de capex (référence prospective)",
-    "capexGuidanceRefHint": "Détection automatique : direction des prévisions de capex de chaque nouveau rapport — communiqué EDGAR et recherche web (transcriptions/présentations/médias financiers) en parallèle, se complétant mutuellement, avec un instantané capex trimestriel/TTM. Référence uniquement — ne détermine pas directement le signal ; « baisse explicite + confiance élevée » est automatiquement promue en événement de resserrement (baisse du communiqué : enregistrement immédiat ; baisse détectée via le web : corroboration exigée — propos de la direction en source primaire ou ≥2 sources indépendantes, sinon simple signalement pour vérification manuelle). Survolez pour voir la citation.",
+    "capexGuidanceRefHint": "Détection automatique : direction des prévisions de capex de chaque nouveau rapport — communiqué EDGAR et recherche web (transcriptions/présentations/médias financiers) en parallèle, se complétant mutuellement, avec un instantané capex trimestriel/TTM. Référence uniquement — ne détermine pas directement le signal ; « baisse explicite + confiance élevée » est automatiquement promue en événement de resserrement (baisse du communiqué : enregistrement immédiat ; baisse détectée via le web : corroboration exigée — propos de la direction en source primaire ou ≥2 sources indépendantes, sinon simple signalement pour vérification manuelle). Survolez pour voir la citation. La détection comporte deux garde-fous : ① seuls les articles publiés après les résultats sont retenus — les avant-papiers et les attentes des analystes ne sont pas des prévisions de la direction ; ② lorsqu'un changement comptable (durée d'amortissement, reclassement des baux) modifie le chiffre nominal des prévisions sans changer les plans d'investissement réels, la direction est « maintien », pas une réduction (ex. : MSFT, CY2026 reformulé de 190 Md$ à ~175 Md$, plans inchangés).",
     "guidanceDir": {
       "cut": "prévisions abaissées",
       "raise": "prévisions relevées",
@@ -24,7 +24,8 @@
       "cut": "↓abaissées",
       "raise": "↑relevées",
       "maintain": "→maintenues"
-    }
+    },
+    "downgradePendingBanner": "Confirmation de rétrogradation en cours : les conditions indiquent un palier plus accommodant ; effectif seulement après 30 jours consécutifs depuis le {date}. Le palier actuel reste en vigueur (les passages vers la défense sont immédiats)."
   },
   "signalPos": {
     "monetary": "Politique Monétaire",
@@ -220,7 +221,7 @@
       "disable": "Désactiver"
     },
     "capexGuidance": "Révision capex à la baisse",
-    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de capex (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement."
+    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de capex (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement. Deux garde-fous : la recherche web ne retient que les articles postérieurs aux résultats (avant-papiers/attentes d'analystes exclus) ; un changement comptable modifiant la valeur nominale sans changer les plans réels vaut « maintien » et ne déclenche pas cet événement."
   },
   "settings": {
     "title": "Paramètres",

@@ -84,7 +84,7 @@ async function load() {
 
 async function loadBacktest() {
   try {
-    const res = await fetch('/v1/backtest/summary');
+    const res = await fetch('/api/backtest/summary');
     if (!res.ok) return;
     const { summary } = await res.json();
     const o = summary?.overall;

@@ -1,5 +1,27 @@
 import { Resend } from 'resend';
 
+// 双实例架构（2026-07-30，H2）：本机 Windows 计划任务与 Railway 云端各自独立跑每日 cron，
+// 两边都配了 Resend 时订阅用户会在信号变更日收到两封（内容还可能因两库快照差异互相矛盾）。
+// replica 实例只压制"订阅者群发"；S5 执行指令与运维告警仅发管理员，双发是可接受的冗余
+const isReplica = () => (process.env.INSTANCE_ROLE || 'primary') === 'replica';
+
+// Resend SDK（2026-07-30 审查修复，H1）：其 fetchRequest 对 API 错误与网络异常一律
+// catch 后返回 {data:null, error}，**从不 reject**——不检查 error 字段的话，域名未验证/
+// 限流/额度超限等全部失败都会被计为"发送成功"，重试与升级告警链路全部变成死代码。
+// 另：Resend 默认限速 2 req/s，群发必须串行加间隔，并发 allSettled 会自撞 429
+async function sendOne(resend, msg) {
+  const { error } = await resend.emails.send(msg);
+  if (error) throw new Error(error.message || error.name || 'resend send failed');
+}
+
+// HTML 实体转义（2026-07-30，M3）：note/quote 可能携带网页/新闻稿摘录（不可信输入），
+// 直插邮件 HTML 会把注入的标签/钓鱼链接原样发给全部订阅者
+export function escapeHtml(s) {
+  return String(s ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
 const SIGNAL_LABELS = {
   attack: '🟢 进攻 Attack',
   neutral: '🟡 观望 Watch',
@@ -41,7 +63,7 @@ export function buildAlertEmail(payload) {
       const reasons = (c.reasons || []).map(r => BUBBLE_REASON_LABELS[r] || r).join('；');
       lines.push(`⚠️ AI泡沫预警触发 Bubble warning triggered：${reasons}`);
     } else if (c.kind === 'capexGuidance') {
-      const noteStr = c.note ? `（${c.note}）` : '';
+      const noteStr = c.note ? `（${escapeHtml(c.note)}）` : '';
       lines.push(`🔴 云厂商capex指引下修事件录入 Hyperscaler capex guidance cut recorded${noteStr}——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维即时转收紧 forward signal of capex contraction & AI oversupply; AI supply/demand dimension turns TIGHT immediately`);
     } else if (c.kind === 'sahmLockOn') {
       const sahmStr = details.sahmValue != null ? `（当前值 ${Number(details.sahmValue).toFixed(2)}）` : '';
@@ -127,6 +149,10 @@ export async function sendSignalAlert(subscribers, payload) {
     console.warn('[mailer] RESEND_API_KEY not configured, skipping email alerts');
     return { sent: 0, failed: 0 };
   }
+  if (isReplica()) {
+    console.log(`[mailer] replica instance — subscriber alerts suppressed (${subscribers.length} would have been sent by primary)`);
+    return { sent: 0, failed: 0, skippedReplica: true };
+  }
 
   const resend = new Resend(apiKey);
   const { subject, html } = buildAlertEmail(payload);
@@ -138,14 +164,18 @@ export async function sendSignalAlert(subscribers, payload) {
   let sent = 0;
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length; attempt++) {
-    const results = await Promise.allSettled(
-      pending.map(sub => resend.emails.send({ from, to: sub.email, subject, html }))
-    );
+    // 串行发送 + 600ms 间隔：Resend 默认 2 req/s，多订阅者并发发送必撞 429
     const stillFailing = [];
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') sent++;
-      else stillFailing.push(pending[i]);
-    });
+    for (const sub of pending) {
+      try {
+        await sendOne(resend, { from, to: sub.email, subject, html });
+        sent++;
+      } catch (err) {
+        console.warn(`[mailer] send to ${sub.email} failed (attempt ${attempt}):`, err.message);
+        stillFailing.push(sub);
+      }
+      if (pending.length > 1) await new Promise(r => setTimeout(r, 600));
+    }
     pending = stillFailing;
     if (pending.length && attempt < MAX_ATTEMPTS) {
       const backoffMs = 1000 * attempt; // 1s, 2s 退避，跨过 Resend 短时抖动
@@ -202,7 +232,7 @@ export async function sendS5ActionAlert(adminEmail, payload) {
   const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      await resend.emails.send({ from, to: adminEmail, subject, html });
+      await sendOne(resend, { from, to: adminEmail, subject, html });
       return { sent: 1, failed: 0 };
     } catch (err) {
       if (attempt === 3) {
@@ -229,11 +259,12 @@ export async function sendOpsAlert(adminEmail, p) {
   }
   const resend = new Resend(apiKey);
   const subject = `⚠️【股哨兵运维】每日信号更新失败：${p.stage}`;
+  const instanceTag = isReplica() ? '（replica 本机实例）' : '';
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #b91c1c;">⚠️ 每日信号更新失败</h2>
-      <p style="font-size: 14px; color: #222;">失败环节：<strong>${p.stage}</strong></p>
-      <p style="font-size: 13px; color: #444; line-height: 1.7;">错误：${p.error}</p>
+      <h2 style="color: #b91c1c;">⚠️ 每日信号更新失败${instanceTag}</h2>
+      <p style="font-size: 14px; color: #222;">失败环节：<strong>${escapeHtml(p.stage)}</strong></p>
+      <p style="font-size: 13px; color: #444; line-height: 1.7;">错误：${escapeHtml(p.error)}</p>
       <p style="font-size: 13px; color: #444;">最后一次成功快照日期：${p.dataDate || '未知'}</p>
       <p style="font-size: 12px; color: #888; margin-top: 16px;">
         今日快照未生成，track record 将出现断档；前端将继续展示旧数据。
@@ -243,7 +274,7 @@ export async function sendOpsAlert(adminEmail, p) {
   const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      await resend.emails.send({ from, to: adminEmail, subject, html });
+      await sendOne(resend, { from, to: adminEmail, subject, html });
       return { sent: 1, failed: 0 };
     } catch (err) {
       if (attempt === 3) {

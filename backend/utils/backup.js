@@ -79,6 +79,12 @@ export async function restoreDatabaseIfMissing() {
     const b64 = res.data?.content;
     if (!b64) return { skipped: true, reason: 'no latest.db in backup repo' };
     const buf = Buffer.from(b64.replace(/\n/g, ''), 'base64');
+    // 完整性护栏（2026-07-30，L4）：坏文件落盘会让 sql.js 初始化永久 rejected → 全接口 500。
+    // 校验 SQLite 文件头魔数与最小体积，不合格视同无备份（fail-open 空库启动，好过全站瘫痪）
+    if (buf.length < 4096 || !buf.slice(0, 16).toString('latin1').startsWith('SQLite format 3')) {
+      console.warn('[backup] latest.db failed integrity check (bad header/size), starting with empty db');
+      return { skipped: true, reason: 'backup file failed integrity check' };
+    }
     fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
     // 与 storage.persist 同款原子写：写临时文件再改名
     const tmpPath = `${DB_PATH}.restore.tmp`;
@@ -103,6 +109,13 @@ export async function backupDatabase() {
   const repo = process.env.GITHUB_BACKUP_REPO;
   if (!repo || !process.env.GITHUB_BACKUP_TOKEN) {
     return { skipped: true, reason: 'GITHUB_BACKUP_REPO / GITHUB_BACKUP_TOKEN not set' };
+  }
+  // 双实例守卫（2026-07-30 审查修复，H2）：本机与云端是各自独立的 DB（用户表/API key 不同），
+  // 却写同一 latest.db 与同名 dated 路径——快照日期守卫两边每天相同必然放行，内容在两个
+  // 分叉库之间"谁后完成谁覆盖"；云端卷丢失时可能把本机库整个恢复上去（云端用户静默蒸发）。
+  // replica 实例（本机）不上传备份，仓库专属 primary（云端）
+  if ((process.env.INSTANCE_ROLE || 'primary') === 'replica') {
+    return { skipped: true, reason: 'replica instance does not upload backups' };
   }
   try {
     if (!fs.existsSync(DB_PATH)) return { ok: false, error: `db file not found: ${DB_PATH}` };

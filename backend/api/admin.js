@@ -66,10 +66,16 @@ router.post('/signals', requireAdmin, asyncRoute(async (req, res) => {
   if (!VALID_TYPES.includes(type)) {
     return res.status(400).json({ error: `type must be one of: ${VALID_TYPES.join(', ')}` });
   }
+  // 'auto' 为清除哨兵（2026-07-30）：撤销该类型当前 override 回到自动判定——
+  // 这也是误报 N3 事件（capex_guidance）唯一的手动清除路径（文档承诺"手动清除"须真实存在）
+  if (signal === 'auto') {
+    await setAdminSignal(type, 'auto', null, note || null, req.user.email);
+    return res.json({ ok: true, type, signal: 'auto', cleared: true });
+  }
   // capex_guidance 是事件型输入（N3 指引下修）：只有 tight 一个合法档位——
   // 事件存在即 capex 子信号收紧，"宽松的指引"不构成事件（数据口径自会体现）
   if (type === 'capex_guidance' && signal !== 'tight') {
-    return res.status(400).json({ error: 'capex_guidance only accepts signal=tight (the event itself means downgrade)' });
+    return res.status(400).json({ error: 'capex_guidance only accepts signal=tight (the event itself means downgrade) or auto (clear)' });
   }
   if (!VALID_SIGNALS.includes(signal)) {
     return res.status(400).json({ error: `signal must be one of: ${VALID_SIGNALS.join(', ')}` });
@@ -103,11 +109,16 @@ router.post('/signals', requireAdmin, asyncRoute(async (req, res) => {
 }));
 
 // POST /api/admin/lock-override — 应急清除萨姆锁/应对式调整锁（FRED数据异常误触发时用）
+// body.cancel=true：撤销现存的清锁 override（锁恢复由 raw 状态决定）
 router.post('/lock-override', requireAdmin, asyncRoute(async (req, res) => {
-  const { type, expiresAt, note } = req.body;
+  const { type, expiresAt, note, cancel } = req.body;
 
   if (!VALID_LOCK_TYPES.includes(type)) {
     return res.status(400).json({ error: `type must be one of: ${VALID_LOCK_TYPES.join(', ')}` });
+  }
+  if (cancel === true) {
+    await setAdminSignal(type, 'auto', null, note || null, req.user.email);
+    return res.json({ ok: true, type, cancelled: true });
   }
   const normalizedExpiresAt = normalizeExpiresAt(expiresAt);
   if (normalizedExpiresAt === undefined) {

@@ -53,11 +53,18 @@ export async function buildSignalPayload() {
     }
   );
   // 降档迟滞（V4）：无任何手动覆盖时，快照的 final_signal 已是 cron 应用迟滞后的生效档，直接信任
-  //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）；
-  // 存在覆盖时管理员操作需即时生效，用重算值，不做迟滞
+  //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）。
+  // 方向感知（2026-07-30 审查修复，H2）：存在覆盖时只允许"升档方向"（更防守）即时生效——
+  // 旧逻辑无条件用重算值，N3 事件（自动录入、90天寿命）活动期间会把降档等待期内的
+  // 生效档（如 defense）展示成更宽松的 candidate（如 reduce），整段绕过 30 天迟滞；
+  // 降档方向仍以快照生效档为准，与 cron 侧口径一致（cron 会把覆盖计入候选并过迟滞）
   const anyOverride = !!(fiscalOverride || adminOverride || aiSupplyOverride
     || sahmLockOverridden || reactiveAdjustmentLockOverridden || capexGuidanceActive);
-  const finalSignal = anyOverride ? candidateSignal : (snapshot.final_signal || candidateSignal);
+  const snapshotFinal = snapshot.final_signal || candidateSignal;
+  const severity = s => ({ defense: 3, reduce: 2, neutral: 1, attack: 0 })[s] ?? 1;
+  const finalSignal = anyOverride && severity(candidateSignal) > severity(snapshotFinal)
+    ? candidateSignal
+    : snapshotFinal;
 
   return {
     finalSignal,
@@ -71,6 +78,7 @@ export async function buildSignalPayload() {
     adminSignalSource: adminOverride ? 'override' : 'auto',
     // stale = 当日数据源故障，该维度沿用上一次有效判定
     staleFlags: {
+      monetary: !!snapshot.monetary_stale,
       fiscal: !!snapshot.fiscal_stale,
       administrative: !!snapshot.admin_stale,
       aiSupply: !!snapshot.ai_supply_stale,

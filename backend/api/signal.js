@@ -258,10 +258,14 @@ export function deriveAiSupplySubSignals({ modelUsageTrendPct, capexYoY, semiIpY
  */
 export function calcAiSupplySignal(data) {
   const { usageSignal, capexSignal, semiSignal } = deriveAiSupplySubSignals(data);
-  const subs = [usageSignal, capexSignal, semiSignal].filter(s => s !== null);
+  const raw = [usageSignal, capexSignal, semiSignal];
+  const subs = raw.filter(s => s !== null);
   if (!subs.length) return SIGNAL.NEUTRAL;                    // 全缺失
   if (subs.some(s => s === SIGNAL.TIGHT)) return SIGNAL.TIGHT; // 任一环节收缩=供过于求→收紧
-  if (subs.every(s => s === SIGNAL.LOOSE)) return SIGNAL.LOOSE; // 全链供不应求→宽松
+  // 宽松票（进攻档点火条件）要求三件套齐备且全 loose（2026-07-30 审查修复）：
+  // 任一子信号缺失（如未配 OPENROUTER_API_KEY 时需求侧恒 null）说明该环节失明，
+  // "可用子集一致"不等于"全链一致"，失明状态下不点火主动看多引擎；收紧票不受影响
+  if (raw.every(s => s === SIGNAL.LOOSE)) return SIGNAL.LOOSE; // 全链供不应求→宽松
   return SIGNAL.NEUTRAL;
 }
 

@@ -122,6 +122,7 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'capex_qtr_end TEXT',
   'capex_signal TEXT',
   'capex_qtr_prev_qtr_yoy REAL',
+  'monetary_stale INTEGER',
 ];
 
 // ai_chain_snapshots 的增量列（与 signal_snapshots 同机制：CREATE TABLE 管新库，ALTER 管存量库）
@@ -494,7 +495,9 @@ export async function createUser(email, passwordHash) {
 
 export async function getUserByEmail(email) {
   await getDb();
-  return get('SELECT * FROM users WHERE email = ?', [email]);
+  // 大小写不敏感（2026-07-30）：注册/登录侧已归一为小写，但存量账号可能是混合大小写，
+  // 精确匹配会让这些老账号在归一化后无法登录
+  return get('SELECT * FROM users WHERE lower(email) = lower(?)', [email]);
 }
 
 export async function getUserById(id) {
@@ -539,8 +542,8 @@ export async function saveSignalSnapshot(data) {
      yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date,
      sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
      spx_close, spx_ma10m, spx_above_sma10, oil_level_low,
-     capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy, monetary_stale)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -568,6 +571,7 @@ export async function saveSignalSnapshot(data) {
     data.sahmLockSince, data.reactiveAdjustmentLockSince, data.finalDowngradePendingSince,
     data.spxClose, data.spxMa10m, data.spxAboveSma10, data.oilLevelLow,
     data.capexQtrYoY, data.capexQtrEnd, data.capexSignal, data.capexQtrPrevQtrYoY,
+    data.monetaryStale ? 1 : 0,
   ]);
 }
 
@@ -599,12 +603,24 @@ export async function setAdminSignal(type, signal, expiresAt, note, setBy) {
 
 export async function getActiveAdminSignal(type) {
   await getDb();
-  return get(`
+  // 语义（2026-07-30 审查修复）：最新一条记录代表管理员/自动检测的最后意图——
+  // 先取最新再判过期，而非"过滤过期后取最新"（旧语义下短期 override 过期后，
+  // 更早的一条永不过期 override 会"僵尸复活"静默改变维度信号）。
+  // signal='auto' 为清除哨兵：显式撤销当前 override（含误报 N3 事件的人工清除路径）
+  const row = get(`
     SELECT * FROM admin_signal_overrides
     WHERE type = ?
-    AND (expires_at IS NULL OR expires_at > datetime('now'))
     ORDER BY created_at DESC, id DESC LIMIT 1
   `, [type]);
+  if (!row) return null;
+  if (row.signal === 'auto') return null;
+  if (row.expires_at && row.expires_at <= isoUtcNow()) return null;
+  return row;
+}
+
+// 与 SQLite datetime('now') 同格式的当前 UTC 时间串（字符串比较安全）
+function isoUtcNow() {
+  return new Date().toISOString().slice(0, 19).replace('T', ' ');
 }
 
 export async function getAdminSignalHistory(limit = 50) {

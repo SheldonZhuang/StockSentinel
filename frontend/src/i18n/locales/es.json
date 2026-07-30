@@ -13,7 +13,7 @@
     "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente",
     "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo",
     "capexGuidanceRefTitle": "Guía de capex (referencia prospectiva)",
-    "capexGuidanceRefHint": "Detección automática: dirección de la guía de capex de cada nuevo informe — comunicado EDGAR y búsqueda web (transcripciones/presentaciones/medios financieros) en paralelo, complementándose, más un resumen de capex trimestral/TTM. Solo referencia — no determina directamente la señal; \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo (recorte del comunicado: registro inmediato; recorte detectado vía web: requiere corroboración — palabras de la dirección en fuente primaria o ≥2 fuentes independientes, si no solo se señala para revisión manual). Pase el cursor para ver la cita.",
+    "capexGuidanceRefHint": "Detección automática: dirección de la guía de capex de cada nuevo informe — comunicado EDGAR y búsqueda web (transcripciones/presentaciones/medios financieros) en paralelo, complementándose, más un resumen de capex trimestral/TTM. Solo referencia — no determina directamente la señal; \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo (recorte del comunicado: registro inmediato; recorte detectado vía web: requiere corroboración — palabras de la dirección en fuente primaria o ≥2 fuentes independientes, si no solo se señala para revisión manual). Pase el cursor para ver la cita. La detección tiene dos salvaguardas: ① solo cuentan las coberturas posteriores a los resultados — los avances previos y las expectativas de analistas no son guía de la dirección; ② cuando un cambio contable (vida útil, reclasificación de arrendamientos) altera la cifra nominal de la guía pero los planes reales de inversión no cambian, se clasifica como «mantener», no como recorte (p. ej., MSFT: CY2026 reexpresado de 190 000 M$ a ~175 000 M$ sin cambio de planes).",
     "guidanceDir": {
       "cut": "guía recortada",
       "raise": "guía elevada",
@@ -24,7 +24,8 @@
       "cut": "↓recortada",
       "raise": "↑elevada",
       "maintain": "→mantenida"
-    }
+    },
+    "downgradePendingBanner": "Confirmación de rebaja en curso: las condiciones apuntan a un nivel más laxo; solo surte efecto tras 30 días desde {date}. Hasta entonces se mantiene el nivel actual (las subidas son inmediatas)."
   },
   "signalPos": {
     "monetary": "Política Monetaria",
@@ -220,7 +221,7 @@
       "disable": "Desactivar"
     },
     "capexGuidance": "Recorte guía capex",
-    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente."
+    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente. Dos salvaguardas: la búsqueda web solo acepta coberturas posteriores a los resultados (los avances/expectativas de analistas no cuentan); los cambios contables que alteran la guía nominal sin cambiar los planes reales se clasifican como «mantener» y no activan este evento."
   },
   "settings": {
     "title": "Configuración",

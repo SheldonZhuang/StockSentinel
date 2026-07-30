@@ -151,7 +151,7 @@ onMounted(async () => {
 .tier-badge { padding: 2px 10px; border-radius: 6px; font-weight: 700; font-size: var(--fs-sm); }
 .tier-badge.attack { background: var(--green-bg); color: var(--green); }
 .tier-badge.neutral { background: var(--yellow-bg); color: var(--yellow); }
-.tier-badge.reduce { background: var(--yellow-bg); color: var(--yellow); }
+.tier-badge.reduce { background: var(--orange-bg); color: var(--orange); }
 .tier-badge.defense { background: var(--red-bg); color: var(--red); }
 
 .state-badge { font-size: var(--fs-sm); font-weight: 600; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--border-3); color: var(--text-2); }

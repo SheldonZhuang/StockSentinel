@@ -24,6 +24,11 @@
         ⚠️ {{ $t('signal.snapshotStale', { days: snapshotStaleDays }) }}
       </div>
 
+      <!-- 降档确认期横幅：条件已转向更宽松档但30天迟滞未满，解释"清单全勾却不降档"的状态 -->
+      <div v-if="signal.indicators?.finalDowngradePendingSince" class="pending-banner">
+        ⏳ {{ $t('signal.downgradePendingBanner', { date: signal.indicators.finalDowngradePendingSince }) }}
+      </div>
+
       <!-- 泡沫预警横幅 -->
       <div v-if="signal.indicators?.aiBubbleWarning" class="bubble-banner">
         ⚠️ {{ $t('aiChain.bubbleWarning') }}
@@ -109,7 +114,7 @@ function dimMetric(key) {
     // 按产业链现金流向排列：付费源头（模型调用量）最领先最靠前 → 云capex → 半导体产出
     const parts = [];
     if (ind.modelUsageTrendPct != null) parts.push(`${t('indicators.short.modelUsage')} ${fmtPct(ind.modelUsageTrendPct)}`);
-    // 单季同比为括号附注：拐点侦察兵（参考），TTM为主判定口径，不混排成第四个判定输入
+    // 单季同比为括号附注（拐点侦察兵，有限判定权：N1拦截宽松/N2两季连负判收紧），TTM为主判定口径
     if (ind.capexYoY != null) {
       const qtr = ind.capexQtrYoY != null ? ` (${t('indicators.short.capexQtr')} ${fmtPct(ind.capexQtrYoY)})` : '';
       parts.push(`${t('indicators.short.capex')} ${fmtPct(ind.capexYoY)}${qtr}`);
@@ -157,8 +162,16 @@ function dimDetail(key) {
   if (key === 'fiscal' && ind.fiscalOutlaysChangePct != null) {
     return `${t('indicators.fiscalOutlaysTtm')} ${t('indicators.yoyChange')} ${fmtPct(ind.fiscalOutlaysChangePct)}`;
   }
-  if (key === 'administrative' && ind.epuTradePercentile != null) {
-    return `${t('indicators.epuTrade')} ${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`;
+  if (key === 'administrative') {
+    // 按实际触发层归因（与邮件 dimDetail 同语义）：油价事件层优先于 EPU 展示——
+    // 行政收紧可由油价冲击触发，此时把原因归到"贸易EPU百分位"是错误归因
+    if (ind.oilChange30dPct != null && Math.abs(ind.oilChange30dPct) >= 20) {
+      return `WTI 30D ${fmtPct(ind.oilChange30dPct)}`;
+    }
+    if (ind.epuTradePercentile != null) {
+      return `${t('indicators.epuTrade')} ${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}`;
+    }
+    return null;
   }
   if (key === 'aiSupply' && ind.aiBubbleWarning) {
     return t('aiChain.bubbleWarning');
@@ -173,7 +186,7 @@ const positions = computed(() => {
   const stale = s.staleFlags || {};
   return [
     { key: 'aiSupply', value: s.aiSupplySignal, source: s.aiSupplySignalSource, metric: dimMetric('aiSupply'), stale: !!stale.aiSupply },
-    { key: 'monetary', value: s.monetarySignal, metric: dimMetric('monetary') },
+    { key: 'monetary', value: s.monetarySignal, metric: dimMetric('monetary'), stale: !!stale.monetary },
     { key: 'fiscal', value: s.fiscalSignal, source: s.fiscalSignalSource, metric: dimMetric('fiscal'), stale: !!stale.fiscal },
     { key: 'administrative', value: s.adminSignal, source: s.adminSignalSource, metric: dimMetric('administrative'), stale: !!stale.administrative },
   ];
@@ -299,6 +312,16 @@ const snapshotStaleDays = computed(() => {
   color: var(--red);
   background: var(--red-bg);
   border: 1px solid var(--red-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.pending-banner {
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--yellow);
+  background: var(--yellow-bg);
+  border: 1px solid var(--yellow-border);
   border-radius: 8px;
   padding: 8px 14px;
 }

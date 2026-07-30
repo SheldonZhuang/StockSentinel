@@ -44,6 +44,10 @@
 
     <!-- 股票列表 -->
     <div v-if="loading" class="loading">{{ $t('signal.loading') }}</div>
+    <div v-else-if="loadError" class="empty">
+      ⚠️ {{ $t('error.fetchFailed') }}
+      <button class="retry-btn" @click="loadWatchlist">{{ $t('error.retry') }}</button>
+    </div>
     <div v-else-if="stocks.length === 0" class="empty">{{ $t('watchlist.empty') }}</div>
     <div v-else class="stock-list">
       <div v-for="stock in sortedStocks" :key="stock.symbol" class="stock-card">
@@ -55,22 +59,22 @@
         <div v-if="stock.error" class="stock-error">{{ stock.error }}</div>
         <template v-else>
           <div class="stock-price">
-            <span class="price-value">${{ stock.currentPrice?.toFixed(2) }}</span>
+            <span class="price-value">{{ stock.currentPrice != null ? '$' + stock.currentPrice.toFixed(2) : '—' }}</span>
             <span class="pct-group" :title="$t('watchlist.percentileHint')">
               <span class="pct-label">{{ $t('watchlist.pricePercentile') }}</span>
               <span class="percentile-badge" :class="percentileClass(stock.pricePercentile)">
-                {{ stock.pricePercentile !== null ? stock.pricePercentile + '%' : '—' }}
+                {{ stock.pricePercentile != null ? stock.pricePercentile + '%' : '—' }}
               </span>
             </span>
           </div>
           <div class="stock-valuation" :title="$t('watchlist.valuationHint')">
             <span class="val-item">
               {{ $t('watchlist.pe') }}:
-              <strong>{{ stock.currentPE !== null ? stock.currentPE?.toFixed(1) : '—' }}</strong>
+              <strong>{{ stock.currentPE != null ? stock.currentPE.toFixed(1) : '—' }}</strong>
             </span>
             <span class="val-item">
               {{ $t('watchlist.ps') }}:
-              <strong>{{ stock.currentPS !== null ? stock.currentPS?.toFixed(2) : '—' }}</strong>
+              <strong>{{ stock.currentPS != null ? stock.currentPS.toFixed(2) : '—' }}</strong>
             </span>
           </div>
         </template>
@@ -96,6 +100,7 @@ const SORT_OPTIONS = [
 
 const newSymbol = ref('');
 const loading = ref(true);
+const loadError = ref(false); // 116号修复：接口故障不再伪装成"暂无自选股"
 const stocks = ref([]);
 const sortKey = ref(null); // null = 添加顺序
 const sortDir = ref(1);    // 1 升序 / -1 降序
@@ -142,12 +147,14 @@ async function loadWatchlist() {
   // 请求序号防竞态：改日期触发的并发请求中，只有最后一次的响应允许落地
   const seq = ++loadSeq;
   loading.value = true;
+  loadError.value = false;
   try {
     const data = await api.getWatchlist(startDate.value, endDate.value);
     if (seq !== loadSeq) return;
     stocks.value = data;
   } catch (e) {
     console.error('Watchlist load failed', e);
+    if (seq === loadSeq) loadError.value = true;
   } finally {
     if (seq === loadSeq) loading.value = false;
   }
@@ -267,4 +274,9 @@ onMounted(loadWatchlist);
 .val-item strong { color: var(--text-2); font-family: var(--font-num); font-weight: 600; }
 
 .stock-error { font-size: var(--fs-sm); color: var(--red); }
+.retry-btn {
+  background: none; border: 1px solid var(--border-3); border-radius: 6px;
+  color: var(--text-2); padding: 2px 10px; cursor: pointer; font-size: var(--fs-sm); margin-left: 8px;
+}
+.retry-btn:hover { border-color: var(--text-3); }
 </style>
