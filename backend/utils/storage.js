@@ -146,6 +146,7 @@ const GUIDANCE_RECORD_NEW_COLUMNS = [
   'qtr_capex_yoy REAL',     // 单季同比 %
   'ttm_capex REAL',         // 滚动4季capex（USD）
   'ttm_capex_yoy REAL',     // 滚动4季同比 %
+  'manual_verified INTEGER',// 117号：人工核实定档标记（=1 时暂定档复检窗口跳过，不被自动重检覆盖）
 ];
 
 function migrateSchema() {
@@ -232,7 +233,13 @@ function patchGuidanceData() {
       AND (fy_guidance IS NULL OR fy_guidance NOT LIKE '%restated%')`);
   const meta = all(`SELECT id FROM capex_guidance_records
     WHERE accession = '0001628280-26-050596' AND forward_guidance LIKE '%Analyst%'`);
-  if (!msft.length && !meta.length) return;
+  // 117号（2026-07-31）：AMZN Q2 财报当晚 web 检索命中"旧指引回声"（本机档为分析师 consensus
+  // 推算、云端档为旧计划 $200B maintained），实际电话会已上修至 ~$220B（内存/硬件通胀+AI需求）。
+  // 定点覆盖为人工核实值并标记 manual_verified（暂定档复检窗口跳过，防重检覆盖）
+  const amzn = all(`SELECT id FROM capex_guidance_records
+    WHERE accession = '0001018724-26-000024'
+      AND (fy_guidance IS NULL OR fy_guidance NOT LIKE '%220%')`);
+  if (!msft.length && !meta.length && !amzn.length) return;
   if (msft.length) {
     db.run(`UPDATE capex_guidance_records SET
         direction = 'maintain', confidence = 'high',
@@ -248,6 +255,18 @@ function patchGuidanceData() {
     db.run(`UPDATE capex_guidance_records SET forward_guidance = NULL
       WHERE accession = '0001628280-26-050596'`);
     console.log('[migrate] 115号补丁：META 前瞻指引字段清除分析师推测（非管理层表述）');
+  }
+  if (amzn.length) {
+    db.run(`UPDATE capex_guidance_records SET
+        direction = 'raise', confidence = 'high', source = 'web', manual_verified = 1,
+        quote = 'Amazon raised its FY2026 cash capex guidance to approximately $220B, up from about $200B, citing industry-wide memory/hardware cost inflation and AI/cloud demand. Q2 cash capex was $53.1B. CEO Andy Jassy: even at $220B, 2026-2027 compute supply will not fully meet customer demand; part of 2028 capacity already committed; AWS backlog $496B.',
+        fy_guidance = 'FY2026 ~$220B cash capex, raised from ~$200B (memory/hardware cost inflation + AI demand)',
+        forward_guidance = '2026-2027 compute supply below demand; part of 2028 capacity pre-committed; AWS backlog $496B; DC life 30+ yrs, servers/network breakeven <3 yrs',
+        sources = '["https://www.cnbc.com/2026/07/30/amazon-amzn-q2-earnings-report-2026.html","https://www.moomoo.com/news/post/73849133","https://www.cls.cn/detail/2442056"]',
+        qtr_end = '2026-06-30', qtr_capex = 53100000000, qtr_capex_yoy = 64.9,
+        ttm_capex = 171903000000, ttm_capex_yoy = NULL
+      WHERE accession = '0001018724-26-000024'`);
+    console.log('[migrate] 117号补丁：AMZN Q2 指引记录已由旧指引回声修正为财报后核实值（上修至~$220B）并人工定档');
   }
   persist();
 }
@@ -474,6 +493,7 @@ function initSchema() {
       qtr_capex_yoy REAL,
       ttm_capex REAL,
       ttm_capex_yoy REAL,
+      manual_verified INTEGER,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
@@ -695,12 +715,24 @@ export async function getAllOverrides() {
 export async function getProcessedGuidanceAccessions() {
   await getDb();
   // 113号自愈迁移：direction='none' 且 source 为空的记录是补源前旧代码落的档
-  // （旧语义"新闻稿未给指引"，未经 web 检索）——视为未完成检测，不算已处理；
-  // 10天窗口内的该类申报会被重新检测并覆盖（云端/本机各实例自动收敛，无需人工修库）
+  // （旧语义"新闻稿未给指引"，未经 web 检索）——视为未完成检测，不算已处理。
+  // 117号暂定档复检（2026-07-31，AMZN 实证）：财报当晚的 web 源检索反复出现"旧指引回声"
+  // （电话会内容尚未被媒体充分覆盖，LLM 把财报前的旧计划当 maintain 落档，MSFT 预览稿
+  // 污染的变体）——web 来源的记录在财报后 48 小时内视为**暂定档**，每日重检并 upsert 刷新
+  // （次日媒体覆盖到位后自动纠正），窗口过后冻结；manual_verified=1（人工核实/补丁定档）跳过。
+  // press_release 来源是公司原文，无此问题不复检。
   return all(`
     SELECT accession FROM capex_guidance_records
     WHERE NOT (direction = 'none' AND source IS NULL)
+      AND NOT (source = 'web' AND (manual_verified IS NULL OR manual_verified = 0)
+               AND filing_date >= date('now', '-2 day'))
   `).map(r => r.accession);
+}
+
+// 117号：人工核实定档（暂定档复检窗口跳过该记录，防自动重检覆盖人工修正值）
+export async function setGuidanceManualVerified(accession) {
+  await getDb();
+  run('UPDATE capex_guidance_records SET manual_verified = 1 WHERE accession = ?', [accession]);
 }
 
 export async function saveGuidanceRecord(rec) {

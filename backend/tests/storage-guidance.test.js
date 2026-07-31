@@ -24,17 +24,36 @@ describe('capex_guidance_records 自愈迁移（113号）', () => {
     });
     // 补源后的完整档：none 但 source=web（双源均未见指引的强否定）
     await storage.saveGuidanceRecord({
-      symbol: 'META', filingDate: '2026-07-29', accession: 'ACC-WEB-NONE', direction: 'none', source: 'web',
+      symbol: 'META', filingDate: '2026-05-29', accession: 'ACC-WEB-NONE', direction: 'none', source: 'web',
     });
     // 有指引的档
     await storage.saveGuidanceRecord({
-      symbol: 'MSFT', filingDate: '2026-07-30', accession: 'ACC-RAISE', direction: 'raise', source: 'press_release',
+      symbol: 'MSFT', filingDate: '2026-05-30', accession: 'ACC-RAISE', direction: 'raise', source: 'press_release',
     });
 
     const processed = await storage.getProcessedGuidanceAccessions();
     expect(processed).not.toContain('ACC-LEGACY-NONE'); // 遗留档重新进检测窗口
     expect(processed).toContain('ACC-WEB-NONE');
     expect(processed).toContain('ACC-RAISE');
+  });
+
+  it('117号暂定档复检：财报后48小时内的 web 源记录不算已处理（每日重检刷新），press_release 与人工定档不受影响', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    // 财报当晚的 web 档（旧指引回声风险窗口内）→ 暂定，重检
+    await storage.saveGuidanceRecord({
+      symbol: 'AMZN', filingDate: today, accession: 'ACC-WEB-FRESH', direction: 'maintain', source: 'web',
+    });
+    // 同日 press_release 档：公司原文，无回声问题 → 已处理
+    await storage.saveGuidanceRecord({
+      symbol: 'META', filingDate: today, accession: 'ACC-PRESS-FRESH', direction: 'raise', source: 'press_release',
+    });
+    let processed = await storage.getProcessedGuidanceAccessions();
+    expect(processed).not.toContain('ACC-WEB-FRESH');
+    expect(processed).toContain('ACC-PRESS-FRESH');
+    // 人工核实定档后跳过复检（防自动重检覆盖人工修正值）
+    await storage.setGuidanceManualVerified('ACC-WEB-FRESH');
+    processed = await storage.getProcessedGuidanceAccessions();
+    expect(processed).toContain('ACC-WEB-FRESH');
   });
 
   it('同 accession 重跑覆盖旧行（upsert），不残留重复记录', async () => {
