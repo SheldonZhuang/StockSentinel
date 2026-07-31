@@ -25,7 +25,8 @@
       "raise": "↑raised",
       "maintain": "→maintained"
     },
-    "downgradePendingBanner": "Downgrade confirmation in progress: conditions point to a looser tier; it takes effect only after holding for 30 days since {date}. The current tier stays until then (upgrades are immediate)."
+    "downgradePendingBanner": "Downgrade confirmation in progress: conditions point to a looser tier; it takes effect only after holding for 30 days since {date}. The current tier stays until then (upgrades are immediate).",
+    "catchUpBanner": "Data was not updated on schedule; an automatic catch-up is running (1-3 min) and the page will refresh when done"
   },
   "signalPos": {
     "monetary": "Monetary Policy",

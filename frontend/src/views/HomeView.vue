@@ -6,7 +6,11 @@
         <span>⚠️ {{ $t('error.fetchFailed') }}</span>
         <button class="retry-btn" @click="loadSignal">{{ $t('error.retry') }}</button>
       </div>
-      <SignalHero v-else :signal="signal" />
+      <template v-else>
+        <!-- 补更新提示（118号）：快照过点未更新，打开页面已自动触发后台补跑，轮询等新快照 -->
+        <div v-if="catchingUp" class="catchup-banner">⏳ {{ $t('signal.catchUpBanner') }}</div>
+        <SignalHero :signal="signal" />
+      </template>
     </div>
 
     <!-- AI 日报：LLM 基于当日快照生成的双语解读 -->
@@ -46,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SignalHero from '../components/SignalHero.vue';
 import MacroPanel from '../components/MacroPanel.vue';
@@ -62,6 +66,33 @@ const { locale } = useI18n();
 const signal = ref(null);
 const signalError = ref(false);
 const report = ref(null);
+// 补更新（118号）：后端返回 catchUp 标志 = 快照过点未更新、已自动触发后台补跑，
+// 前端轮询（30秒×10次）等新快照落库后自动刷新展示
+const catchingUp = ref(false);
+let pollTimer = null;
+let pollTries = 0;
+
+function stopCatchUpPolling(done = false) {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (done) catchingUp.value = false;
+}
+
+function startCatchUpPolling() {
+  if (pollTimer) return;
+  catchingUp.value = true;
+  pollTries = 0;
+  pollTimer = setInterval(async () => {
+    pollTries++;
+    try {
+      const res = await api.getSignal();
+      if (res?.finalSignal) {
+        signal.value = res;
+        if (!res.catchUp) { stopCatchUpPolling(true); return; } // 新快照已生成
+      }
+    } catch { /* 轮询失败静默，下轮再试 */ }
+    if (pollTries >= 10) stopCatchUpPolling(true); // 5分钟未完成则停（补跑失败会由运维告警兜底）
+  }, 30000);
+}
 
 async function loadSignal() {
   signalError.value = false;
@@ -69,11 +100,14 @@ async function loadSignal() {
     const res = await api.getSignal();
     // 后端无快照时返回 {status:'loading'}（HTTP 200），视同加载中，否则维度卡会渲染出 undefined 的 i18n key
     signal.value = res?.finalSignal ? res : null;
+    if (res?.catchUp) startCatchUpPolling();
   } catch (e) {
     console.error('Failed to load signal', e);
     signalError.value = true;
   }
 }
+
+onUnmounted(() => stopCatchUpPolling());
 
 onMounted(async () => {
   await loadSignal();
@@ -106,6 +140,11 @@ onMounted(async () => {
 .hero-section { padding: 28px 20px; }
 
 .signal-error { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-2); font-size: var(--fs-md); padding: 12px 0; }
+.catchup-banner {
+  text-align: center; font-size: var(--fs-sm); color: var(--yellow);
+  background: var(--yellow-bg); border: 1px solid var(--yellow-border);
+  border-radius: 8px; padding: 8px 14px; margin-bottom: 14px;
+}
 .retry-btn {
   background: none; border: 1px solid var(--border-3); border-radius: 6px;
   color: var(--text-2); padding: 4px 12px; cursor: pointer; font-size: var(--fs-sm);

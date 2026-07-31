@@ -25,7 +25,8 @@
       "raise": "↑上修",
       "maintain": "→维持"
     },
-    "downgradePendingBanner": "降档确认期中：条件已转向更宽松档，自 {date} 起需持续满30天才生效，期间沿用当前档位（升档不受此限）。"
+    "downgradePendingBanner": "降档确认期中：条件已转向更宽松档，自 {date} 起需持续满30天才生效，期间沿用当前档位（升档不受此限）。",
+    "catchUpBanner": "检测到数据未按时更新，系统已自动开始补更新（约1-3分钟），完成后将自动刷新"
   },
   "signalPos": {
     "monetary": "货币政策",

@@ -25,7 +25,8 @@
       "raise": "↑angehoben",
       "maintain": "→bestätigt"
     },
-    "downgradePendingBanner": "Herabstufungs-Bestätigung läuft: Die Bedingungen deuten auf eine lockerere Stufe; wirksam erst nach 30 Tagen seit {date}. Bis dahin bleibt die aktuelle Stufe (Hochstufungen greifen sofort)."
+    "downgradePendingBanner": "Herabstufungs-Bestätigung läuft: Die Bedingungen deuten auf eine lockerere Stufe; wirksam erst nach 30 Tagen seit {date}. Bis dahin bleibt die aktuelle Stufe (Hochstufungen greifen sofort).",
+    "catchUpBanner": "Die Daten wurden nicht planmäßig aktualisiert; eine automatische Nachholung läuft (1-3 Min.), die Seite aktualisiert sich danach selbst"
   },
   "signalPos": {
     "monetary": "Geldpolitik",

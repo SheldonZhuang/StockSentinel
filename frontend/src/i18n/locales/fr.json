@@ -25,7 +25,8 @@
       "raise": "↑relevées",
       "maintain": "→maintenues"
     },
-    "downgradePendingBanner": "Confirmation de rétrogradation en cours : les conditions indiquent un palier plus accommodant ; effectif seulement après 30 jours consécutifs depuis le {date}. Le palier actuel reste en vigueur (les passages vers la défense sont immédiats)."
+    "downgradePendingBanner": "Confirmation de rétrogradation en cours : les conditions indiquent un palier plus accommodant ; effectif seulement après 30 jours consécutifs depuis le {date}. Le palier actuel reste en vigueur (les passages vers la défense sont immédiats).",
+    "catchUpBanner": "Les données n'ont pas été mises à jour à l'heure prévue ; une mise à jour de rattrapage est en cours (1-3 min), la page se rafraîchira automatiquement"
   },
   "signalPos": {
     "monetary": "Politique Monétaire",

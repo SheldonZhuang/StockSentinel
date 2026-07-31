@@ -8,6 +8,7 @@ import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage, pruneApiUsage } from '../utils/storage.js';
 import { ipRateLimit } from '../utils/ip-rate-limit.js';
+import { maybeCatchUp } from '../utils/catch-up.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -168,6 +169,10 @@ const withDisclaimer = payload => ({
 router.get('/signal', asyncRoute(async (req, res) => {
   const payload = await buildSignalPayload();
   if (!payload) return res.status(503).json({ error: 'warming_up', message: 'No snapshot yet, try again later' });
+  // 补更新钩子（118号）：过点未更新时访问即触发后台补跑（30分钟冷却+互斥，成本有界）；
+  // 响应含 catchUp 标志，客户端可稍后重查
+  const cu = await maybeCatchUp();
+  if (cu.overdue) payload.catchUp = cu;
   res.json(withDisclaimer(payload));
 }));
 

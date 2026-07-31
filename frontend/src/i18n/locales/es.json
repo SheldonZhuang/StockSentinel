@@ -25,7 +25,8 @@
       "raise": "↑elevada",
       "maintain": "→mantenida"
     },
-    "downgradePendingBanner": "Confirmación de rebaja en curso: las condiciones apuntan a un nivel más laxo; solo surte efecto tras 30 días desde {date}. Hasta entonces se mantiene el nivel actual (las subidas son inmediatas)."
+    "downgradePendingBanner": "Confirmación de rebaja en curso: las condiciones apuntan a un nivel más laxo; solo surte efecto tras 30 días desde {date}. Hasta entonces se mantiene el nivel actual (las subidas son inmediatas).",
+    "catchUpBanner": "Los datos no se actualizaron según lo previsto; se está ejecutando una actualización de recuperación (1-3 min) y la página se refrescará al terminar"
   },
   "signalPos": {
     "monetary": "Política Monetaria",

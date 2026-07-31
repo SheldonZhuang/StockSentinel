@@ -52,6 +52,7 @@ import { todayET, daysAgoET } from './utils/datetime.js';
 import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import { computeLocks } from './api/locks.js';
+import { initCatchUp, maybeCatchUp } from './utils/catch-up.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
@@ -97,6 +98,11 @@ app.use('/mcp', mcpRouter);
 app.get('/api/signal', asyncRoute(async (req, res) => {
   const payload = await buildSignalPayload();
   if (!payload) return res.json({ status: 'loading', message: 'No data yet, cron will run soon' });
+  // 补更新钩子（118号）：快照过点未更新（定时任务缺跑/失败）时，被访问即触发后台补跑——
+  // 响应立即返回现有数据 + catchUp 标志，前端据此展示"补更新中"并轮询新快照。
+  // 绝不提前跑（美东21:45前期望的是昨日快照），只补"该跑而没跑成"的
+  const cu = await maybeCatchUp();
+  if (cu.overdue) payload.catchUp = cu;
   res.json(payload);
 }));
 
@@ -594,6 +600,12 @@ const alertCronFailure = (source, err) => {
   }).catch(() => {});
 };
 cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
+
+// 补更新看门狗（118号）：每小时检查快照是否过点未更新（21:00 任务被错过/中途失败时，
+// 此前要等次日才有重试），过期即补跑——用户通常还没打开页面系统就已自愈。
+// 注入 runDailyUpdate 后，/api/signal 与 /v1/signal 的访问触发共用同一控制器（30分钟冷却）
+initCatchUp(() => runDailyUpdate().catch(err => alertCronFailure('catch-up', err)));
+cron.schedule('20 * * * *', () => { maybeCatchUp().catch(() => {}); }, { timezone: 'America/New_York' });
 
 // 启动顺序（顶层 await）：先尝试从 GitHub 备份恢复丢失的 DB，再开始监听与首次更新。
 // Railway 容器文件系统非持久化，重部署即丢库；恢复必须发生在任何 getDb() 之前——
