@@ -336,7 +336,8 @@ export async function fetchModelUsage() {
  */
 export function deriveQuarterlyCapex(facts) {
   const seen = new Map();
-  for (const f of facts || []) {
+  // EDGAR companyconcept 可能返回 units:{USD:{}}（空对象，BE 实测）——for...of {} 抛 not iterable
+  for (const f of Array.isArray(facts) ? facts : []) {
     if (!f.start || !f.end || typeof f.val !== 'number') continue;
     if (f.form && !f.form.startsWith('10-Q') && !f.form.startsWith('10-K')) continue;
     const k = `${f.start}|${f.end}`;

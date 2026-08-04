@@ -68,7 +68,9 @@ async function tickerToCik(symbol) {
 export function sumTtmRevenue(facts, today = new Date().toISOString().slice(0, 10)) {
   const nowMs = new Date(today + 'T00:00:00Z').getTime();
   const ms = d => new Date(d + 'T00:00:00Z').getTime();
-  const withDuration = (facts || [])
+  // EDGAR companyconcept 对部分公司（实测 BE）返回 units:{USD:{}}——空对象是真值，
+  // `|| []` 拦不住，必须显式校验数组，否则 .filter 抛错 → 结果永不缓存 → 每次请求无限重试
+  const withDuration = (Array.isArray(facts) ? facts : [])
     .filter(f => f.start && f.end && f.val != null && !isNaN(f.val))
     .map(f => ({ ...f, days: (ms(f.end) - ms(f.start)) / DAY_MS }));
 
@@ -131,7 +133,8 @@ async function fetchRevenueTtm(cik) {
 async function fetchSharesOutstanding(cik) {
   try {
     const res = await edgarGet(conceptUrl(cik, 'dei', 'EntityCommonStockSharesOutstanding'));
-    const facts = res.data?.units?.shares || [];
+    const raw = res.data?.units?.shares;
+    const facts = Array.isArray(raw) ? raw : []; // units:{shares:{}} 空对象同样拦不住 || []
     const latest = facts
       .filter(f => f.val != null && !isNaN(f.val) && f.val > 0)
       .sort((a, b) => ((a.end || '') < (b.end || '') ? 1 : -1))[0];

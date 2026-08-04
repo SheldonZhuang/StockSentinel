@@ -60,6 +60,13 @@ describe('sumTtmRevenue', () => {
     expect(sumTtmRevenue([q('2026-01-01', '2026-03-31', NaN)], '2026-07-13')).toBe(null);
   });
 
+  it('units.USD 为空对象（EDGAR companyconcept 对 BE 的实测返回）→ null 不抛', () => {
+    // 2026-07-31 Railway 实况：CIK0001664703(BE) 的 Revenues.json 返回 units:{USD:{}}，
+    // {} 是真值，(facts || []) 拦不住 → {}.filter 抛 TypeError → 永不缓存无限重试刷日志
+    expect(sumTtmRevenue({}, '2026-07-13')).toBe(null);
+    expect(sumTtmRevenue('unexpected', '2026-07-13')).toBe(null);
+  });
+
   it('年度值也陈旧 → null；YTD半年值（约180天）不误当季度', () => {
     const facts = [
       q('2026-01-01', '2026-06-28', 500), // 半年YTD，不是季度

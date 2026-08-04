@@ -245,6 +245,11 @@ describe('deriveQuarterlyCapex', () => {
     ]);
   });
 
+  it('units.USD 为空对象（EDGAR companyconcept 对 BE 的实测形状）→ 空数组不抛', () => {
+    expect(deriveQuarterlyCapex({})).toEqual([]);
+    expect(deriveQuarterlyCapex(null)).toEqual([]);
+  });
+
   it('独立单季 fact 与 YTD 推导结果按季度末去重（后者覆盖）', () => {
     const facts = [
       ...ytdChain(2025, 100, 220, 350, 500),
