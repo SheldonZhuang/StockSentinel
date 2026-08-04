@@ -24,6 +24,8 @@ import {
   detectSignalChanges,
   applyYieldCurveVeto,
   applyCreditSpreadVeto,
+  applyRealRateVeto,
+  applyTrendFloor,
   applyDowngradeHold,
   applyTrendReentry,
   calcTrendState,
@@ -289,6 +291,23 @@ async function runDailyUpdateInner() {
   const aiSupplyAuto = calcAiSupplySignal(aiSupplyInputs);
   const aiSubSignals = deriveAiSupplySubSignals(aiSupplyInputs);
 
+  // OpenRouter 单点交叉验证（120号②，用户拍板）：调用量子信号是三件套里唯一押注单一聚合商
+  // 的输入——超大客户绕开聚合商直连时会表现为份额下滑的"假收紧"。当调用量单独报收紧而
+  // capex（EDGAR财报）与半导体产出（FRED）两个独立源均无恶化佐证时：收紧照常生效
+  // （防守不过夜，历次审查教训"判定链修复均漏防守侧"），但标记分歧+运维邮件请人工核查
+  // 是否为份额漂移误报（管理面板可用 ai_supply override 人工纠正）。宽松侧无需交叉：
+  // calcAiSupplySignal 的宽松票本就要求三件套全绿才点火
+  const usageDivergence = aiSubSignals.usageSignal === 'tight'
+    && aiSubSignals.capexSignal != null && aiSubSignals.capexSignal !== 'tight'
+    && aiSubSignals.semiSignal != null && aiSubSignals.semiSignal !== 'tight';
+  if (usageDivergence && prevSnapshot?.usage_divergence !== 1) {
+    console.warn(`[cron] ⚠️ USAGE DIVERGENCE: 模型调用量报收紧(${aiSupplyInputs.modelUsageTrendPct}%)但 capex(${aiSubSignals.capexSignal})/半导体(${aiSubSignals.semiSignal})均无恶化佐证——可能是 OpenRouter 份额漂移误报，请人工核查`);
+    sendOpsAlert(process.env.ADMIN_EMAIL, {
+      stage: 'AI调用量与独立源分歧（可能为 OpenRouter 份额漂移误报）',
+      error: `调用量趋势 ${aiSupplyInputs.modelUsageTrendPct}% 判收紧，但云厂商capex=${aiSubSignals.capexSignal}、半导体产出=${aiSubSignals.semiSignal}。收紧已按防守优先生效；若核查确认为份额漂移，请在管理面板用 ai_supply override 纠正`,
+    }).catch(() => {});
+  }
+
   // 数据源故障降级保护（stale-keep）：指标全为 null 说明是拉取失败而非"数据显示中性"，
   // 沿用上一快照的自动信号，避免故障日产生虚假的"转中性/解除防守"信号变更与误发告警
   const fiscalStale = policyData.outlaysChangePct == null && !!prevSnapshot?.fiscal_auto_signal;
@@ -315,12 +334,25 @@ async function runDailyUpdateInner() {
   const fiscal = fiscalOverride?.signal || fiscalAutoEff;
   const admin = adminOverride?.signal || adminAutoEff;
   const aiSupply = aiSupplyOverride?.signal || aiSupplyAutoEff;
-  const decisionTreeSignal = applyCreditSpreadVeto(
-    applyYieldCurveVeto(
-      calcFinalSignal(aiSupply, monetary, fiscal, admin),
-      macroData.yieldCurveInvertedDays
+  // 否决器输入沿用上一快照（120号 M3，用户拍板）：倒挂天数/信用利差当日拉取失败（429/超时）
+  // 时旧 fail-open 会放行 attack，次日恢复又收回——单日 attack↔neutral 翻转+一对反向邮件。
+  // 对"只限制 attack、不触发防守"的否决器角色，昨日观测仍有效才是 fail-safe；
+  // 真正的新库无历史时仍 null → fail-open。生效值同时入库，快照与 payloads 实时重算同口径
+  const yieldCurveInvertedDaysEff = macroData.yieldCurveInvertedDays
+    ?? prevSnapshot?.yield_curve_inverted_days ?? null;
+  const creditSpread90dWidenBpEff = macroData.creditSpread90dWidenBp
+    ?? prevSnapshot?.credit_spread_90d_widen_bp ?? null;
+  // 实际利率否决器（120号①）：利率/12M截尾PCE 缺失日 fail-open（利率极少缺失；
+  // 通胀月度序列有指标级 stale-keep 兜底）
+  const decisionTreeSignal = applyRealRateVeto(
+    applyCreditSpreadVeto(
+      applyYieldCurveVeto(
+        calcFinalSignal(aiSupply, monetary, fiscal, admin),
+        yieldCurveInvertedDaysEff
+      ),
+      creditSpread90dWidenBpEff
     ),
-    macroData.creditSpread90dWidenBp
+    macroData.currentRate, macroData.trimmedPce12m
   );
 
   const locks = computeLocks(macroData, prevSnapshot, overrides);
@@ -344,6 +376,8 @@ async function runDailyUpdateInner() {
     reactiveLockActive: locks.reactiveAdjustmentLockActive,
     spxAboveSma10: trendState.spxAboveSma10,
   });
+  // 趋势地板（120号③）：跌破10月SMA时 attack/neutral 托底为 reduce（升档方向，迟滞即时放行）
+  rawFinalSignal = applyTrendFloor(rawFinalSignal, trendState.spxAboveSma10);
   // 降档迟滞（V4）：升档即时，降档需持续满确认期才生效（含锁解除后的回落）。
   // 断档不计时（2026-07-30 审查修复，L2）：快照断档期间没有任何"候选档持续温和"的观测，
   // 日历差直接跨隙累计会让停摆 N 天后只观测 1-2 天就满足 30 天确认（过早退出防守，
@@ -400,10 +434,10 @@ async function runDailyUpdateInner() {
     fredBalanceSheetPrev: macroData.prevBalanceSheet,
     creditSpread: macroData.creditSpread,
     creditSpreadPercentile: macroData.creditSpreadPercentile,
-    creditSpread90dWidenBp: macroData.creditSpread90dWidenBp,
+    creditSpread90dWidenBp: creditSpread90dWidenBpEff, // M3：入库生效值，payloads 实时重算同口径
     creditSpreadPeriodDate: macroData.creditSpreadPeriodDate,
     yieldCurveSpread: macroData.yieldCurveSpread,
-    yieldCurveInvertedDays: macroData.yieldCurveInvertedDays,
+    yieldCurveInvertedDays: yieldCurveInvertedDaysEff, // M3：同上
     yieldCurvePeriodDate: macroData.yieldCurvePeriodDate,
     fredCorePce: macroData.corePce,
     fredTrimmedPce: macroData.trimmedPce,
@@ -478,6 +512,7 @@ async function runDailyUpdateInner() {
     adminStale,
     aiSupplyStale,
     monetaryStale,
+    usageDivergence, // 120号②：OpenRouter份额漂移嫌疑标记（告警去重）
   });
 
   // S5 执行指令邮件（仅管理员，96号）：进/出全面防守是 S5 策略的交易边界，

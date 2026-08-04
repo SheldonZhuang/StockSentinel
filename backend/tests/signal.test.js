@@ -553,9 +553,13 @@ describe('applyYieldCurveVeto（曲线倒挂≥3个月否决进攻档准入）',
     expect(applyYieldCurveVeto('attack', 120)).toBe('neutral');
   });
 
-  it('attack + 倒挂未达确认期 → 保持 attack', () => {
+  it('attack + 倒挂未达确认线（近63日<51天）→ 保持 attack（120号 M2 窗口口径）', () => {
     expect(applyYieldCurveVeto('attack', 0)).toBe('attack');
-    expect(applyYieldCurveVeto('attack', 62)).toBe('attack');
+    expect(applyYieldCurveVeto('attack', 50)).toBe('attack');
+  });
+
+  it('近63日倒挂≥51天（浅倒挂允许短暂转正）→ 否决 attack', () => {
+    expect(applyYieldCurveVeto('attack', 51)).toBe('neutral');
   });
 
   it('数据缺失 fail-open：不否决', () => {
@@ -709,5 +713,40 @@ describe('calcAdminSignal 油价水平护栏（O1，2026-07-19采纳）', () => 
 
   it('暴跌侧不受水平护栏影响', () => {
     expect(calcAdminSignal({ epuTradePercentile: 30, epuDailyPercentile: 20, oilChange30dPct: -25, oilLevelLow: true })).toBe('loose');
+  });
+});
+
+// 120号（2026-08-04 用户拍板）：第三进攻否决器（实际利率）与趋势地板
+import { applyRealRateVeto, applyTrendFloor } from '../api/signal.js';
+
+describe('applyRealRateVeto（实际利率≥1.5%否决进攻，120号①修正形式）', () => {
+  it('attack + 实际利率≥1.5%（2023式高位长暂停）→ 降为 neutral', () => {
+    expect(applyRealRateVeto('attack', 5.5, 3.3)).toBe('neutral'); // 实际利率2.2%
+    expect(applyRealRateVeto('attack', 4.0, 2.5)).toBe('neutral'); // 恰1.5%
+  });
+  it('attack + 实际利率<1.5%（温和限制/宽松）→ 保持 attack', () => {
+    expect(applyRealRateVeto('attack', 2.5, 2.2)).toBe('attack');
+    expect(applyRealRateVeto('attack', 0.25, 1.5)).toBe('attack'); // 负实际利率
+  });
+  it('输入缺失 fail-open；非 attack 档位原样通过', () => {
+    expect(applyRealRateVeto('attack', null, 2.0)).toBe('attack');
+    expect(applyRealRateVeto('attack', 5.5, null)).toBe('attack');
+    expect(applyRealRateVeto('defense', 5.5, 2.0)).toBe('defense');
+    expect(applyRealRateVeto('neutral', 5.5, 2.0)).toBe('neutral');
+  });
+});
+
+describe('applyTrendFloor（跌破10月SMA时至少reduce，120号③）', () => {
+  it('attack/neutral + 跌破趋势 → reduce（"宏观未动市场先崩"兜底）', () => {
+    expect(applyTrendFloor('attack', false)).toBe('reduce');
+    expect(applyTrendFloor('neutral', false)).toBe('reduce');
+  });
+  it('趋势上方或数据缺失 → 不动（fail-open）', () => {
+    expect(applyTrendFloor('neutral', true)).toBe('neutral');
+    expect(applyTrendFloor('neutral', null)).toBe('neutral');
+  });
+  it('reduce/defense 不受影响（只托底不降档）', () => {
+    expect(applyTrendFloor('reduce', false)).toBe('reduce');
+    expect(applyTrendFloor('defense', false)).toBe('defense');
   });
 });

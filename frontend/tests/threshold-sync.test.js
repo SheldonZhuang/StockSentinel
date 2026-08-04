@@ -14,8 +14,12 @@ import cfg from '../../backend/config/signal.config.js';
 //  S5Panel.vue / api/admin.js CAPE 层（55% 目标仓位）
 //  i18n 7语言 hints/interpret 文案中的同名数字
 const FRONTEND_SNAPSHOT = {
-  YIELD_CURVE_INVERSION_CONFIRM_DAYS: 63,
+  YIELD_CURVE_INVERSION_CONFIRM_DAYS: 63,       // 窗口长度（120号 M2 起语义=窗口）
+  YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS: 51,  // 窗口内确认线（SignalHero/MacroPanel 用 51）
   CREDIT_SPREAD_ATTACK_VETO_WIDEN_BP: 60,
+  REAL_RATE_ATTACK_VETO_PCT: 1.5,               // 120号① 第三否决器（SignalHero checklist 用 1.5）
+  BALANCE_SHEET_PAUSE_THRESHOLD_PCT: 0.8,       // 120号 M1 13周窗口（hints.balanceSheet 文案用 0.8）
+  BALANCE_SHEET_WINDOW_DAYS: 91,
   SAHM_TRIGGER_THRESHOLD: 0.5,
   EPU_PERCENTILE_TIGHT: 80,
   EPU_PERCENTILE_LOOSE: 50,

@@ -168,6 +168,9 @@ describe('VARIANTS_DEFAULT（基线口径守卫，2026-07-17 两轮 + 2026-07-18
       m2DrawdownPct: null,
       capeConfirmVote: false,
       capeFullVote: false,
+      // 120号③（2026-08-04 第六轮，用户拍板采纳）：趋势地板——跌破10月SMA时最终档位至少reduce。
+      // --eval-floor 实证头条口径年化/召回/假阳性逐位不变，新增12个reduce月（2022部分响应05→02）
+      trendFloor: true,
       // R系（2026-07-19 第五轮，路线图末三项）：全部默认关——R1净流动性实证档位逐位不变
       //（结构性无影响），R2 CP确认票年化-1.35pp/新增2009复苏期防守月，均由 --eval-r 复现
       netLiquidity: false,
@@ -335,21 +338,25 @@ describe('lastDayOfMonth', () => {
   it('12月跨年边界', () => expect(lastDayOfMonth('2021-12')).toBe('2021-12-31'));
 });
 
-describe('lastTwoWeeklyAsOf（WALCL周度环比 + 发布滞后）', () => {
+describe('lastTwoWeeklyAsOf（WALCL 13周基线 + 发布滞后，120号 M1）', () => {
+  // 13周窗口序列：基线 = curr观测日−91天 及更早的最新可见观测
   const series = [
-    { date: '2020-03-04', value: 1 }, // 周三观测，3-05（周四）发布
-    { date: '2020-03-11', value: 2 }, // 3-12 发布
-    { date: '2020-03-18', value: 3 }, // 3-19 发布
+    { date: '2020-01-01', value: 10 },
+    { date: '2020-01-08', value: 11 },
+    { date: '2020-03-25', value: 20 }, // 距 01-01 84天、距 01-08 77天——都不足91天? 见下
+    { date: '2020-04-08', value: 22 }, // 距 01-01 98天 ≥91 → 基线=01-08? 01-08距04-08为91天整
   ];
-  it('观测日+1 ≤ asOf 才可见：3-18 当天第三条尚未发布', () => {
-    expect(lastTwoWeeklyAsOf(series, '2020-03-18')).toEqual({ curr: 2, prev: 1 });
+  it('基线取 curr观测日−91天及更早的最新可见观测', () => {
+    // curr=04-08(22)，target=01-08 → 01-08(11) 恰好 ≤ target，取它
+    expect(lastTwoWeeklyAsOf(series, '2020-04-09')).toEqual({ curr: 22, prev: 11 });
   });
-  it('3-19（发布日）起第三条可见', () => {
-    expect(lastTwoWeeklyAsOf(series, '2020-03-19')).toEqual({ curr: 3, prev: 2 });
+  it('观测日+1 ≤ asOf 才可见（发布滞后一天）', () => {
+    // asOf=04-08 当天，04-08 尚未发布 → curr=03-25(20)，target=2019-12-25 → 无更早观测 → prev null
+    expect(lastTwoWeeklyAsOf(series, '2020-04-08')).toEqual({ curr: 20, prev: null });
   });
-  it('可见观测不足两条 → prev 为 null（判定降级 neutral）', () => {
-    expect(lastTwoWeeklyAsOf(series, '2020-03-05')).toEqual({ curr: 1, prev: null });
-    expect(lastTwoWeeklyAsOf(series, '2020-03-04')).toEqual({ curr: null, prev: null });
+  it('窗口内无满足基线的观测 → prev null（判定降级 neutral）', () => {
+    expect(lastTwoWeeklyAsOf(series, '2020-01-08')).toEqual({ curr: 10, prev: null });
+    expect(lastTwoWeeklyAsOf(series, '2020-01-01')).toEqual({ curr: null, prev: null });
   });
 });
 

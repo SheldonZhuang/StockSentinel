@@ -212,12 +212,13 @@ const tightDims = computed(() =>
 // AI供需维度卡内联（dimMetric）+ 参考指标区 + 产业链面板三处足够
 
 
-// "距进攻"清单 = 四维达成状态 + 无锁 + 收益率曲线否决器 + 信用利差否决器。
+// "距进攻"清单 = 四维达成状态 + 无锁 + 收益率曲线否决器 + 信用利差否决器 + 实际利率否决器。
 // 锁项与 interpret.toAttack 文案的"无锁"对应（120号补，此前文案列"无锁"清单却无此项自相矛盾）：
 // 锁激活且未被管理员覆盖 → 未达成，解释"其余全✓档位仍非进攻"的状态；
-// 曲线项同步 backend/api/signal.js applyYieldCurveVeto：10y−3m 连续倒挂 ≥63 个交易日
-// （≈3个月，signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS）时否决进攻档准入；
+// 曲线项同步 backend/api/signal.js applyYieldCurveVeto（120号 M2 窗口口径）：近63个交易日中
+// 倒挂 ≥51 天（signal.config.js YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS）时否决进攻档准入；
 // 信用项同步 applyCreditSpreadVeto（2026-07-30 采纳）：BAA10Y 90日走阔 ≥+60bp 时否决进攻；
+// 实际利率项同步 applyRealRateVeto（120号①）：政策利率−12M截尾PCE ≥1.5% 时否决进攻；
 // 数据缺失(null)视为达成——与后端 fail-open 同口径。
 const attackChecklist = computed(() => {
   const ind = props.signal?.indicators || {};
@@ -232,12 +233,17 @@ const attackChecklist = computed(() => {
     {
       key: 'yieldCurve',
       labelKey: 'interpret.yieldCurveOk',
-      ok: (ind.yieldCurveInvertedDays ?? 0) < 63,
+      ok: (ind.yieldCurveInvertedDays ?? 0) < 51,
     },
     {
       key: 'creditSpread',
       labelKey: 'interpret.creditSpreadOk',
       ok: (ind.creditSpread90dWidenBp ?? 0) < 60,
+    },
+    {
+      key: 'realRate',
+      labelKey: 'interpret.realRateOk',
+      ok: !(ind.rate != null && ind.trimmedPce12m != null && ind.rate - ind.trimmedPce12m >= 1.5),
     },
   ];
 });

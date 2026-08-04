@@ -69,6 +69,11 @@ export const VARIANTS_DEFAULT = {
   capeConfirmVote: false,    // M3c 席勒CAPE 30年滚动分位>90 → 仅确认票（M-1可见，multpl.com月度）
   capeFullVote: false,       // M3f CAPE独立票（诊断用：验证"2017-2021常态高位→假阳性泛滥"预期）
   // ---- 2026-07-19 第五轮（R系，路线图末三项候选评估）：全部默认关，采纳由主会话定；--eval-r 复现 ----
+  // ---- 2026-08-04 第六轮（120号③，用户拍板采纳）：趋势地板——月末SPX<10月SMA时最终档位
+  // 至少reduce，补"宏观未动、市场先崩"象限（1987式）。--eval-floor 实证：头条口径年化12.31%/
+  // 回撤-16.2%/召回5/6/假阳性5/7 逐位不变（reduce不改变仅defense离场的曝险路径）；新增12个
+  // reduce月，2022部分响应从05提前到02；减半仓执行口径年化9.11→8.07%（现行"停止加仓"语义无此成本）
+  trendFloor: true,
   netLiquidity: false,       // R1 净流动性替代裸WALCL：WALCL−TGA(WTREGEN)−RRP(RRPONTSYD) 13周变化率做资产负债表子信号
   netLiqThresholdPct: null,  // R1 阈值覆盖（默认±2%，敏感性±1/±3）；净流动性2003-02前不可构成→回退WALCL周环比口径
   cpConfirmVote: false,      // R2 盈利周期确认票：NIPA企业利润(CP)同比<0 时，恰1维tight的reduce升级defense（发布滞后~2.5月建模）
@@ -390,6 +395,13 @@ export function replayMonth(m, prevState, variants = {}) {
     }
   }
 
+  // 120号③ 趋势地板（2026-08-04 评估）：月末SPX<10月SMA 时最终档位至少 reduce——
+  // "宏观数据未动、市场先崩"象限（1987式）的防守兜底。与被否决的 M1 趋势票本质不同：
+  // 不投 tight 票不凑共振（不会把档位推向 defense 复活 M1 的复苏期误伤），只把 attack/neutral
+  // 托底到 reduce（停止加仓、提高警觉）。升档方向 → 降档迟滞即时放行
+  if (variants.trendFloor && m.spxBelowSma10 === true
+    && (final === 'attack' || final === 'neutral')) final = 'reduce';
+
   return { monetary, fiscal, admin, aiSupply, final, sahmLockActive, reactiveLockActive, reactiveLockDir, sahmLockAge, reactiveLockAge, rateDiffBp, rateSignal, sahmHighStreak };
 }
 
@@ -419,14 +431,24 @@ export function lastDayOfMonth(month) {
  * @param {Array<{date, value:number}>} series - 升序
  * @returns {{curr:number|null, prev:number|null}}
  */
-export function lastTwoWeeklyAsOf(series, asOfDate) {
-  let curr = null, prev = null;
+export function lastTwoWeeklyAsOf(series, asOfDate, windowDays = cfg.BALANCE_SHEET_WINDOW_DAYS) {
+  // 120号 M1（与线上 fetch-macro baselineValue 同口径）：curr = asOf 可得的最新周度观测，
+  // prev = curr观测日往前 windowDays（13周）的最新可得观测——QT/QE 判定看近一个季度变化率，
+  // 单周环比在真实QT节奏下结构性失灵。周三数据次日（周四）发布 → 只放行"观测日+1 ≤ 采样日"
+  const visible = [];
   for (const o of series) {
     if (addDaysISO(o.date, 1) > asOfDate) break;
-    prev = curr;
-    curr = o.value;
+    visible.push(o);
   }
-  return { curr, prev };
+  if (!visible.length) return { curr: null, prev: null };
+  const last = visible[visible.length - 1];
+  const target = addDaysISO(last.date, -windowDays);
+  let prev = null;
+  for (const o of visible) {
+    if (o.date <= target) prev = o.value;
+    else break;
+  }
+  return { curr: last.value, prev };
 }
 
 // R1 默认阈值：净流动性13周变化率 ±2%（--eval-r 里对 ±1/±3 做敏感性）
@@ -1071,6 +1093,27 @@ async function main() {
   if (process.argv.includes('--eval-r')) return runEvalR(D); // 仅R系（净流动性/CP确认票）对照表
   if (process.argv.includes('--eval-m')) return runEvalM(D); // 仅M系（第5维）对照表
   if (process.argv.includes('--eval')) return runEval(D);
+
+  // 120号③ 趋势地板对照评估：node backtest/run-backtest.js --eval-floor
+  if (process.argv.includes('--eval-floor')) {
+    const base = runReplay(D, VARIANTS_DEFAULT);
+    const floor = runReplay(D, { ...VARIANTS_DEFAULT, trendFloor: true });
+    const sB = evaluate(D, base), sF = evaluate(D, floor);
+    const pick = s2 => ({
+      stratCagr: +s2.overall.stratCagr.toFixed(2), stratMdd: +s2.overall.stratMdd.toFixed(1),
+      reduceHalfCagr: +s2.overall.reduceHalfCagr.toFixed(2),
+      defMonths: s2.defMonths, reduceMonths: s2.reduceMonths, nonDefMonths: s2.nonDefMonths,
+      episodes: s2.episodes, falsePositives: s2.falsePositives,
+      crises: s2.crisisRows.map(c => `${c.name.slice(0, 4)}:${c.firstDefMonth || '未'}(${c.leadDays ?? '—'}d)`).join(' '),
+    });
+    console.log('基线:', JSON.stringify(pick(sB)));
+    console.log('地板:', JSON.stringify(pick(sF)));
+    const diffMonths = floor.filter((t, i) => t.final !== base[i].final);
+    console.log(`档位变化月 ${diffMonths.length} 个:`, diffMonths.map(t => t.month).join(' '));
+    // 新增 reduce 月的市场当月收益（评估"停止加仓"的行为成本落在什么样的月份上）
+    const spxM = new Map(D.spxMonthly ? D.spxMonthly.map(o => [o.month, o]) : []);
+    return;
+  }
 
   const timeline = runReplay(D, VARIANTS_DEFAULT);
   const summary = evaluate(D, timeline);

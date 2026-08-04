@@ -13,7 +13,7 @@ info:
     （{overdue, triggered|running|cooldown}）——客户端可在 1-3 分钟后重查获取新快照。
 
     **进攻档准入否决器（2026-07-30 起）**：进攻档除四维条件与无锁外，还须
-    ①美债收益率曲线（10y−3m）未处倒挂确认期（连续倒挂 ≥63 个交易日否决）；
+    ①美债收益率曲线（10y−3m）未处倒挂确认期（近63个交易日中倒挂 ≥51 天否决，2026-08-04 窗口口径——短暂转正不清零）；③实际利率（政策利率−12M截尾PCE）≥1.5% 否决（2026-08-04 采纳）；
     ②信用利差（BAA10Y）90日走阔 <+60bp（急剧走阔否决）。两者都只把 attack 降级为
     neutral，不触发防守。相关字段见 indicators.yieldCurveInvertedDays /
     indicators.creditSpread90dWidenBp。

@@ -8,7 +8,7 @@ const {
   AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
   SAHM_TRIGGER_THRESHOLD, ZERO_RATE_FLOOR_PCT, OIL_SHOCK_PCT,
-  YIELD_CURVE_INVERSION_CONFIRM_DAYS, LOCK_MIN_AGE_DAYS, FINAL_DOWNGRADE_CONFIRM_DAYS,
+  YIELD_CURVE_INVERSION_CONFIRM_DAYS, YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS, LOCK_MIN_AGE_DAYS, FINAL_DOWNGRADE_CONFIRM_DAYS,
 } = cfg;
 
 /**
@@ -66,6 +66,9 @@ export function deriveSubSignals(macroData) {
 
 /**
  * 资产负债表方向判断：QE 扩张(loose) / 暂停·持平(neutral) / QT 收缩(tight)
+ * 口径（120号 M1，2026-08-04 用户拍板）：current vs 13周前基线（prev 由调用方按
+ * BALANCE_SHEET_WINDOW_DAYS 取），阈值 ±0.8%/13周——单周环比口径在真实QT节奏下结构性失灵。
+ * 基线不可得（序列过短/缺口）→ neutral
  * @returns {'loose'|'neutral'|'tight'}
  */
 export function deriveBalanceSheetStatus(current, prev) {
@@ -348,19 +351,20 @@ export function calcFinalSignal(aiSupply, monetary, fiscal, admin) {
 }
 
 /**
- * 收益率曲线否决器（2026-07-17，参考指标的唯一判定角色）：
- * 10y−3m 连续倒挂 ≥ 确认期（63个交易日≈3个月）时，进攻档降级为观望——
+ * 收益率曲线否决器（2026-07-17，参考指标的唯一判定角色；120号 M2 改窗口口径）：
+ * 10y−3m 近63个交易日窗口内倒挂天数 ≥51（≈80%）时，进攻档降级为观望——
  * 曲线倒挂是最经受检验的衰退领先指标（领先12-18个月，1968年以来零漏报），
- * 倒挂确认期内不开最激进档位。只否决 attack，不触发防守、不做锁
+ * 倒挂确认期内不开最激进档位。旧"严格连续≥63天"口径被单日转正清零，
+ * 2019年型浅倒挂永不确认（正是历史卖点样本的一部分）。只否决 attack，不触发防守、不做锁
  * （吸取信用利差锁误锁复苏期的教训：领先指标适合"不抢跑"，不适合"强制离场"）。
  * server 层与 payloads 层共用本函数，保证快照与实时读取同口径。
  * @param {string} signal - calcFinalSignal 的结果
- * @param {number|null} invertedDays - 连续倒挂交易日数（数据缺失时 null → 不否决，fail-open）
+ * @param {number|null} invertedDays - 近63个交易日中的倒挂天数（数据缺失时 null → 不否决，fail-open）
  */
 export function applyYieldCurveVeto(signal, invertedDays) {
   if (signal !== FINAL_SIGNAL.ATTACK) return signal;
   if (invertedDays === null || invertedDays === undefined) return signal;
-  return invertedDays >= YIELD_CURVE_INVERSION_CONFIRM_DAYS ? FINAL_SIGNAL.NEUTRAL : signal;
+  return invertedDays >= YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS ? FINAL_SIGNAL.NEUTRAL : signal;
 }
 
 /**
@@ -377,6 +381,24 @@ export function applyCreditSpreadVeto(signal, widenBp) {
   if (signal !== FINAL_SIGNAL.ATTACK) return signal;
   if (widenBp === null || widenBp === undefined) return signal;
   return widenBp >= cfg.CREDIT_SPREAD_ATTACK_VETO_WIDEN_BP ? FINAL_SIGNAL.NEUTRAL : signal;
+}
+
+/**
+ * 实际利率否决器（120号①，2026-08-04 用户拍板）：实际利率 = 联邦基金利率上限 − 12M截尾PCE
+ * 同比（趋缓通胀，最平滑口径）≥ 1.5% 时，进攻档降级为观望——纯方向规则下 2023 式 5.5% 高位
+ * 长暂停会判货币"宽松"，深度限制性实际利率下不开最激进档位。第三个进攻否决器，与曲线/信用
+ * 利差同构：只否决 attack、不触发防守、不做锁；任一输入缺失 fail-open。
+ * 维度级形式（V5"暂停只给neutral"）已被回测证明结构性无效，本否决器为其有效形式；
+ * 月度回测中 attack 不可达 → 结构性无操作，为纯前瞻护栏（与信用利差否决器同一采纳逻辑）。
+ * server 层与 payloads 层共用本函数。
+ * @param {string} signal - applyCreditSpreadVeto 之后的档位
+ * @param {number|null} rate - 联邦基金利率上限
+ * @param {number|null} inflation12m - 12M截尾PCE同比
+ */
+export function applyRealRateVeto(signal, rate, inflation12m) {
+  if (signal !== FINAL_SIGNAL.ATTACK) return signal;
+  if (rate === null || rate === undefined || inflation12m === null || inflation12m === undefined) return signal;
+  return (rate - inflation12m) >= cfg.REAL_RATE_ATTACK_VETO_PCT ? FINAL_SIGNAL.NEUTRAL : signal;
 }
 
 /**
@@ -417,4 +439,20 @@ export function calcTrendState(bars) {
 export function applyTrendReentry(signal, { reactiveLockActive, spxAboveSma10 }) {
   if (signal !== FINAL_SIGNAL.DEFENSE || reactiveLockActive) return signal;
   return spxAboveSma10 === true ? FINAL_SIGNAL.REDUCE : signal;
+}
+
+/**
+ * 趋势地板（120号③，2026-08-04 用户拍板采纳）：市场跌破趋势（最新收盘 < 10月SMA）时，
+ * 最终档位至少为 reduce——补上"宏观数据未动、市场先崩"（1987式）象限的防守兜底，
+ * 历次审查"判定链修复均漏防守侧"的结构性根因。与被否决的 M1 趋势票本质不同：不投 tight
+ * 票不凑共振（不复活 M1 的复苏期误伤，年化-2.6pp），只把 attack/neutral 托底到 reduce
+ * （档位语义：停止加仓、提高警觉，不必减存量）。回测（--eval-floor，2026-08-04）：
+ * 头条口径年化/回撤/召回/假阳性逐位不变；新增12个reduce月（2010-06~09/2011-09/2012-01/
+ * 2015-10/2016-02,03/2022-02/2023-10,11），2022 部分响应从 05 提前到 02；
+ * 若按减半仓执行 reduce 的口径年化 9.11→8.07%（现行"停止加仓"语义无此成本）。
+ * 升档方向 → 降档迟滞即时放行；spxAboveSma10 为 null（数据缺失）不触发（fail-open）
+ */
+export function applyTrendFloor(signal, spxAboveSma10) {
+  if (signal !== FINAL_SIGNAL.ATTACK && signal !== FINAL_SIGNAL.NEUTRAL) return signal;
+  return spxAboveSma10 === false ? FINAL_SIGNAL.REDUCE : signal;
 }

@@ -1,3 +1,22 @@
+# 120b号:三项判定参数变更+三条方法论建议落地(用户拍板,2026-08-04) — 2026-08-04
+
+用户对120号"待拍板"清单全部批准；①实际利率护栏经诚实复核改为修正形式执行。测试604/604+26/26全绿，回测产物全链重跑，硬约束逐位保持(年化12.31%/回撤-16.2%/召回5/6/首防月份不变)。
+
+## 已上线的判定变更(均全端同步:signal.js+config+回测镜像+7语言hint+SKILL/README/openapi/buildFacts/MCP×2+threshold-sync守卫)
+
+- [x] **M1 WALCL改13周窗口**:QT/QE基线从相邻周观测改为13周前观测(baselineValue/lastTwoWeeklyAsOf双端同步),阈值0.25%/周→0.8%/13周——单周口径真实QT节奏下结构性失灵、被单周噪声随机干扰。回测实证:首防月份/年化逐位不变(防守共振以利率子信号为主,QT角色是拦宽松票)
+- [x] **M2 曲线倒挂改窗口口径**:严格连续计数(单日转正清零)→"近63个交易日中倒挂≥51天(≈80%)"——2019型浅倒挂不再永不确认。fetch-macro计数/applyYieldCurveVeto/daily-replay curveRunLengths滑窗/前端ycStatus与清单(63→51)/ycInvertedDays标签7语言全部同步
+- [x] **M3 否决器输入沿用上一快照**:倒挂天数/信用利差当日拉取失败时用prevSnapshot值再进否决器(生效值入库,payloads实时重算同口径)——消除单日attack↔neutral翻转+反向邮件对;真正新库仍fail-open
+- [x] **①实际利率否决器(修正形式)**:用户问"逻辑合理吗"——诚实答复:原维度级形式(暂停只给neutral)已被V5评估证明在非对称进攻树下结构性无效;修正为第三进攻否决器 applyRealRateVeto:政策利率−12M截尾PCE≥1.5%时否决进攻(只拦attack,fail-open,月度回测attack不可达故为纯前瞻护栏,与信用利差否决器同一采纳逻辑)。前端清单+interpret.realRateOk×7语言
+- [x] **②OpenRouter单点交叉验证**:复核发现宽松侧已有内建双源交叉(calcAiSupplySignal宽松票要求三件套全绿),单点风险在"假收紧"(份额漂移)。落地:调用量单独收紧而capex(EDGAR)/半导体(FRED)两独立源均无恶化佐证→收紧照常生效(防守不过夜)+usage_divergence标记+运维邮件请人工核查(管理面板override纠正路径);真二源(如Cloudflare Radar)仍为待办
+- [x] **③趋势地板(先评估后采纳)**:M系曾否决"市场维投tight票"(-2.6pp),本条是更温和变体——跌破10月SMA时最终档位至少reduce(不投票不凑共振)。--eval-floor实证:头条口径年化/回撤/召回/假阳性逐位不变;新增12个reduce月(2010-06~09/2011-09/2012-01/2015-10/2016-02,03/2022-02/2023-10,11),**2022部分响应从05提前到02**(预期驱动顶的缺口首次被部分覆盖);诚实披露:减半仓执行口径年化9.11→8.07%(现行"停止加仓不减存量"语义无此成本)。applyTrendFloor接入server/payloads/daily-replay/月度回测默认基线(VARIANTS_DEFAULT.trendFloor)
+
+## 产物刷新
+- [x] run-backtest+bootstrap-ci+daily-replay全链重跑;SKILL减半仓口径9.1→8.1(趋势地板致reduce月170→182);doc-numbers/monthly-replay-drift/locks-drift/threshold-sync四道守卫全绿
+- [x] 新增单测:applyRealRateVeto×3/applyTrendFloor×3/曲线窗口计数/13周基线/VARIANTS_DEFAULT守卫更新
+
+---
+
 # 120号:第八轮系统性深度审查(用户口称114号)——四路子代理并行审查,修复约40处,3项判定参数变更待拍板 — 2026-08-04
 
 **审查方式**:四个子代理并行(判定逻辑/后端韧性安全/前端跨端一致性/回测文档诚实性),每条发现主会话亲自验证后修复。基线:后端592→597全绿,前端12→22全绿(修复前1个失败)。

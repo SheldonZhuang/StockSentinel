@@ -31,7 +31,7 @@ import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import {
   calcMonetarySignal, calcAdminSignal, calcFiscalSignal, calcFinalSignal,
-  calcLockActive, applyDowngradeHold, applyTrendReentry, applyYieldCurveVeto, calcTrendState,
+  calcLockActive, applyDowngradeHold, applyTrendReentry, applyTrendFloor, applyYieldCurveVeto, calcTrendState,
 } from '../api/signal.js';
 import { calcDecisionPrevRate } from '../api/fetch-macro.js';
 import { calcPercentile, calcMaSeries } from '../api/fetch-policy.js';
@@ -196,13 +196,14 @@ export function oilChange30dAsOf(asc, asOfDate, windowDays = cfg.OIL_SHOCK_WINDO
   return (latest.value - asc[bi].value) / asc[bi].value * 100;
 }
 
-/** T10Y3M 连续倒挂交易日数（升序逐点累计；线上从最新观测向前数连续<0，等价） */
-export function curveRunLengths(asc) {
+/** T10Y3M 近63交易日窗口内倒挂天数（120号 M2，与线上 fetch-macro 同口径；旧连续计数被单日转正清零漏浅倒挂） */
+export function curveRunLengths(asc, windowDays = cfg.YIELD_CURVE_INVERSION_CONFIRM_DAYS) {
   const runs = new Array(asc.length);
-  let r = 0;
+  let count = 0;
   for (let i = 0; i < asc.length; i++) {
-    r = asc[i].value < 0 ? r + 1 : 0;
-    runs[i] = r;
+    if (asc[i].value < 0) count++;
+    if (i >= windowDays && asc[i - windowDays].value < 0) count--;
+    runs[i] = count;
   }
   return runs;
 }
@@ -389,6 +390,8 @@ export function runDailyReplay(DD, opts = {}) {
       reactiveLockActive: locks.reactiveLockActive,
       spxAboveSma10: trendState.spxAboveSma10,
     });
+    // 趋势地板（120号③，与线上同口径）：跌破10月SMA时 attack/neutral 托底 reduce
+    raw = applyTrendFloor(raw, trendState.spxAboveSma10);
     // A系（2026-07-19 评估，默认关）：趋势条件化降档确认期——当日SPX≥10月SMA时确认期缩短为
     // trendHoldDays 天（V4迟滞的保护价值在趋势线下方的危机中；成本在V型反弹的再入场延迟）；
     // SPX<SMA 或趋势数据缺失时维持线上 30 天不变。升档不受影响（本就即时）
@@ -984,7 +987,7 @@ async function main() {
   console.log(`raw档直接执行的年化 ${simDRaw.cagrPct.toFixed(2)}%/调仓${simDRaw.trades}次 vs 生效档 ${simD.cagrPct.toFixed(2)}%/调仓${simD.trades}次（迟滞的收益/换手代价）`);
 
   // 曲线否决实际参与度（诚实披露：AI恒neutral → attack不可达 → 否决必然0次）
-  const vetoDays = recs.filter(r => r.metrics.invertedDays !== null && r.metrics.invertedDays >= cfg.YIELD_CURVE_INVERSION_CONFIRM_DAYS).length;
+  const vetoDays = recs.filter(r => r.metrics.invertedDays !== null && r.metrics.invertedDays >= cfg.YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS).length;
   console.log(`\nT10Y3M 曲线否决：确认期内共 ${vetoDays} 个交易日，但 AI维恒neutral→attack不可达→实际否决 0 次（结构性无操作，如实报告）`);
 
   // T+1 执行敏感性（116号）：线上真实时序=收盘后出信号、最早次日成交；T+0 头条口径含轻微前视

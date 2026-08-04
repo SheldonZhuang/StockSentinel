@@ -188,12 +188,15 @@ describe('oilChange30dAsOf / curveRunLengths', () => {
     expect(oilChange30dAsOf(asc, '2020-02-01')).toBe(null); // 无观测
     expect(oilChange30dAsOf(asc, '2020-02-20')).toBe(null); // 30天前无基准
   });
-  it('连续倒挂交易日数逐点累计，转正清零', () => {
+  it('近N交易日窗口内倒挂天数滑动计数（120号 M2：转正不清零，浅倒挂可确认）', () => {
     const asc = [
       { date: 'd1', value: -0.1 }, { date: 'd2', value: -0.2 },
       { date: 'd3', value: 0.1 }, { date: 'd4', value: -0.3 },
     ];
-    expect(curveRunLengths(asc)).toEqual([1, 2, 0, 1]);
+    // 窗口3：d4 时窗口为 d2-d4，倒挂 d2/d4 两天（旧连续口径此处会被 d3 清零只剩 1）
+    expect(curveRunLengths(asc, 3)).toEqual([1, 2, 2, 2]);
+    // 全窗口（默认63）内累计不清零
+    expect(curveRunLengths(asc)).toEqual([1, 2, 2, 3]);
   });
 });
 

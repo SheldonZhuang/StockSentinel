@@ -107,13 +107,13 @@ function oilBadge(ind) {
   return 'neutral';
 }
 
-// 收益率曲线状态徽章（阈值同步 signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS=63 /
-// api/signal.js applyYieldCurveVeto）：倒挂≥63交易日=确认期（红，进攻档准入被否决）；
-// 0<天数<63=倒挂未确认（黄）；未倒挂（绿）。数据全缺失不显示徽章
+// 收益率曲线状态徽章（阈值同步 signal.config.js YIELD_CURVE_INVERSION_MIN_INVERTED_DAYS=51 /
+// api/signal.js applyYieldCurveVeto，120号 M2 窗口口径）：近63个交易日中倒挂≥51天=确认
+// （红，进攻档准入被否决）；0<天数<51=倒挂未确认（黄）；未倒挂（绿）。数据全缺失不显示徽章
 function ycStatus(ind) {
   if (ind.yieldCurveSpread == null && ind.yieldCurveInvertedDays == null) return null;
   const days = ind.yieldCurveInvertedDays ?? 0;
-  if (days >= 63) return 'tight';
+  if (days >= 51) return 'tight';
   if (days > 0) return 'neutral';
   return 'loose';
 }

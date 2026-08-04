@@ -7,7 +7,7 @@ import {
   getLatestAiChainSnapshot,
   getRecentGuidance,
 } from '../utils/storage.js';
-import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyCreditSpreadVeto, applyTrendReentry } from './signal.js';
+import { calcFinalSignal, deriveSubSignals, applyYieldCurveVeto, applyCreditSpreadVeto, applyRealRateVeto, applyTrendReentry, applyTrendFloor } from './signal.js';
 
 /**
  * 当前信号完整载荷（读取时实时重算决策树+锁强制，与快照解耦以反映最新 override）
@@ -39,21 +39,28 @@ export async function buildSignalPayload() {
   const sahmLockActive = sahmLockOverridden ? false : rawSahmLockActive;
   const reactiveAdjustmentLockActive = reactiveAdjustmentLockOverridden ? false : rawReactiveLockActive;
 
-  const decisionTreeSignal = applyCreditSpreadVeto(
-    applyYieldCurveVeto(
-      calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
-      snapshot.yield_curve_inverted_days ?? null
+  const decisionTreeSignal = applyRealRateVeto(
+    applyCreditSpreadVeto(
+      applyYieldCurveVeto(
+        calcFinalSignal(aiSupplySignal, snapshot.monetary_signal, fiscalSignal, adminSignal),
+        snapshot.yield_curve_inverted_days ?? null
+      ),
+      snapshot.credit_spread_90d_widen_bp ?? null
     ),
-    snapshot.credit_spread_90d_widen_bp ?? null
+    snapshot.fred_rate ?? null, snapshot.fred_trimmed_pce_12m ?? null
   );
   const lockActiveNow = sahmLockActive || reactiveAdjustmentLockActive;
-  const candidateSignal = applyTrendReentry(
-    lockActiveNow ? 'defense' : decisionTreeSignal,
-    {
-      sahmLockActive,
-      reactiveLockActive: reactiveAdjustmentLockActive,
-      spxAboveSma10: snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10,
-    }
+  const spxAboveSma10 = snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10;
+  const candidateSignal = applyTrendFloor(
+    applyTrendReentry(
+      lockActiveNow ? 'defense' : decisionTreeSignal,
+      {
+        sahmLockActive,
+        reactiveLockActive: reactiveAdjustmentLockActive,
+        spxAboveSma10,
+      }
+    ),
+    spxAboveSma10 // 趋势地板（120号③）：与 server 层同口径
   );
   // 降档迟滞（V4）：无任何手动覆盖时，快照的 final_signal 已是 cron 应用迟滞后的生效档，直接信任
   //（实时重算的 candidate 在降档等待期内会比生效档更宽松，不能直接展示）。

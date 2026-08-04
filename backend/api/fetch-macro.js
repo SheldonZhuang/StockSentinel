@@ -5,7 +5,7 @@ import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
 import { daysAgoET } from '../utils/datetime.js';
 
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
-const { FRED_SERIES, RATE_LOOKBACK_DAYS, BALANCE_SHEET_LOOKBACK_DAYS } = cfg;
+const { FRED_SERIES, RATE_LOOKBACK_DAYS, BALANCE_SHEET_LOOKBACK_DAYS, BALANCE_SHEET_WINDOW_DAYS } = cfg;
 
 function addDays(dateStr, n) {
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -81,6 +81,21 @@ export function prevValue(observations) {
       found++;
       if (found === 2) return v;
     }
+  }
+  return null;
+}
+
+/**
+ * 窗口基线值（120号 M1，WALCL 13周口径用）：最新有效观测日往前 windowDays 的最新可得观测。
+ * 降序输入；基线不可得（序列不够长/缺口）→ null（deriveBalanceSheetStatus 落 neutral）
+ */
+export function baselineValue(observations, windowDays) {
+  const latest = latestDate(observations);
+  if (!latest) return null;
+  const target = new Date(Date.parse(latest + 'T00:00:00Z') - windowDays * 86400000).toISOString().slice(0, 10);
+  for (const obs of observations) {
+    const v = parseFloat(obs.value);
+    if (!isNaN(v) && obs.date <= target) return v;
   }
   return null;
 }
@@ -172,7 +187,9 @@ export async function fetchMacroData() {
   ]);
 
   const currentBalanceSheet = latestValue(bsObs);
-  const prevBalanceSheet = prevValue(bsObs);
+  // 120号 M1（用户拍板）：QT/QE 基线从相邻上一周观测改为13周前观测——单周环比在真实QT
+  // 节奏下基本永不触发拦截，反被单周噪声随机干扰；阈值随窗口重标定（signal.config.js）
+  const prevBalanceSheet = baselineValue(bsObs, BALANCE_SHEET_WINDOW_DAYS);
   const balanceSheetPeriodDate = latestDate(bsObs);
 
   // prevRate = 最近一次FOMC决议前的利率（语义与推导见 calcDecisionPrevRate 注释）
@@ -227,11 +244,12 @@ export async function fetchMacroData() {
   const yieldCurveSpread = curveValid.length ? curveValid[0].v : null;
   let yieldCurveInvertedDays = null;
   if (curveValid.length) {
-    yieldCurveInvertedDays = 0;
-    for (const o of curveValid) {
-      if (o.v < 0) yieldCurveInvertedDays++;
-      else break;
-    }
+    // 120号 M2（用户拍板）：从"最新起严格连续倒挂天数"改为"近63个交易日窗口内的倒挂天数"——
+    // 单日打印 0.00/+0.01 即清零会让 2019 年型浅倒挂永远攒不满确认期（否决器整轮不点火）。
+    // 确认条件（≥51天≈80%）见 applyYieldCurveVeto / signal.config.js
+    yieldCurveInvertedDays = curveValid
+      .slice(0, cfg.YIELD_CURVE_INVERSION_CONFIRM_DAYS)
+      .filter(o => o.v < 0).length;
   }
   const yieldCurvePeriodDate = curveValid.length ? curveValid[0].date : null;
 
