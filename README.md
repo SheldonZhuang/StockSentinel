@@ -98,6 +98,7 @@ TIINGO_API_KEY=your_tiingo_key         # 行情备用源（可选）
 TWELVEDATA_API_KEY=your_twelvedata_key # 行情备用源（可选）
 FMP_API_KEY=your_fmp_key               # P/E、P/S 估值补全（可选）
 OPENROUTER_API_KEY=your_openrouter_key # 模型调用量监测 + AI日报（可选）
+CLOUDFLARE_API_TOKEN=your_cf_token # AI需求第二源：Radar全网AI bot流量趋势，仅用于usage分歧核查邮件的独立佐证，不进判定（可选，免费申请仅需Radar读权限）
 GITHUB_BACKUP_REPO=owner/private-repo  # 数据库每日备份（可选）
 GITHUB_BACKUP_TOKEN=fine_grained_pat   # 仅需该仓库 Contents 读写（可选）
 ADMIN_PASSWORD=strong_password         # 强烈建议：启动种子管理员账户并封锁 ADMIN_EMAIL 抢注（116号）

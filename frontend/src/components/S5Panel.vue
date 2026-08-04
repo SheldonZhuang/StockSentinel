@@ -76,7 +76,8 @@
           <div class="pb-label">{{ $t('s5.falseSignals') }}</div>
         </div>
       </div>
-      <p class="pb-note">{{ data.playbook.note }}</p>
+      <!-- note 改用前端 i18n（120c号）：后端硬编码中文在 7 语言界面直出；后端字段保留给 API 消费者 -->
+      <p class="pb-note">{{ $t('s5.playbookNote') }}</p>
       <p class="pb-doc">{{ $t('s5.playbookDoc') }}</p>
     </div>
   </section>

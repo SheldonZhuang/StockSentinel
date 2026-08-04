@@ -59,6 +59,7 @@ import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
 import { processCapexGuidance } from './api/fetch-guidance.js';
+import { fetchRadarAiBotTrend } from './api/fetch-radar.js';
 import { backupDatabase, restoreDatabaseIfMissing, scheduleUserDataBackup } from './utils/backup.js';
 import { setUserWriteListener } from './utils/storage.js';
 
@@ -301,10 +302,16 @@ async function runDailyUpdateInner() {
     && aiSubSignals.capexSignal != null && aiSubSignals.capexSignal !== 'tight'
     && aiSubSignals.semiSignal != null && aiSubSignals.semiSignal !== 'tight';
   if (usageDivergence && prevSnapshot?.usage_divergence !== 1) {
-    console.warn(`[cron] ⚠️ USAGE DIVERGENCE: 模型调用量报收紧(${aiSupplyInputs.modelUsageTrendPct}%)但 capex(${aiSubSignals.capexSignal})/半导体(${aiSubSignals.semiSignal})均无恶化佐证——可能是 OpenRouter 份额漂移误报，请人工核查`);
+    // 第二源佐证（120c号）：Cloudflare Radar 全网 AI bot 流量趋势（与 OpenRouter 完全独立），
+    // 只进核查邮件不进判定。Radar 同步回落 → 收紧可信；仍增长 → 份额漂移嫌疑增强
+    const radarTrendPct = await fetchRadarAiBotTrend().catch(() => null);
+    const radarLine = radarTrendPct === null
+      ? '第二源（Cloudflare Radar AI bot 流量）未配置或不可用（配 CLOUDFLARE_API_TOKEN 启用）'
+      : `第二源 Cloudflare Radar 全网 AI bot 流量 28日趋势 ${radarTrendPct > 0 ? '+' : ''}${radarTrendPct.toFixed(1)}%${radarTrendPct <= -3 ? '——独立源亦见回落，收紧可信度高' : radarTrendPct >= 3 ? '——独立源仍在增长，份额漂移误报嫌疑增强' : '——独立源大致持平'}`;
+    console.warn(`[cron] ⚠️ USAGE DIVERGENCE: 模型调用量报收紧(${aiSupplyInputs.modelUsageTrendPct}%)但 capex(${aiSubSignals.capexSignal})/半导体(${aiSubSignals.semiSignal})均无恶化佐证——可能是 OpenRouter 份额漂移误报，请人工核查。${radarLine}`);
     sendOpsAlert(process.env.ADMIN_EMAIL, {
       stage: 'AI调用量与独立源分歧（可能为 OpenRouter 份额漂移误报）',
-      error: `调用量趋势 ${aiSupplyInputs.modelUsageTrendPct}% 判收紧，但云厂商capex=${aiSubSignals.capexSignal}、半导体产出=${aiSubSignals.semiSignal}。收紧已按防守优先生效；若核查确认为份额漂移，请在管理面板用 ai_supply override 纠正`,
+      error: `调用量趋势 ${aiSupplyInputs.modelUsageTrendPct}% 判收紧，但云厂商capex=${aiSubSignals.capexSignal}、半导体产出=${aiSubSignals.semiSignal}。${radarLine}。收紧已按防守优先生效；若核查确认为份额漂移，请在管理面板用 ai_supply override 纠正`,
     }).catch(() => {});
   }
 
@@ -632,7 +639,13 @@ async function runDailyUpdateInner() {
   }
 
   // AI 日报（增值内容，失败静默）：基于刚保存的快照生成中英双语解读
-  await generateDailyReport(await buildSignalPayload().catch(() => null));
+  // 日报 LLM 生成只在 primary 跑（120c号）：两实例各生成一遍=OpenRouter 成本×2，
+  // 本机(replica)日报页展示的是本机库的旧报告、不对外服务；如需本机也生成，配 DAILY_REPORT_ON_REPLICA=1
+  if ((process.env.INSTANCE_ROLE || 'primary') !== 'replica' || process.env.DAILY_REPORT_ON_REPLICA === '1') {
+    await generateDailyReport(await buildSignalPayload().catch(() => null));
+  } else {
+    console.log('[cron] replica: daily report LLM generation skipped (set DAILY_REPORT_ON_REPLICA=1 to enable)');
+  }
 
   // 数据库备份到 GitHub 私有仓库（收费产品数据兜底；未配环境变量则跳过）
   await backupDatabase();

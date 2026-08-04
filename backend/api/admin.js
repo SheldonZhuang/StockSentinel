@@ -239,7 +239,8 @@ router.get('/s5', requireAdmin, asyncRoute(async (req, res) => {
     targetWeightPct,
     // 回测口径速览（日度S5a+CAPE层，docs/s5-execution-playbook.md）
     playbook: {
-      xirrPct: 40.1, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4,
+      xirrPct: 40.0, maxUnderwaterPct: -28.3, roundTrips26y: 9, falseSignals: 4,
+      // 数字为 2026-08-04 重跑快照（趋势地板采纳后 40.1→40.0），重跑 cape-scaling/s5-daily 后须同步
       note: '日度口径含CAPE层；假信号是常态(4/9)，机械执行是前提；浮亏-28.3%来自危机中段的解锁窗往返',
     },
   });
