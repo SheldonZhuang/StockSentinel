@@ -1,3 +1,21 @@
+# 119号:Railway日志EDGAR(BE)反复报错——companyconcept返回units:{USD:{}}空对象致.filter抛错无限重试 — 2026-08-04
+
+**根因(已查实,live复现)**:SEC companyconcept API 对 BE(CIK0001664703) 的 Revenues 等科目
+返回 `units:{USD:{}}`(空对象非数组,HTTP 200 非404);同公司 companyfacts 数据正常,是该端点
+自身异常。空对象是真值,`(facts || [])` 拦不住 → TypeError → getFundamentals 按设计不缓存
+失败 → 每次预热/请求无限重试刷日志。无数据污染:BE 的 P/S 一直正常降级为 null。
+
+**修复(c57d103,红→绿TDD)**:三处改 `Array.isArray(x) ? x : []`——
+- [x] sumTtmRevenue / fetchSharesOutstanding(fundamentals.js)
+- [x] deriveQuarterlyCapex(fetch-ai-chain.js,同型隐患:`for...of {}` 抛 not iterable)
+- [x] 新增 BE 实测形状测试用例×2;全量 592/592 通过;live 验证 getPsFromEdgar('BE') 不抛
+- [x] 语义:非数组视同无数据 → null 正常缓存24h,BE 不再空转
+
+**日志中其余条目均为已知常态,未动**:yahoo 429(数据中心IP限流,静默计数中)、
+FMP 402(免费层配额,12h熔断)、FOMC 未入FRED(等官方序列)、guce.yahoo.com 重定向提示(无害)。
+
+---
+
 # 114号:参考指标大面积"暂无数据"——FRED凌晨维护窗口超时,加重试+指标级stale-keep — 2026-07-25
 
 **追加(114c,文档归档+全端同步)**:README"可信度工程"改写为数据管道四层韧性(21点更新/重试/
