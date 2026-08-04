@@ -12,11 +12,12 @@
       <div class="nav-right">
         <router-link to="/track-record" class="nav-link">{{ $t('track.navLink') }}</router-link>
         <!-- 主题切换 -->
-        <button class="nav-btn" :title="$t('app.theme')" @click="toggleTheme">
+        <button class="nav-btn" :title="$t('app.theme')" :aria-label="$t('app.theme')"
+                :aria-pressed="theme === 'dark'" @click="toggleTheme">
           {{ theme === 'dark' ? '🌙' : '☀️' }}
         </button>
         <!-- 语言切换 -->
-        <select class="lang-select" :value="locale" @change="onLangChange">
+        <select class="lang-select" :value="locale" :aria-label="$t('lang.switch')" @change="onLangChange">
           <option v-for="l in langs" :key="l.code" :value="l.code">{{ l.label }}</option>
         </select>
 
@@ -24,6 +25,8 @@
           <button
             class="nav-btn"
             :title="$t('settings.emailAlerts') + ' — ' + $t('settings.emailAlertsDesc')"
+            :aria-label="$t('settings.emailAlerts')"
+            :aria-pressed="!!auth.user.value.emailAlerts"
             @click="toggleAlerts"
           >
             {{ auth.user.value.emailAlerts ? '🔔' : '🔕' }}

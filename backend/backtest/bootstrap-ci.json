@@ -1,30 +1,30 @@
 {
-  "generatedAt": "2026-07-30T12:31:01.958Z",
+  "generatedAt": "2026-08-04T05:55:37.360Z",
   "method": "circular block bootstrap, block=12m, B=10000, seed=20260730, 配对重采样保留档位-收益结构",
-  "months": 317,
-  "years": 26.42,
+  "months": 318,
+  "years": 26.5,
   "point": {
-    "stratCagrPct": 12.35,
-    "buyHoldCagrPct": 8.46,
-    "diffPp": 3.89
+    "stratCagrPct": 12.31,
+    "buyHoldCagrPct": 8.43,
+    "diffPp": 3.87
   },
   "ci90": {
     "stratCagrPct": {
       "p5": 8.94,
-      "p50": 12.31,
-      "p95": 16.06
+      "p50": 12.27,
+      "p95": 15.99
     },
     "buyHoldCagrPct": {
-      "p5": 2.69,
-      "p50": 8.61,
+      "p5": 2.67,
+      "p50": 8.57,
       "p95": 14.19
     },
     "diffPp": {
-      "p5": -0.39,
-      "p50": 3.67,
-      "p95": 8.65
+      "p5": -0.4,
+      "p50": 3.66,
+      "p95": 8.58
     }
   },
-  "probDiffPositive": 0.93,
+  "probDiffPositive": 0.927,
   "note": "块自助保留12个月内自相关但打乱危机顺序；区间回答\"这套档位序列的月度优势有多稳\"，不回答\"未来会不会有新型危机\"。诚实提醒：优势集中于2000/2008两段大熊（已在报告披露），自助重采样会稀释单段贡献，diff下界偏保守。"
 }

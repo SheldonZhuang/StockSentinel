@@ -68,3 +68,21 @@ ExecutionTimeLimit=0（不限时）+ RestartCount/RestartInterval（崩溃自拉
 - **同一事故的两实例镜像再次不同**（本机 consensus 推算 vs 云端旧计划 maintained）：LLM 输出
   的非确定性让"多实例同代码"不等于"多实例同数据"——数据修正必须走启动自愈补丁（已是第三次
   验证该模式），且补丁要配 manual_verified 类标记防被后续自动流程覆盖。
+
+
+## 2026-08-04（120号第八轮系统性审查）
+
+- **前端测试不在提交纪律的必跑清单里**：116号提交删除i18n文案的{'$'}转义却没跑前端测试，
+  守护该字符的旧测试红了5天无人发现（后端592全绿营造了"全绿"错觉）。
+  规则：任何触及 frontend/ 的提交，commit 前必须 `cd frontend && npm test` 一并跑；
+  审查轮的"全量测试"定义=后端+前端两套。
+- **"同提交同步"的清单要枚举到具体文件**：信用利差否决器上线时(116c)同步了openapi.yaml，
+  却漏了同样描述判定规则的另外四处——hintGlobal(7语言)、daily-report buildFacts、
+  mcp/index.js、backend/api/mcp.js。规则：判定规则文案的同步范围是一份**具体文件清单**
+  (openapi/SKILL/README/hintGlobal×7/buildFacts/两份MCP描述/邮件模板)，改规则时逐一过。
+- **"绝不提前跑"类不变量要有测试钉死跨日边界**：118号补跑机制的21:45分界只测了当天场景，
+  "故障跨过午夜后恢复"的路径生成提前跑的次日快照——不变量测试要枚举时间边界的两侧。
+- **归因展示要复刻判定层的完整护栏**：SignalHero/mailer的行政收紧归因只看|油价|≥20%，
+  漏了EPU护栏与O1低位反弹护栏(MacroPanel的oilBadge是对的)——同一判定逻辑第三次复刻时
+  漂移。已加threshold-sync.test.js钉住前后端阈值，归因函数漂移仍靠人工，改calcAdminSignal
+  时必须grep dimDetail(前端+邮件两处)。

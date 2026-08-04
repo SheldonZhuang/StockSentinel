@@ -21,6 +21,8 @@
 //    差异仅在"暂停决议"日：线上判宽松，近似口径在上次台阶后100天回看窗口内保持原方向）。
 //  AI供需维恒 neutral（同月度回放：AI主题2015前不存在）；进攻档因此不可达，
 //  T10Y3M 曲线否决（只否决attack）在本重放中结构性无操作，仍按线上路径接线并如实报告。
+//  信用利差否决 applyCreditSpreadVeto（2026-07-30 采纳，同为只否决attack）同理结构性无操作
+//  （AI维恒neutral→attack不可达），未接线——AI维回测化后须与曲线否决一并接入（120号备忘）。
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -152,8 +154,11 @@ export function computeLocksDaily({ today, currentRate, sahmValue, stepsAsc, pre
   if (prev?.date) {
     stepsSince = stepsAsc.filter(s => s.date > prev.date && s.date <= today);
   } else {
+    // 与线上 computeLocks 同步（120号 L2）：首跑只认近 7 天内的最近一笔台阶——
+    // 回看窗口内的陈旧调整不是"今天的事件"，不该在空库首日触发应对式锁
+    const freshCutoff = new Date(Date.parse(today) - 7 * 86400000).toISOString().slice(0, 10);
     const i = lastIdxLE(stepsAsc, today);
-    stepsSince = i >= 0 ? [stepsAsc[i]] : [];
+    stepsSince = i >= 0 && stepsAsc[i].date >= freshCutoff ? [stepsAsc[i]] : [];
   }
   const rateDiffBp = stepsSince.length
     ? stepsSince.reduce((a, b) => (Math.abs(b.diffBp) > Math.abs(a.diffBp) ? b : a)).diffBp

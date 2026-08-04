@@ -78,12 +78,12 @@ describe('S5Panel', () => {
     expect(wrapper.find('.weight-hint.warn').exists()).toBe(false);
   });
 
-  it('renders the literal $ in hold_accumulate copy', async () => {
+  it('renders hold_accumulate copy (116号已移除{\'$\'}转义，与其余6语言口径对齐)', async () => {
     useAuthStore().user.value = { id: 1, isAdmin: true };
     api.getAdminS5.mockResolvedValue({ ...baseS5, tier: 'reduce', todayAction: 'hold_accumulate' });
     const wrapper = mountPanel();
     await flushPromises();
-    expect(wrapper.text()).toContain('持有存量不动；本月定投$进现金储备（减仓期不买入）');
+    expect(wrapper.text()).toContain('持有存量不动；本月定投进现金储备（减仓期不买入）');
   });
 
   it('highlights boundary-day actions and shows downgrade confirmation deadline', async () => {

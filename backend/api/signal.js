@@ -411,8 +411,10 @@ export function calcTrendState(bars) {
  * X1 归因依据：2024-08 萨姆锁为萨姆规则 1970 年来首次假阳性（移民推高失业率），当时市场
  * 全程在 10 月 SMA 上方；而 2001/2008/2020 三次真触发时市场均已跌破趋势线，趋势门不影响真危机。
  * trendUp 为 null（数据不足/拉取失败）时不降级（fail-open）。
+ * 注：萨姆锁驱动与决策树驱动的防守在此同样降级（X1），故无需区分 sahmLockActive——
+ * 唯一例外是应对式锁（reactiveLockActive 短路）。
  */
-export function applyTrendReentry(signal, { sahmLockActive, reactiveLockActive, spxAboveSma10 }) {
+export function applyTrendReentry(signal, { reactiveLockActive, spxAboveSma10 }) {
   if (signal !== FINAL_SIGNAL.DEFENSE || reactiveLockActive) return signal;
   return spxAboveSma10 === true ? FINAL_SIGNAL.REDUCE : signal;
 }

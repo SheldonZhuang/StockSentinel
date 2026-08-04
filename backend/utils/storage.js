@@ -735,16 +735,33 @@ export async function setGuidanceManualVerified(accession) {
   run('UPDATE capex_guidance_records SET manual_verified = 1 WHERE accession = ?', [accession]);
 }
 
+// 120号（M5）：复检纠偏需要读旧档比对方向（误报 N3 撤销判断）
+export async function getGuidanceRecord(accession) {
+  await getDb();
+  return get('SELECT * FROM capex_guidance_records WHERE accession = ?', [accession]) || null;
+}
+
 export async function saveGuidanceRecord(rec) {
   await getDb();
-  // accession 冲突时整行覆盖（upsert）：同一申报重复检测幂等（每日窗口重叠），
-  // 且 113号自愈迁移重跑旧 none 记录时能覆盖为补源后的完整结果
+  // accession 冲突时覆盖检测字段（upsert）：同一申报重复检测幂等（每日窗口重叠），
+  // 且 113号自愈迁移重跑旧 none 记录时能覆盖为补源后的完整结果。
+  // 120号：INSERT OR REPLACE 改 ON CONFLICT DO UPDATE——REPLACE 整行重建会把不在列清单里的
+  // manual_verified 抹回 NULL（人工核实标记被自动流程静默清除，防御纵深缺口）；
+  // DO UPDATE 只更新检测字段，manual_verified/created_at 保留
   run(`
-    INSERT OR REPLACE INTO capex_guidance_records
+    INSERT INTO capex_guidance_records
       (symbol, filing_date, accession, direction, quote, confidence, auto_event_created,
        source, fy_guidance, forward_guidance, sources,
        qtr_end, qtr_capex, qtr_capex_yoy, ttm_capex, ttm_capex_yoy)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(accession) DO UPDATE SET
+      symbol = excluded.symbol, filing_date = excluded.filing_date,
+      direction = excluded.direction, quote = excluded.quote, confidence = excluded.confidence,
+      auto_event_created = excluded.auto_event_created, source = excluded.source,
+      fy_guidance = excluded.fy_guidance, forward_guidance = excluded.forward_guidance,
+      sources = excluded.sources, qtr_end = excluded.qtr_end,
+      qtr_capex = excluded.qtr_capex, qtr_capex_yoy = excluded.qtr_capex_yoy,
+      ttm_capex = excluded.ttm_capex, ttm_capex_yoy = excluded.ttm_capex_yoy
   `, [rec.symbol, rec.filingDate || null, rec.accession, rec.direction || 'none',
       rec.quote || null, rec.confidence || null, rec.autoEventCreated ? 1 : 0,
       rec.source || null, rec.fyGuidance || null, rec.forwardGuidance || null, rec.sources || null,

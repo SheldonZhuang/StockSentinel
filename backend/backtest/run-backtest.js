@@ -1076,7 +1076,8 @@ async function main() {
   const summary = evaluate(D, timeline);
   const { crisisRows, bullRows } = summary;
 
-  fs.writeFileSync(path.join(__dirname, 'backtest-raw.json'), JSON.stringify({ summary, timeline }, null, 2));
+  // generatedAt（120号）：月度产物此前无时间戳，新鲜度只能从 monthsCovered 反推
+  fs.writeFileSync(path.join(__dirname, 'backtest-raw.json'), JSON.stringify({ generatedAt: new Date().toISOString(), summary, timeline }, null, 2));
   writeReport(summary, timeline);
   console.log('[backtest] done. report → docs/backtest-report.md');
   console.table(crisisRows);
@@ -1450,12 +1451,25 @@ export function runEvalR(D) {
 function writeReport(s, timeline) {
   // 不确定性区间行（116号）：bootstrap-ci.json 存在则引用其数字（重跑回测后须重跑
   // node backtest/bootstrap-ci.mjs 刷新，脚本自带"复现官方口径才出区间"守卫）
+  // 执行时点敏感性行（120号）：T+1/T+0 数字改为动态读 daily-replay-raw.json 的 overall——
+  // 旧版把 12.82/12.13 硬编码进模板，规则变更重跑月度回测时这对日度数字会原样带入新报告静默过期
+  function t1Line() {
+    try {
+      const dr = JSON.parse(fs.readFileSync(path.join(__dirname, 'daily-replay-raw.json'), 'utf8'));
+      const t0 = dr.overall?.daily; const t1 = dr.overall?.dailyT1;
+      if (t0?.cagrPct != null && t1?.cagrPct != null) {
+        const diff = (t0.cagrPct - t1.cagrPct).toFixed(1);
+        return `日度重放实测 T+1（次日收盘成交，即线上真实时序）：年化 ${t1.cagrPct}% vs T+0 ${t0.cagrPct}%（差 ${diff}pp）、盯市回撤 T+1 ${t1.mddPct}% vs T+0 ${t0.mddPct}%（数字取自 daily-replay-raw.json ${String(dr.generatedAt || '').slice(0, 10)} 快照，重跑 \`node backtest/daily-replay.mjs\` 刷新）`;
+      }
+    } catch { /* 产物缺失/字段未刷新时降级 */ }
+    return '日度重放 T+1 对比数字尚未刷新——重跑 `node backtest/daily-replay.mjs` 落盘 overall.dailyT1 后再重生成本报告';
+  }
   function bootstrapLine() {
     try {
       const ci = JSON.parse(fs.readFileSync(path.join(__dirname, 'bootstrap-ci.json'), 'utf8'));
       const d = ci.ci90.diffPp;
       const sc = ci.ci90.stratCagrPct, bc = ci.ci90.buyHoldCagrPct;
-      return `- **不确定性区间（循环块自助法，2026-07-30 采纳）**：对逐月配对收益(策略,买持)做块长12个月、B=10000 的循环块自助——90% 区间：策略年化 [${sc.p5}%, ${sc.p95}%]、买持 [${bc.p5}%, ${bc.p95}%]、**年化差 [${d.p5}pp, ${d.p95}pp]（优势为正概率约${Math.round(ci.probDiffPositive * 100)}%）**。区间下界${d.p5 < 0 ? '跨零：与"优势集中于2000/2008两段大熊、无灾长牛期防守系统是净成本"的披露一致——引用点估计时应连同区间' : '为正'}。复现：\`node backtest/bootstrap-ci.mjs\`（固定种子，读 backtest-raw.json 离线运行，重建口径与官方 summary 复现一致后才出区间；生成于 ${ci.generatedAt.slice(0, 10)}）。`;
+      return `- **不确定性区间（循环块自助法，2026-07-30 采纳）**：对逐月配对收益(策略,买持)做块长12个月、B=10000 的循环块自助——90% 区间：策略年化 [${sc.p5}%, ${sc.p95}%]、买持 [${bc.p5}%, ${bc.p95}%]、**年化差 [${d.p5}pp, ${d.p95 >= 0 ? '+' : ''}${d.p95}pp]（优势为正概率约${Math.round(ci.probDiffPositive * 100)}%）**。区间下界${d.p5 < 0 ? '跨零：与"优势集中于2000/2008两段大熊、无灾长牛期防守系统是净成本"的披露一致——引用点估计时应连同区间' : '为正'}。复现：\`node backtest/bootstrap-ci.mjs\`（固定种子，读 backtest-raw.json 离线运行，重建口径与官方 summary 复现一致后才出区间；生成于 ${ci.generatedAt.slice(0, 10)}）。`;
     } catch {
       return '- **不确定性区间**：本次重跑后尚未刷新——运行 `node backtest/bootstrap-ci.mjs` 生成（116号采纳的块自助置信区间）。';
     }
@@ -1519,7 +1533,7 @@ ${bootstrapLine()}
 4. **修订版 vs vintage**：EPUTRADE/MTS财政支出/PCEPI 用的都是 FRED 最新修订版而非当时可见的原始值（财政与 PCEPI 均有后续修订），与实时决策存在残余偏差；SAHMREALTIME 为实时构建、不回改的序列（已抽查 2024-07 初值同样 ≥0.5），萨姆锁触发时点不受此影响。
 5. **SPY 代理 SPX**：ETF 价格与指数走势一致，顶部/底部日期可能相差1个交易日以内。
 6. **假阳性为保守上界**：假阳性判定用月末采样价，月中盘中出现过 >15% 但月末收复的回撤会被漏计，${s.episodes ? (s.falsePositives / s.episodes * 100).toFixed(0) : '—'}% 是保守上界。
-7. **执行时点敏感性（T+1 实测，2026-07-30）**：头条口径为信号日收盘成交（T+0，趋势门判定输入含成交那根收盘，理论上有轻微前视）。日度重放实测 T+1（次日收盘成交，即线上真实时序）：年化 12.82% vs T+0 12.13%（T+0 反而偏保守 0.7pp）、盯市回撤同为 -19.3%——同收盘假设未美化头条数字；注意 2xQQQ 执行层结论不同（2022 年 T+0 -45.3% vs T+1 -36.5%，见 S5 手册），杠杆执行按 T+1 建模。重跑后最新值见 daily-replay-raw.json 的 overall.dailyT1。
+7. **执行时点敏感性（T+1 实测，2026-07-30）**：头条口径为信号日收盘成交（T+0，趋势门判定输入含成交那根收盘，理论上有轻微前视）。${t1Line()}；注意 2xQQQ 执行层结论不同（2022 年 T+0 -45.3% vs T+1 -36.5%，见 S5 手册），杠杆执行按 T+1 建模。
 
 ## 结论与建议
 

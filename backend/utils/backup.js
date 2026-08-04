@@ -110,6 +110,12 @@ export async function restoreDatabaseIfMissing() {
   if (!repo || !process.env.GITHUB_BACKUP_TOKEN) {
     return { skipped: true, reason: 'backup env not set' };
   }
+  // 双实例守卫对称补齐（120号）：备份仓 latest.db 专属 primary（云端）——replica（本机）
+  // 丢库时若从它恢复，等于把云端的用户表/API key/快照整库落到本机，本机身份静默被云端
+  // 替换且后续 cron 在"云端分叉"上继续写。replica 丢库应从本机自身渠道恢复，不碰云端备份
+  if ((process.env.INSTANCE_ROLE || 'primary') === 'replica') {
+    return { skipped: true, reason: 'replica instance does not restore from primary backups' };
+  }
   if (fs.existsSync(DB_PATH)) return { skipped: true, reason: 'db file exists' };
   try {
     const url = `${API}/repos/${repo}/contents/backups/latest.db`;

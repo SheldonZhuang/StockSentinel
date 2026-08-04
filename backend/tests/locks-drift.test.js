@@ -122,11 +122,45 @@ describe('computeLocks(线上) vs computeLocksDaily(回放) 漂移对比', () =>
     expect(r.online.reactiveAdjustmentLockActive).toBe(false);
   });
 
-  it('首跑（无前快照）只看最近一笔台阶', () => {
-    expectSame(runBoth({
+  it('首跑（无前快照）只看近7天内的最近一笔台阶（120号 L2：陈旧台阶不算今天的事件）', () => {
+    // 台阶在 42 天前：不算"今天的事件"，rateDiffBp 退回端点差（首跑无快照基线 → null）
+    const staleStep = runBoth({
       today: '2026-07-30', currentRate: 3.75, sahmValue: 0.1,
       steps: [{ date: '2026-06-18', diffBp: 25 }],
       prev: null,
-    }));
+    });
+    expectSame(staleStep);
+    expect(staleStep.online.rateDiffBp).toBe(null);
+    // 台阶在 3 天前：属于新近事件，正常计入
+    const freshStep = runBoth({
+      today: '2026-07-30', currentRate: 3.75, sahmValue: 0.1,
+      steps: [{ date: '2026-07-27', diffBp: 25 }],
+      prev: null,
+    });
+    expectSame(freshStep);
+    expect(freshStep.online.rateDiffBp).toBe(25);
+  });
+
+  // 120号 M4（宁缺勿假）：上一快照存在但 fred_rate=null（货币 stale 日落库 null）时，
+  // 端点差不得回退到"上次决议前的序列前值"——那会把上次 FOMC 调整重放成"今天的新调整"，
+  // 锁龄恰跨 60 天时凭空触发小幅调整解锁。此时端点差应为 null（台阶扫描仍如实工作）
+  it('上一快照 fred_rate=null：端点差为 null 不重放旧决议（M4）', () => {
+    const r = computeLocks(
+      {
+        currentRate: 3.75,
+        prevRate: 4.0, // FRED 序列前值=上次决议前水平（-25bp 决议已是旧闻）
+        sahmValue: 0.6, // 萨姆触发中
+        rateSteps: [], // 快照窗口内无新台阶
+      },
+      {
+        date: '2026-07-29', fred_rate: null, // stale 日落库 null
+        sahm_lock_active: 1, reactive_adjustment_lock_active: 0,
+        sahm_lock_since: '2026-05-20', reactive_adjustment_lock_since: null,
+        reactive_adjustment_lock_trigger_bp: null,
+      },
+      {}, '2026-07-30'
+    );
+    expect(r.rateDiffBp).toBe(null); // 旧修复下这里是 -25（4.0→3.75 被当作新调整）
+    expect(r.sahmLockActive).toBe(true); // 锁不被重放的调整凭空解除
   });
 });

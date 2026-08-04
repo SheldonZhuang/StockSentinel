@@ -14,8 +14,14 @@ import { todayET } from '../utils/datetime.js';
 export function computeLocks(macroData, prevSnapshot, overrides, todayOpt) {
   const { currentRate, prevRate, sahmValue, rateSteps } = macroData;
   // 利率变动基线优先用上一快照：FRED 序列相邻观测差只在变动次日非零，
-  // 当天 cron 恰好缺跑就永久漏检；快照差跨任意天数仍能捕捉调整事件（首次运行退回序列前值）
-  const baselineRate = prevSnapshot?.fred_rate ?? prevRate;
+  // 当天 cron 恰好缺跑就永久漏检；快照差跨任意天数仍能捕捉调整事件（首次运行退回序列前值）。
+  // 120号（M4，宁缺勿假）：上一快照存在但 fred_rate 为 null（当日 FRED 空观测落库）时，
+  // 不得回退 prevRate——那是"上次 FOMC 决议前的水平"，端点差会把上次决议的调整幅度
+  // 当作"自上一快照以来的新调整"重放（锁龄恰跨60天时凭空解锁/误触发应对式锁）。
+  // 此时端点差记 null（无兜底），调整事件仍由 stepsSince 台阶扫描如实捕捉
+  const baselineRate = prevSnapshot
+    ? prevSnapshot.fred_rate ?? null
+    : prevRate;
   const endpointDiffBp = currentRate !== null && baselineRate !== null && baselineRate !== undefined
     ? Math.round((currentRate - baselineRate) * 100)
     : null;
@@ -23,11 +29,16 @@ export function computeLocks(macroData, prevSnapshot, overrides, todayOpt) {
   // 调整事件判定优先用 FRED 序列在 (上次快照日, 今天] 内的逐笔台阶：
   // 端点差会把停机窗口内两次渐进 25bp 聚合成一次假 50bp"应对式"触发；
   // 台阶扫描保留每次调整的真实幅度（取窗口内幅度最大的一笔）。
-  // 首跑（无快照）只看最近一笔台阶（与旧行为等价）；
+  // 首跑（无快照）只看最近一笔台阶（与旧行为等价），且限定台阶发生在近 7 天内（120号 L2）：
+  // 空库/丢库恢复首跑时，回看窗口内 100 天前的 ≥50bp 旧调整不该被当作"今天的事件"锁死防守；
   // 序列回看窗口覆盖不到快照日或无台阶时，退回端点差兜底。
   const sinceDate = prevSnapshot?.date ?? null;
   const allSteps = rateSteps || [];
-  const stepsSince = sinceDate ? allSteps.filter(s => s.date > sinceDate) : allSteps.slice(0, 1);
+  const today0 = todayOpt || todayET();
+  const freshCutoff = new Date(Date.parse(today0) - 7 * 86400000).toISOString().slice(0, 10);
+  const stepsSince = sinceDate
+    ? allSteps.filter(s => s.date > sinceDate)
+    : allSteps.slice(0, 1).filter(s => s.date >= freshCutoff);
   const rateDiffBp = stepsSince.length
     ? stepsSince.reduce((a, b) => (Math.abs(b.diffBp) > Math.abs(a.diffBp) ? b : a)).diffBp
     : endpointDiffBp;

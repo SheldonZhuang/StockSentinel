@@ -4,6 +4,9 @@ function getToken() {
   return localStorage.getItem('token');
 }
 
+// 哨兵区分"响应体非JSON"与后端合法返回的 JSON null（如未设置的瓶颈环节）
+const PARSE_FAIL = Symbol('parse-fail');
+
 async function request(path, options = {}) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
@@ -11,10 +14,17 @@ async function request(path, options = {}) {
 
   const res = await fetch(BASE + path, { ...options, headers });
   // 网关 502/504 等场景返回 HTML，res.json() 会抛难懂的 SyntaxError，先兜住
-  const data = await res.json().catch(() => null);
+  const data = await res.json().catch(() => PARSE_FAIL);
   if (!res.ok) {
-    const err = new Error(data?.error || `HTTP ${res.status}`);
+    const err = new Error((data !== PARSE_FAIL && data?.error) || `HTTP ${res.status}`);
     err.status = res.status; // 让调用方能区分 401（token失效）与网络/服务端故障
+    throw err;
+  }
+  if (data === PARSE_FAIL) {
+    // 200 但响应体非JSON（反代误配把SPA fallback页当API响应等）：本项目全部端点均返回JSON，
+    // 这必是故障——走统一错误路径，而不是把 null 交给调用方 .length 崩掉组件子树
+    const err = new Error('Invalid JSON response');
+    err.status = res.status;
     throw err;
   }
   return data;

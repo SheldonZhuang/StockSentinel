@@ -67,10 +67,19 @@ setUserWriteListener(() => scheduleUserDataBackup());
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// JWT_SECRET 未配置时（120号）：登录签发/校验实际已不可用，退订 token 还会回退到公开常量
+// 'no-secret'（任何人可离线计算全体用户退订 token）。不硬退出（避免云端缺配陷入崩溃循环、
+// 连无鉴权的信号接口也瘫掉），但启动即打 CRITICAL 日志要求补配
+if (!process.env.JWT_SECRET) {
+  console.error('[startup] CRITICAL: JWT_SECRET is not set — auth tokens and unsubscribe HMAC are insecure/broken. Set JWT_SECRET immediately.');
+}
+
 // 部署在 Railway：只信任最外层一跳代理，使 req.ip 取到真实客户端 IP（而非代理层 IP，
 // 否则所有匿名用户塌缩进同一个 keyless 桶，任一人 25 次即耗尽全网免费额度）。
 // 不用 true（信任全链）——那样 X-Forwarded-For 可被客户端完全伪造以刷额度。
-app.set('trust proxy', 1);
+// replica（本机，无代理直连）不信任任何跳（120号）：直连场景下 trust proxy 1 会把
+// 客户端自带的 X-Forwarded-For 头当真实 IP，全部 IP 限流可被旋转伪造头绕过
+app.set('trust proxy', (process.env.INSTANCE_ROLE || 'primary') === 'replica' ? false : 1);
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -84,6 +93,13 @@ app.use('/api', cors({
   origin: allowedOrigins,
 }));
 app.use(express.json({ limit: '256kb' })); // 限制请求体，防超大 JSON 打满内存
+
+// 内部 /api 保底限流（120号）：CORS 白名单只约束浏览器，脚本/AI 客户端可直打 /api/signal
+// 等只读路由绕开 /v1 的 keyless 25/日与付费 key 体系（与"/mcp batch 绕过限流"同构，这次
+// 绕的是整个 /api 前缀）。120/min 与 /v1 分钟闸持平：正常前端一次加载十余请求远够用，
+// 挡住的是把 /api 当免费开放 API 刷的脚本。auth 路由自带更严格的双层闸（先到先算，正交）
+import { ipRateLimit } from './utils/ip-rate-limit.js';
+app.use('/api', ipRateLimit({ max: 120 }));
 
 // --- 路由 ---
 app.use('/api/auth', authRouter);
@@ -133,15 +149,19 @@ app.get('/api/ai-chain', asyncRoute(async (req, res) => {
 
 // GET /api/backtest/summary — 内部路由（前端 track record 页用，不占开放API配额）：
 // 2026-07-30 M2 修复配套——前端经 Vercel 代理访问 /v1 时全站访客塌缩进同一 keyless
-// IP 桶（25次/日共享），/v1 代理已从 vercel.json 移除，前端改走本内部路由
+// IP 桶（25次/日共享），/v1 代理已从 vercel.json 移除，前端改走本内部路由。
+// 进程内缓存解析结果（120号）：269KB 文件只在重部署时变，每请求同步 readFileSync+parse 放大 CPU 面
+let backtestSummaryCache;
 app.get('/api/backtest/summary', asyncRoute(async (req, res) => {
-  const fs = await import('fs');
-  const path = await import('path');
-  const { fileURLToPath } = await import('url');
-  const p = path.join(path.dirname(fileURLToPath(import.meta.url)), 'backtest/backtest-raw.json');
-  if (!fs.existsSync(p)) return res.status(404).json({ error: 'not_available' });
-  const { summary } = JSON.parse(fs.readFileSync(p, 'utf8'));
-  res.json({ summary });
+  if (backtestSummaryCache === undefined) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const p = path.join(path.dirname(fileURLToPath(import.meta.url)), 'backtest/backtest-raw.json');
+    backtestSummaryCache = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')).summary : null;
+  }
+  if (!backtestSummaryCache) return res.status(404).json({ error: 'not_available' });
+  res.json({ summary: backtestSummaryCache });
 }));
 
 // GET /api/user/me — 当前用户信息 + 是否是 admin + 邮件提醒开关状态
@@ -169,7 +189,11 @@ app.patch('/api/user/alerts', requireAuth, asyncRoute(async (req, res) => {
 const handleUnsubscribe = asyncRoute(async (req, res) => {
   const email = String(req.query.e || '');
   const token = String(req.query.t || '');
-  if (!email || !token || token !== unsubscribeToken(email)) {
+  // 常数时间比较（120号）：!== 按字符短路，可被时序侧信道逐位猜 token（退订端点无登录门槛）
+  const expected = email ? unsubscribeToken(email) : '';
+  const tokenOk = !!email && !!token && token.length === expected.length
+    && (await import('crypto')).timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+  if (!tokenOk) {
     return res.status(400).send('Invalid unsubscribe link');
   }
   const user = await getUserByEmail(email);
@@ -510,6 +534,7 @@ async function runDailyUpdateInner() {
           epuTradePercentile: policyData.epuTradePercentile,
           epuDailyPercentile: policyData.epuDailyPercentile,
           oilChange30dPct: policyData.oilChange30dPct,
+          oilLevelLow: policyData.oilLevelLow, // 120号：邮件 dimDetail 复刻油价护栏需要
           semiIpYoy: policyData.semiIpYoy,
           modelUsageTrendPct: chainData.modelUsageTrendPct,
           capexYoY: chainData.capexYoY,
@@ -599,13 +624,17 @@ const alertCronFailure = (source, err) => {
     error: err?.message || String(err),
   }).catch(() => {});
 };
-cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
 
-// 补更新看门狗（118号）：每小时检查快照是否过点未更新（21:00 任务被错过/中途失败时，
-// 此前要等次日才有重试），过期即补跑——用户通常还没打开页面系统就已自愈。
-// 注入 runDailyUpdate 后，/api/signal 与 /v1/signal 的访问触发共用同一控制器（30分钟冷却）
-initCatchUp(() => runDailyUpdate().catch(err => alertCronFailure('catch-up', err)));
-cron.schedule('20 * * * *', () => { maybeCatchUp().catch(() => {}); }, { timezone: 'America/New_York' });
+// 全局未处理 rejection 兜底（120号）：主链路各处已有 catch，这是最后一道网——
+// 记录+告警但不退出（Node≥15 默认终止进程，两实例同代码会同死）。
+// 已知潜在逃逸点：MCP SDK transport/server.close() 返回的 Promise 未被 await
+process.on('unhandledRejection', (err) => {
+  console.error('[unhandledRejection]', err?.stack || err?.message || String(err));
+  sendOpsAlert(process.env.ADMIN_EMAIL, {
+    stage: '未处理的 Promise rejection（进程存活，请排查来源）',
+    error: err?.message || String(err),
+  }).catch(() => {});
+});
 
 // 启动顺序（顶层 await）：先尝试从 GitHub 备份恢复丢失的 DB，再开始监听与首次更新。
 // Railway 容器文件系统非持久化，重部署即丢库；恢复必须发生在任何 getDb() 之前——
@@ -613,6 +642,17 @@ cron.schedule('20 * * * *', () => { maybeCatchUp().catch(() => {}); }, { timezon
 // 恢复好的文件覆盖回空库（竞态）。恢复失败不阻塞启动（fail-open 空库起步）。
 await restoreDatabaseIfMissing()
   .catch(err => console.warn('[startup] restore check failed:', err.message));
+
+// cron 注册必须在 restore 完成之后（120号，与 listen 同理）：node-cron 注册即活，
+// 启动恰落在 XX:19:5x / 20:59:5x 且 restore 尚在拉取时，看门狗/每日任务的 getDb()
+// 会用空库初始化内存句柄，随后 restore 落盘的文件被下一次 persist() 整库覆盖
+cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
+
+// 补更新看门狗（118号）：每小时检查快照是否过点未更新（21:00 任务被错过/中途失败时，
+// 此前要等次日才有重试），过期即补跑——用户通常还没打开页面系统就已自愈。
+// 注入 runDailyUpdate 后，/api/signal 与 /v1/signal 的访问触发共用同一控制器（30分钟冷却）
+initCatchUp(() => runDailyUpdate().catch(err => alertCronFailure('catch-up', err)));
+cron.schedule('20 * * * *', () => { maybeCatchUp().catch(() => {}); }, { timezone: 'America/New_York' });
 
 // 管理员账户种子（2026-07-30 审查修复，H3）：配置 ADMIN_PASSWORD 时启动即确保管理员
 // 账户存在，且公开注册接口拒绝注册 ADMIN_EMAIL——堵住"空库窗口内任何人抢注管理员

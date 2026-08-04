@@ -20,7 +20,7 @@
       </div>
 
       <!-- 快照过期警示：云端 cron 停摆时 dataDate 停走，用户须显式知道信号已失效 -->
-      <div v-if="snapshotStaleDays >= 3" class="stale-banner">
+      <div v-if="snapshotStaleAlert" class="stale-banner">
         ⚠️ {{ $t('signal.snapshotStale', { days: snapshotStaleDays }) }}
       </div>
 
@@ -71,10 +71,15 @@
           <div class="dim-head">
             <span class="dim-name">{{ $t(`signalPos.${d.key}`) }}</span>
             <span v-if="d.source === 'override'" class="dim-source">{{ $t('signalPos.override') }}</span>
-            <span v-else-if="d.stale" class="dim-source stale-tag" :title="$t('indicators.staleHint')">{{ $t('indicators.stale') }}</span>
+            <span v-else-if="d.stale" class="dim-source stale-tag" :title="$t('indicators.staleHint')"
+                  role="button" tabindex="0" :aria-expanded="staleHintKey === d.key"
+                  @click="staleHintKey = staleHintKey === d.key ? null : d.key"
+                  @keydown.enter.prevent="staleHintKey = staleHintKey === d.key ? null : d.key">{{ $t('indicators.stale') }}</span>
           </div>
           <div :class="['dim-badge', d.value]">{{ $t(`signalPos.${d.value}`) }}</div>
           <div class="dim-metric">{{ d.metric || '—' }}</div>
+          <!-- stale 说明的触屏/键盘可达入口（120号 a11y）：title 仅鼠标可见 -->
+          <div v-if="staleHintKey === d.key" class="hint-expand">{{ $t('indicators.staleHint') }}</div>
         </div>
       </div>
     </template>
@@ -82,12 +87,15 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   signal: { type: Object, default: null },
 });
+
+// stale 标签点击展开的说明（a11y：title 悬停触屏不可达）
+const staleHintKey = ref(null);
 
 const { t } = useI18n();
 
@@ -163,9 +171,14 @@ function dimDetail(key) {
     return `${t('indicators.fiscalOutlaysTtm')} ${t('indicators.yoyChange')} ${fmtPct(ind.fiscalOutlaysChangePct)}`;
   }
   if (key === 'administrative') {
-    // 按实际触发层归因（与邮件 dimDetail 同语义）：油价事件层优先于 EPU 展示——
-    // 行政收紧可由油价冲击触发，此时把原因归到"贸易EPU百分位"是错误归因
-    if (ind.oilChange30dPct != null && Math.abs(ind.oilChange30dPct) >= 20) {
+    // 按实际触发层归因（与邮件 dimDetail 同语义）：油价事件层优先于 EPU 展示。
+    // 归因须复刻 calcAdminSignal 事件层完整护栏（EPU高位 + O1油价水平，oilBadge 同口径）：
+    // 油价大涨但护栏未放行时实际收紧由EPU双代理定档，归因WTI是错误归因；
+    // 油价大跌（loose方向）更不该出现在收紧维的归因里（旧 Math.abs 写法两者都会错归因）
+    const guard = ind.epuDailyPercentile ?? ind.epuTradePercentile;
+    const oilTightFired = ind.oilChange30dPct != null && ind.oilChange30dPct >= 20
+      && guard != null && guard > 80 && ind.oilLevelLow !== true;
+    if (oilTightFired) {
       return `WTI 30D ${fmtPct(ind.oilChange30dPct)}`;
     }
     if (ind.epuTradePercentile != null) {
@@ -199,24 +212,35 @@ const tightDims = computed(() =>
 // AI供需维度卡内联（dimMetric）+ 参考指标区 + 产业链面板三处足够
 
 
-// "距进攻"清单 = 四维达成状态 + 收益率曲线否决器 + 信用利差否决器。
+// "距进攻"清单 = 四维达成状态 + 无锁 + 收益率曲线否决器 + 信用利差否决器。
+// 锁项与 interpret.toAttack 文案的"无锁"对应（120号补，此前文案列"无锁"清单却无此项自相矛盾）：
+// 锁激活且未被管理员覆盖 → 未达成，解释"其余全✓档位仍非进攻"的状态；
 // 曲线项同步 backend/api/signal.js applyYieldCurveVeto：10y−3m 连续倒挂 ≥63 个交易日
 // （≈3个月，signal.config.js YIELD_CURVE_INVERSION_CONFIRM_DAYS）时否决进攻档准入；
 // 信用项同步 applyCreditSpreadVeto（2026-07-30 采纳）：BAA10Y 90日走阔 ≥+60bp 时否决进攻；
 // 数据缺失(null)视为达成——与后端 fail-open 同口径。
-const attackChecklist = computed(() => [
-  ...positions.value.map(d => ({ key: d.key, labelKey: `signalPos.${d.key}`, ok: attackReady(d) })),
-  {
-    key: 'yieldCurve',
-    labelKey: 'interpret.yieldCurveOk',
-    ok: (props.signal?.indicators?.yieldCurveInvertedDays ?? 0) < 63,
-  },
-  {
-    key: 'creditSpread',
-    labelKey: 'interpret.creditSpreadOk',
-    ok: (props.signal?.indicators?.creditSpread90dWidenBp ?? 0) < 60,
-  },
-]);
+const attackChecklist = computed(() => {
+  const ind = props.signal?.indicators || {};
+  return [
+    ...positions.value.map(d => ({ key: d.key, labelKey: `signalPos.${d.key}`, ok: attackReady(d) })),
+    {
+      key: 'locks',
+      labelKey: 'interpret.locksOk',
+      ok: !(ind.sahmLockActive && !ind.sahmLockOverridden)
+        && !(ind.reactiveAdjustmentLockActive && !ind.reactiveAdjustmentLockOverridden),
+    },
+    {
+      key: 'yieldCurve',
+      labelKey: 'interpret.yieldCurveOk',
+      ok: (ind.yieldCurveInvertedDays ?? 0) < 63,
+    },
+    {
+      key: 'creditSpread',
+      labelKey: 'interpret.creditSpreadOk',
+      ok: (ind.creditSpread90dWidenBp ?? 0) < 60,
+    },
+  ];
+});
 
 const lockInfo = computed(() => {
   const ind = props.signal?.indicators;
@@ -236,13 +260,27 @@ const lockInfo = computed(() => {
   return null;
 });
 
-// 快照距今天数：>=3 天显示失效警示（周末+假日最长2天无cron属正常，3天=真停摆）。
-// 云端 cron 停摆时 dataDate 停走，没有这个警示用户会把过期信号当最新信号执行
+// 快照距今天数（日历日，供横幅文案显示）；警示阈值改按"工作日"计数（120号）：
+// 快照仅交易日更新，周五快照后遇周一假日（Memorial Day 等）到周二晚才有新快照，
+// 日历日阈值3会在每个周一假日误弹"信号已失效"红横幅——工作日≥3才是真停摆
 const snapshotStaleDays = computed(() => {
   const d = props.signal?.dataDate;
   if (!d) return 0;
   const age = Math.floor((Date.now() - Date.parse(d + 'T00:00:00Z')) / 86400000);
   return age > 0 ? age : 0;
+});
+
+const snapshotStaleAlert = computed(() => {
+  const d = props.signal?.dataDate;
+  if (!d) return false;
+  const start = Date.parse(d + 'T00:00:00Z');
+  const now = Date.now();
+  let weekdays = 0;
+  for (let ts = start + 86400000; ts <= now; ts += 86400000) {
+    const dow = new Date(ts).getUTCDay();
+    if (dow !== 0 && dow !== 6) weekdays++;
+  }
+  return weekdays >= 3;
 });
 </script>
 
@@ -373,9 +411,19 @@ const snapshotStaleDays = computed(() => {
 .dim-card:hover { border-color: var(--border-3); }
 .dim-card.tight { border-color: var(--red-border); }
 .dim-card.loose { border-color: var(--green-bg); }
-/* stale = 数据源故障沿用上次判定，整卡降饱和提示数据非当日 */
-.dim-card.stale { opacity: 0.55; filter: grayscale(0.4); }
+/* stale = 数据源故障沿用上次判定，整卡降饱和提示数据非当日。
+   0.75：0.55 会把卡内 text-4 小字压到约2:1不可读，黄色 stale 标签已传达状态，降饱和只需可感知 */
+.dim-card.stale { opacity: 0.75; filter: grayscale(0.4); }
 .stale-tag { cursor: help; color: var(--yellow); border-color: var(--yellow-border); }
+.hint-expand {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: pre-line;
+  background: var(--bg-input);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
 
 .dim-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .dim-name { font-size: var(--fs-sm); color: var(--text-3); font-weight: 600; }

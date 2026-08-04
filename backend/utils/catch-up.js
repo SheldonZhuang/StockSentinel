@@ -40,12 +40,19 @@ export function createCatchUpController({ getLatest, run, cooldownMs = COOLDOWN_
   let running = false;
   return {
     async check() {
-      const expected = expectedSnapshotDate(now());
+      const nowD = now();
+      const expected = expectedSnapshotDate(nowD);
       const latest = await getLatest().catch(() => null);
       const latestDate = latest?.date ?? null;
       if (latestDate && latestDate >= expected) return { overdue: false };
+      // 120号守卫（H1）：runDailyUpdate 写入的日期永远是"今天(ET)"，只有当期望快照就是
+      // 今天（即已过今天 21:45）时补跑才补得对。期望=昨天（故障跨过午夜、今天21:45前恢复）
+      // 时补跑会生成"提前跑"的今日快照——装着今天上午的数据冒充今晚 21:00 采样点，
+      // 既补不上昨天的洞又污染今天的 track record，且今晚正式 cron 会再写一条同日快照。
+      // 此场景只报 overdue（前端 stale 横幅照常示警），等今晚 21:00 正式 cron。
+      if (expected !== etParts(nowD).date) return { overdue: true, waitingForToday: true };
       if (running) return { overdue: true, running: true };
-      const t = now().getTime();
+      const t = nowD.getTime();
       if (t - lastAttemptMs < cooldownMs) return { overdue: true, cooldown: true };
       lastAttemptMs = t;
       running = true;

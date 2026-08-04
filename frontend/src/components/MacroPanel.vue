@@ -7,7 +7,10 @@
         <div class="section-title">{{ $t('indicators.sectionTitle') }}</div>
         <template v-for="group in groups" :key="group.key">
           <div class="group-title">{{ $t(`signalPos.${group.key}`) }}</div>
-          <div class="indicator-block" v-for="ind in group.items" :key="ind.key" :title="hintFor(ind)">
+          <div class="indicator-block" v-for="ind in group.items" :key="ind.key" :title="hintFor(ind)"
+               :role="hintFor(ind) ? 'button' : undefined" :tabindex="hintFor(ind) ? 0 : undefined"
+               :aria-expanded="hintFor(ind) ? expandedHintKey === ind.key : undefined"
+               @click="toggleHint(ind)" @keydown.enter.prevent="toggleHint(ind)" @keydown.space.prevent="toggleHint(ind)">
             <div class="indicator-row">
               <span :class="['ind-label', { hinted: hintFor(ind) }]">{{ $t(`indicators.${ind.key}`) }}</span>
               <span class="ind-value">
@@ -35,6 +38,8 @@
               <span v-if="ind.periodDate">{{ $t('indicators.periodDate') }}: {{ ind.periodIsMonth ? formatMonth(ind.periodDate) : formatDate(ind.periodDate) }}</span>
               <span v-if="ind.releaseDate">· {{ $t('indicators.releaseDate') }}: {{ formatDate(ind.releaseDate) }}</span>
             </div>
+            <!-- 点击/回车展开的判定规则说明：title 悬停在触屏/键盘上完全不可达（120号 a11y 修复） -->
+            <div v-if="expandedHintKey === ind.key" class="hint-expand">{{ hintFor(ind) }}</div>
           </div>
         </template>
       </div>
@@ -43,12 +48,19 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   signal: { type: Object, default: null },
 });
+
+// hover-only title 在触屏/键盘上不可达：点击/回车/空格切换内联展开（120号 a11y）
+const expandedHintKey = ref(null);
+function toggleHint(ind) {
+  if (!hintFor(ind)) return;
+  expandedHintKey.value = expandedHintKey.value === ind.key ? null : ind.key;
+}
 
 const LOCALE_TAGS = { zh: 'zh-CN', en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', ja: 'ja-JP', ko: 'ko-KR' };
 
@@ -57,14 +69,15 @@ const { t, locale } = useI18n();
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const tag = LOCALE_TAGS[locale.value] || 'en-US';
-  return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(dateStr + 'T00:00:00Z'));
+  // timeZone:'UTC' 必须与 T00:00:00Z 解析配对：否则美洲等负时区用户所有日期显示提前一天
+  return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(dateStr + 'T00:00:00Z'));
 }
 
 // PCE/失业率是月度数据，参考期展示到月份即可（不展示FRED返回的月首占位日期）
 function formatMonth(dateStr) {
   if (!dateStr) return '—';
   const tag = LOCALE_TAGS[locale.value] || 'en-US';
-  return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long' }).format(new Date(dateStr + 'T00:00:00Z'));
+  return new Intl.DateTimeFormat(tag, { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(dateStr + 'T00:00:00Z'));
 }
 
 // 参与判定的指标悬停显示判定规则 + 全局叠加规则；纯参考指标显示"仅参考"
@@ -234,10 +247,11 @@ const groups = computed(() => {
         {
           key: 'sahm', value: ind.sahmValue, unit: '%',
           change: null,
-          // 阈值同步 signal.config.js：≥0.5 触发萨姆锁
+          // 阈值同步 signal.config.js：≥0.5 触发萨姆锁。萨姆值只是锁触发器不投维度票，
+          // <0.5 不显示"宽松"徽章（绿色"宽松"会暗示它参与宽松投票，语义过度）
           extra: ind.sahmValue != null ? (ind.sahmValue >= 0.5 ? '(≥ 0.5%)' : '(< 0.5%)') : null,
           signalBadge: ind.sahmLockActive ? 'tight'
-            : ind.sahmValue != null ? (ind.sahmValue >= 0.5 ? 'tight' : 'loose') : null,
+            : ind.sahmValue != null && ind.sahmValue >= 0.5 ? 'tight' : null,
           periodDate: ind.sahmPeriodDate, releaseDate: ind.sahmReleaseDate, periodIsMonth: true,
         },
         {
@@ -321,6 +335,18 @@ const groups = computed(() => {
 }
 
 .indicator-block { display: flex; flex-direction: column; gap: 2px; }
+.indicator-block[role='button'] { cursor: pointer; }
+/* 点击展开的提示块：与 title 同文，触屏/键盘可达 */
+.hint-expand {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: pre-line;
+  background: var(--bg-input);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-top: 2px;
+}
 
 .indicator-row {
   display: flex;

@@ -188,7 +188,7 @@
         <tbody>
           <tr v-for="k in apiKeys" :key="k.id">
             <td>{{ k.name || '—' }}</td>
-            <td class="key-code">{{ k.key.slice(0, 12) }}…{{ k.key.slice(-4) }}</td>
+            <td class="key-code">{{ k.key }}</td>
             <td>{{ k.tier }}</td>
             <td>{{ k.disabled ? $t('admin.apiKeys.disabled') : $t('admin.apiKeys.active') }}</td>
             <td>
@@ -317,16 +317,22 @@ async function saveBottleneckStage() {
   }
 }
 
+// 请求序号守卫（同 WatchlistPanel loadSeq 模式）：快速切换分类 tab 时，
+// 旧请求晚到会覆盖新 tab 数据且不自纠——只采纳最后一次发起的请求结果
+let refSeq = 0;
 async function loadRef(category) {
+  const seq = ++refSeq;
   refCategory.value = category;
   refLoading.value = true;
   refDocs.value = [];
   try {
-    refDocs.value = await api.getReference(category);
+    const docs = await api.getReference(category);
+    if (seq !== refSeq) return;
+    refDocs.value = docs;
   } catch (e) {
     console.error(e);
   } finally {
-    refLoading.value = false;
+    if (seq === refSeq) refLoading.value = false;
   }
 }
 

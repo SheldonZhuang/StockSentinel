@@ -147,6 +147,7 @@ async function fetchSharesOutstanding(cik) {
 // symbol → {revenue, shares, at}：缓存基本面而非最终P/S，价格用调用时实时价现算
 // （null 结果也缓存，ETF/无财报标的不反复打EDGAR）
 const fundamentalsCache = new Map();
+const FUNDAMENTALS_CACHE_MAX = 2000; // 120号：12字符符号空间可被扫出海量键（含 null entry），封顶+清过期防慢泄漏
 
 async function getFundamentals(symbol) {
   const cached = fundamentalsCache.get(symbol);
@@ -160,6 +161,12 @@ async function getFundamentals(symbol) {
     }
     // 只有确定拉通（含"确认无财报"）才缓存：null 缓存本意是给 ETF/无财报标的，
     // 不能把瞬时网络故障也钉死 24 小时（否则故障日 watchlist 全 P/S=null 且当天不再重试）
+    if (fundamentalsCache.size >= FUNDAMENTALS_CACHE_MAX) {
+      for (const [k, v] of fundamentalsCache) {
+        if (Date.now() - v.at >= CACHE_TTL_MS) fundamentalsCache.delete(k);
+      }
+      if (fundamentalsCache.size >= FUNDAMENTALS_CACHE_MAX) fundamentalsCache.clear();
+    }
     fundamentalsCache.set(symbol, entry);
   } catch (err) {
     console.warn(`[fundamentals] EDGAR(${symbol}) failed (not cached, will retry):`, err?.message || String(err).slice(0, 120));

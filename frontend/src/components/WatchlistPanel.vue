@@ -40,7 +40,13 @@
         {{ $t(opt.label) }}
         <span v-if="sortKey === opt.key" class="sort-arrow">{{ sortDir === 1 ? '▲' : '▼' }}</span>
       </button>
+      <!-- 指标说明开关：卡片上的 title 悬停触屏不可达，这里给统一的可点击入口（120号 a11y） -->
+      <button class="preset-btn" :aria-expanded="showHints" @click="showHints = !showHints">
+        ⓘ {{ $t('watchlist.hintToggle') }}
+      </button>
     </div>
+    <div v-if="showHints" class="hint-expand">{{ $t('watchlist.percentileHint') }}
+{{ $t('watchlist.valuationHint') }}</div>
 
     <!-- 股票列表 -->
     <div v-if="loading" class="loading">{{ $t('signal.loading') }}</div>
@@ -54,7 +60,7 @@
         <div class="stock-header">
           <span class="stock-symbol">{{ stock.symbol }}</span>
           <span class="stock-name" v-if="stock.shortName && stock.shortName !== stock.symbol">{{ stock.shortName }}</span>
-          <button @click="removeStock(stock.symbol)" class="remove-btn">✕</button>
+          <button @click="removeStock(stock.symbol)" class="remove-btn" :aria-label="$t('watchlist.removeLabel', { symbol: stock.symbol })" :title="$t('watchlist.removeLabel', { symbol: stock.symbol })">✕</button>
         </div>
         <div v-if="stock.error" class="stock-error">{{ stock.error }}</div>
         <template v-else>
@@ -101,6 +107,7 @@ const SORT_OPTIONS = [
 const newSymbol = ref('');
 const loading = ref(true);
 const loadError = ref(false); // 116号修复：接口故障不再伪装成"暂无自选股"
+const showHints = ref(false); // 指标说明展开态（a11y：title 的触屏可达替代入口）
 const stocks = ref([]);
 const sortKey = ref(null); // null = 添加顺序
 const sortDir = ref(1);    // 1 升序 / -1 降序
@@ -132,11 +139,13 @@ const sortedStocks = computed(() => {
   });
 });
 
-const today = new Date().toISOString().slice(0, 10);
+// 用户本地日期（toISOString 是 UTC：美洲用户晚间会把"明天"当默认区间终点）
+const localDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const today = localDateStr(new Date());
 const threeYearsAgo = (() => {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 3);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 })();
 
 const startDate = ref(threeYearsAgo);
@@ -187,7 +196,7 @@ async function addPreset(symbols) {
 }
 
 function percentileClass(p) {
-  if (p === null) return '';
+  if (p == null) return ''; // == 同时拦 null/undefined：旧快照缺字段时 '—' 占位不该带黄色徽章底
   if (p >= 80) return 'high';
   if (p <= 20) return 'low';
   return 'mid';
@@ -230,7 +239,17 @@ onMounted(loadWatchlist);
 .presets-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sort-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sort-btn.active { border-color: var(--blue-border); color: var(--blue); background: var(--blue-bg); }
-.sort-arrow { font-size: 9px; margin-left: 2px; }
+.sort-arrow { font-size: var(--fs-xs); margin-left: 2px; } /* 9px 超出字号5档下限，收敛到 fs-xs */
+/* 点击展开的指标说明块（与卡片 title 同文） */
+.hint-expand {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: pre-line;
+  background: var(--bg-input);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
 .preset-label { font-size: var(--fs-sm); color: var(--text-4); }
 .preset-btn { background: var(--bg-input); border: 1px solid var(--border-3); border-radius: 6px; color: var(--text-3); padding: 4px 10px; font-size: var(--fs-sm); cursor: pointer; }
 .preset-btn:hover { border-color: var(--border-focus); color: var(--text-1); }
@@ -249,7 +268,8 @@ onMounted(loadWatchlist);
 .stock-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .stock-symbol { font-weight: 700; font-size: var(--fs-lg); color: var(--text-1); }
 .stock-name { font-size: var(--fs-sm); color: var(--text-4); flex: 1; }
-.remove-btn { background: none; border: none; color: var(--text-5); cursor: pointer; font-size: var(--fs-lg); padding: 0 4px; margin-left: auto; }
+/* text-3 而非 text-5：✕是可交互控件（UI组件对比度底线3:1），text-5 亮色主题下≈2.8:1近乎隐形 */
+.remove-btn { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: var(--fs-lg); padding: 0 4px; margin-left: auto; }
 .remove-btn:hover { color: var(--red); }
 
 .stock-price { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }

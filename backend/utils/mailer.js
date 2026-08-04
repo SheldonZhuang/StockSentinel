@@ -135,8 +135,13 @@ function dimDetail(dim, d) {
   let s = null;
   if (dim === 'fiscal') s = fmt(d.fiscalOutlaysChangePct) && `联邦支出TTM同比 ${fmt(d.fiscalOutlaysChangePct)}`;
   if (dim === 'admin') {
-    // 油价事件层触发时优先展示触发源，否则展示EPU百分位（与前端维度卡同语义）
-    if (d.oilChange30dPct != null && Math.abs(d.oilChange30dPct) >= 20) {
+    // 油价事件层归因须复刻 calcAdminSignal 完整护栏（120号，与前端 SignalHero dimDetail 同步修）：
+    // 大涨须 EPU 护栏放行且非低位反弹才判 tight；护栏未放行时实际收紧由 EPU 双代理定档，
+    // 归因 WTI 是错误归因；大跌（loose 方向）不该出现在收紧维归因里（旧 Math.abs 两者都错归因）
+    const guard = d.epuDailyPercentile ?? d.epuTradePercentile;
+    const oilTightFired = d.oilChange30dPct != null && d.oilChange30dPct >= 20
+      && guard != null && guard > 80 && d.oilLevelLow !== true;
+    if (oilTightFired) {
       s = `WTI 30D ${fmt(d.oilChange30dPct)}`;
     } else {
       s = d.epuTradePercentile != null ? `贸易政策不确定性指数近10年百分位 P${Number(d.epuTradePercentile).toFixed(0)}` : null;

@@ -7,7 +7,7 @@ import { asyncRoute } from '../utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage, pruneApiUsage } from '../utils/storage.js';
-import { ipRateLimit } from '../utils/ip-rate-limit.js';
+import { ipRateLimit, normalizeIpForQuota } from '../utils/ip-rate-limit.js';
 import { maybeCatchUp } from '../utils/catch-up.js';
 import fs from 'fs';
 import path from 'path';
@@ -75,21 +75,9 @@ const flushTimer = setInterval(async () => {
 flushTimer.unref(); // 不阻塞进程退出
 const keyCache = new Map(); // key → { record, at }
 
-// IPv6 按 /64 归桶（2026-07-30，L6）：家宽 IPv6 前缀内可轮换 2^64 个地址，
-// 完整 IP 计额度=keyless 日额度可无限刷新；/64 是单用户典型分配粒度
-export function normalizeIpForQuota(ip) {
-  if (!ip || !ip.includes(':')) return ip || 'unknown';
-  const bare = ip.replace(/^::ffff:/, ''); // IPv4-mapped 原样走 IPv4 路径
-  if (!bare.includes(':')) return bare;
-  const full = bare.includes('::') ? expandIpv6(bare) : bare.split(':');
-  return full.slice(0, 4).join(':') + '::/64';
-}
-function expandIpv6(ip) {
-  const [head, tail] = ip.split('::');
-  const h = head ? head.split(':') : [];
-  const t = tail ? tail.split(':') : [];
-  return [...h, ...Array(8 - h.length - t.length).fill('0'), ...t];
-}
+// IPv6 /64 归桶已下沉到 utils/ip-rate-limit.js（120号，让分钟保底闸同享）；
+// 此处 re-export 维持既有导入路径（tests/公开引用）不变
+export { normalizeIpForQuota };
 const KEY_CACHE_TTL_MS = 5 * 60 * 1000;
 const KEY_CACHE_MAX = 5000; // 上限防投毒：轮换随机无效 key 会让缓存无界增长直至 OOM
 

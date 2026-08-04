@@ -25,11 +25,12 @@ import {
 import {
   getProcessedGuidanceAccessions,
   saveGuidanceRecord,
+  getGuidanceRecord,
   setAdminSignal,
   getActiveAdminSignal,
   getAlertSubscribers,
 } from '../utils/storage.js';
-import { sendSignalAlert } from '../utils/mailer.js';
+import { sendSignalAlert, sendOpsAlert } from '../utils/mailer.js';
 
 const EDGAR_HEADERS = {
   'User-Agent': 'StockSentinel admin@stocksentinel.app',
@@ -56,7 +57,9 @@ export async function findNewEarningsFilings(processedAccessions) {
       );
       const r = res.data.filings.recent;
       for (let i = 0; i < r.form.length; i++) {
-        if (r.filingDate[i] < since) break; // recent 按日期降序，越界即止
+        // 120号（L1）：recent 按受理时间排序，filingDate 非严格单调（补交/修正案会乱序），
+        // 一条乱序旧日期行 break 会漏掉其后仍在窗口内的申报——改 continue 全扫（量级有限）
+        if (r.filingDate[i] < since) continue;
         if (r.form[i] !== '8-K' || !(r.items[i] || '').includes('2.02')) continue;
         if (processedAccessions.has(r.accessionNumber[i])) continue;
         out.push({ symbol, cik, accession: r.accessionNumber[i], filingDate: r.filingDate[i] });
@@ -442,6 +445,27 @@ export async function processCapexGuidance() {
     if (retryNextRun) {
       console.warn(`[guidance] ${f.symbol} ${f.filingDate}: incomplete (fetch/LLM/web unavailable), NOT marked processed — will retry next run`);
       continue;
+    }
+    // 120号（M5，117复检×N3组合缺口）：复检把方向从 cut 纠正为非 cut 时，此前首晚误报
+    // 自动录入的 N3 收紧 override（90天寿命）必须一并撤销——复检只刷新档案行，
+    // override 需显式 'auto' 清除哨兵才失效，否则误报强制 capex 收紧 90 天且自愈机制对它无效。
+    // 撤销后发运维邮件请人工复核（撤防守动作可以晚、但不能没有；误撤销的代价是回到误报前状态）
+    try {
+      const prevRec = await getGuidanceRecord(f.accession);
+      if (prevRec?.auto_event_created === 1 && record.direction !== 'cut') {
+        const active = await getActiveAdminSignal('capex_guidance');
+        if (active && (active.note || '').includes(f.symbol)) {
+          await setAdminSignal('capex_guidance', 'auto', null,
+            `120号复检纠偏自动撤销：${f.symbol} ${f.filingDate} 首晚web源误判cut，复检方向=${record.direction}`, 'auto-recheck');
+          console.warn(`[guidance] ⚠️ AUTO N3 REVOKED: ${f.symbol} ${f.filingDate} 复检方向=${record.direction}，已撤销首晚误报的 capex_guidance override，请人工复核`);
+          sendOpsAlert(process.env.ADMIN_EMAIL, {
+            stage: `N3 复检纠偏：${f.symbol} 首晚 web 源误判下修已自动撤销`,
+            error: `复检方向=${record.direction}；如确有下修请在管理面板人工重新录入 N3`,
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn('[guidance] recheck-revoke check failed:', err.message);
     }
     await saveGuidanceRecord(record).catch(err => console.warn('[guidance] save failed:', err.message));
     console.log(`[guidance] ${f.symbol} ${f.filingDate}: direction=${record.direction}${record.confidence ? '/' + record.confidence : ''}${record.source ? ' src=' + record.source : ''}${record.qtrCapex ? ` qtr=$${(record.qtrCapex / 1e9).toFixed(1)}B` : ''}`);

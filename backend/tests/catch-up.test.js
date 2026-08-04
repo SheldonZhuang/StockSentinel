@@ -85,6 +85,22 @@ describe('createCatchUpController', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  // 120号 H1 守卫：故障跨过午夜后恢复——期望的是昨日快照，但 runDailyUpdate 只会写"今天"，
+  // 补跑会生成装着今日上午数据的"提前跑"今日快照（既补不上昨天的洞又污染今天）。只报 overdue 等今晚正式 cron
+  it('跨午夜恢复（ET 次日 8:00，期望昨日、缺昨日）→ 只报 overdue 不触发补跑', async () => {
+    const { ctl, run } = mk({ latestDate: '2026-07-29', nowEt: ['2026-07-31', 8, 0] }); // 期望 07-30
+    const r = await ctl.check();
+    expect(r.overdue).toBe(true);
+    expect(r.waitingForToday).toBe(true);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('跨午夜恢复后当天过点（ET 21:45+）→ 正常触发补今日', async () => {
+    const { ctl, run } = mk({ latestDate: '2026-07-29', nowEt: ['2026-07-31', 22, 0] }); // 期望 07-31=今天
+    expect((await ctl.check()).triggered).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it('run 抛错不外泄，running 状态复位', async () => {
     const run = vi.fn().mockRejectedValue(new Error('boom'));
     const ctl = createCatchUpController({

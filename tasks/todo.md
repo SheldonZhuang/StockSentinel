@@ -1,3 +1,57 @@
+# 120号:第八轮系统性深度审查(用户口称114号)——四路子代理并行审查,修复约40处,3项判定参数变更待拍板 — 2026-08-04
+
+**审查方式**:四个子代理并行(判定逻辑/后端韧性安全/前端跨端一致性/回测文档诚实性),每条发现主会话亲自验证后修复。基线:后端592→597全绿,前端12→22全绿(修复前1个失败)。
+
+## 已修复(bug/安全/文档口径,批量授权范围内)
+
+**判定链bug(高/中危)**:
+- [x] H1 catch-up跨午夜补跑违反118号"绝不提前跑"不变量——故障跨午夜恢复时会生成装着当日上午数据的"提前跑"快照。加守卫:期望快照日=今天(ET 21:45后)才允许补跑,否则只报overdue等正式cron。+2测试
+- [x] M4 锁基线利率"重放":货币stale日快照fred_rate落null,次日??回退到序列前值,把上次FOMC调整当作当天新事件(锁龄恰跨60天时凭空解锁)。改宁缺勿假:prevSnapshot存在但fred_rate为null时端点差记null(台阶扫描照常工作)。+1测试
+- [x] M5 117号暂定档复检×N3否决器组合缺口:复检把首晚误判cut纠正为maintain时只改档案行,已录入的90天N3收紧override无人撤销。补自动撤销('auto'清除哨兵,仅当活动override note含该symbol)+运维邮件请人工复核
+- [x] L1 findNewEarningsFilings提前break可漏8-K(recent按受理时间排序,filingDate乱序行会截断循环)→continue全扫
+- [x] L2 空库首跑把回看窗口内最长100天前的旧调整当"今天的事件"触发应对式锁→首跑限定台阶在近7天内(镜像computeLocksDaily同步,漂移测试守护)
+- [x] L3 applyTrendReentry删除未使用的sahmLockActive参数(语义注释补全)
+
+**后端韧性/安全(中危×4)**:
+- [x] cron注册移到restore之后——启动恰落XX:19:5x且restore未完成时,看门狗getDb()用空库初始化句柄,restore落盘文件被下一次persist整库覆盖(全量数据丢失竞态)
+- [x] restore补replica守卫(对称backupDatabase的H2):本机丢库时不再拉回云端primary的库(身份静默被替换)
+- [x] auth限流补纯IP层(60/min)串联ip|email层:旋转邮箱可无限触发bcrypt打满CPU(每换邮箱一个新20/min桶)
+- [x] /api内部只读路由补120/min保底限流:CORS只约束浏览器,脚本直打/api/signal绕开/v1配额体系(与"/mcp batch绕限流"同构);backtest/summary加进程内缓存(269KB每请求重复parse)
+- [x] 低危×6:全局unhandledRejection兜底+mcp close() catch/分钟限流IPv6按/64归一(normalizeIpForQuota下沉共享)/退订token常数时间比较+JWT_SECRET缺失启动CRITICAL告警/replica不信任代理头(trust proxy按角色)/fundamentalsCache容量上限/saveGuidanceRecord改ON CONFLICT DO UPDATE保留manual_verified列
+
+**前端跨端一致性+可访问性**:
+- [x] hintGlobal 7语言补信用利差否决器(116c只补了openapi,悬停提示漏网——"提示与规则同提交"教训复发);capexGuidanceRefHint 7语言补③暂定档48h复检说明
+- [x] 进攻清单补"无锁"项(toAttack文案列"无锁"清单却无此项自相矛盾)+interpret.locksOk×7语言
+- [x] MacroPanel日期Intl格式化补timeZone:'UTC'——美洲用户所有决议日/参考期显示提前一天,月度参考期直接错月
+- [x] SignalHero行政收紧归因+mailer邮件同构处复刻油价完整护栏(EPU高位+O1低位反弹;旧Math.abs连大跌都归因WTI);server.js details补oilLevelLow字段
+- [x] 快照stale警示改按工作日≥3计(日历日3天在每个周一假日误弹"信号已失效"红横幅)
+- [x] 萨姆<0.5不再显示绿"宽松"徽章(锁触发器不投维度票,语义过度)
+- [x] a11y:16处hover-only提示触屏/键盘完全不可达(违反全设备可用要求)→MacroPanel指标行/AiChainPanel泡沫三格+指引块/S5卡stale标签改点击/回车展开(role=button+aria-expanded,title保留作鼠标捷径);WatchlistPanel加"指标说明"统一入口+✕删除按钮aria-label;App.vue主题/提醒按钮aria-pressed、语言select加label
+- [x] AdminPanel:loadRef补请求序号防竞态(照WatchlistPanel loadSeq);API key掩码二次切片修正(后端已存前缀,直接显示)
+- [x] client.js:200+非JSON改走统一错误路径(PARSE_FAIL哨兵区分合法JSON null),不再让组件null.length崩子树
+- [x] 细节:percentileClass判undefined/默认endDate用本地日期(UTC致美洲晚间"明天")/9px排序箭头收敛fs-xs/✕按钮text-5→text-3(对比度2.8→3+)/stale卡opacity 0.55→0.75/text-4双主题微调达AA(4.4/3.9→4.5+)
+- [x] **新增threshold-sync.test.js**:前端硬编码阈值(63/60/80/50/±20/±3/10/0/0.5)钉死后端signal.config.js快照,后端改阈值前端测试红灯(房哨兵554处漂移教训的自动化防线)
+- [x] 修复s5panel过时测试:116号删{'$'}转义未同步测试,**前端测试自7/30红了5天无人发现**(前端测试不在提交必跑清单——流程洞,已入lessons)
+
+**回测/文档诚实性**:
+- [x] README"召回4/4"→"6场危机5场触发全面防守"(带快照日期);574用例数改不带数字表述;doc-numbers.test.js扩守护README召回行+禁硬编码用例数
+- [x] 三处规则行补信用利差否决器:daily-report buildFacts(每日喂LLM的解读依据)/mcp/index.js/backend/api/mcp.js(116c只改了openapi.yaml)
+- [x] T+1数字(12.82/12.13)从writeReport模板硬编码改动态读daily-replay-raw.json overall.dailyT1(缺字段降级提示);重跑daily-replay落盘dailyT1(12.78% vs T+0 12.09%)
+- [x] 重跑run-backtest+bootstrap-ci:报告回到纯模板产物(此前是手工编辑与旧模板混合体);backtest-raw.json补generatedAt;SKILL.md数字同步(买持8.4%/子样本14.5%/CI[-0.4,+8.58]pp/快照日期2026-08-04);全量doc-numbers 9/9绿
+- [x] signal.config.js FINAL_SIGNAL注释"四维全宽松"→非对称口径;s5-daily.mjs摩擦敏感性-0.2pp→实跑-0.1pp;daily-replay.mjs补信用利差否决器"结构性无操作未接线"备忘
+
+## ⚠️ 判定参数/输入变更——按授权边界原则不自动执行,待用户拍板
+
+- [ ] **M1 WALCL QT判定结构性失灵**:0.25%阈值套在单周环比上,真实QT节奏($5-22B/周≈0.1-0.25%)基本永不触发拦截,反被TGA波动等单周噪声随机打出tight/loose。建议改4周或13周窗口(阈值等比重标定)。影响:当前货币维可能loose→neutral
+- [ ] **M2 曲线倒挂严格连续计数漏浅倒挂**:单日转正即清零,2019年型浅倒挂(多次短暂转正)永远攒不满63天,否决器整轮不点火。建议"近63交易日≥80%天数倒挂"或允许≤5天间断
+- [ ] **M3 否决器输入fail-open×stale次序**:倒挂天数/信用利差当日拉取失败→null→放行attack,次日恢复→收回(单日attack↔neutral翻转+反向邮件对)。建议否决器输入沿用上一快照观测(对"只限attack"的角色这才是fail-safe)——属stale值进判定,114号同类项曾明确留给用户
+- [ ] **方法论三缺口(专家评价,详见对话)**:①利率"水平盲"(5.5%高位长暂停判宽松)——建议实际利率>阈值时暂停只给neutral的attack护栏;②AI需求侧单点依赖OpenRouter——二源交叉应提为必做;③缺"市场自身"防守维(宽度/动量)——"宏观未动市场先崩"象限目前无人站岗
+
+## 遗留观察(低优先,未修)
+- 日报LLM生成replica也每天跑一遍(成本×2,正确性无碍);S5 playbook.note后端硬编码中文(仅管理员可见);S5手册版本行未随信用利差否决器补重审记录(不改S5动作)
+
+---
+
 # 119号:Railway日志EDGAR(BE)反复报错——companyconcept返回units:{USD:{}}空对象致.filter抛错无限重试 — 2026-08-04
 
 **根因(已查实,live复现)**:SEC companyconcept API 对 BE(CIK0001664703) 的 Revenues 等科目

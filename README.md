@@ -37,7 +37,7 @@
 
 **示警**：档位变化 / 任一维度转收紧 / 泡沫预警 / 锁触发与解除时，通过 [Resend](https://resend.com/) 邮件提醒订阅用户；进/出全面防守另发 S5 执行指令邮件（仅管理员）。
 
-历史回测报告见 [docs/backtest-report.md](docs/backtest-report.md)（防守分级召回 4/4，2008 年精确到顶部前 11 天）。S5 执行手册见 [docs/s5-execution-playbook.md](docs/s5-execution-playbook.md)。
+历史回测报告见 [docs/backtest-report.md](docs/backtest-report.md)（6 场危机 5 场触发全面防守，2026 美伊战争未达 15% 危机线由减仓分级应对；2008 年精确到顶部前 11 天。数字为 2026-07-30 快照，以报告与实时接口为准）。S5 执行手册见 [docs/s5-execution-playbook.md](docs/s5-execution-playbook.md)。
 
 ## 面向 AI 时代：开放API / MCP / Skill
 
@@ -57,7 +57,7 @@
 
 - **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT
 - **前端**：Vue 3 + Vite + vue-i18n（中/英/法/德/西/日/韩 七语言）
-- **测试**：Vitest（574 用例）
+- **测试**：Vitest 全量套件（后端+前端，具体用例数以 `npm test` 实跑为准）
 - **数据源**：FRED API（宏观/财政/行政/半导体产出/收益率曲线）、行情三层回退 Yahoo→Tiingo→TwelveData（+FMP估值）、SEC EDGAR XBRL（云厂商capex，双口径）、OpenRouter（模型调用量）、Federal Register API（政策参考素材）
 - **部署**：Railway（后端）+ Vercel（前端）；数据库每日备份至 GitHub 私有仓库
 
@@ -127,6 +127,6 @@ npm run build
 
 ## 当前状态
 
-信号体系已过七轮专家复查与多轮方法论审查（判定逻辑 v2、防守分级、收益率曲线否决、趋势再入场、降档迟滞、capex 单季侦察兵与指引下修事件 N3 均已实证定案），574 测试用例全过，每日云端自动运行并公开存档。capex 指引自动检测为双源（EDGAR 新闻稿 + web 检索电话会/媒体），财报后单公司 capex 快报（单季/TTM 额度同比、本财年/未来指引）自动入档。第七轮系统性审查（116号，2026-07-30）修复了 FOMC 决议日货币维闪变、N3 事件绕过降档迟滞、邮件发送库错误语义（失败被计成功）、双实例重复群发与备份互踩等 30 余处，详见 [docs/systematic-review-2026-07-30.md](docs/systematic-review-2026-07-30.md)。
+信号体系已过七轮专家复查与多轮方法论审查（判定逻辑 v2、防守分级、收益率曲线否决、趋势再入场、降档迟滞、capex 单季侦察兵与指引下修事件 N3、信用利差进攻否决均已实证定案），全量测试用例全过，每日云端自动运行并公开存档。capex 指引自动检测为双源（EDGAR 新闻稿 + web 检索电话会/媒体），财报后单公司 capex 快报（单季/TTM 额度同比、本财年/未来指引）自动入档。第七轮系统性审查（116号，2026-07-30）修复了 FOMC 决议日货币维闪变、N3 事件绕过降档迟滞、邮件发送库错误语义（失败被计成功）、双实例重复群发与备份互踩等 30 余处，详见 [docs/systematic-review-2026-07-30.md](docs/systematic-review-2026-07-30.md)。
 
 **后续迭代**：付费订阅墙的实际启用、移动端原生 App/小程序、Google OAuth 登录接入。

@@ -48,25 +48,33 @@
       <div class="bubble-title">{{ $t('aiChain.bubbleTitle') }}</div>
       <div v-if="bubble.warning" class="bubble-alert">⚠️ {{ $t('aiChain.bubbleWarning') }}</div>
       <div class="bubble-metrics">
-        <div class="bubble-cell" :title="$t('indicators.hints.modelUsageTrend') + '\n' + $t('indicators.hintGlobal')">
+        <div class="bubble-cell" :title="hintTexts.usage" role="button" tabindex="0"
+             :aria-expanded="expandedHint === 'usage'"
+             @click="toggleHint('usage')" @keydown.enter.prevent="toggleHint('usage')" @keydown.space.prevent="toggleHint('usage')">
           <span class="bubble-label hinted">{{ $t('aiChain.modelUsageTrend') }}</span>
           <span :class="['bubble-value', usageClass]">
             {{ bubble.modelUsageTrendPct != null ? formatPct(bubble.modelUsageTrendPct) : $t('aiChain.noData') }}
           </span>
         </div>
-        <div class="bubble-cell" :title="$t('indicators.hints.capexYoY') + '\n' + $t('indicators.hints.capexQtrYoY') + '\n' + $t('indicators.hintGlobal')">
+        <div class="bubble-cell" :title="hintTexts.capex" role="button" tabindex="0"
+             :aria-expanded="expandedHint === 'capex'"
+             @click="toggleHint('capex')" @keydown.enter.prevent="toggleHint('capex')" @keydown.space.prevent="toggleHint('capex')">
           <span class="bubble-label hinted">{{ $t('aiChain.capexYoY') }}</span>
           <span :class="['bubble-value', capexClass]">
             {{ capexDisplay }}
           </span>
         </div>
-        <div class="bubble-cell" :title="$t('indicators.hints.semiIpYoy') + '\n' + $t('indicators.hintGlobal')">
+        <div class="bubble-cell" :title="hintTexts.semi" role="button" tabindex="0"
+             :aria-expanded="expandedHint === 'semi'"
+             @click="toggleHint('semi')" @keydown.enter.prevent="toggleHint('semi')" @keydown.space.prevent="toggleHint('semi')">
           <span class="bubble-label hinted">{{ $t('aiChain.semiIpYoy') }}</span>
           <span :class="['bubble-value', semiIpClass]">
             {{ bubble.semiIpYoy != null ? formatPct(bubble.semiIpYoy) : $t('aiChain.noData') }}
           </span>
         </div>
       </div>
+      <!-- 点击/回车展开的判定规则说明：title 悬停在触屏/键盘上完全不可达（120号 a11y 修复） -->
+      <div v-if="expandedHint && expandedHint !== 'guidance'" class="hint-expand">{{ hintTexts[expandedHint] }}</div>
       <div v-if="bubble.modelUsageAsOf" class="bubble-source">
         Source: OpenRouter (openrouter.ai/rankings), as of {{ bubble.modelUsageAsOf }}
       </div>
@@ -74,8 +82,11 @@
       <!-- capex指引自动检测 + 财报快报（常驻）：每家最近一次财报的指引方向（新闻稿→电话会/媒体
            web检索兜底）与单季/TTM capex 快报。数据归集在capex口径旁便于对照判读
            （实际数据加速中 vs 某家指引已下修一眼可见） -->
-      <div v-if="guidanceRows.length" class="guidance-block" :title="$t('signal.capexGuidanceRefHint')">
-        <span class="guidance-label hinted">{{ $t('aiChain.guidanceTitle') }}</span>
+      <div v-if="guidanceRows.length" class="guidance-block" :title="hintTexts.guidance">
+        <span class="guidance-label hinted" role="button" tabindex="0"
+              :aria-expanded="expandedHint === 'guidance'"
+              @click="toggleHint('guidance')" @keydown.enter.prevent="toggleHint('guidance')" @keydown.space.prevent="toggleHint('guidance')">{{ $t('aiChain.guidanceTitle') }}</span>
+        <div v-if="expandedHint === 'guidance'" class="hint-expand">{{ hintTexts.guidance }}</div>
         <div v-for="g in guidanceRows" :key="g.symbol" class="guidance-card">
           <div class="guidance-card-head">
             <span class="guidance-symbol">{{ g.symbol }}</span>
@@ -116,6 +127,18 @@ import { api } from '../api/client.js';
 const { t } = useI18n();
 const chainData = ref(null);
 const loadError = ref(false);
+
+// hover-only title 在触屏/键盘上不可达：点击/回车/空格切换内联展开（120号 a11y）
+const expandedHint = ref(null);
+function toggleHint(key) {
+  expandedHint.value = expandedHint.value === key ? null : key;
+}
+const hintTexts = computed(() => ({
+  usage: `${t('indicators.hints.modelUsageTrend')}\n${t('indicators.hintGlobal')}`,
+  capex: `${t('indicators.hints.capexYoY')}\n${t('indicators.hints.capexQtrYoY')}\n${t('indicators.hintGlobal')}`,
+  semi: `${t('indicators.hints.semiIpYoy')}\n${t('indicators.hintGlobal')}`,
+  guidance: t('signal.capexGuidanceRefHint'),
+}));
 
 async function load() {
   loadError.value = false;
@@ -304,7 +327,18 @@ onMounted(load);
   padding: 6px 10px;
 }
 .bubble-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
-.bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; }
+.bubble-cell { display: flex; flex-direction: column; gap: 2px; min-width: 140px; cursor: pointer; }
+/* 点击展开的提示块：与 title 同文，触屏/键盘可达 */
+.hint-expand {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  white-space: pre-line;
+  background: var(--bg-input);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-top: 4px;
+}
 .bubble-label { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
 .bubble-label.hinted { cursor: help; }
 .bubble-value { font-size: var(--fs-lg); color: var(--text-2); font-family: var(--font-num); }

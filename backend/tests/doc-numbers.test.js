@@ -17,6 +17,7 @@ const ci = JSON.parse(fs.readFileSync(path.join(root, 'backtest/bootstrap-ci.jso
 const norm = s => s.replace(/−/g, '-');
 const skill = norm(fs.readFileSync(path.join(root, '../skills/stock-sentinel/SKILL.md'), 'utf8'));
 const report = norm(fs.readFileSync(path.join(root, '../docs/backtest-report.md'), 'utf8'));
+const readme = norm(fs.readFileSync(path.join(root, '../README.md'), 'utf8'));
 
 const f1 = v => v.toFixed(1); // 一位小数口径
 
@@ -38,6 +39,17 @@ describe('SKILL.md 对外数字与引擎产物一致', () => {
     const d = ci.ci90.diffPp;
     expect(skill).toContain(`[${d.p5}, +${d.p95}]pp`);
     expect(skill).toContain(`约${Math.round(ci.probDiffPositive * 100)}%`);
+  });
+});
+
+describe('README.md 对外数字与引擎产物一致（120号：README 无日常曝光路径，历史上落后一代）', () => {
+  it('危机召回口径（N 场危机 M 场触发全面防守）', () => {
+    const total = monthly.crisisRows.length;
+    const caught = monthly.crisisRows.filter(c => c.firstDefMonth).length;
+    expect(readme).toContain(`${total} 场危机 ${caught} 场触发全面防守`);
+  });
+  it('README 不再硬编码测试用例数（用例数随开发漂移，改为不带数字的表述）', () => {
+    expect(readme).not.toMatch(/\d{3} ?(测试)?用例/);
   });
 });
 

@@ -12,13 +12,18 @@ const SALT_ROUNDS = 10;
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing-safety', SALT_ROUNDS);
 
 // bcrypt 是 CPU 密集操作，注册/登录不限流会被匿名高频请求打满 CPU 拖垮信号主链路。
-// 键=IP+邮箱（2026-07-30，M2）：前端流量经 Vercel 代理后同出口 IP，纯 IP 键会让
-// 一个人的暴力尝试封掉全站登录；带上邮箱后误伤面收敛到单个账号
+// 双层串联（120号）：
+//  ① 纯 IP 层（60/min）——ip|email 键每换一个邮箱就是一个全新的 20/min 桶，单 IP 旋转
+//    随机邮箱可无限触发 bcrypt.hash 打满事件循环（CPU DoS）；纯 IP 层封顶单 IP 总量。
+//    60/min 足够宽，Vercel 代理同出口 IP 的正常登录流量不会误触
+//  ② IP+邮箱层（20/min，2026-07-30 M2）——暴力尝试单个账号时误伤面收敛到该账号，
+//    不会封掉全站登录
+const authIpLimiter = ipRateLimit({ max: 60 });
 const authLimiter = ipRateLimit({
   max: 20,
   keyFn: req => `${req.ip}|${typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''}`,
 });
-router.use(['/register', '/login'], authLimiter);
+router.use(['/register', '/login'], authIpLimiter, authLimiter);
 
 function signToken(user) {
   return jwt.sign(

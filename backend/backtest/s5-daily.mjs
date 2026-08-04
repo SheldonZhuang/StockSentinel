@@ -387,7 +387,7 @@ async function main() {
   console.log(`
 口径声明：日度信号=daily-replay（O1已默认，与线上一致）；月度S5a=dca-schemes原实现原样复跑；
 XIRR均为月度现金流资金加权（可比）；日度新增"日度盯市"浮亏/回撤（月度口径存在月末采样美化）；
-合成TQQQ为反事实推演（真实TQQQ 2010上市），未计摩擦与税——S5a摩擦敏感性见 dca-schemes（0.1%/笔 ≈ -0.2pp XIRR）。
+合成TQQQ为反事实推演（真实TQQQ 2010上市），未计摩擦与税——S5a摩擦敏感性见 dca-schemes（0.1%/笔双边 ≈ -0.1pp XIRR，2026-08-04 实跑，以该脚本输出为准）。
 A系（趋势条件化确认期）信号层评估：node backend/backtest/daily-replay.mjs --eval-trendhold（三档均未过硬约束）。`);
 }
 

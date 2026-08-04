@@ -159,9 +159,13 @@ describe('computeLocksDaily（server computeLocks 复刻：快照差+台阶扫�
     });
     expect(r2.rateDiffBp).toBe(-25); // 9/19台阶已被上一快照消化
   });
-  it('首跑（无快照）只看最近一笔台阶（与线上 allSteps.slice(0,1) 等价）', () => {
+  it('首跑（无快照）只看近7天内的最近一笔台阶（120号 L2：陈旧台阶不算今天的事件）', () => {
+    // 最近台阶 2024-12-19，距 2025-01-02 已 14 天 → 不算首日事件，退回端点差（无基线 → null）
     const r = computeLocksDaily({ ...base, currentRate: 4.5, today: '2025-01-02', prev: null });
-    expect(r.rateDiffBp).toBe(-25); // 最近台阶 2024-12-19
+    expect(r.rateDiffBp).toBe(null);
+    // 首跑落在台阶后 3 天内 → 正常计入
+    const r2 = computeLocksDaily({ ...base, currentRate: 4.5, today: '2024-12-21', prev: null });
+    expect(r2.rateDiffBp).toBe(-25);
   });
   it('萨姆持续≥0.5期间小幅调整不解锁（触发日豁免，防单日解锁次日重锁翻转）', () => {
     const r = computeLocksDaily({

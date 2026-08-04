@@ -1,4 +1,5 @@
 {
+  "generatedAt": "2026-08-04T05:56:45.425Z",
   "summary": {
     "spxSource": "Tiingo SPY 总回报（adjClose，含股息复权）",
     "bullRows": [
@@ -95,36 +96,36 @@
       },
       {
         "name": "2026 战后反弹",
-        "months": 3,
+        "months": 4,
         "tiers": {
           "attack": 0,
           "neutral": 0,
-          "reduce": 3,
+          "reduce": 4,
           "defense": 0
         },
-        "buyHold": 4.176327118947665,
-        "strat": 4.176327118947665,
+        "buyHold": 4.212597784682659,
+        "strat": 4.212597784682659,
         "capture": 100
       }
     ],
     "overall": {
-      "years": 26.416666666666668,
-      "buyHoldTotal": 754.6058796113168,
-      "buyHoldCagr": 8.460572970098902,
+      "years": 26.5,
+      "buyHoldTotal": 754.9034244091782,
+      "buyHoldCagr": 8.434300292300767,
       "buyHoldMdd": -50.79762751814375,
-      "stratTotal": 2066.465933926503,
-      "stratCagr": 12.347843171745598,
+      "stratTotal": 2067.220223925862,
+      "stratCagr": 12.308191965149806,
       "stratMdd": -16.22536209616623,
-      "reduceHalfTotal": 906.482285065087,
-      "reduceHalfCagr": 9.13426189389208,
+      "reduceHalfTotal": 908.2301251424692,
+      "reduceHalfCagr": 9.11141206072379,
       "reduceHalfMdd": -10.552304569934122,
-      "sub2010Years": 16.416666666666668,
-      "sub2010StratCagr": 13.03676056418146,
+      "sub2010Years": 16.5,
+      "sub2010StratCagr": 12.969206681466794,
       "sub2010StratMdd": -16.22536209616623,
-      "sub2010BuyHoldCagr": 14.568527062097946,
+      "sub2010BuyHoldCagr": 14.492274296602602,
       "sub2010BuyHoldMdd": -23.9279868066579
     },
-    "monthsCovered": 318,
+    "monthsCovered": 319,
     "crisisRows": [
       {
         "name": "2000 互联网泡沫",
@@ -224,10 +225,10 @@
       }
     ],
     "avgDefenseRet": -0.7827554049845528,
-    "avgReduceRet": 1.1673565328858801,
+    "avgReduceRet": 1.1606945333406766,
     "avgNonDefenseRet": 1.500892912192982,
     "defMonths": 76,
-    "reduceMonths": 169,
+    "reduceMonths": 170,
     "nonDefMonths": 72,
     "episodes": 7,
     "falsePositives": 5,
@@ -9999,7 +10000,7 @@
         "sahm": 0.27,
         "spxBelowSma10": true,
         "dd52wPct": -6.232741929342456,
-        "capePct": 93.61111111111111,
+        "capePct": 92.77777777777779,
         "netLiqPct": null,
         "cpYoy": null
       }
@@ -10030,7 +10031,7 @@
         "sahm": 0.2,
         "spxBelowSma10": false,
         "dd52wPct": 0,
-        "capePct": 90,
+        "capePct": 87.22222222222223,
         "netLiqPct": null,
         "cpYoy": null
       }
@@ -10061,7 +10062,7 @@
         "sahm": 0.13,
         "spxBelowSma10": false,
         "dd52wPct": 0,
-        "capePct": 92.5,
+        "capePct": 90.83333333333333,
         "netLiqPct": null,
         "cpYoy": null
       }
@@ -10086,13 +10087,44 @@
       "rawFinal": "reduce",
       "metrics": {
         "rate": 3.75,
-        "fiscalPct": -3.4155856466379975,
+        "fiscalPct": -3.415184634751345,
         "epuPct": 85.83333333333333,
         "oilPct": -22.597630539710394,
         "sahm": 0.1,
         "spxBelowSma10": false,
         "dd52wPct": -1.4345494854912877,
-        "capePct": 95,
+        "capePct": 94.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
+      }
+    },
+    {
+      "month": "2026-07",
+      "spx": 747.03,
+      "spxDate": "2026-07-31",
+      "monetary": "loose",
+      "fiscal": "neutral",
+      "admin": "neutral",
+      "aiSupply": "neutral",
+      "final": "reduce",
+      "sahmLockActive": false,
+      "reactiveLockActive": false,
+      "reactiveLockDir": null,
+      "sahmLockAge": 0,
+      "reactiveLockAge": 0,
+      "rateDiffBp": 0,
+      "rateSignal": "loose",
+      "sahmHighStreak": 0,
+      "rawFinal": "neutral",
+      "metrics": {
+        "rate": 3.75,
+        "fiscalPct": -1.4399639956610644,
+        "epuPct": null,
+        "oilPct": 19.40192743764172,
+        "sahm": 0.07,
+        "spxBelowSma10": false,
+        "dd52wPct": -1.4002323367925285,
+        "capePct": 94.44444444444444,
         "netLiqPct": null,
         "cpYoy": null
       }
