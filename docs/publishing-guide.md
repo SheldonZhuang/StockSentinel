@@ -35,7 +35,7 @@
 2. 点后端服务卡片 → **Settings** 标签 → **Networking / Public Networking** 区域
 3. 看到形如 `xxx.up.railway.app` 的域名就是它（若显示"Generate Domain"按钮，点一下生成）
 4. **把这个域名发给 Claude**，Claude 会替换以下三处占位符并推送：
-   - `docs/openapi.yaml` 的 `YOUR-BACKEND-DOMAIN`
+   - `backend/openapi.yaml` 的 `YOUR-BACKEND-DOMAIN`
    - `mcp/README.md` 的 "你的后端域名"
    - MCP 包默认 API 地址（然后发一个 1.0.1 版本）
 
@@ -60,7 +60,7 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 1. 打开 https://rapidapi.com → Sign Up（GitHub 登录最快）
 2. 右上角头像 → **My APIs** → **Add New API**
 3. 填：API Name `Stock Sentinel — US Stock Attack/Defense Signals`；Category `Finance`；
-   选择 **"Use OpenAPI file"** → 上传仓库里的 `docs/openapi.yaml`（第二步替换域名后的版本）
+   选择 **"Use OpenAPI file"** → 上传仓库里的 `backend/openapi.yaml`（第二步替换域名后的版本）
 4. 在 **Plans & Pricing** 页配置套餐（RapidAPI 代收钱，你只需绑收款账户）：
    - BASIC 免费：25 请求/日（引流）
    - PRO：如 $9.99/月 1万请求
@@ -77,7 +77,7 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
    - Description: `US stock attack/defense macro signal system. 美股进攻/防守四维信号。For research only.`
    - Instructions: 把仓库里 `skills/stock-sentinel/SKILL.md` 的全文粘贴进去（就是为此准备的）
 3. 底部 **Actions** → **Create new action** → **Import from URL** 填：
-   `https://raw.githubusercontent.com/SheldonZhuang/StockSentinel/main/docs/openapi.yaml`
+   `https://raw.githubusercontent.com/SheldonZhuang/StockSentinel/main/backend/openapi.yaml`
    （或直接把 yaml 内容粘贴进 Schema 框）
 4. Authentication 选 **API Key** → Auth Type: Custom → Header name: `X-API-Key` →
    填一个你在管理后台签发的 free key
@@ -109,9 +109,9 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 **你需要做的提交（每项约5分钟，一次性）**：
 
 1. **Google Search Console**：https://search.google.com/search-console → 添加资源
-   `stock-sentinel-eight.vercel.app`（HTML 标签验证）→ 左栏 Sitemaps → 提交 `sitemap.xml`
-   ✅ 验证标签已于 2026-08-15 写入 `frontend/index.html`（token：`ua_jbyE7lXeAoWtm9A0lUsN4nc24TyEa3mZuwdGybh0`，
-   公开值非机密）。**Vercel 部署完成后**回 Search Console 点「验证」，通过后提交 sitemap.xml
+   `stock-sentinel-eight.vercel.app`（用 DNS 或 HTML 标签验证，Vercel 域名建议 HTML 标签法）
+   → 左栏 Sitemaps → 提交 `sitemap.xml`
+<meta name="google-site-verification" content="ua_jbyE7lXeAoWtm9A0lUsN4nc24TyEa3mZuwdGybh0" />
 
 2. **Bing Webmaster Tools**：https://www.bing.com/webmasters → 可直接用 Google Search Console
    一键导入，无需重复验证

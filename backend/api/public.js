@@ -26,11 +26,12 @@ router.use(ipRateLimit({ max: 120 }));
 // GET /v1/openapi.yaml — API 自发现（125号 GEO）：让 AI Agent/GPT Actions 从 API 宿主
 // 直接拿到规范，无需绕道 GitHub raw。注册在计量中间件之前=发现流程免日配额
 // （与 /mcp 的 initialize/tools/list 免费同一原则），仍受上方 120/min IP 闸保护。
-// 进程内缓存，重部署刷新
+// 规范文件在 backend/ 内（单源）：Railway 部署根是 backend/，repo 根的 docs/ 云端不存在
+// （125b实测：../../docs 路径云端 404）。进程内缓存，重部署刷新
 let openapiCache;
 router.get('/openapi.yaml', asyncRoute(async (req, res) => {
   if (openapiCache === undefined) {
-    const p = path.join(__dirname, '../../docs/openapi.yaml');
+    const p = path.join(__dirname, '../openapi.yaml');
     openapiCache = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
   }
   if (!openapiCache) return res.status(404).json({ error: 'not_available' });

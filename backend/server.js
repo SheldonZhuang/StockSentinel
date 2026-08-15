@@ -132,7 +132,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/watchlist', watchlistRouter);
-// 开放API（面向AI客户端/第三方开发者）：独立CORS+key限流，见 docs/openapi.yaml
+// 开放API（面向AI客户端/第三方开发者）：独立CORS+key限流，见 backend/openapi.yaml
 app.use('/v1', publicRouter);
 // 远程 MCP 端点（Streamable HTTP）：claude.ai/Smithery 等 URL 型客户端直连，见 backend/api/mcp.js
 app.use('/mcp', mcpRouter);

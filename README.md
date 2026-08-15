@@ -45,7 +45,7 @@
 
 | 通道 | 位置 | 说明 |
 |---|---|---|
-| **开放 REST API** | `/v1/*`（[OpenAPI 规范](docs/openapi.yaml)） | `X-API-Key` 鉴权；免key试用 25次/日/IP，free 250/日，pro 10000/日（pro 与订阅有效期挂钩，到期自动按 free 计）；密钥在管理后台签发并可绑定归属用户 |
+| **开放 REST API** | `/v1/*`（[OpenAPI 规范](backend/openapi.yaml)） | `X-API-Key` 鉴权；免key试用 25次/日/IP，free 250/日，pro 10000/日（pro 与订阅有效期挂钩，到期自动按 free 计）；密钥在管理后台签发并可绑定归属用户 |
 | **MCP Server** | [`mcp/`](mcp/) | Claude Desktop/Cursor 等一行配置接入，6个工具（当前信号/历史/产业链/个股/回测/日报） |
 | **Claude Skill** | [`skills/stock-sentinel/`](skills/stock-sentinel/SKILL.md) | 教 AI 正确理解四维框架与解读规范 |
 | **AI 日报** | `/v1/daily-report` | 每日 cron 后 LLM 自动生成中英双语信号解读（经 OpenRouter，可配 `AI_REPORT_MODEL`） |
@@ -86,7 +86,7 @@ StockSentinel/
 │       └── stores/auth.js
 ├── mcp/                       # MCP Server（stdio）
 ├── skills/stock-sentinel/     # Claude Skill
-└── docs/                      # 回测报告 / S5手册 / OpenAPI / 方法论评审
+└── docs/                      # 回测报告 / S5手册 / 方法论评审（OpenAPI 规范在 backend/openapi.yaml，随 API 部署）
 ```
 
 ## 本地运行
