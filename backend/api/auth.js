@@ -102,6 +102,8 @@ router.post('/login', asyncRoute(async (req, res) => {
     ? await bcrypt.compare(password, user.password_hash)
     : (await bcrypt.compare(password, DUMMY_HASH), false);
   if (!user || !match) return res.status(401).json({ error: 'invalid credentials' });
+  // 禁用账户（123号用户管理）：密码校验后再判——避免为禁用账户开用户枚举侧信道
+  if (user.disabled) return res.status(403).json({ error: 'account disabled' });
 
   const token = signToken(user);
   res.json({ token, user: { id: user.id, email: user.email } });
@@ -136,6 +138,11 @@ export function requireAuth(req, res, next) {
   getUserById(decoded.id).then(user => {
     if (user?.token_min_iat && (decoded.iat ?? 0) < user.token_min_iat) {
       return res.status(401).json({ error: 'token revoked, please log in again' });
+    }
+    // 禁用账户（123号）：存量 30 天 JWT 也即时失效（管理端禁用同时 bump token_min_iat，
+    // 此处兜底防竞态与直改库场景）
+    if (user?.disabled) {
+      return res.status(403).json({ error: 'account disabled' });
     }
     req.user = decoded;
     next();

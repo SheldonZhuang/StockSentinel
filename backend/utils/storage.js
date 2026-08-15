@@ -196,6 +196,20 @@ function migrateSchema() {
     db.run('ALTER TABLE users ADD COLUMN token_min_iat INTEGER');
     changed = true;
   }
+  // 用户管理（123号）：禁用位 + 订阅到期时间（is_subscribed 由此激活：到期语义见 isSubscriptionActive）
+  if (!existingUserCols.has('disabled')) {
+    db.run('ALTER TABLE users ADD COLUMN disabled INTEGER DEFAULT 0');
+    changed = true;
+  }
+  if (!existingUserCols.has('subscription_expires_at')) {
+    db.run('ALTER TABLE users ADD COLUMN subscription_expires_at TEXT');
+    changed = true;
+  }
+  // API key 归属用户（123号）：可空——存量 key 与匿名签发 key 不强制归属
+  if (!existingKeyCols.has('user_id')) {
+    db.run('ALTER TABLE api_keys ADD COLUMN user_id INTEGER');
+    changed = true;
+  }
   const plainKeys = all("SELECT id, key FROM api_keys WHERE key_hash IS NULL AND key NOT LIKE '%…'");
   for (const row of plainKeys) {
     db.run('UPDATE api_keys SET key_hash = ?, key = ? WHERE id = ?',
@@ -442,6 +456,23 @@ function initSchema() {
     )
   `);
 
+  // 按次调用明细（123号用户管理）：保留30天（pruneCallLogs 每日清理），长期底账仍是 api_usage。
+  // 写路径必须批量（insertCallLogs 一次 persist）——sql.js 逐条写是 O(库体积) 的全库导出
+  db.run(`
+    CREATE TABLE IF NOT EXISTS api_call_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts TEXT NOT NULL,
+      user_id INTEGER,
+      key_id INTEGER,
+      identifier TEXT,
+      channel TEXT NOT NULL,
+      endpoint TEXT NOT NULL,
+      status INTEGER
+    )
+  `);
+  db.run('CREATE INDEX IF NOT EXISTS idx_call_logs_ts ON api_call_logs(ts)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_call_logs_user ON api_call_logs(user_id, ts)');
+
   db.run(`
     CREATE TABLE IF NOT EXISTS daily_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -578,6 +609,153 @@ export async function revokeUserTokens(userId) {
   run('UPDATE users SET token_min_iat = ? WHERE id = ?', [now, userId]);
   notifyUserWrite();
   return now;
+}
+
+// --- 用户管理（123号，仅管理端使用）---
+
+/**
+ * 订阅有效判定（单一口径，到期降级/前端展示/列表统计共用）：
+ * is_subscribed=1 且（无到期时间=永久 或 到期时间在未来）
+ */
+export function isSubscriptionActive(user) {
+  if (!user || !user.is_subscribed) return false;
+  if (!user.subscription_expires_at) return true;
+  return user.subscription_expires_at > isoUtcNow();
+}
+
+/**
+ * 用户列表+聚合统计：注册时间/订阅状态/禁用态/名下key数/调用总量/近7天/近30天/最后调用。
+ * 调用量口径 = api_call_logs（30天窗口内精确）∪ api_usage（key前缀历史总量，400天底账）——
+ * web 渠道只有 30 天明细；开放API总量以 api_usage 为准（identifier 经 api_keys.user_id 归属）
+ */
+export async function listUsersWithStats({ search = '', limit = 50, offset = 0 } = {}) {
+  await getDb();
+  const where = search ? 'WHERE u.email LIKE ?' : '';
+  const params = search ? [`%${search}%`] : [];
+  const totalRow = get(`SELECT COUNT(*) AS n FROM users u ${where}`, params);
+  const users = all(`
+    SELECT u.id, u.email, u.created_at, u.is_subscribed, u.subscription_expires_at,
+           u.disabled, u.email_alerts,
+           (SELECT COUNT(*) FROM api_keys k WHERE k.user_id = u.id) AS key_count
+    FROM users u ${where}
+    ORDER BY u.id DESC LIMIT ? OFFSET ?
+  `, [...params, limit, offset]);
+
+  const since7 = `${isoDaysAgo(7)} 00:00:00`;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  // key前缀→user_id 映射一次取出（api_keys.key 列存 'sk_ss_xxx…' 前缀展示串，
+  // 前12位恰与 api_usage 的 'key:<前缀>' identifier 对应）
+  const keyMap = all("SELECT user_id, 'key:' || substr(key, 1, 12) AS ident FROM api_keys WHERE user_id IS NOT NULL");
+  const identByUser = new Map();
+  for (const k of keyMap) {
+    if (!identByUser.has(k.user_id)) identByUser.set(k.user_id, []);
+    identByUser.get(k.user_id).push(k.ident);
+  }
+  for (const u of users) {
+    // 明细窗口内统计（web+v1+mcp 全渠道，30天保留期）
+    const logStats = get(`
+      SELECT COUNT(*) AS total30,
+             SUM(CASE WHEN ts >= ? THEN 1 ELSE 0 END) AS total7,
+             SUM(CASE WHEN ts >= ? AND channel != 'web' THEN 1 ELSE 0 END) AS apiToday,
+             MAX(ts) AS last_call
+      FROM api_call_logs WHERE user_id = ?
+    `, [since7, `${todayStr} 00:00:00`, u.id]);
+    u.total_30d = logStats?.total30 || 0;
+    u.total_7d = logStats?.total7 || 0;
+    u.api_today = logStats?.apiToday || 0;
+    u.last_call_at = logStats?.last_call || null;
+    u.subscription_active = isSubscriptionActive(u) ? 1 : 0;
+    // 生效配额档（今日剩余额度展示用）：名下最高 key 档，pro 需订阅有效否则降 free；无 key 为 null
+    const tiers = all('SELECT tier FROM api_keys WHERE user_id = ? AND disabled = 0', [u.id]).map(r => r.tier);
+    u.effective_tier = tiers.length
+      ? (tiers.includes('pro') && u.subscription_active ? 'pro' : 'free')
+      : null;
+    // 开放API历史总量（api_usage 400天底账，经名下 key 归属）
+    const idents = identByUser.get(u.id) || [];
+    u.api_total_alltime = idents.length
+      ? (get(`SELECT COALESCE(SUM(count),0) AS n FROM api_usage WHERE identifier IN (${idents.map(() => '?').join(',')})`, idents)?.n || 0)
+      : 0;
+  }
+  return { total: totalRow?.n || 0, users };
+}
+
+function isoDaysAgo(n) {
+  return new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+}
+
+/** 管理员编辑用户：禁用位 / 订阅到期时间（设到期时间即视为订阅用户，清空到期+取消订阅用 subscribed=false） */
+export async function updateUserAdmin(userId, { disabled, subscribed, subscriptionExpiresAt } = {}) {
+  await getDb();
+  const sets = [];
+  const params = [];
+  if (disabled !== undefined) { sets.push('disabled = ?'); params.push(disabled ? 1 : 0); }
+  if (subscribed !== undefined) { sets.push('is_subscribed = ?'); params.push(subscribed ? 1 : 0); }
+  if (subscriptionExpiresAt !== undefined) { sets.push('subscription_expires_at = ?'); params.push(subscriptionExpiresAt); }
+  if (!sets.length) return getUserById(userId);
+  params.push(userId);
+  run(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`, params);
+  notifyUserWrite();
+  return getUserById(userId);
+}
+
+/** 用户用量详情：按日序列 + 端点TOP + 明细分页（窗口=api_call_logs 保留期30天） */
+export async function getUserUsageDetail(userId, { days = 30, channel = null, limit = 100, offset = 0 } = {}) {
+  await getDb();
+  const since = `${isoDaysAgo(Math.min(days, 30))} 00:00:00`;
+  const chFilter = channel ? 'AND channel = ?' : '';
+  const chParams = channel ? [channel] : [];
+  const daily = all(`
+    SELECT substr(ts, 1, 10) AS day, channel, COUNT(*) AS count
+    FROM api_call_logs WHERE user_id = ? AND ts >= ? ${chFilter}
+    GROUP BY day, channel ORDER BY day
+  `, [userId, since, ...chParams]);
+  const endpoints = all(`
+    SELECT endpoint, channel, COUNT(*) AS count, MAX(ts) AS last_call
+    FROM api_call_logs WHERE user_id = ? AND ts >= ? ${chFilter}
+    GROUP BY endpoint, channel ORDER BY count DESC LIMIT 20
+  `, [userId, since, ...chParams]);
+  const totalRow = get(`SELECT COUNT(*) AS n FROM api_call_logs WHERE user_id = ? AND ts >= ? ${chFilter}`,
+    [userId, since, ...chParams]);
+  const logs = all(`
+    SELECT ts, channel, endpoint, status FROM api_call_logs
+    WHERE user_id = ? AND ts >= ? ${chFilter}
+    ORDER BY ts DESC, id DESC LIMIT ? OFFSET ?
+  `, [userId, since, ...chParams, limit, offset]);
+  return { daily, endpoints, logs, total: totalRow?.n || 0 };
+}
+
+/** 全局功能热度（资源投放依据）：近 N 天各端点调用量与独立用户数（含匿名/key流量，user_id 可空） */
+export async function getEndpointStats(days = 30) {
+  await getDb();
+  const since = `${isoDaysAgo(Math.min(days, 30))} 00:00:00`;
+  return all(`
+    SELECT endpoint, channel, COUNT(*) AS count,
+           COUNT(DISTINCT user_id) AS user_count,
+           COUNT(DISTINCT identifier) AS identifier_count,
+           MAX(ts) AS last_call
+    FROM api_call_logs WHERE ts >= ?
+    GROUP BY endpoint, channel ORDER BY count DESC LIMIT 50
+  `, [since]);
+}
+
+/** 批量写入调用明细（一次 persist；调用方内存缓冲，10分钟或缓冲上限触发） */
+export async function insertCallLogs(entries) {
+  await getDb();
+  if (!entries.length) return;
+  for (const e of entries) {
+    db.run(
+      'INSERT INTO api_call_logs (ts, user_id, key_id, identifier, channel, endpoint, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [e.ts, e.userId ?? null, e.keyId ?? null, e.identifier ?? null, e.channel, e.endpoint, e.status ?? null]
+    );
+  }
+  persist();
+}
+
+/** 清理超过保留期的明细（30天）；与 pruneApiUsage 同节奏每日调用 */
+export async function pruneCallLogs(beforeTs) {
+  await getDb();
+  db.run('DELETE FROM api_call_logs WHERE ts < ?', [beforeTs]);
+  persist();
 }
 
 // --- Signal Snapshots ---
@@ -875,12 +1053,12 @@ export async function getLatestAiChainSnapshot() {
 
 // --- API Keys（开放API计费/限流基础）---
 
-export async function createApiKey(key, name, tier) {
+export async function createApiKey(key, name, tier, userId = null) {
   await getDb();
   // 只存哈希+前缀（116号）：完整 key 仅在本次响应中返回一次，之后无法再查看
   const hash = sha256Hex(key);
-  run('INSERT INTO api_keys (key, key_hash, name, tier) VALUES (?, ?, ?, ?)',
-    [`${key.slice(0, 12)}…`, hash, name || null, tier || 'free']);
+  run('INSERT INTO api_keys (key, key_hash, name, tier, user_id) VALUES (?, ?, ?, ?, ?)',
+    [`${key.slice(0, 12)}…`, hash, name || null, tier || 'free', userId]);
   notifyUserWrite();
   const row = get('SELECT * FROM api_keys WHERE key_hash = ?', [hash]);
   return { ...row, key }; // 响应携带完整 key（仅此一次）
@@ -888,17 +1066,37 @@ export async function createApiKey(key, name, tier) {
 
 export async function getApiKeyRecord(key) {
   await getDb();
-  return get('SELECT * FROM api_keys WHERE key_hash = ? AND disabled = 0', [sha256Hex(key)]);
+  // 联查归属用户（123号）：订阅到期降级与禁用用户 key 失效都需要 owner 状态；
+  // 无归属（user_id NULL）的 key 行为与旧版完全一致
+  return get(`
+    SELECT k.*, u.is_subscribed AS owner_is_subscribed,
+           u.subscription_expires_at AS owner_subscription_expires_at,
+           u.disabled AS owner_disabled
+    FROM api_keys k LEFT JOIN users u ON u.id = k.user_id
+    WHERE k.key_hash = ? AND k.disabled = 0
+  `, [sha256Hex(key)]);
 }
 
 export async function listApiKeys() {
   await getDb();
-  return all('SELECT id, key, name, tier, disabled, created_at FROM api_keys ORDER BY id DESC'); // key 列已是前缀展示
+  return all(`
+    SELECT k.id, k.key, k.name, k.tier, k.disabled, k.created_at, k.user_id,
+           u.email AS user_email
+    FROM api_keys k LEFT JOIN users u ON u.id = k.user_id
+    ORDER BY k.id DESC
+  `); // key 列已是前缀展示
 }
 
 export async function setApiKeyDisabled(id, disabled) {
   await getDb();
   run('UPDATE api_keys SET disabled = ? WHERE id = ?', [disabled ? 1 : 0, id]);
+  notifyUserWrite();
+}
+
+/** 绑定/解绑 key 归属用户（123号：调用量按用户归集、订阅到期降级的前提） */
+export async function setApiKeyUser(id, userId) {
+  await getDb();
+  run('UPDATE api_keys SET user_id = ? WHERE id = ?', [userId ?? null, id]);
   notifyUserWrite();
 }
 

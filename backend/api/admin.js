@@ -9,9 +9,16 @@ import {
   createApiKey,
   listApiKeys,
   setApiKeyDisabled,
+  setApiKeyUser,
   getSnapshotHistory,
   getLatestSnapshot,
   getAlertSubscribers,
+  listUsersWithStats,
+  updateUserAdmin,
+  getUserUsageDetail,
+  getEndpointStats,
+  getUserById,
+  revokeUserTokens,
 } from '../utils/storage.js';
 import { sendSignalAlert } from '../utils/mailer.js';
 import { fetchFederalRegister } from './fetch-federal-register.js';
@@ -19,6 +26,7 @@ import { fetchAiSupplyNews } from './fetch-rss.js';
 import chainCfg from '../config/ai-chain.config.js';
 import { asyncRoute } from '../utils/async-route.js';
 import { invalidateKeyCache } from './public.js';
+import { flushCallLogs } from '../utils/usage-log.js';
 import { getCapeState } from '../utils/cape.js';
 
 const router = express.Router();
@@ -171,22 +179,103 @@ router.get('/api-keys', requireAdmin, asyncRoute(async (req, res) => {
   res.json(await listApiKeys());
 }));
 
-// POST /api/admin/api-keys {name, tier} — 签发新密钥
+// POST /api/admin/api-keys {name, tier, userId} — 签发新密钥（可选绑定归属用户）
 router.post('/api-keys', requireAdmin, asyncRoute(async (req, res) => {
-  const { name, tier } = req.body || {};
+  const { name, tier, userId } = req.body || {};
   if (tier && !['free', 'pro'].includes(tier)) return res.status(400).json({ error: 'tier must be free|pro' });
+  let ownerId = null;
+  if (userId !== undefined && userId !== null && userId !== '') {
+    ownerId = parseInt(userId);
+    if (!Number.isInteger(ownerId) || !(await getUserById(ownerId))) {
+      return res.status(400).json({ error: 'userId does not exist' });
+    }
+  }
   const key = 'sk_ss_' + crypto.randomBytes(24).toString('hex');
-  const record = await createApiKey(key, typeof name === 'string' ? name.slice(0, 100) : null, tier || 'free');
+  const record = await createApiKey(key, typeof name === 'string' ? name.slice(0, 100) : null, tier || 'free', ownerId);
   res.json(record);
 }));
 
-// PATCH /api/admin/api-keys/:id {disabled} — 启用/禁用
+// PATCH /api/admin/api-keys/:id {disabled?, userId?} — 启用/禁用、绑定/解绑归属用户
 router.patch('/api-keys/:id', requireAdmin, asyncRoute(async (req, res) => {
   const id = parseInt(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'bad id' });
-  await setApiKeyDisabled(id, !!req.body?.disabled);
-  invalidateKeyCache(); // 立即失效缓存，禁用即时生效（否则最长 5 分钟仍可用）
+  if (req.body?.disabled !== undefined) {
+    await setApiKeyDisabled(id, !!req.body.disabled);
+  }
+  if (req.body?.userId !== undefined) {
+    let ownerId = null;
+    if (req.body.userId !== null && req.body.userId !== '') {
+      ownerId = parseInt(req.body.userId);
+      if (!Number.isInteger(ownerId) || !(await getUserById(ownerId))) {
+        return res.status(400).json({ error: 'userId does not exist' });
+      }
+    }
+    await setApiKeyUser(id, ownerId);
+  }
+  invalidateKeyCache(); // 立即失效缓存，禁用/归属变更即时生效（否则最长 5 分钟仍按旧状态）
   res.json({ ok: true });
+}));
+
+// --- 用户管理（123号）---
+
+// GET /api/admin/users?search=&page= — 用户列表+聚合统计
+const USERS_PAGE_SIZE = 50;
+router.get('/users', requireAdmin, asyncRoute(async (req, res) => {
+  await flushCallLogs(); // 缓冲明细先落库，管理员看到的是实时数据（最多一批的开销，管理端低频可承受）
+  const search = typeof req.query.search === 'string' ? req.query.search.slice(0, 100) : '';
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const { total, users } = await listUsersWithStats({
+    search, limit: USERS_PAGE_SIZE, offset: (page - 1) * USERS_PAGE_SIZE,
+  });
+  res.json({ total, page, pageSize: USERS_PAGE_SIZE, users });
+}));
+
+// PATCH /api/admin/users/:id {disabled?, subscribed?, subscriptionExpiresAt?} — 编辑用户
+router.patch('/users/:id', requireAdmin, asyncRoute(async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (!Number.isInteger(id) || !(await getUserById(id))) return res.status(404).json({ error: 'user not found' });
+  const { disabled, subscribed, subscriptionExpiresAt } = req.body || {};
+  const patch = {};
+  if (disabled !== undefined) patch.disabled = !!disabled;
+  if (subscribed !== undefined) patch.subscribed = !!subscribed;
+  if (subscriptionExpiresAt !== undefined) {
+    const normalized = normalizeExpiresAt(subscriptionExpiresAt);
+    if (normalized === undefined) return res.status(400).json({ error: 'subscriptionExpiresAt must be a valid datetime string' });
+    patch.subscriptionExpiresAt = normalized;
+    // 设置了未来到期时间即视为订阅用户（激活 is_subscribed）；显式传 subscribed 时以显式值为准
+    if (subscribed === undefined && normalized) patch.subscribed = true;
+  }
+  const user = await updateUserAdmin(id, patch);
+  // 禁用即时生效：bump token_min_iat 杀掉存量 30 天 JWT；key 侧由 resolveTier 联查 owner_disabled，
+  // 清 keyCache 让其即时生效（否则最长 5 分钟仍可用）
+  if (patch.disabled === true) {
+    await revokeUserTokens(id);
+  }
+  invalidateKeyCache(); // 订阅/禁用变更都影响 key 生效配额，统一即时失效
+  res.json({ ok: true, user: {
+    id: user.id, email: user.email, disabled: !!user.disabled,
+    isSubscribed: !!user.is_subscribed, subscriptionExpiresAt: user.subscription_expires_at || null,
+  }});
+}));
+
+// GET /api/admin/users/:id/usage?days=&channel= — 单用户用量详情（按日序列/端点TOP/明细分页）
+router.get('/users/:id/usage', requireAdmin, asyncRoute(async (req, res) => {
+  await flushCallLogs();
+  const id = parseInt(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'bad id' });
+  const days = Math.max(1, Math.min(parseInt(req.query.days) || 30, 30));
+  const channel = ['web', 'v1', 'mcp'].includes(req.query.channel) ? req.query.channel : null;
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = 100;
+  const detail = await getUserUsageDetail(id, { days, channel, limit, offset: (page - 1) * limit });
+  res.json({ ...detail, page, pageSize: limit });
+}));
+
+// GET /api/admin/endpoint-stats?days= — 全局功能热度（资源投放依据：哪些端点被谁在用）
+router.get('/endpoint-stats', requireAdmin, asyncRoute(async (req, res) => {
+  await flushCallLogs();
+  const days = Math.max(1, Math.min(parseInt(req.query.days) || 30, 30));
+  res.json(await getEndpointStats(days));
 }));
 
 

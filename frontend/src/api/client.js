@@ -58,10 +58,20 @@ export const api = {
     request('/admin/signals', { method: 'POST', body: JSON.stringify({ type, signal, expiresAt, note }) }),
   getAdminHistory: () => request('/admin/signal-history'),
   adminListApiKeys: () => request('/admin/api-keys'),
-  adminCreateApiKey: (name, tier) =>
-    request('/admin/api-keys', { method: 'POST', body: JSON.stringify({ name, tier }) }),
+  adminCreateApiKey: (name, tier, userId = null) =>
+    request('/admin/api-keys', { method: 'POST', body: JSON.stringify({ name, tier, userId }) }),
   adminToggleApiKey: (id, disabled) =>
     request(`/admin/api-keys/${id}`, { method: 'PATCH', body: JSON.stringify({ disabled }) }),
+  adminBindApiKey: (id, userId) =>
+    request(`/admin/api-keys/${id}`, { method: 'PATCH', body: JSON.stringify({ userId }) }),
+  // 用户管理（123号）
+  adminListUsers: (search = '', page = 1) =>
+    request(`/admin/users?search=${encodeURIComponent(search)}&page=${page}`),
+  adminUpdateUser: (id, patch) =>
+    request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  adminUserUsage: (id, { days = 30, channel = '', page = 1 } = {}) =>
+    request(`/admin/users/${id}/usage?days=${days}&page=${page}` + (channel ? `&channel=${channel}` : '')),
+  adminEndpointStats: (days = 30) => request(`/admin/endpoint-stats?days=${days}`),
   getReference: (category) => request(`/admin/reference?category=${category}`),
   setLockOverride: (type, expiresAt, note) =>
     request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),

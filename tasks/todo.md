@@ -1,3 +1,34 @@
+# 123+124号:后台用户管理+API用量监控+文档同步 — 2026-08-15 【已完成】
+
+目的（用户明确）：知道每个用户调用什么功能/调用量/是否付费/剩余额度或天数，越详细越好，
+方便后台维护，**在用户最需要的方向加强资源投放**。
+
+## 已拍板决策
+- 订阅到期后绑定该用户的 pro key **自动降级为 free 配额**（key 不禁用，续费即恢复）
+- 按次明细调用日志**保留 30 天**（每日清理）；按天聚合 api_usage 表不变仍 400 天
+
+## 交付清单（全部完成）
+- [x] 数据层：users 加 disabled/subscription_expires_at（激活死列 is_subscribed）、api_keys 加 user_id、新表 api_call_logs（ts/user/key/渠道/端点/状态码 + 双索引）
+- [x] 埋点：utils/usage-log.js 内存缓冲(上限5000)+10分钟批量落盘+每日清理；/v1（rateLimit挂归属）、/mcp（端点=工具名）、/api（web，公开路由带Bearer头时埋点侧轻量JWT解码归属）三渠道全覆盖
+- [x] 订阅到期自动降级：resolveTier 联查 owner，pro+订阅失效→free 配额；禁用用户名下 key 401
+- [x] 禁用语义：登录403（密码校验后判，防枚举侧信道）+ requireAuth兜底 + bump token_min_iat杀存量JWT + invalidateKeyCache 即时生效
+- [x] 管理接口：GET/PATCH /api/admin/users（列表聚合统计/搜索/分页/编辑订阅与禁用）、GET users/:id/usage（按日/端点TOP/明细分页/渠道筛选）、GET endpoint-stats（全局功能热度）、api-keys 支持绑定 userId
+- [x] 前端 UserPanel.vue：列表（订阅badge/剩余天数告警色/今日配额/调用量三列/最后调用）+ 行内编辑 + 行内详情（柱状图/端点TOP/明细）+ 功能热度表；i18n 7语言同提交同步（admin.users.* 45键）
+- [x] 测试：后端 621/621（+13新：存储/路由/降级/禁用/日志）、前端 26/26 全绿
+- [x] 浏览器实测：登录/列表/搜索/编辑订阅（bob设8-20到期→剩余5天橙色）/禁用（登录即403、行置灰）/详情三块/渠道筛选（8→4次）/中英切换全通过
+- [x] 文档：新建 docs/admin-guide.md；pricing-and-ops.md（收款路径+基础设施表）；openapi.yaml（pro与订阅挂钩）；README（API表行/后台管理段/目录树）
+
+## 审查节（实测抓到的 bug，已修）
+1. **finish 事件时 Express 已重置 req.baseUrl**→端点串出现 `undefined/...`——改为中间件进入时捕获
+2. **公开路由（/api/signal 等）不走 requireAuth**→登录用户 web 调用无法归属——埋点侧轻量 JWT verify（微秒级，失败按匿名计，绝不影响请求）
+3. 诚实披露：web 渠道明细只有30天（无长期底账）；匿名 ip: 流量不伪造用户归属，只进功能热度的"独立来源"列
+
+## 运维要点
+- sql.js 全库导出特性 → 明细绝不逐条落盘；管理端读接口先 flushCallLogs 保证实时
+- 改后台功能须同步 docs/admin-guide.md（本轮新约定）
+
+---
+
 # 121号:用户质询"7-29反弹无进攻信号/行政未宽松/30天迟滞是否过长"——数据核查+A系日频评估,维持现状 — 2026-08-04
 
 - 核查结论:系统无故障。行政tight=EPU双指标仍>80分位(日频P88→82.6回落中,天级通道在走);油价30日+17.8%(从战时峰值回落但未达-20%宽松线);实际利率1.52%贴否决线(9月降息自然解除);SPY全程在10月SMA上方

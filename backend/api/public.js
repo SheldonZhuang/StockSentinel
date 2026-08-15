@@ -6,8 +6,9 @@ import cors from 'cors';
 import { asyncRoute } from '../utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
-import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage, pruneApiUsage } from '../utils/storage.js';
+import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage, upsertApiUsage, pruneApiUsage, isSubscriptionActive } from '../utils/storage.js';
 import { ipRateLimit, normalizeIpForQuota } from '../utils/ip-rate-limit.js';
+import { callLogger } from '../utils/usage-log.js';
 import { maybeCatchUp } from '../utils/catch-up.js';
 import fs from 'fs';
 import path from 'path';
@@ -108,8 +109,18 @@ async function resolveTier(req) {
     keyCache.set(key, { record, at: Date.now() });
   }
   if (!record) return null; // 无效或已禁用的 key
+  // 禁用用户的 key 视同禁用（123号）：账号被管理员禁用后名下 key 不再可用
+  if (record.user_id != null && record.owner_disabled) return null;
+  let tier = record.tier in TIER_DAILY_LIMITS ? record.tier : 'free';
+  // 订阅到期自动降级（123号，用户拍板）：pro key 绑定了用户但订阅已失效 → 按 free 配额计。
+  // key 不禁用（客户续费即恢复）；无归属用户的 pro key（历史签发）不受影响。
+  // 生效延迟上界 = keyCache TTL 5分钟，可接受
+  if (tier === 'pro' && record.user_id != null
+      && !isSubscriptionActive({ is_subscribed: record.owner_is_subscribed, subscription_expires_at: record.owner_subscription_expires_at })) {
+    tier = 'free';
+  }
   // 用量底账 identifier 用 key 前缀（116号）：完整 key 写入 api_usage 表=备份仓里另一份明文底账
-  return { id: `key:${key.slice(0, 12)}`, tier: record.tier in TIER_DAILY_LIMITS ? record.tier : 'free' };
+  return { id: `key:${key.slice(0, 12)}`, tier, keyId: record.id, userId: record.user_id ?? null };
 }
 
 export async function rateLimit(req, res, next) {
@@ -117,6 +128,8 @@ export async function rateLimit(req, res, next) {
   if (!resolved) {
     return res.status(401).json({ error: 'invalid_api_key', message: 'API key is invalid or disabled' });
   }
+  // 挂归属信息供调用明细埋点读取（/v1 与 /mcp 复用本中间件，埋点归属同源）
+  req.usageMeta = { keyId: resolved.keyId ?? null, userId: resolved.userId ?? null, identifier: resolved.id };
   const limit = TIER_DAILY_LIMITS[resolved.tier];
   const day = new Date().toISOString().slice(0, 10);
   await ensureUsageLoaded(day);
@@ -146,6 +159,9 @@ export async function rateLimit(req, res, next) {
 }
 
 router.use((req, res, next) => { rateLimit(req, res, next).catch(next); });
+
+// 调用明细埋点（123号）：res 'finish' 时记录，拿到最终状态码；归属信息由 rateLimit 挂载
+router.use(callLogger('v1', req => req.usageMeta || {}));
 
 // 所有响应统一附免责声明字段
 const withDisclaimer = payload => ({

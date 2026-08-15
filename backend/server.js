@@ -104,6 +104,26 @@ app.use(express.json({ limit: '256kb' })); // 限制请求体，防超大 JSON �
 import { ipRateLimit } from './utils/ip-rate-limit.js';
 app.use('/api', ipRateLimit({ max: 120 }));
 
+// 网站渠道调用明细埋点（123号用户管理）：登录用户的请求归属到人（最后调用时间/功能热度
+// 数据来源）；未登录请求只计端点热度。公开路由（/api/signal 等）不经过 requireAuth，
+// 带 Authorization 头也不会挂 req.user——埋点侧做轻量可选解码（HS256 verify 微秒级，
+// 解码失败按匿名计，绝不影响请求本身）。auth 登录/注册不记（避免把邮箱枚举尝试写进明细表）
+import { callLogger } from './utils/usage-log.js';
+import jwt from 'jsonwebtoken';
+const webCallLogger = callLogger('web', (req) => {
+  if (req.user?.id) return { userId: req.user.id };
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token || !process.env.JWT_SECRET) return {};
+  try {
+    return { userId: jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }).id ?? null };
+  } catch { return {}; }
+});
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/auth/')) return next();
+  return webCallLogger(req, res, next);
+});
+
 // --- 路由 ---
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);

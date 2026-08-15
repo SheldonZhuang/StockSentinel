@@ -45,13 +45,17 @@
 
 | 通道 | 位置 | 说明 |
 |---|---|---|
-| **开放 REST API** | `/v1/*`（[OpenAPI 规范](docs/openapi.yaml)） | `X-API-Key` 鉴权；免key试用 25次/日/IP，free 250/日，pro 10000/日；密钥在管理后台签发 |
+| **开放 REST API** | `/v1/*`（[OpenAPI 规范](docs/openapi.yaml)） | `X-API-Key` 鉴权；免key试用 25次/日/IP，free 250/日，pro 10000/日（pro 与订阅有效期挂钩，到期自动按 free 计）；密钥在管理后台签发并可绑定归属用户 |
 | **MCP Server** | [`mcp/`](mcp/) | Claude Desktop/Cursor 等一行配置接入，6个工具（当前信号/历史/产业链/个股/回测/日报） |
 | **Claude Skill** | [`skills/stock-sentinel/`](skills/stock-sentinel/SKILL.md) | 教 AI 正确理解四维框架与解读规范 |
 | **AI 日报** | `/v1/daily-report` | 每日 cron 后 LLM 自动生成中英双语信号解读（经 OpenRouter，可配 `AI_REPORT_MODEL`） |
 | **公开 Track Record** | 网站 `/track-record` | 每日信号档位不可篡改存档 + 回测成绩，供任何人验证 |
 
 > 所有输出均附免责声明：仅供研究参考，不构成投资建议。
+
+**后台管理**（`/admin`，仅管理员）：信号覆盖 / 锁应急清除 / 密钥签发 / **用户管理与API用量监控**
+（注册与订阅状态、剩余时间与配额、按用户端点统计与30天调用明细、全站功能热度——资源投放依据），
+详见 [docs/admin-guide.md](docs/admin-guide.md)。
 
 ## 技术栈
 
@@ -70,11 +74,11 @@ StockSentinel/
 │   ├── config/                # signal.config / ai-chain.config / fomc-meetings
 │   ├── api/                   # signal / fetch-macro / fetch-policy / fetch-ai-chain / market-data / payloads / mcp / public ...
 │   ├── backtest/              # 历史回测引擎与变体守卫
-│   ├── utils/                 # storage(sql.js 封装) / mailer(Resend) / backup(GitHub)
+│   ├── utils/                 # storage(sql.js 封装) / mailer(Resend) / backup(GitHub) / usage-log(调用明细埋点)
 │   └── tests/
 ├── frontend/
 │   └── src/
-│       ├── components/        # SignalHero / MacroPanel / AiChainPanel / WatchlistPanel / SignalTimeline / AdminPanel ...
+│       ├── components/        # SignalHero / MacroPanel / AiChainPanel / WatchlistPanel / SignalTimeline / AdminPanel / UserPanel ...
 │       ├── views/             # HomeView / LoginView / AdminView / TrackRecordView
 │       ├── i18n/locales/      # zh en fr de es ja ko
 │       └── stores/auth.js

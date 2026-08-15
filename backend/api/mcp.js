@@ -15,6 +15,7 @@ import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getLatestDailyReport } from '../utils/storage.js';
 import { rateLimit } from './public.js';
 import { ipRateLimit } from '../utils/ip-rate-limit.js';
+import { recordCall } from '../utils/usage-log.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -138,7 +139,21 @@ router.post('/', (req, res, next) => {
     });
   }
   // 仅工具调用计入每日额度；握手与能力发现免费（Smithery/客户端扫描不吃配额）
-  if (bodyHasToolCall(req.body)) return rateLimit(req, res, next).catch(next);
+  if (bodyHasToolCall(req.body)) {
+    // 调用明细埋点（123号）：端点=工具名（路径恒为 /，无观测价值）；归属由 rateLimit 挂 req.usageMeta
+    const toolName = (Array.isArray(req.body) ? req.body.find(m => m?.method === 'tools/call') : req.body)
+      ?.params?.name || 'unknown';
+    res.on('finish', () => {
+      try {
+        recordCall({
+          channel: 'mcp', endpoint: `tool:${String(toolName).slice(0, 60)}`, status: res.statusCode,
+          userId: req.usageMeta?.userId ?? null, keyId: req.usageMeta?.keyId ?? null,
+          identifier: req.usageMeta?.identifier ?? null,
+        });
+      } catch { /* 埋点绝不砸请求路径 */ }
+    });
+    return rateLimit(req, res, next).catch(next);
+  }
   next();
 }, (req, res, next) => {
   (async () => {
