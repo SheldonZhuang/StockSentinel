@@ -109,8 +109,10 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 **你需要做的提交（每项约5分钟，一次性）**：
 
 1. **Google Search Console**：https://search.google.com/search-console → 添加资源
-   `stock-sentinel-eight.vercel.app`（用 DNS 或 HTML 标签验证，Vercel 域名建议 HTML 标签法）
-   → 左栏 Sitemaps → 提交 `sitemap.xml`
+   `stock-sentinel-eight.vercel.app`（HTML 标签验证）→ 左栏 Sitemaps → 提交 `sitemap.xml`
+   ✅ 验证标签已于 2026-08-15 写入 `frontend/index.html`（token：`ua_jbyE7lXeAoWtm9A0lUsN4nc24TyEa3mZuwdGybh0`，
+   公开值非机密）。**Vercel 部署完成后**回 Search Console 点「验证」，通过后提交 sitemap.xml
+
 2. **Bing Webmaster Tools**：https://www.bing.com/webmasters → 可直接用 Google Search Console
    一键导入，无需重复验证
 3. **RapidAPI 上架**（3b，尚未做）：现在 openapi.yaml 已有完整 response schema，导入体验更好
