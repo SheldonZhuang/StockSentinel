@@ -22,11 +22,19 @@ describe('router auth guard', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects unauthenticated user from / to /login', async () => {
+  it('home page is public: unauthenticated user stays on / (125号首页开放只读)', async () => {
     const router = await buildRouter();
     router.push('/');
     await router.isReady();
-    expect(router.currentRoute.value.path).toBe('/login');
+    expect(router.currentRoute.value.path).toBe('/');
+  });
+
+  it('sets per-route document title after navigation (125号 SEO)', async () => {
+    const router = await buildRouter();
+    router.push('/track-record');
+    await router.isReady();
+    await new Promise(r => setTimeout(r, 0)); // afterEach 钩子在导航完成后触发
+    expect(document.title).toContain('Stock Sentinel');
   });
 
   it('redirects unauthenticated user from /admin to /login', async () => {

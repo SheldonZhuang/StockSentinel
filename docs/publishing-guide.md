@@ -89,7 +89,34 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 
 触发条件：有人真的来问付费了。到时两条路选其一：
 - **省事路线**：直接用 RapidAPI 的内置计费（3b已配好，平台抽成约20%）
-- **自营路线**：Stripe Payment Links（不用写代码：Stripe后台建一个订阅链接，用户付款后你在管理后台给他签发 pro key）。真到量大了再做自动化。
+- **自营路线**：Stripe Payment Links（不用写代码：Stripe后台建一个订阅链接，用户付款后你在管理后台给他签发 pro key **并绑定归属用户+设订阅到期时间**——到期自动降 free，见 admin-guide.md）。真到量大了再做自动化。
+
+---
+
+## 第五步：SEO/GEO 收录提交（125号，2026-08-15 产物已就绪）✅ 代码侧完成，提交是账号操作
+
+代码侧已上线的发现层产物（Vercel/Railway 部署后自动生效）：
+
+| 产物 | 位置 | 作用 |
+|---|---|---|
+| robots.txt | `https://stock-sentinel-eight.vercel.app/robots.txt` | 允许全部抓取（/admin 除外），指向 sitemap |
+| sitemap.xml | `https://stock-sentinel-eight.vercel.app/sitemap.xml` | /、/track-record、/login 三个公开页 |
+| llms.txt | `https://stock-sentinel-eight.vercel.app/llms.txt` | **GEO 核心**：AI 爬虫/Agent 一页读懂全部调用通道（API/MCP/Skill/npm 包坐标+配额+免责声明） |
+| meta/OG/JSON-LD | 首页 `index.html` | 搜索引擎产品卡（WebSite+SoftwareApplication 结构化数据），lang=zh-CN |
+| API 自发现 | `https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml` | GPT Actions/AI Agent 从 API 宿主直接拿规范；info 内互链网站与 llms.txt |
+| 首页公开只读 | `/` 不再要求登录 | 爬虫可见真实内容（原先只能看到登录页）——收录的前提 |
+
+**你需要做的提交（每项约5分钟，一次性）**：
+
+1. **Google Search Console**：https://search.google.com/search-console → 添加资源
+   `stock-sentinel-eight.vercel.app`（用 DNS 或 HTML 标签验证，Vercel 域名建议 HTML 标签法）
+   → 左栏 Sitemaps → 提交 `sitemap.xml`
+2. **Bing Webmaster Tools**：https://www.bing.com/webmasters → 可直接用 Google Search Console
+   一键导入，无需重复验证
+3. **RapidAPI 上架**（3b，尚未做）：现在 openapi.yaml 已有完整 response schema，导入体验更好
+4. **GPT Store**（3c，尚未做）：Actions 的 Import from URL 直接填
+   `https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml`（不再需要 GitHub raw 链接）
+5. **Smithery 收录确认**（3a-2）：到 https://smithery.ai 搜 stock-sentinel，未收录则手动 Add Server
 
 ---
 

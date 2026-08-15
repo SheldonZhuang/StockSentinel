@@ -41,7 +41,9 @@
               <td class="num">{{ quotaTodayLabel(u) }}</td>
               <td class="num">{{ u.total_7d }}</td>
               <td class="num">{{ u.total_30d }}</td>
-              <td class="num">{{ u.api_total_alltime + u.total_30d }}</td>
+              <!-- 总量口径（125号审查#5）：开放API底账(400天,已含近30天v1/mcp) + web明细——
+                   直接加 total_30d 会把近30天的 v1/mcp 双计 -->
+              <td class="num">{{ u.api_total_alltime + u.web_30d }}</td>
               <td class="num">{{ u.last_call_at || '—' }}</td>
               <td class="num">{{ u.key_count }}</td>
               <td>{{ u.disabled ? $t('admin.users.disabled') : $t('admin.users.active') }}</td>
@@ -50,7 +52,8 @@
                   {{ expandedId === u.id ? $t('admin.users.collapse') : $t('admin.users.detail') }}
                 </button>
                 <button class="key-btn small" @click="openEdit(u)">{{ $t('admin.users.edit') }}</button>
-                <button class="key-btn small" :class="{ danger: !u.disabled }" @click="toggleDisabled(u)">
+                <!-- 自锁防护（125号审查#10）：管理员对自己不显示禁用按钮（后端同拒 403） -->
+                <button v-if="u.id !== authUser?.id" class="key-btn small" :class="{ danger: !u.disabled }" @click="toggleDisabled(u)">
                   {{ u.disabled ? $t('admin.users.enable') : $t('admin.users.disable') }}
                 </button>
               </td>
@@ -177,8 +180,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../api/client.js';
 import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '../stores/auth.js';
 
 const { t } = useI18n();
+const { user: authUser } = useAuthStore();
 
 const users = ref([]);
 const total = ref(0);
@@ -217,7 +222,8 @@ function subBadgeClass(u) {
 }
 function remainingDays(u) {
   if (!u.subscription_active || !u.subscription_expires_at) return null;
-  return Math.ceil((Date.parse(u.subscription_expires_at + 'Z') - Date.now()) / 86400000);
+  // 'T' 分隔为 ISO 标准格式：空格分隔串 V8 恰好宽容但 Safari 解析为 NaN
+  return Math.ceil((Date.parse(u.subscription_expires_at.replace(' ', 'T') + 'Z') - Date.now()) / 86400000);
 }
 function remainingLabel(u) {
   if (!u.subscription_active) return u.is_subscribed ? t('admin.users.expired') : '—';
@@ -256,10 +262,15 @@ function openEdit(u) {
   editId.value = editId.value === u.id ? null : u.id;
   editMsg.value = '';
   editSubscribed.value = !!u.is_subscribed;
-  // UTC 库值转 datetime-local 本地串
-  editExpiresAt.value = u.subscription_expires_at
-    ? new Date(u.subscription_expires_at + 'Z').toISOString().slice(0, 16)
-    : '';
+  // 时区往返闭合（125号审查#3）：库值是 UTC 墙钟，datetime-local 显示/回收的是本地墙钟。
+  // 旧写法 toISOString().slice(0,16) 填入的是 UTC 墙钟 → 保存时被 toUtcIso 再按本地转 UTC，
+  // 每次保存漂移一个时区偏移（UTC+8 实测 -8h）。先减 getTimezoneOffset 得本地墙钟再截串
+  if (u.subscription_expires_at) {
+    const d = new Date(u.subscription_expires_at.replace(' ', 'T') + 'Z');
+    editExpiresAt.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  } else {
+    editExpiresAt.value = '';
+  }
 }
 
 function toUtcIso(local) {

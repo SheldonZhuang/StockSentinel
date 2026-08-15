@@ -1,10 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>股哨兵 Stock Sentinel</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>" />
+    <title>股哨兵 Stock Sentinel — 美股进攻/防守信号 · 公开 Track Record · 开放 API/MCP</title>
+    <meta name="description" content="股哨兵：四维数据驱动（AI供需/货币/财政/行政）的美股进攻防守信号系统，每日自动更新，附不可篡改的公开 Track Record 与历史回测。提供开放 REST API、MCP Server、Claude Skill，AI Agent 可直接调用。仅供研究参考，不构成投资建议。" />
+    <meta name="keywords" content="美股信号,进攻防守,宏观择时,AI供需,Stock Sentinel,market signal,macro timing,MCP server,open API,track record" />
+    <link rel="canonical" href="https://stock-sentinel-eight.vercel.app/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0d1117" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Stock Sentinel 股哨兵" />
+    <meta property="og:title" content="股哨兵 Stock Sentinel — 美股进攻/防守信号" />
+    <meta property="og:description" content="四维数据驱动的美股进攻防守信号，每日更新，公开 Track Record，开放 API/MCP 供 AI Agent 调用。仅供研究参考。" />
+    <meta property="og:url" content="https://stock-sentinel-eight.vercel.app/" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Stock Sentinel — US market attack/defense signal" />
+    <meta name="twitter:description" content="Data-driven 4-dimension macro signal with public track record. Open API / MCP server for AI agents. Research reference only." />
+
+    <!-- 结构化数据：搜索引擎与 AI 爬虫的机器可读产品卡 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "Stock Sentinel 股哨兵",
+          "url": "https://stock-sentinel-eight.vercel.app/",
+          "inLanguage": ["zh-CN", "en", "fr", "de", "es", "ja", "ko"],
+          "description": "美股进攻/防守信号系统：AI供需、货币、财政、行政四维数据驱动，每日更新，公开不可篡改 Track Record。仅供研究参考，不构成投资建议。"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Stock Sentinel Open API & MCP Server",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "url": "https://stock-sentinel-eight.vercel.app/",
+          "installUrl": "https://www.npmjs.com/package/stock-sentinel-mcp",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "description": "Free tier: 25 req/day keyless, 250/day with free key; Pro $9.99/mo 10,000/day" },
+          "featureList": "Daily US market attack/defense signal; AI-chain bottleneck ranking; stock price percentile; backtest summary; bilingual AI daily report; MCP server (stdio + Streamable HTTP); OpenAPI 3 spec",
+          "softwareHelp": "https://stock-sentinel-eight.vercel.app/llms.txt"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="app"></div>

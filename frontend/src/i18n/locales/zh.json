@@ -246,7 +246,7 @@
       "colRegistered": "注册时间",
       "colSubscription": "订阅状态",
       "colRemaining": "剩余时间",
-      "colQuotaToday": "今日API用量/配额",
+      "colQuotaToday": "今日API用量/配额 (UTC)",
       "colCalls7d": "近7天",
       "colCalls30d": "近30天",
       "colCallsTotal": "调用总量",
@@ -397,5 +397,14 @@
     "capeActive": "CAPE {cape}（30年分位 P{pct}）> 90 → TQQQ目标仓位 55%",
     "capeInactive": "CAPE分位 P{pct} ≤90 → 目标仓位 100%",
     "targetWeight": "（当前目标仓位 {pct}%）"
+  },
+  "pageTitle": {
+    "home": "股哨兵 Stock Sentinel — 美股进攻/防守信号",
+    "trackRecord": "信号存档 Track Record — 股哨兵",
+    "login": "登录 — 股哨兵",
+    "admin": "后台管理 — 股哨兵"
+  },
+  "home": {
+    "loginCta": "登录后可管理自选股、开启信号邮件提醒"
   }
 }

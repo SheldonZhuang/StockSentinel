@@ -239,7 +239,7 @@
       "colRegistered": "Inscription",
       "colSubscription": "Abonnement",
       "colRemaining": "Temps restant",
-      "colQuotaToday": "API aujourd’hui/quota",
+      "colQuotaToday": "API aujourd’hui/quota (UTC)",
       "colCalls7d": "7 derniers j",
       "colCalls30d": "30 derniers j",
       "colCallsTotal": "Appels totaux",
@@ -397,5 +397,14 @@
     "capeActive": "CAPE {cape} (percentile 30 ans P{pct}) > 90 → poids cible TQQQ 55%",
     "capeInactive": "Percentile CAPE P{pct} ≤ 90 → poids cible 100%",
     "targetWeight": "(poids cible actuel {pct}%)"
+  },
+  "pageTitle": {
+    "home": "Stock Sentinel — Signal attaque/défense du marché US",
+    "trackRecord": "Historique des signaux — Stock Sentinel",
+    "login": "Connexion — Stock Sentinel",
+    "admin": "Administration — Stock Sentinel"
+  },
+  "home": {
+    "loginCta": "Connectez-vous pour gérer votre liste et activer les alertes e-mail"
   }
 }

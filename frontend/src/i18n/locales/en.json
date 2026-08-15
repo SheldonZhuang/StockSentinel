@@ -246,7 +246,7 @@
       "colRegistered": "Registered",
       "colSubscription": "Subscription",
       "colRemaining": "Time left",
-      "colQuotaToday": "API today/quota",
+      "colQuotaToday": "API today/quota (UTC)",
       "colCalls7d": "Last 7d",
       "colCalls30d": "Last 30d",
       "colCallsTotal": "Total calls",
@@ -397,5 +397,14 @@
     "capeActive": "CAPE {cape} (30y percentile P{pct}) > 90 → TQQQ target weight 55%",
     "capeInactive": "CAPE percentile P{pct} ≤ 90 → target weight 100%",
     "targetWeight": "(current target weight {pct}%)"
+  },
+  "pageTitle": {
+    "home": "Stock Sentinel — US market attack/defense signal",
+    "trackRecord": "Track Record — Stock Sentinel",
+    "login": "Log in — Stock Sentinel",
+    "admin": "Admin — Stock Sentinel"
+  },
+  "home": {
+    "loginCta": "Log in to manage your watchlist and enable signal email alerts"
   }
 }

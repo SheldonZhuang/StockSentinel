@@ -23,6 +23,20 @@ router.use(cors({ origin: '*' }));
 // 按 IP 保底限流：无效 key / keyless 走 401 路径不计日额度，需此闸防止匿名高频刷 DB 与烧配额
 router.use(ipRateLimit({ max: 120 }));
 
+// GET /v1/openapi.yaml — API 自发现（125号 GEO）：让 AI Agent/GPT Actions 从 API 宿主
+// 直接拿到规范，无需绕道 GitHub raw。注册在计量中间件之前=发现流程免日配额
+// （与 /mcp 的 initialize/tools/list 免费同一原则），仍受上方 120/min IP 闸保护。
+// 进程内缓存，重部署刷新
+let openapiCache;
+router.get('/openapi.yaml', asyncRoute(async (req, res) => {
+  if (openapiCache === undefined) {
+    const p = path.join(__dirname, '../../docs/openapi.yaml');
+    openapiCache = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+  }
+  if (!openapiCache) return res.status(404).json({ error: 'not_available' });
+  res.type('text/yaml').send(openapiCache);
+}));
+
 // 每日请求额度（UTC日）：keyless 试用 / free / pro
 const TIER_DAILY_LIMITS = { keyless: 25, free: 250, pro: 10000 };
 

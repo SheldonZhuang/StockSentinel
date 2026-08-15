@@ -233,14 +233,25 @@ router.get('/users', requireAdmin, asyncRoute(async (req, res) => {
 // PATCH /api/admin/users/:id {disabled?, subscribed?, subscriptionExpiresAt?} — 编辑用户
 router.patch('/users/:id', requireAdmin, asyncRoute(async (req, res) => {
   const id = parseInt(req.params.id);
-  if (!Number.isInteger(id) || !(await getUserById(id))) return res.status(404).json({ error: 'user not found' });
+  const target = Number.isInteger(id) ? await getUserById(id) : null;
+  if (!target) return res.status(404).json({ error: 'user not found' });
   const { disabled, subscribed, subscriptionExpiresAt } = req.body || {};
+  // 自锁防护（125号审查#10）：管理员禁用自己后 requireAdmin 即拒其一切请求，UI 无法自解——
+  // 唯一恢复路径是直改库。后端硬拒，前端同步隐藏按钮
+  if (disabled === true && target.id === req.user.id) {
+    return res.status(403).json({ error: 'cannot disable your own admin account' });
+  }
   const patch = {};
   if (disabled !== undefined) patch.disabled = !!disabled;
   if (subscribed !== undefined) patch.subscribed = !!subscribed;
   if (subscriptionExpiresAt !== undefined) {
     const normalized = normalizeExpiresAt(subscriptionExpiresAt);
     if (normalized === undefined) return res.status(400).json({ error: 'subscriptionExpiresAt must be a valid datetime string' });
+    // 合理范围校验（125号审查#9）：new Date('123') 是公元123年——垃圾值会静默把付费客户
+    // 判成"订阅已过期"并降级其 pro key。仅限用户订阅路径（信号 override 路径行为不变）
+    if (normalized && (normalized < '2000-01-01' || normalized > '2100-01-01')) {
+      return res.status(400).json({ error: 'subscriptionExpiresAt out of reasonable range (2000-2100)' });
+    }
     patch.subscriptionExpiresAt = normalized;
     // 设置了未来到期时间即视为订阅用户（激活 is_subscribed）；显式传 subscribed 时以显式值为准
     if (subscribed === undefined && normalized) patch.subscribed = true;

@@ -50,6 +50,7 @@
 | **Claude Skill** | [`skills/stock-sentinel/`](skills/stock-sentinel/SKILL.md) | 教 AI 正确理解四维框架与解读规范 |
 | **AI 日报** | `/v1/daily-report` | 每日 cron 后 LLM 自动生成中英双语信号解读（经 OpenRouter，可配 `AI_REPORT_MODEL`） |
 | **公开 Track Record** | 网站 `/track-record` | 每日信号档位不可篡改存档 + 回测成绩，供任何人验证 |
+| **发现层（SEO/GEO，125号）** | `llms.txt` / `robots.txt` / `sitemap.xml`（网站根）、`GET /v1/openapi.yaml`（API 自发现）、首页 meta/OG/JSON-LD | 让搜索引擎与 AI Agent 自动发现全部调用通道；首页对未登录访客开放只读（个人化功能仍需登录） |
 
 > 所有输出均附免责声明：仅供研究参考，不构成投资建议。
 
@@ -77,6 +78,7 @@ StockSentinel/
 │   ├── utils/                 # storage(sql.js 封装) / mailer(Resend) / backup(GitHub) / usage-log(调用明细埋点)
 │   └── tests/
 ├── frontend/
+│   ├── public/                # robots.txt / sitemap.xml / llms.txt / favicon（SEO/GEO 发现层）
 │   └── src/
 │       ├── components/        # SignalHero / MacroPanel / AiChainPanel / WatchlistPanel / SignalTimeline / AdminPanel / UserPanel ...
 │       ├── views/             # HomeView / LoginView / AdminView / TrackRecordView

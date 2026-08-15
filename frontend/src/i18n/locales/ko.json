@@ -239,7 +239,7 @@
       "colRegistered": "가입일",
       "colSubscription": "구독 상태",
       "colRemaining": "남은 기간",
-      "colQuotaToday": "오늘 API/한도",
+      "colQuotaToday": "오늘 API/한도 (UTC)",
       "colCalls7d": "최근 7일",
       "colCalls30d": "최근 30일",
       "colCallsTotal": "총 호출 수",
@@ -397,5 +397,14 @@
     "capeActive": "CAPE {cape} (30년 백분위 P{pct}) > 90 → TQQQ 목표 비중 55%",
     "capeInactive": "CAPE 백분위 P{pct} ≤ 90 → 목표 비중 100%",
     "targetWeight": "(현재 목표 비중 {pct}%)"
+  },
+  "pageTitle": {
+    "home": "Stock Sentinel — 미국 시장 공격/방어 시그널",
+    "trackRecord": "시그널 기록 — Stock Sentinel",
+    "login": "로그인 — Stock Sentinel",
+    "admin": "관리자 — Stock Sentinel"
+  },
+  "home": {
+    "loginCta": "로그인하면 관심 종목 관리와 이메일 알림을 사용할 수 있습니다"
   }
 }

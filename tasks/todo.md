@@ -1,3 +1,50 @@
+# 125号:AI生态接入(SEO/GEO)+第九轮审查修复+发布清单 — 2026-08-15 【已完成】
+
+用户目的：让搜索引擎与 AI Agent 找到并调用本项目全部接口工具，提高调用量；全面检查逻辑与代码错误（"推倒重建"经审查实证否决——核心逻辑全部正确，缺陷是局部的）。
+已拍板：首页开放未登录只读（SEO/GEO 最大单变量）；禁用=封禁停发邮件。
+
+## 盘点结论
+工具层已齐（npm MCP v1.0.3+MCP Registry 已发布/远程MCP/smithery.yaml/openapi/SKILL.md），缺的是**发现层**——本轮补齐。
+
+## 第九轮审查修复（10项+1拍板项，子代理实测验证非纸面推理）
+- [x] 高危#1 usage-log 失败重插 slice(-0)=整个数组→故障期内存无界增长：单飞守卫+room>0有界重插
+- [x] 高危#2 未匹配404原样入库（单IP 30天~594MB脏行/撑爆备份100MB上限/GROUP BY卡事件循环）：normalizeEndpoint——404归并_unmatched哨兵+动态段归一（/v1/stock/:symbol等），端点值域封闭
+- [x] 高危#3 订阅到期编辑框UTC↔local双重换算每保存漂移一个时区（UTC+8实测-8h）：openEdit减getTimezoneOffset填本地墙钟；浏览器实测显示17:30(=UTC 09:30)、无操作保存库值不变
+- [x] 中#4 insertCallLogs 5000条独立事务634ms阻塞：BEGIN/COMMIT+prepared statement(~32ms,20倍)
+- [x] 中#5 调用总量把近30天v1/mcp双计：storage加web_30d，总量=底账+web明细
+- [x] 中#6 并发flush竞态（persist临时文件同pid同名）：与#1同一单飞守卫
+- [x] 低#7 今日配额UTC日切与全站美东不一致：7语言标签注明(UTC)（配额本身就是UTC，数字正确不改口径）
+- [x] 低#8 独立来源列对web匿名恒为0（COUNT DISTINCT跳过NULL）：web埋点identifier记ip:归一IP
+- [x] 低#9 normalizeExpiresAt接受'123'(公元123年)静默降级付费客户：用户订阅路径限2000-2100
+- [x] 低#10 管理员可禁用自己→不可自解锁死：后端403+前端自己行隐藏按钮
+- [x] 拍板项：getAlertSubscribers过滤disabled（禁用=封禁停邮）
+- Safari兼容顺手修：remainingDays日期串改'T'分隔（空格分隔V8宽容Safari返回NaN）
+
+## SEO 收录包
+- [x] index.html：lang=zh-CN/title/description/keywords/canonical/OG全套/twitter card/JSON-LD(WebSite+SoftwareApplication)/theme-color
+- [x] frontend/public/：robots.txt(禁/admin+指sitemap)/sitemap.xml(3公开页)/favicon.svg落地文件
+- [x] 每路由标题：router afterEach按i18n设document.title（pageTitle.* 4键×7语言）
+- [x] 首页开放只读：/去requiresAuth；HomeView未登录隐藏自选股+登录引导条(home.loginCta×7语言)；router.test.js守卫断言更新+标题测试
+
+## GEO 包
+- [x] frontend/public/llms.txt：AI爬虫一页读懂全部调用通道（API base/openapi/远程MCP/npm包/SKILL raw/track-record/配额/免责）
+- [x] GET /v1/openapi.yaml：API宿主自发现，注册在计量前=发现流程免日配额（与MCP握手免费同原则），进程内缓存
+- [x] openapi.yaml：info补GEO互链(网站/llms.txt/MCP坐标)+contact；5个端点补简要response schema（字段名对照真实payload核实）
+
+## 测试与实测
+- [x] 后端629/629（+8新：端点归一/有界重插/单飞/停邮/自锁403/范围校验/openapi端点）前端27/27
+- [x] 浏览器实测：匿名首页停在/不跳登录+标题+CTA+无自选股+meta/JSON-LD在DOM；robots/sitemap/llms/favicon全200；admin标题+UTC列+自己行无禁用按钮+时区往返闭合
+
+## 文档与发布清单
+- [x] publishing-guide第五步：SEO/GEO产物表+用户侧提交清单（Search Console/Bing/RapidAPI/GPT Store可直接用/v1/openapi.yaml/Smithery确认）
+- [x] admin-guide：口径修正(UTC)标注/调用总量web口径/禁用=封禁/自锁防护/埋点值域封闭；README：发现层行+public/目录树
+- 用户侧待办（账号操作）：①Search Console提交sitemap ②Bing一键导入 ③RapidAPI上架 ④GPT Store建Action ⑤Smithery收录确认——步骤见publishing-guide第五步
+
+## 明确不做
+推倒重建（实证否决）；SSR/预渲染（公开首页+静态meta已覆盖，成本不成比例）；替用户在外部平台注册发布
+
+---
+
 # 123+124号:后台用户管理+API用量监控+文档同步 — 2026-08-15 【已完成】
 
 目的（用户明确）：知道每个用户调用什么功能/调用量/是否付费/剩余额度或天数，越详细越好，

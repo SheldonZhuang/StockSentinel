@@ -657,12 +657,16 @@ export async function listUsersWithStats({ search = '', limit = 50, offset = 0 }
       SELECT COUNT(*) AS total30,
              SUM(CASE WHEN ts >= ? THEN 1 ELSE 0 END) AS total7,
              SUM(CASE WHEN ts >= ? AND channel != 'web' THEN 1 ELSE 0 END) AS apiToday,
+             SUM(CASE WHEN channel = 'web' THEN 1 ELSE 0 END) AS web30,
              MAX(ts) AS last_call
       FROM api_call_logs WHERE user_id = ?
     `, [since7, `${todayStr} 00:00:00`, u.id]);
     u.total_30d = logStats?.total30 || 0;
     u.total_7d = logStats?.total7 || 0;
     u.api_today = logStats?.apiToday || 0;
+    // 125号审查#5：调用总量口径 = api_usage 底账(开放API 400天,已含近30天的 v1/mcp) + web明细。
+    // 旧口径把 total_30d(全渠道)整个加上 → 近30天的 v1/mcp 被双计
+    u.web_30d = logStats?.web30 || 0;
     u.last_call_at = logStats?.last_call || null;
     u.subscription_active = isSubscriptionActive(u) ? 1 : 0;
     // 生效配额档（今日剩余额度展示用）：名下最高 key 档，pro 需订阅有效否则降 free；无 key 为 null
@@ -738,15 +742,24 @@ export async function getEndpointStats(days = 30) {
   `, [since]);
 }
 
-/** 批量写入调用明细（一次 persist；调用方内存缓冲，10分钟或缓冲上限触发） */
+/** 批量写入调用明细（单事务+prepared statement，一次 persist；125号审查#4：
+ *  5000条独立 db.run 各自隐式事务实测 ~634ms 阻塞事件循环，BEGIN/COMMIT 后 ~32ms） */
 export async function insertCallLogs(entries) {
   await getDb();
   if (!entries.length) return;
-  for (const e of entries) {
-    db.run(
-      'INSERT INTO api_call_logs (ts, user_id, key_id, identifier, channel, endpoint, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [e.ts, e.userId ?? null, e.keyId ?? null, e.identifier ?? null, e.channel, e.endpoint, e.status ?? null]
+  db.run('BEGIN');
+  try {
+    const stmt = db.prepare(
+      'INSERT INTO api_call_logs (ts, user_id, key_id, identifier, channel, endpoint, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
+    for (const e of entries) {
+      stmt.run([e.ts, e.userId ?? null, e.keyId ?? null, e.identifier ?? null, e.channel, e.endpoint, e.status ?? null]);
+    }
+    stmt.free();
+    db.run('COMMIT');
+  } catch (err) {
+    db.run('ROLLBACK');
+    throw err;
   }
   persist();
 }
@@ -988,10 +1001,12 @@ export async function removeFromWatchlist(userId, symbol) {
 
 export async function getAlertSubscribers() {
   await getDb();
+  // 禁用=封禁（125号用户拍板）：被禁用账户停发一切示警邮件
   return all(`
     SELECT u.email, u.id FROM users u
     JOIN alert_subscriptions a ON a.user_id = u.id
     WHERE a.enabled = 1 AND u.email_alerts = 1
+      AND (u.disabled IS NULL OR u.disabled = 0)
   `);
 }
 

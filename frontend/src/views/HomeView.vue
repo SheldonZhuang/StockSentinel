@@ -35,9 +35,14 @@
       </div>
     </div>
 
-    <!-- 自选股 -->
-    <div class="panel">
+    <!-- 自选股（登录态专属）：未登录显示登录引导（125号：首页开放只读后信号区全公开，
+         个人化功能仍需账号） -->
+    <div v-if="authUser" class="panel">
       <WatchlistPanel />
+    </div>
+    <div v-else class="panel login-cta">
+      <span>{{ $t('home.loginCta') }}</span>
+      <router-link to="/login" class="cta-btn">{{ $t('auth.login') }}</router-link>
     </div>
 
     <!-- 页脚：数据源与免责声明 -->
@@ -58,8 +63,10 @@ import WatchlistPanel from '../components/WatchlistPanel.vue';
 import SignalTimeline from '../components/SignalTimeline.vue';
 import AiChainPanel from '../components/AiChainPanel.vue';
 import { api } from '../api/client.js';
+import { useAuthStore } from '../stores/auth.js';
 
 const { locale } = useI18n();
+const { user: authUser } = useAuthStore();
 
 // /api/signal 只拉一次，下发给 Hero 与指标明细。
 // 失败要有用户可见反馈（116号修复）：只 console.error 会让最核心的信号永远停在"加载中"
@@ -152,6 +159,14 @@ onMounted(async () => {
 .retry-btn:hover { border-color: var(--text-3); }
 
 .report-panel { padding: 16px 20px; }
+.login-cta {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-size: var(--fs-md); color: var(--text-3); padding: 18px 20px;
+}
+.cta-btn {
+  background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border);
+  border-radius: 8px; padding: 6px 18px; text-decoration: none; font-weight: 600; font-size: var(--fs-sm);
+}
 .report-panel .section-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 8px; }
 .report-text { margin: 0; font-size: var(--fs-md); color: var(--text-2); line-height: 1.7; }
 

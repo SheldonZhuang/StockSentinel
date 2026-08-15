@@ -239,7 +239,7 @@
       "colRegistered": "登録日",
       "colSubscription": "サブスク状態",
       "colRemaining": "残り期間",
-      "colQuotaToday": "本日API/上限",
+      "colQuotaToday": "本日API/上限 (UTC)",
       "colCalls7d": "直近7日",
       "colCalls30d": "直近30日",
       "colCallsTotal": "総呼び出し数",
@@ -397,5 +397,14 @@
     "capeActive": "CAPE {cape}（30年分位 P{pct}）> 90 → TQQQ目標ウェイト 55%",
     "capeInactive": "CAPE分位 P{pct} ≤ 90 → 目標ウェイト 100%",
     "targetWeight": "（現在の目標ウェイト {pct}%）"
+  },
+  "pageTitle": {
+    "home": "Stock Sentinel — 米国市場の攻守シグナル",
+    "trackRecord": "シグナル履歴 — Stock Sentinel",
+    "login": "ログイン — Stock Sentinel",
+    "admin": "管理画面 — Stock Sentinel"
+  },
+  "home": {
+    "loginCta": "ログインするとウォッチリスト管理とメール通知が利用できます"
   }
 }

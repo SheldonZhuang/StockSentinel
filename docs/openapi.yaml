@@ -27,6 +27,15 @@ info:
 
     **免责声明**：所有数据仅供研究参考，不构成投资建议。
     For research reference only. Not investment advice.
+
+    **发现与生态（GEO）**：本规范自托管于 `GET /v1/openapi.yaml`；
+    产品网站 https://stock-sentinel-eight.vercel.app/ ；
+    AI 接入总览 https://stock-sentinel-eight.vercel.app/llms.txt ；
+    远程 MCP（Streamable HTTP）`POST /mcp`（同一宿主）；
+    stdio MCP 包 `npx -y stock-sentinel-mcp`（npm）。
+  contact:
+    name: Stock Sentinel
+    url: https://stock-sentinel-eight.vercel.app/
 servers:
   - url: https://stocksentinel-production-55ed.up.railway.app/v1
 security:
@@ -89,12 +98,50 @@ paths:
       responses:
         "200":
           description: 按日期倒序的信号档位历史
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string, example: "2026-08-14" }
+                        finalSignal: { $ref: "#/components/schemas/SignalTier" }
+                        aiSupply: { $ref: "#/components/schemas/DimSignal" }
+                        monetary: { $ref: "#/components/schemas/DimSignal" }
+                        fiscal: { $ref: "#/components/schemas/DimSignal" }
+                        administrative: { $ref: "#/components/schemas/DimSignal" }
+                  disclaimer: { type: string }
   /ai-chain:
     get:
       operationId: getAiChain
       summary: AI产业链环节排名 + 当前卡点 + 泡沫监测（调用量/云capex/半导体产出）+ 四大云厂商capex指引检测与财报快报（单季/TTM额度同比、本财年/未来指引、来源）
       responses:
-        "200": { description: 产业链状态 }
+        "200":
+          description: 产业链状态
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bottleneck:
+                    type: object
+                    description: 当前最卡脖子环节 {stage, source(manual|auto), note}
+                  stages:
+                    type: array
+                    description: 各环节（model/cloud/chip/memory/optical/packaging/power）指标与排名
+                    items: { type: object }
+                  bubble:
+                    type: object
+                    description: 泡沫监测三件套（modelUsageTrendPct/capexYoY/semiIpYoy 等）与 warning 标志
+                  guidance:
+                    type: array
+                    description: 四大云厂商最近一次 capex 指引检测记录（direction/quote/confidence/财报快报字段）
+                    items: { type: object }
+                  disclaimer: { type: string }
   /stock/{symbol}:
     get:
       operationId: getStockPercentile
@@ -111,19 +158,58 @@ paths:
           in: query
           schema: { type: string, format: date }
       responses:
-        "200": { description: 个股数据 }
+        "200":
+          description: 个股数据
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol: { type: string }
+                  shortName: { type: string }
+                  currentPrice: { type: number }
+                  pricePercentile: { type: number, description: 当前价在查询区间内的历史百分位 0-100 }
+                  currentPE: { type: number, nullable: true }
+                  currentPS: { type: number, nullable: true, description: EDGAR/FMP 双路真实市销率；ETF/指数无财报为 null }
+                  trailingPE: { type: number, nullable: true }
+                  forwardPE: { type: number, nullable: true }
+                  startDate: { type: string, format: date }
+                  endDate: { type: string, format: date }
+                  dataPointCount: { type: integer }
+                  disclaimer: { type: string }
         "400": { description: 非法代码 }
   /backtest/summary:
     get:
       operationId: getBacktestSummary
       summary: 最近一次历史回测核心结论（26年月度重放，6场危机+8段牛市检验）
       responses:
-        "200": { description: 回测摘要 }
+        "200":
+          description: 回测摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    description: 年化/最大回撤/危机召回/假信号计数等核心指标（以实跑产物为准）
+                  disclaimer: { type: string }
         "404": { description: 本部署尚未跑过回测 }
   /daily-report:
     get:
       operationId: getDailyReport
       summary: AI 生成的每日信号解读（中英双语）
       responses:
-        "200": { description: 最新日报 }
+        "200":
+          description: 最新日报
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date: { type: string, format: date }
+                  zh: { type: string, description: 中文日报正文 }
+                  en: { type: string, description: English daily report }
+                  model: { type: string, description: 生成所用 LLM 标识 }
+                  disclaimer: { type: string }
         "404": { description: 尚未生成 }

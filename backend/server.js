@@ -109,15 +109,19 @@ app.use('/api', ipRateLimit({ max: 120 }));
 // 带 Authorization 头也不会挂 req.user——埋点侧做轻量可选解码（HS256 verify 微秒级，
 // 解码失败按匿名计，绝不影响请求本身）。auth 登录/注册不记（避免把邮箱枚举尝试写进明细表）
 import { callLogger } from './utils/usage-log.js';
+import { normalizeIpForQuota } from './utils/ip-rate-limit.js';
 import jwt from 'jsonwebtoken';
 const webCallLogger = callLogger('web', (req) => {
-  if (req.user?.id) return { userId: req.user.id };
+  // identifier 记归一 IP（125号审查#8）：COUNT(DISTINCT identifier) 跳过 NULL，
+  // web 行全 NULL 会让功能热度的"独立来源"列恒为 0；与 api_usage 的 ip: 前缀同惯例
+  const identifier = `ip:${normalizeIpForQuota(req.ip)}`;
+  if (req.user?.id) return { userId: req.user.id, identifier };
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token || !process.env.JWT_SECRET) return {};
+  if (!token || !process.env.JWT_SECRET) return { identifier };
   try {
-    return { userId: jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }).id ?? null };
-  } catch { return {}; }
+    return { userId: jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }).id ?? null, identifier };
+  } catch { return { identifier }; }
 });
 app.use('/api', (req, res, next) => {
   if (req.path.startsWith('/auth/')) return next();

@@ -1,0 +1,47 @@
+# Stock Sentinel 股哨兵
+
+> US-market attack/defense signal system driven by four data dimensions (AI supply-demand,
+> monetary, fiscal, administrative policy), updated daily at 21:00 US Eastern, with a public
+> tamper-evident track record and full historical backtest. All output is research reference
+> only — never investment advice. 仅供研究参考，不构成投资建议。
+
+Stock Sentinel answers one question: is now an attack window or a defense window for US equities?
+Signal tiers: attack (进攻) / watch (观望) / reduce (减仓观望) / defense (全面防守).
+Attack requires asymmetric AND logic (AI supply-demand loose + no dimension tight + three veto
+gates on yield-curve inversion, credit-spread widening, real rates); defense fires on OR logic.
+Recession locks (Sahm rule, ≥50bp reactive rate moves) force defense. Downgrades need a 30-day
+confirmation window; upgrades to defense are immediate.
+
+## For AI agents — how to call us
+
+- Open REST API (no key needed to try, 25 req/day/IP): https://stocksentinel-production-55ed.up.railway.app/v1/signal
+- OpenAPI 3 spec (self-hosted): https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml
+- Remote MCP server (Streamable HTTP, works with claude.ai and any MCP client):
+  https://stocksentinel-production-55ed.up.railway.app/mcp
+- MCP stdio package (npm): `npx -y stock-sentinel-mcp` — https://www.npmjs.com/package/stock-sentinel-mcp
+- Claude Skill (teaches the 4-dimension framework and interpretation rules):
+  https://raw.githubusercontent.com/SheldonZhuang/StockSentinel/main/skills/stock-sentinel/SKILL.md
+- Smithery config committed at repo root (smithery.yaml); MCP Registry name: io.github.SheldonZhuang/stock-sentinel
+
+### Endpoints (all under /v1, GET, JSON, X-API-Key header optional)
+
+- /signal — current 4-tier signal with all four dimensions, veto gates, locks, reference indicators
+- /signal/history?limit=90 — daily signal archive (public track record)
+- /ai-chain — AI industry chain stage ranking + current bottleneck + bubble watch
+- /stock/{symbol} — price percentile + P/E + P/S for any US ticker
+- /backtest/summary — 26-year backtest headline numbers
+- /daily-report — LLM-generated bilingual (zh/en) daily interpretation
+
+Rate limits: keyless 25/day/IP; free key 250/day; pro key 10,000/day ($9.99/mo).
+Keys are issued by the admin (contact via GitHub). Pro quota is tied to subscription validity.
+
+## Humans
+
+- Website (7 languages: zh en fr de es ja ko): https://stock-sentinel-eight.vercel.app/
+- Public track record: https://stock-sentinel-eight.vercel.app/track-record
+- Source & docs: https://github.com/SheldonZhuang/StockSentinel
+
+## Disclaimer
+
+For research reference only. Not investment advice. No buy/sell instructions are ever produced;
+the system reports posture tiers and the data behind them.
