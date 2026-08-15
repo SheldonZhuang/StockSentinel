@@ -35,7 +35,7 @@ function noteConnectFailure() {
   if (failStreak <= 3 || failStreak % 8 === 0) {
     console.warn(`[moomoo] OpenD WebSocket 连接超时（第${failStreak}次，目标 ${HOST()}:${PORT()}）——`
       + (HOST() === '127.0.0.1'
-        ? '本机部署：检查 OpenD 是否运行且设置中开启了 WebSocket 端口；云端部署：OpenD 在用户本地，127.0.0.1 永远不通，需配置 MOOMOO_WS_HOST 指向隧道地址（见 docs/moomoo-cloud-setup.md）'
+        ? '本机部署：检查 OpenD 是否运行、是否登录成功（"设置错误"常见根因：文本密钥误填进WebSocket私钥/证书这两个SSL文件字段——应清空并填到"WebSocket鉴权密钥"，见 docs/moomoo-cloud-setup.md 排障速查）、设置中是否开启 WebSocket 端口；云端部署：OpenD 在用户本地，127.0.0.1 永远不通，需配置 MOOMOO_WS_HOST 指向隧道地址（见 docs/moomoo-cloud-setup.md）'
         : '检查隧道/端口转发是否在线、MOOMOO_WS_KEY 是否与 OpenD 设置一致'));
   }
 }

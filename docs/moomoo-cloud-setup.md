@@ -37,11 +37,14 @@ Railway 容器在美西机房：
    cloudflared tunnel route dns moomoo-opend opend.你的域名.com
    cloudflared service install
    ```
-4. **必须**在 OpenD 设置里启用 WebSocket 私钥（否则等于把行情网关裸奔到公网）；
+4. **必须**在 OpenD 设置里配置 **WebSocket鉴权密钥**（文本密钥字段，placeholder"不设置则随机生成"；
+   否则等于把行情网关裸奔到公网）。⚠️ 勿与"WebSocket私钥/WebSocket证书"混淆——那两个是
+   **SSL 私钥/证书文件路径**字段（带"浏览"按钮），把文本密钥填进去会触发 OpenD"设置错误，
+   请检查"（"请输入正确的密钥格式"/"文件不存在"），导致无法登录、所有端口不监听（121号实况事故）；
 5. Railway → Variables 设置：
    - `MOOMOO_WS_HOST=opend.你的域名.com`
    - `MOOMOO_WS_PORT=443`（经 Cloudflare 走 wss）或隧道直连端口
-   - `MOOMOO_WS_KEY=<OpenD 设置里的 WebSocket 私钥>`
+   - `MOOMOO_WS_KEY=<OpenD 设置里的 WebSocket鉴权密钥>`
 
 注意：futu-api 的 `start(host, port, ssl, key)` 第三参是 SSL 开关——走 Cloudflare 443 需要
 wss。如果实测 futu-api 对 wss 支持有问题，退而求其次用"隧道 TCP 模式"（`cloudflared access tcp`）
@@ -70,3 +73,26 @@ OpenD 有 Linux 命令行版，理论上可打包进部署镜像。不推荐的�
   实际目标 host:port 并区分"本机 OpenD 未开"与"云端无通道"两种场景。
 - 常驻风险提示：路线 A/B 都要求你的电脑 24 小时开机运行 OpenD；电脑关机时云端自动
   回落到备用行情源，属预期降级。
+
+## 本机 OpenD 排障速查（121号，2026-08-15 实况事故归档）
+
+**症状**：OpenD 登录框顶部橙字"设置错误，请检查"，无法登录；`netstat` 查 11111/33333 均无监听；
+后端 server.log 反复出现 `[moomoo] OpenD WebSocket 连接超时`（行情自动回落备源，产品不受影响）。
+
+**根因**：文本鉴权密钥（`MOOMOO_WS_KEY` 的值）被误填进"**WebSocket私钥**"字段——该字段与
+"WebSocket证书"都是 **SSL 文件路径**字段（带"浏览"按钮），填文本会报"请输入正确的密钥格式"/
+"文件不存在"，设置校验不过 → 登录按钮无效 → 所有 API 端口不开。
+
+**修复步骤**（OpenD 图形界面）：
+1. "WebSocket私钥"、"WebSocket证书"两个字段**清空**（placeholder 恢复为"不设置则不加密/不启用SSL"
+   即为清空成功；后端 `futu-api` 以 `ssl=false` 连接，本机回环不需要 SSL）；
+2. 把密钥填到"**WebSocket鉴权密钥**"字段（必须与后端 `.env` 的 `MOOMOO_WS_KEY` 完全一致；
+   留空则 OpenD 每次随机生成，后端固定密钥永远对不上）;
+3. 确认"WebSocket监听地址 127.0.0.1 / WebSocket端口 33333"，点"立即登录"；
+4. 验证：`netstat -ano | findstr 33333` 出现 LISTENING；数分钟内后端日志不再出现连接超时
+   （退避冷却最长 6 小时，可重启后端立即生效）。
+
+**关于"数据订阅清零"**：OpenD 的行情订阅是**会话级**的——退出/重启/重新登录后订阅列表清空是
+moomoo 的正常设计，不是数据丢失。且本系统只调 `RequestHistoryKL`（历史K线）与
+`GetSecuritySnapshot`（快照），**均不占订阅额度**，后端也没有任何 Sub 调用——OpenD 订阅面板
+长期显示 0 属正常状态，无需处理。
