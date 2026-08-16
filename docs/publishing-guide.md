@@ -115,10 +115,11 @@
    token `0405EF11B8BC2CBBF2C6888083DBB7D4` 在 index.html）。
    注："从GSC导入"实测报 we didn't find any sites from GSC——GSC 未先完成验证或账号不一致时导入为空
 
-3. **RapidAPI 上架**（3b，尚未做）：现在 openapi.yaml 已有完整 response schema，导入体验更好
-4. **GPT Store**（3c，尚未做）：Actions 的 Import from URL 直接填
-   `https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml`（不再需要 GitHub raw 链接）
-5. **Smithery 收录确认**（3a-2）：到 https://smithery.ai 搜 stock-sentinel，未收录则手动 Add Server
+3. **RapidAPI 上架**（3b，尚未做）：**全字段粘贴材料见 [listing-materials.md](listing-materials.md) ②**
+4. **GPT Store**（3c，尚未做）：**全字段粘贴材料见 [listing-materials.md](listing-materials.md) ③**；
+   公开发布必填的隐私政策页已上线：`https://stock-sentinel-eight.vercel.app/privacy.html`（2026-08-16）
+5. **Smithery**：✅ 已收录 https://smithery.ai/servers/sdzhuang/stock-sentinel-mcp（82/100，6工具齐全）；
+   ⚠️ Overview 描述是旧框架文案（含已移除的 SMH-SPY 代理）——替换文案见 [listing-materials.md](listing-materials.md) ①
 
 ---
 

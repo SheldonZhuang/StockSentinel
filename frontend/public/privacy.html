@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>隐私政策 Privacy Policy — Stock Sentinel 股哨兵</title>
+<meta name="robots" content="noindex" />
+<style>
+  body { max-width: 760px; margin: 40px auto; padding: 0 20px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; color: #24292f; }
+  h1 { font-size: 1.5em; } h2 { font-size: 1.15em; margin-top: 1.8em; }
+  hr { border: none; border-top: 1px solid #d0d7de; margin: 2.5em 0; }
+  .en { color: #57606a; }
+</style>
+</head>
+<body>
+<h1>隐私政策 / Privacy Policy</h1>
+<p>生效日期 Effective date: 2026-08-16 · Stock Sentinel 股哨兵（stock-sentinel-eight.vercel.app）</p>
+
+<h2>我们收集什么</h2>
+<ul>
+<li><strong>账号信息</strong>：注册时的邮箱地址与密码（密码仅以 bcrypt 哈希存储，我们无法看到原文）。</li>
+<li><strong>使用数据</strong>：API 与网站的调用记录（时间、端点、状态码、归一化 IP），用于配额执行、滥用防护与产品改进；逐次明细最长保留 30 天，按日聚合的配额底账保留 400 天。</li>
+<li><strong>自选股列表与邮件提醒偏好</strong>（若你使用这些功能）。</li>
+</ul>
+
+<h2>我们不做什么</h2>
+<ul>
+<li>不向任何第三方出售或共享你的个人数据。</li>
+<li>不使用广告或跨站跟踪 Cookie；仅用 localStorage 保存你的登录令牌与界面偏好。</li>
+<li>开放 API / MCP / GPT 通道返回的全部是公开市场信号数据，不含任何用户个人信息。</li>
+</ul>
+
+<h2>邮件</h2>
+<p>只有在你开启信号提醒时才会发送邮件（经 Resend 发送），每封邮件都含一键退订链接，退订立即生效。</p>
+
+<h2>数据存储与安全</h2>
+<p>数据存储于 Railway（美国区）托管的数据库，每日加密备份至私有 GitHub 仓库。API 密钥仅存哈希（sha256），签发后无法再次查看。</p>
+
+<h2>你的权利</h2>
+<p>你可以随时要求删除账号及全部关联数据：通过 GitHub 仓库 Issue 联系我们
+（<a href="https://github.com/SheldonZhuang/StockSentinel">github.com/SheldonZhuang/StockSentinel</a>）。</p>
+
+<h2>免责声明</h2>
+<p>所有信号与数据仅供研究参考，不构成投资建议。</p>
+
+<hr />
+
+<div class="en">
+<h2>English Summary</h2>
+<p><strong>What we collect:</strong> account email + bcrypt-hashed password; API/site usage logs
+(timestamp, endpoint, status code, normalized IP — per-call detail kept ≤30 days, daily aggregates
+≤400 days for quota accounting); watchlist and alert preferences if you use them.</p>
+<p><strong>What we don't do:</strong> we never sell or share personal data with third parties;
+no advertising or cross-site tracking cookies (localStorage is used only for your login token and
+UI preferences); the open API / MCP / GPT channels return only public market-signal data and never
+any user personal information.</p>
+<p><strong>Email:</strong> sent only if you enable signal alerts (via Resend); every email contains
+a one-click unsubscribe link that takes effect immediately.</p>
+<p><strong>Storage & security:</strong> data is hosted on Railway (US region) with daily encrypted
+backups to a private GitHub repository; API keys are stored as sha256 hashes only.</p>
+<p><strong>Your rights:</strong> request deletion of your account and all associated data anytime via
+a GitHub issue at <a href="https://github.com/SheldonZhuang/StockSentinel">github.com/SheldonZhuang/StockSentinel</a>.</p>
+<p><strong>Disclaimer:</strong> all signals and data are for research reference only — not investment advice.</p>
+</div>
+</body>
+</html>
