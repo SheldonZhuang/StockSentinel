@@ -52,7 +52,7 @@
 
 ### 3a-2. Smithery（第三方MCP目录，可选加分项）
 
-Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手动加速：
+⚠️ 实测（2026-08-16）：官方 Registry 已收录一个月但 Smithery 未自动聚合（/servers/stock-sentinel-mcp 404）——需手动提交：
 打开 https://smithery.ai → GitHub 登录 → Add Server → 填仓库地址与包名 stock-sentinel-mcp
 
 ### 3b. RapidAPI（API 市场，自带计费系统！）
@@ -60,7 +60,7 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 1. 打开 https://rapidapi.com → Sign Up（GitHub 登录最快）
 2. 右上角头像 → **My APIs** → **Add New API**
 3. 填：API Name `Stock Sentinel — US Stock Attack/Defense Signals`；Category `Finance`；
-   选择 **"Use OpenAPI file"** → 上传仓库里的 `backend/openapi.yaml`（第二步替换域名后的版本）
+   选择 **"Use OpenAPI file"** → 上传 `backend/openapi.yaml`，或直接填 URL `https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml`
 4. 在 **Plans & Pricing** 页配置套餐（RapidAPI 代收钱，你只需绑收款账户）：
    - BASIC 免费：25 请求/日（引流）
    - PRO：如 $9.99/月 1万请求
@@ -106,18 +106,14 @@ Smithery 会聚合官方 Registry，大概率数日内自动收录。若想手�
 | API 自发现 | `https://stocksentinel-production-55ed.up.railway.app/v1/openapi.yaml` | GPT Actions/AI Agent 从 API 宿主直接拿规范；info 内互链网站与 llms.txt |
 | 首页公开只读 | `/` 不再要求登录 | 爬虫可见真实内容（原先只能看到登录页）——收录的前提 |
 
-**你需要做的提交（每项约5分钟，一次性）**：
+**提交清单（2026-08-16 状态核查）**：
 
-1. **Google Search Console**：https://search.google.com/search-console
-   ✅ 验证标签已于 2026-08-15 写入 `frontend/index.html`（token `ua_jbyE7lXeAoWtm9A0lUsN4nc24TyEa3mZuwdGybh0`，
-   公开值非机密）。部署已上线——GSC 里点「验证」，通过后左栏 Sitemaps 提交 `sitemap.xml`
-
-2. **Bing Webmaster Tools**：https://www.bing.com/webmasters
-   ⚠️ 实测（2026-08-16）："从 GSC 导入"报 we didn't find any sites from GSC——前提是 GSC 侧
-   已完成验证且 Bing 授权用同一 Google 账号，任一不满足导入就是空的。已改走手动路径：
-   ✅ HTML Meta Tag 验证标签已于 2026-08-16 写入 `frontend/index.html`
-   （token `0405EF11B8BC2CBBF2C6888083DBB7D4`）。部署上线后在 Bing 点「验证」，
-   通过后提交 `sitemap.xml`
+1. ✅ **Google Search Console 已验证+已提交 sitemap**（2026-08-16）。
+   验证标签在 `frontend/index.html`（token `ua_jbyE7lXeAoWtm9A0lUsN4nc24TyEa3mZuwdGybh0`，公开值）。
+   加速收录：GSC 顶部 URL 检查框输入首页与 /track-record → 「请求编入索引」
+2. ✅ **Bing Webmaster 已验证+已提交 sitemap**（2026-08-16，HTML Meta Tag 法；
+   token `0405EF11B8BC2CBBF2C6888083DBB7D4` 在 index.html）。
+   注："从GSC导入"实测报 we didn't find any sites from GSC——GSC 未先完成验证或账号不一致时导入为空
 
 3. **RapidAPI 上架**（3b，尚未做）：现在 openapi.yaml 已有完整 response schema，导入体验更好
 4. **GPT Store**（3c，尚未做）：Actions 的 Import from URL 直接填
