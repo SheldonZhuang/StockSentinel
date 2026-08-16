@@ -1,5 +1,12 @@
 # 125号:AI生态接入(SEO/GEO)+第九轮审查修复+发布清单 — 2026-08-15 【已完成】
 
+## 125e 三平台上架收官（2026-08-16 下午）
+- [x] RapidAPI 已上架公开：https://rapidapi.com/SheldonZhuang/api/stock-sentinel（Finance/6端点/三档定价 BASIC 25/日·PRO $9.99 万/日·ULTRA $49.99 30万/月；Short+Long Description 按材料包填齐；PRO 配额从默认月口径改为 10,000/日与材料包一致）
+- [x] Smithery 无需手动：下午复查已收录 sdzhuang/stock-sentinel-mcp（82分）且 Overview 已自动聚合新文案，无 SMH-SPY 旧字样（上午 404 判"需手动"系聚合延迟，guide 已更正）
+- [⏸] GPT Store 暂缓：需 ChatGPT Plus，用户拍板等有 Plus 再做（隐私页+全字段材料已备好，listing-materials.md ③）
+- 待观察：RapidAPI 网关转发按 IP 计入后端免费配额（25/日与后端 free 层同量级恰好对齐）；若 PRO/ULTRA 有订阅者，把网关代理密钥在管理后台签发绑定为 pro key（listing-materials.md ② 注）
+
+
 用户目的：让搜索引擎与 AI Agent 找到并调用本项目全部接口工具，提高调用量；全面检查逻辑与代码错误（"推倒重建"经审查实证否决——核心逻辑全部正确，缺陷是局部的）。
 已拍板：首页开放未登录只读（SEO/GEO 最大单变量）；禁用=封禁停发邮件。
 

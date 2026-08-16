@@ -50,12 +50,13 @@
 以后更新版本：改代码 → package.json 与 server.json 版本号同步+1 → npm publish →
 `mcp-publisher login github && mcp-publisher publish`
 
-### 3a-2. Smithery（第三方MCP目录，可选加分项）
+### 3a-2. Smithery（第三方MCP目录，可选加分项）✅ 已收录且描述已自新（2026-08-16）
 
-⚠️ 实测（2026-08-16）：官方 Registry 已收录一个月但 Smithery 未自动聚合（/servers/stock-sentinel-mcp 404）——需手动提交：
-打开 https://smithery.ai → GitHub 登录 → Add Server → 填仓库地址与包名 stock-sentinel-mcp
+时间线：08-16 上午实测 /servers/stock-sentinel-mcp 404 判"未自动聚合"；同日下午复查已收录于
+/servers/sdzhuang/stock-sentinel-mcp（82/100，6工具），且 Overview 已自动聚合 npm 最新描述
+（无 SMH-SPY 旧文案）——聚合有延迟但会到，无需手动提交
 
-### 3b. RapidAPI（API 市场，自带计费系统！）
+### 3b. RapidAPI（API 市场，自带计费系统！）✅ 已上架公开（2026-08-16）
 
 1. 打开 https://rapidapi.com → Sign Up（GitHub 登录最快）
 2. 右上角头像 → **My APIs** → **Add New API**
@@ -67,7 +68,7 @@
    - ULTRA：如 $49.99/月 30万请求
 5. 点 **Make API Public** 上架。RapidAPI 用户调用时平台会转发请求到你的 Railway 域名
 
-### 3c. GPT Store（ChatGPT 生态）
+### 3c. GPT Store（ChatGPT 生态）⏸ 暂缓（需 ChatGPT Plus，用户拍板等有 Plus 再做；材料已备好可随时开工）
 
 前提：ChatGPT Plus 订阅。
 
@@ -115,11 +116,16 @@
    token `0405EF11B8BC2CBBF2C6888083DBB7D4` 在 index.html）。
    注："从GSC导入"实测报 we didn't find any sites from GSC——GSC 未先完成验证或账号不一致时导入为空
 
-3. **RapidAPI 上架**（3b，尚未做）：**全字段粘贴材料见 [listing-materials.md](listing-materials.md) ②**
-4. **GPT Store**（3c，尚未做）：**全字段粘贴材料见 [listing-materials.md](listing-materials.md) ③**；
+3. ✅ **RapidAPI 已上架公开**（2026-08-16）：https://rapidapi.com/SheldonZhuang/api/stock-sentinel
+   Finance 分类 / 6 端点（OpenAPI 导入）/ Base URL 指向 Railway `/v1` / 三档定价
+   BASIC $0（25/日）· PRO $9.99（10,000/日）· ULTRA $49.99（300,000/月）。
+   端到端已验证：网关匿名转发按 IP 走后端免费配额；按 RapidAPI 订阅者区分配额
+   （把网关代理密钥签发绑定为 pro key）留待量起来再做（listing-materials.md ② 注）
+4. ⏸ **GPT Store**（3c，暂缓——需 ChatGPT Plus 账号，用户拍板等有 Plus 再做）：
+   全字段粘贴材料见 [listing-materials.md](listing-materials.md) ③；
    公开发布必填的隐私政策页已上线：`https://stock-sentinel-eight.vercel.app/privacy.html`（2026-08-16）
-5. **Smithery**：✅ 已收录 https://smithery.ai/servers/sdzhuang/stock-sentinel-mcp（82/100，6工具齐全）；
-   ⚠️ Overview 描述是旧框架文案（含已移除的 SMH-SPY 代理）——替换文案见 [listing-materials.md](listing-materials.md) ①
+5. ✅ **Smithery 已收录且描述已自新**：https://smithery.ai/servers/sdzhuang/stock-sentinel-mcp（82/100，6工具齐全）；
+   2026-08-16 实测 Overview 已自动聚合为新框架文案，全页无 SMH-SPY 旧字样——无需手动替换
 
 ---
 
