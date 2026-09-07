@@ -104,3 +104,22 @@ ExecutionTimeLimit=0（不限时）+ RestartCount/RestartInterval（崩溃自拉
 **规则**：任何"泄露/暴露"类安全警告在说出口前，必须完成三查——①`git grep <secret>`（当前
 已跟踪文件）②`git log -S <secret> --all`（全历史）③确认命中文件的 ignore 状态。安全误报
 不是"宁可信其有"的免费保险：它消耗用户信任，还会触发无谓的改历史/换钥操作。
+
+## 2026-09-07（126号第十轮系统性审查）
+
+- **子代理的"高危bug"必须逐条读代码复核再定案**：本轮3条"高危"中2条是误判——行政维度
+  stale 判断"漏了油价护栏"（实际油价事件层两个分支本身都依赖 EPU guardKnown，EPU双缺时
+  就是出不了结论，现有判断自洽）；趋势地板 fail-open"是疏漏"（signal.js 注释明写是设计）。
+  子代理系统性倾向于把**故意的保守设计读成疏漏**。规则：涉及判定链的修复，先找注释/lessons/
+  memory 里有没有"为什么这样设计"的记录，再判 bug；策略取舍类一律交用户拍板不自改。
+- **改判定函数签名时回测引擎是必改项，不是"顺带"**：applyDowngradeHold 新增 pendingCandidate
+  后，run-backtest hyst 与 daily-replay prevSnap 两个状态机若不同步传参，回测会静默跑旧
+  行为——"生产已修、回测未修"的分裂比不修更糟（回测数字失去对生产的验证意义）。规则：
+grep 该函数全部调用点（api/ backtest/ tests/ 三处），状态机字段逐个补齐后才跑基线对比。
+- **回测产物随日历滚动，doc-numbers 红灯先辨"日期滚动"还是"逻辑改变"**：本轮 12.3→12.4%
+  是 08-04→09-07 多算一个月，与代码改动无关；判据是先 `git stash` 跑一遍旧代码看数字是否
+  同样变化，或对照 rawFinal 时间线是否逐位相同。不能因为红灯就回退修复，也不能不辨来源就
+  改文档数字。
+- **Edit 工具在 CRLF+中文混排文件上反复匹配失败时，改用 node 脚本按行号替换**：本轮
+  signal.test.js / run-backtest.js 连续 4 次 Edit 失败，切 node 按 findIndex 定位+slice 替换
+  一次成功。不要在同一处第三次重试 Edit。

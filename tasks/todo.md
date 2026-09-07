@@ -1,3 +1,32 @@
+# 126号:第十轮系统性深度审查 — 2026-09-07 【已完成，commit aa3fe5a 已推送】
+
+用户目的：以"顶级美股投资专家"视角重新审视进攻/防守节点判断项目，找出框架/逻辑/代码错误并修复；顺带查漏推部署与README同步。
+
+## 方法
+- 3路并行只读子代理：①判定逻辑核心链路 ②回测与实盘一致性 ③前后端文案同步+部署配置
+- 子代理报告逐条人工读代码验证——3条"高危bug"中2条证伪为自洽的既有设计（行政stale判断/趋势地板fail-open）
+
+## 审查结论
+- [x] 回测引擎：run-backtest/daily-replay 直接 import 生产 signal.js 判定函数，非手抄；发布滞后建模完整无前视；年化12.4%/回撤-16.2%/召回5/6 与锚点一致（差异=日历滚动）
+- [x] 前后端一致性：threshold-sync 14/14 通过，openapi/README/SKILL/7语言hint/MCP×2 数值无漂移
+- [x] 部署：git status clean、无 ahead 提交、README 已是最新——无遗漏部署项
+- [x] 依赖：15个包有大版本更新（express 5/vite 8/vue-router 5 等），无已知漏洞，与本轮目标无关不动
+
+## 用户拍板维持现状（3处策略取舍，非bug）
+- 趋势地板 SPY 数据缺失 fail-open 不改 fail-safe
+- 货币"暂停=宽松"不改"高位长暂停判 neutral"（实际利率否决器已是独立防线）
+- AI供需三件套失明规则不放宽为"两件套一致也点火"
+
+## 落地修复（2处）
+- [x] applyDowngradeHold：候选档在等待期内切换为另一更宽松档不重置计时器→新增 pendingCandidate，切换即重新计时；落库列 final_downgrade_pending_candidate；**同步回测引擎** run-backtest hyst / daily-replay prevSnap / applyDowngradeHoldWithDays（防生产与回测分裂）
+- [x] FOMC 日历耗尽（>70天无新决议）console.warn → sendOpsAlert 运维邮件（fetch-macro 回传 fomcCalendarStaleWarning）
+- [x] SKILL.md 对外数字同步（12.3→12.4/8.4→8.5，doc-numbers 守卫红→绿）
+- [x] backend 630/630 + frontend 27/27 全绿；推送 origin/main
+
+## 未采纳的子代理建议（留档，均为策略层非bug）
+锁存期动态化 / 油价暴跌EPU护栏放宽到85-90分位 / 财政通胀平减改几何累积 / N2加TTM门槛 / usage分歧每周重复告警 / 日报连续失败≥3天告警 / 月度序列新鲜度预算100→60天。任一采纳都需重跑回测过硬约束，本轮不动。
+
+
 # 125号:AI生态接入(SEO/GEO)+第九轮审查修复+发布清单 — 2026-08-15 【已完成】
 
 ## 125e 三平台上架收官（2026-08-16 下午）
