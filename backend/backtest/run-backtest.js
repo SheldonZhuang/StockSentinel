@@ -196,20 +196,20 @@ export function parseMultplCape(html) {
 
 /**
  * W4a：确认期可参数化的降档迟滞（逻辑与线上 applyDowngradeHold 逐位一致，仅确认天数可覆盖）。
- * 升档/持平即时生效并清空等待；降档需候选档持续满 confirmDays 天。
+ * 升档/持平即时生效并清空等待；降档需候选档持续满 confirmDays 天（126号：候选切换重新计时）。
  * 注意：月度重放的合成日历步长为30天，任何 confirmDays∈(0,30] 都等价于"等1个采样月"——
  * 14天与30天在月度粒度下不可区分，差异只在线上日频运行中体现
- * @returns {{signal: string, pendingSince: string|null}}
+ * @returns {{signal: string, pendingSince: string|null, pendingCandidate: string|null}}
  */
-export function applyDowngradeHoldWithDays(candidate, prevEffective, pendingSince, today, confirmDays) {
+export function applyDowngradeHoldWithDays(candidate, prevEffective, pendingSince, today, confirmDays, pendingCandidate = null) {
   const severity = s => ({ defense: 3, reduce: 2, neutral: 1, attack: 0 })[s] ?? 1;
   if (!prevEffective || severity(candidate) >= severity(prevEffective)) {
-    return { signal: candidate, pendingSince: null };
+    return { signal: candidate, pendingSince: null, pendingCandidate: null };
   }
-  const since = pendingSince || today;
+  const since = (pendingCandidate !== null && pendingCandidate !== candidate) ? today : (pendingSince || today);
   const ageDays = Math.floor((Date.parse(today) - Date.parse(since)) / 86400000);
-  if (ageDays >= confirmDays) return { signal: candidate, pendingSince: null };
-  return { signal: prevEffective, pendingSince: since };
+  if (ageDays >= confirmDays) return { signal: candidate, pendingSince: null, pendingCandidate: null };
+  return { signal: prevEffective, pendingSince: since, pendingCandidate: candidate };
 }
 
 /**
@@ -815,7 +815,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
   // V4 迟滞状态（默认开）：复用线上 applyDowngradeHold（日频，FINAL_DOWNGRADE_CONFIRM_DAYS=30天确认期）。
   // 月度重放按"标准月=30天"合成日历喂入 → 30天确认期 ⇔ 1个标准月等待 ⇔ 评估口径
   // "降档需连续2个月更宽松才生效"。不用真实月末日期：2月只有28天，会让确认期偶尔跨到第3个月，偏离评估口径
-  let hyst = { effective: null, pendingSince: null };
+  let hyst = { effective: null, pendingSince: null, pendingCandidate: null };
   // W4b：当前生效defense是否为锁驱动（锁月刷新；树defense月刷为false；迟滞扛住的月份维持原值）
   let hystLockDriven = false;
   let monthIdx = 0;
@@ -930,11 +930,11 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
       // 锁驱动defense的降档及其余降档（reduce→neutral等）仍走确认期
       const treeDefenseDowngrade = !!variants.hysteresisLockOnly
         && hyst.effective === 'defense' && !hystLockDriven && r.final !== 'defense';
-      const h = treeDefenseDowngrade ? { signal: r.final, pendingSince: null }
+  const h = treeDefenseDowngrade ? { signal: r.final, pendingSince: null, pendingCandidate: null }
         : variants.hysteresisConfirmDays // W4a：确认期覆盖（月度粒度下(0,30]天均等价1个采样月）
-          ? applyDowngradeHoldWithDays(r.final, hyst.effective, hyst.pendingSince, synthToday, variants.hysteresisConfirmDays)
-          : applyDowngradeHold(r.final, hyst.effective, hyst.pendingSince, synthToday);
-      hyst = { effective: h.signal, pendingSince: h.pendingSince };
+  ? applyDowngradeHoldWithDays(r.final, hyst.effective, hyst.pendingSince, synthToday, variants.hysteresisConfirmDays, hyst.pendingCandidate)
+          : applyDowngradeHold(r.final, hyst.effective, hyst.pendingSince, synthToday, hyst.pendingCandidate);
+      hyst = { effective: h.signal, pendingSince: h.pendingSince, pendingCandidate: h.pendingCandidate };
       final = h.signal;
       if (r.final === 'defense') hystLockDriven = !!(r.sahmLockActive || r.reactiveLockActive);
       else if (final !== 'defense') hystLockDriven = false;

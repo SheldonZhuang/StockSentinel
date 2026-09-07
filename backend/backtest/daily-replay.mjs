@@ -284,7 +284,7 @@ export function runDailyReplay(DD, opts = {}) {
   const startIdx = spx.findIndex(b => b.date >= WARMUP_START);
   if (startIdx < 0) throw new Error('SPX 数据不含热身起点之后的bar');
   const records = [];
-  let prevSnap = null; // {date, rate, sahmLockActive, reactiveLockActive, sahmLockSince, reactiveLockSince, final, pendingSince}
+  let prevSnap = null; // {date, rate, sahmLockActive, reactiveLockActive, sahmLockSince, reactiveLockSince, final, pendingSince, pendingCandidate}
 
   // 单调指针（各序列升序）
   let pMts = -1, pPcepi = -1, pSahm = -1, pEpuT = -1;
@@ -396,13 +396,13 @@ export function runDailyReplay(DD, opts = {}) {
     // trendHoldDays 天（V4迟滞的保护价值在趋势线下方的危机中；成本在V型反弹的再入场延迟）；
     // SPX<SMA 或趋势数据缺失时维持线上 30 天不变。升档不受影响（本就即时）
     const hold = (opts.trendHoldDays != null && trendState.spxAboveSma10 === true)
-      ? applyDowngradeHoldWithDays(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today, opts.trendHoldDays)
-      : applyDowngradeHold(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today);
+      ? applyDowngradeHoldWithDays(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today, opts.trendHoldDays, prevSnap?.pendingCandidate ?? null)
+      : applyDowngradeHold(raw, prevSnap?.final ?? null, prevSnap?.pendingSince ?? null, today, prevSnap?.pendingCandidate ?? null);
 
     const rec = {
       date: today, spx: bar.close,
       monetary, fiscal, admin, aiSupply,
-      rawFinal: raw, final: hold.signal, pendingSince: hold.pendingSince,
+      rawFinal: raw, final: hold.signal, pendingSince: hold.pendingSince, pendingCandidate: hold.pendingCandidate,
       sahmLockActive: locks.sahmLockActive, reactiveLockActive: locks.reactiveLockActive,
       sahmLockSince: locks.sahmLockSince, reactiveLockSince: locks.reactiveLockSince,
       metrics: {

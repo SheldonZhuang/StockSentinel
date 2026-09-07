@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-04T09:39:56.506Z",
+  "generatedAt": "2026-09-07T02:51:00.088Z",
   "summary": {
     "spxSource": "Tiingo SPY 总回报（adjClose，含股息复权）",
     "bullRows": [
@@ -109,23 +109,23 @@
       }
     ],
     "overall": {
-      "years": 26.5,
-      "buyHoldTotal": 754.9034244091782,
-      "buyHoldCagr": 8.434300292300767,
+      "years": 26.583333333333332,
+      "buyHoldTotal": 777.8143738445045,
+      "buyHoldCagr": 8.51468207768522,
       "buyHoldMdd": -50.79762751814375,
-      "stratTotal": 2067.220223925862,
-      "stratCagr": 12.308191965149806,
+      "stratTotal": 2125.3005538764605,
+      "stratCagr": 12.379078718733783,
       "stratMdd": -16.22536209616623,
-      "reduceHalfTotal": 681.7195153560313,
-      "reduceHalfCagr": 8.068727073548288,
+      "reduceHalfTotal": 693.4157822243577,
+      "reduceHalfCagr": 8.102819696092233,
       "reduceHalfMdd": -10.552304569934112,
-      "sub2010Years": 16.5,
-      "sub2010StratCagr": 12.969206681466794,
+      "sub2010Years": 16.583333333333332,
+      "sub2010StratCagr": 13.080195015607089,
       "sub2010StratMdd": -16.22536209616623,
-      "sub2010BuyHoldCagr": 14.492274296602602,
+      "sub2010BuyHoldCagr": 14.59704671226405,
       "sub2010BuyHoldMdd": -23.9279868066579
     },
-    "monthsCovered": 319,
+    "monthsCovered": 320,
     "crisisRows": [
       {
         "name": "2000 互联网泡沫",
@@ -225,17 +225,17 @@
       }
     ],
     "avgDefenseRet": -0.7827554049845528,
-    "avgReduceRet": 1.3880275036985583,
+    "avgReduceRet": 1.3950871671710976,
     "avgNonDefenseRet": 0.8793559112112007,
     "defMonths": 76,
-    "reduceMonths": 182,
+    "reduceMonths": 183,
     "nonDefMonths": 60,
     "episodes": 7,
     "falsePositives": 5,
     "dimTight": {
       "monetary": 40,
       "fiscal": 89,
-      "admin": 85,
+      "admin": 87,
       "lockMonths": 61
     }
   },
@@ -10087,7 +10087,7 @@
       "rawFinal": "reduce",
       "metrics": {
         "rate": 3.75,
-        "fiscalPct": -3.415184634751345,
+        "fiscalPct": -3.416120329153527,
         "epuPct": 85.83333333333333,
         "oilPct": -22.597630539710394,
         "sahm": 0.1,
@@ -10104,7 +10104,7 @@
       "spxDate": "2026-07-31",
       "monetary": "loose",
       "fiscal": "neutral",
-      "admin": "neutral",
+      "admin": "tight",
       "aiSupply": "neutral",
       "final": "reduce",
       "sahmLockActive": false,
@@ -10115,16 +10115,47 @@
       "rateDiffBp": 0,
       "rateSignal": "loose",
       "sahmHighStreak": 0,
-      "rawFinal": "neutral",
+      "rawFinal": "reduce",
       "metrics": {
         "rate": 3.75,
-        "fiscalPct": -1.4399639956610644,
-        "epuPct": null,
-        "oilPct": 19.40192743764172,
+        "fiscalPct": -1.443632503918857,
+        "epuPct": 82.5,
+        "oilPct": 22.108843537414955,
         "sahm": 0.07,
         "spxBelowSma10": false,
         "dd52wPct": -1.4002323367925285,
-        "capePct": 94.44444444444444,
+        "capePct": 94.16666666666667,
+        "netLiqPct": null,
+        "cpYoy": null
+      }
+    },
+    {
+      "month": "2026-08",
+      "spx": 767.05,
+      "spxDate": "2026-08-31",
+      "monetary": "loose",
+      "fiscal": "neutral",
+      "admin": "tight",
+      "aiSupply": "neutral",
+      "final": "reduce",
+      "sahmLockActive": false,
+      "reactiveLockActive": false,
+      "reactiveLockDir": null,
+      "sahmLockAge": 0,
+      "reactiveLockAge": 0,
+      "rateDiffBp": 0,
+      "rateSignal": "loose",
+      "sahmHighStreak": 0,
+      "rawFinal": "reduce",
+      "metrics": {
+        "rate": 3.75,
+        "fiscalPct": -0.4107321548249887,
+        "epuPct": 82.5,
+        "oilPct": 1.0097493036211753,
+        "sahm": -0.03,
+        "spxBelowSma10": false,
+        "dd52wPct": -1.3922455905795328,
+        "capePct": 93.61111111111111,
         "netLiqPct": null,
         "cpYoy": null
       }

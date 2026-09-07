@@ -199,15 +199,15 @@ describe('applyDowngradeHold 月度换算（V4：标准月=30天 合成日历 �
     expect(m1.signal).toBe('defense');
     expect(m1.pendingSince).toBe(synth(0));
     const m2 = applyDowngradeHold('reduce', m1.signal, m1.pendingSince, synth(1));
-    expect(m2).toEqual({ signal: 'reduce', pendingSince: null });
+    expect(m2).toEqual({ signal: 'reduce', pendingSince: null, pendingCandidate: null });
   });
   it('确认期内弹回防守 → 等待清零、即时回防（锁强制defense不受迟滞影响）', () => {
     const m1 = applyDowngradeHold('neutral', 'defense', null, synth(0));
     const m2 = applyDowngradeHold('defense', m1.signal, m1.pendingSince, synth(1));
-    expect(m2).toEqual({ signal: 'defense', pendingSince: null });
+    expect(m2).toEqual({ signal: 'defense', pendingSince: null, pendingCandidate: null });
   });
   it('首月无上档 → 直接采用候选档', () => {
-    expect(applyDowngradeHold('reduce', null, null, synth(0))).toEqual({ signal: 'reduce', pendingSince: null });
+    expect(applyDowngradeHold('reduce', null, null, synth(0))).toEqual({ signal: 'reduce', pendingSince: null, pendingCandidate: null });
   });
   it('真实月末日历会因2月28天<30天错过确认（合成日历存在的理由）', () => {
     const m1 = applyDowngradeHold('reduce', 'defense', null, '2001-01-31');
@@ -513,7 +513,7 @@ describe('applyDowngradeHoldWithDays（W4a：确认期参数化，逻辑与线�
     const m1 = applyDowngradeHoldWithDays('reduce', 'defense', null, synth(0), 30);
     expect(m1).toEqual(applyDowngradeHold('reduce', 'defense', null, synth(0)));
     const m2 = applyDowngradeHoldWithDays('reduce', m1.signal, m1.pendingSince, synth(1), 30);
-    expect(m2).toEqual({ signal: 'reduce', pendingSince: null });
+    expect(m2).toEqual({ signal: 'reduce', pendingSince: null, pendingCandidate: null });
   });
   it('confirmDays=14 在月度粒度（30天步长）下与30天等价：仍是第2个标准月生效', () => {
     const m1 = applyDowngradeHoldWithDays('reduce', 'defense', null, synth(0), 14);
@@ -523,7 +523,7 @@ describe('applyDowngradeHoldWithDays（W4a：确认期参数化，逻辑与线�
   });
   it('升档即时生效并清空等待', () => {
     expect(applyDowngradeHoldWithDays('defense', 'reduce', synth(0), synth(1), 14))
-      .toEqual({ signal: 'defense', pendingSince: null });
+      .toEqual({ signal: 'defense', pendingSince: null, pendingCandidate: null });
   });
 });
 

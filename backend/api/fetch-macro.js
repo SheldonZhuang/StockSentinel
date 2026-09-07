@@ -195,7 +195,8 @@ export async function fetchMacroData() {
   // prevRate = 最近一次FOMC决议前的利率（语义与推导见 calcDecisionPrevRate 注释）
   const currentRate = latestValue(rateObs);
   const rateSteps = calcRateSteps(rateObs);
-  const rateDecisionDate = getLastFomcDecisionDate();
+  let fomcCalendarStaleWarning = null;
+  const rateDecisionDate = getLastFomcDecisionDate(undefined, msg => { fomcCalendarStaleWarning = msg; });
   const prevRate = calcDecisionPrevRate({
     currentRate,
     rateSteps,
@@ -280,6 +281,9 @@ export async function fetchMacroData() {
 
     // 议息会议决定日期（利率每日更新，真正的"决定"日以 FOMC 日历为准）
     rateDecisionDate,
+    // 126号：日历耗尽（最近决议距今>70天）时非null，调用方据此发运维告警，
+    // 避免只落 console.warn 无人知晓、货币方向判定静默退化
+    fomcCalendarStaleWarning,
 
     // 资产负债表：H.4.1 每周四发布，对应上周三数据，发布日 = 参考周三 + 1天
     balanceSheetPeriodDate,

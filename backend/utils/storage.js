@@ -115,6 +115,7 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'sahm_lock_since TEXT',
   'reactive_adjustment_lock_since TEXT',
   'final_downgrade_pending_since TEXT',
+  'final_downgrade_pending_candidate TEXT',
   'spx_close REAL',
   'spx_ma10m REAL',
   'spx_above_sma10 INTEGER',
@@ -801,9 +802,10 @@ export async function saveSignalSnapshot(data) {
      credit_spread, credit_spread_percentile, credit_spread_90d_widen_bp, credit_spread_period_date,
      yield_curve_spread, yield_curve_inverted_days, yield_curve_period_date,
      sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
+     final_downgrade_pending_candidate,
      spx_close, spx_ma10m, spx_above_sma10, oil_level_low,
      capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy, monetary_stale, usage_divergence)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -829,6 +831,7 @@ export async function saveSignalSnapshot(data) {
     data.creditSpread, data.creditSpreadPercentile, data.creditSpread90dWidenBp, data.creditSpreadPeriodDate,
     data.yieldCurveSpread, data.yieldCurveInvertedDays, data.yieldCurvePeriodDate,
     data.sahmLockSince, data.reactiveAdjustmentLockSince, data.finalDowngradePendingSince,
+    data.finalDowngradePendingCandidate,
     data.spxClose, data.spxMa10m, data.spxAboveSma10, data.oilLevelLow,
     data.capexQtrYoY, data.capexQtrEnd, data.capexSignal, data.capexQtrPrevQtrYoY,
     data.monetaryStale ? 1 : 0, data.usageDivergence ? 1 : 0,

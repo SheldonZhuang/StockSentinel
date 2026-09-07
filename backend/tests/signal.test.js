@@ -600,40 +600,51 @@ describe('calcLockActive 最短锁存期（V3，2026-07-17采纳）', () => {
   });
 });
 
-describe('applyDowngradeHold 降档迟滞（V4，2026-07-17采纳）', () => {
+describe('applyDowngradeHold 降档迟滞（V4，2026-07-17采纳；126号修复候选切换重新计时）', () => {
   it('升档即时生效并清空等待（锁强制defense不受迟滞影响）', () => {
     expect(applyDowngradeHold('defense', 'reduce', '2026-07-01', '2026-07-10'))
-      .toEqual({ signal: 'defense', pendingSince: null });
+      .toEqual({ signal: 'defense', pendingSince: null, pendingCandidate: null });
   });
 
   it('持平：直接生效，清空等待', () => {
     expect(applyDowngradeHold('reduce', 'reduce', null, '2026-07-10'))
-      .toEqual({ signal: 'reduce', pendingSince: null });
+      .toEqual({ signal: 'reduce', pendingSince: null, pendingCandidate: null });
   });
 
-  it('降档开始等待：沿用上一档，记录起始日', () => {
+  it('降档开始等待：沿用上一档，记录起始日与候选档', () => {
     expect(applyDowngradeHold('reduce', 'defense', null, '2026-07-10'))
-      .toEqual({ signal: 'defense', pendingSince: '2026-07-10' });
+      .toEqual({ signal: 'defense', pendingSince: '2026-07-10', pendingCandidate: 'reduce' });
   });
 
-  it('确认期内（<30天）继续沿用上一档', () => {
-    expect(applyDowngradeHold('reduce', 'defense', '2026-07-01', '2026-07-15'))
-      .toEqual({ signal: 'defense', pendingSince: '2026-07-01' });
+  it('确认期内（<30天）且候选未变：继续沿用上一档', () => {
+    expect(applyDowngradeHold('reduce', 'defense', '2026-07-01', '2026-07-15', 'reduce'))
+      .toEqual({ signal: 'defense', pendingSince: '2026-07-01', pendingCandidate: 'reduce' });
   });
 
-  it('确认期满（≥30天）降档生效（2019-12场景在月度回测中被此机制拦住）', () => {
-    expect(applyDowngradeHold('reduce', 'defense', '2026-06-10', '2026-07-10'))
-      .toEqual({ signal: 'reduce', pendingSince: null });
+  it('确认期满（≥30天）且候选未变：降档生效（2019-12场景在月度回测中被此机制拦住）', () => {
+    expect(applyDowngradeHold('reduce', 'defense', '2026-06-10', '2026-07-10', 'reduce'))
+      .toEqual({ signal: 'reduce', pendingSince: null, pendingCandidate: null });
   });
 
   it('等待期间候选反弹回升档：即时生效并清空等待', () => {
-    expect(applyDowngradeHold('defense', 'defense', '2026-07-01', '2026-07-05'))
-      .toEqual({ signal: 'defense', pendingSince: null });
+    expect(applyDowngradeHold('defense', 'defense', '2026-07-01', '2026-07-05', 'reduce'))
+      .toEqual({ signal: 'defense', pendingSince: null, pendingCandidate: null });
   });
 
-  it('无历史（首次运行）：候选直接生效', () => {
+it('无历史（首次运行）：候选直接生效', () => {
     expect(applyDowngradeHold('neutral', null, null, '2026-07-10'))
-      .toEqual({ signal: 'neutral', pendingSince: null });
+      .toEqual({ signal: 'neutral', pendingSince: null, pendingCandidate: null });
+  });
+
+  it('126号修复：候选档在等待期内换成另一更宽松档（振荡）→ 重新计时，不会凑巧在原计时器满期时刻放行', () => {
+    let hold = applyDowngradeHold('reduce', 'defense', null, '2026-06-10');
+    expect(hold).toEqual({ signal: 'defense', pendingSince: '2026-06-10', pendingCandidate: 'reduce' });
+ hold = applyDowngradeHold('attack', 'defense', hold.pendingSince, '2026-06-30', hold.pendingCandidate);
+    expect(hold).toEqual({ signal: 'defense', pendingSince: '2026-06-30', pendingCandidate: 'attack' });
+    hold = applyDowngradeHold('attack', 'defense', hold.pendingSince, '2026-07-10', hold.pendingCandidate);
+    expect(hold).toEqual({ signal: 'defense', pendingSince: '2026-06-30', pendingCandidate: 'attack' });
+    hold = applyDowngradeHold('attack', 'defense', hold.pendingSince, '2026-07-30', hold.pendingCandidate);
+    expect(hold).toEqual({ signal: 'attack', pendingSince: null, pendingCandidate: null });
   });
 });
 

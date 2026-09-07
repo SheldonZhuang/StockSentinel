@@ -268,6 +268,16 @@ async function runDailyUpdateInner() {
   const today = todayET();
   const prevSnapshot = await getLatestSnapshot();
 
+  // 126号：FOMC 日历耗尽（DECISION_DATES 覆盖不到当前日期附近）此前只 console.warn，
+  // 没人盯日志就会静默失真——升级为运维邮件，提醒补充下一年 DECISION_DATES
+  if (macroData.fomcCalendarStaleWarning) {
+    sendOpsAlert(process.env.ADMIN_EMAIL, {
+      stage: 'FOMC 决议日历可能耗尽（货币方向判定依赖此日历）',
+      error: macroData.fomcCalendarStaleWarning,
+      dataDate: today,
+    }).catch(() => {});
+  }
+
   // FOMC 决议日 FRED 生效滞后窗口（2026-07-30 审查修复，H1）：DFEDTARU 新台阶在决议
   // 次日（叠加发布滞后可达次二日）才出现。这 1-2 天内 calcDecisionPrevRate 会把
   // "决议已开、数据未生效"误判为"按兵不动→宽松"——加息周期每次决议都会产生
@@ -422,11 +432,13 @@ async function runDailyUpdateInner() {
       console.warn(`[cron] snapshot gap of ${gapDays} days — downgrade confirm clock shifted to ${pendingSince}`);
     }
   }
+  const pendingCandidate = prevSnapshot?.final_downgrade_pending_candidate ?? null;
   const hold = applyDowngradeHold(
     rawFinalSignal,
     prevSnapshot?.final_signal ?? null,
     pendingSince,
-    today
+    today,
+    pendingCandidate
   );
   const finalSignal = hold.signal;
 
@@ -536,6 +548,7 @@ async function runDailyUpdateInner() {
     sahmLockSince: locks.sahmLockSince,
     reactiveAdjustmentLockSince: locks.reactiveAdjustmentLockSince,
     finalDowngradePendingSince: hold.pendingSince,
+    finalDowngradePendingCandidate: hold.pendingCandidate,
     spxClose: trendState.spxClose,
     spxMa10m: trendState.spxMa10m,
     spxAboveSma10: trendState.spxAboveSma10 === null ? null : (trendState.spxAboveSma10 ? 1 : 0),

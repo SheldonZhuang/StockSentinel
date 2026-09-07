@@ -126,23 +126,28 @@ export function calcLockActive({ triggerToday, rateDiffBp, currentRate, prevLock
  * @param {string|null} prevEffective - 上一快照的生效档
  * @param {string|null} pendingSince - 降档等待开始日（上一快照），无等待为 null
  * @param {string} today - 'YYYY-MM-DD'
- * @returns {{signal: string, pendingSince: string|null}}
+ * @param {string|null} [pendingCandidate] - 等待中的目标候选档（上一快照）。126号修复：
+ *   候选档在等待期内变化（如 REDUCE↔ATTACK 来回振荡而不回到 prevEffective）必须重新计时，
+ *   否则第30天恰好落在哪个候选值上就直接放行，不是"同一候选档持续满30天"，
+ *   与本函数"候选档持续温和满 FINAL_DOWNGRADE_CONFIRM_DAYS 天才生效"的设计意图不符
+ * @returns {{signal: string, pendingSince: string|null, pendingCandidate: string|null}}
  */
-export function applyDowngradeHold(candidate, prevEffective, pendingSince, today) {
+export function applyDowngradeHold(candidate, prevEffective, pendingSince, today, pendingCandidate = null) {
   const severity = s => ({
     [FINAL_SIGNAL.DEFENSE]: 3, [FINAL_SIGNAL.REDUCE]: 2,
     [FINAL_SIGNAL.NEUTRAL]: 1, [FINAL_SIGNAL.ATTACK]: 0,
   })[s] ?? 1;
 
   if (!prevEffective || severity(candidate) >= severity(prevEffective)) {
-    return { signal: candidate, pendingSince: null }; // 升档/持平即时生效，清空等待
+  return { signal: candidate, pendingSince: null, pendingCandidate: null }; // 升档/持平即时生效，清空等待
   }
-  const since = pendingSince || today;
+  // 候选档与上次等待的目标不同 → 重新计时（同一目标才允许累计天数）
+  const since = (pendingCandidate !== null && pendingCandidate !== candidate) ? today : (pendingSince || today);
   const ageDays = Math.floor((Date.parse(today) - Date.parse(since)) / 86400000);
   if (ageDays >= FINAL_DOWNGRADE_CONFIRM_DAYS) {
-    return { signal: candidate, pendingSince: null }; // 确认期满，降档生效
+    return { signal: candidate, pendingSince: null, pendingCandidate: null }; // 确认期满，降档生效
   }
-  return { signal: prevEffective, pendingSince: since }; // 确认期内沿用上一档
+  return { signal: prevEffective, pendingSince: since, pendingCandidate: candidate }; // 确认期内沿用上一档
 }
 
 /**
