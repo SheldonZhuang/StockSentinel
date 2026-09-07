@@ -2,10 +2,10 @@
 
 ## 126b 收尾批次（2026-09-07 下午，commit 3bd57ba/544ca2e）
 - [x] 2027 FOMC 日历录入 8 次 + 2028-01-26（Fed 2025-09-05 新闻稿，两源交叉核对）+4 条单测
-- [x] 运维邮件通道本机实发 sent:1（replica 实例→ADMIN_EMAIL）；**用户待办：查收件箱/垃圾箱确认**
-- [x] Cloudflare Radar 本机实测出数（28日趋势 −0.75%）；**Railway 侧 token 未核验（CLI 未链接项目）**
+- [x] 运维邮件通道本机实发 sent:1（replica 实例→ADMIN_EMAIL）；用户已确认收到 ✅
+- [x] Cloudflare Radar 本机实测出数（28日趋势 −0.75%）；Railway Variables 已确认含 CLOUDFLARE_API_TOKEN ✅（两实例齐备）
 - [x] 依赖全量升级：express5/vite8/vue-router5/vue-i18n11/yahoo-finance2 v4/node-cron4/resend6/vitest5；backend 634/634、frontend 27/27、vite build 通过；.nvmrc=22
-- [ ] **用户待办：观察 Railway 自动部署（Node22+express5）与 Vercel 构建（vite8 需 Node≥20.19）是否成功**
+- [x] 部署核验：Railway bc60c7fc Active（node 22.23.2/railpack 0.39，cron+日报+备份全跑通）；Vercel 首页/track-record/api 代理/llms.txt 全 200 ✅
 - [⏸] 7 条策略建议不动；GPT Store/RapidAPI pro key 不动
 
 
