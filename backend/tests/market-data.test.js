@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
-vi.mock('yahoo-finance2', () => ({
-  default: { historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() },
-}));
+// yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
+const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() }));
+vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));
 
 import axios from 'axios';
-import yahooFinance from 'yahoo-finance2';
+const yahooFinance = __yfMock;
 import { getDailyCloses, getQuote, clearMarketDataCache } from '../api/market-data.js';
 
 beforeEach(() => {

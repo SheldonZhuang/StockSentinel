@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 
 vi.mock('axios');
-vi.mock('yahoo-finance2', () => ({
-  default: { historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() },
-}));
+// yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
+const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() }));
+vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));
 vi.mock('../utils/storage.js', () => ({
   getProcessedGuidanceAccessions: vi.fn().mockResolvedValue([]),
   saveGuidanceRecord: vi.fn().mockResolvedValue(undefined),

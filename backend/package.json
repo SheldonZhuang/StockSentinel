@@ -9,22 +9,23 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "axios": "1.7.9",
-    "bcryptjs": "^2.4.3",
-    "cors": "2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "4.21.2",
-    "futu-api": "^10.8.6808",
-    "jsonwebtoken": "9.0.2",
-    "node-cron": "3.0.3",
-    "resend": "4.1.2",
-    "sql.js": "^1.12.0",
-    "yahoo-finance2": "2.13.3",
-    "zod": "^4.4.3"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "axios": "^1.20.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "futu-api": "^10.10.7008",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.6.0",
+    "resend": "^6.26.0",
+    "sql.js": "^1.14.2",
+    "yahoo-finance2": "^4.0.2",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
-    "supertest": "^7.0.0",
-    "vitest": "2.1.8"
+    "supertest": "^7.2.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   }
 }
