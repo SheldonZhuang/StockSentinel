@@ -55,7 +55,8 @@ import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import { computeLocks } from './api/locks.js';
 import { initCatchUp, maybeCatchUp } from './utils/catch-up.js';
-import { runFedDecisionRefresh, isFedRefreshCoolingDown } from './utils/fed-refresh.js';
+import { runFedDecisionRefresh, isFedRefreshCoolingDown, checkFedDecisionCoverage } from './utils/fed-refresh.js';
+import { runEventDrivenRefresh } from './utils/event-refresh.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
@@ -159,6 +160,10 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
         // 快照已就地更新 → 重建载荷，让本次响应就带上决议后的方向（而非等下次刷新）
         const rebuilt = await buildSignalPayload();
         if (rebuilt) return res.json(rebuilt);
+      } else if (fr.rateSource !== undefined || fr.reason?.startsWith('rate_source')) {
+        // 127b：没更新时顺便做覆盖检查——决议日却拿不到声明时立刻告警（同一决议日只发一次），
+        // 不必等到 21:00 的每日 cron。checkFedDecisionCoverage 自带去重，重复调用无副作用
+        await checkFedDecisionCoverage({ macroData: fr.macroData, today: fr.today }).catch(() => {});
       }
     } catch (err) {
       console.warn('[fed-refresh] access-triggered refresh failed (non-fatal):', err.message);
@@ -295,6 +300,13 @@ async function runDailyUpdateInner() {
       dataDate: today,
     }).catch(() => {});
   }
+
+  // 127b：决议结果覆盖检查——日历说今天是 FOMC 决议日，却没取到 Fed 声明、FRED 台阶也没落地
+  // （官网改版/改措辞/RSS 不可达都会走到这里），说明正在用过时数据判定方向，必须告警，
+  // 而不是像此前那样只留一行日志。同一决议日只发一次，故放在每日 cron 与看门狗都安全
+  await checkFedDecisionCoverage({ macroData, today }).catch(err => {
+    console.warn('[fed-coverage] check failed (non-fatal):', err.message);
+  });
 
   // FOMC 决议日 FRED 生效滞后窗口（2026-07-30 审查修复，H1）：DFEDTARU 新台阶在决议
   // 次日（叠加发布滞后可达次二日）才出现。这 1-2 天内 calcDecisionPrevRate 会把
@@ -758,20 +770,40 @@ await restoreDatabaseIfMissing()
 // 会用空库初始化内存句柄，随后 restore 落盘的文件被下一次 persist() 整库覆盖
 cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
 
-// FOMC 决议日即时重算（127号，2026-09-17）：Fed 在美东 14:00 发布声明，而每日完整管道在 21:00
-// ——决议当天 14:00-21:00 这 7 小时网页仍显示决议前状态（2026-09-16 实战：加息 25bp 后页面
-// 仍是"3.75% 0.00%（持平）"，用户上午打开页面看到的正是决议前的数字）。
-// 14:05 定点触发（错开整点，且给 Fed 网站与 RSS 的发布留出缓冲）：
-//   - 只在"今天确实有 FOMC 决议"且"今天已有快照"时干活，否则一个请求都不发（见 fed-refresh.js）
-//   - 只重算货币维+锁+档位并就地更新今天这条快照，绝不降档；21:00 完整 cron 照常覆盖
-// 14:05 同时是"决议日"的判定门槛：RSS 里 pubDate 为 18:00 UTC（=14:00 ET）的声明在 14:05 必已可读
+// FOMC 决议日即时重算（127号）+ 事件型指标即时刷新（128号，2026-09-17）
+//
+// 用户原则：参考指标一经公布，网页与决策系统立即更新。落地时按发布节奏分两类：
+//   A 离散事件型（FOMC 决议、08:30 的 BLS/BEA 月度发布、月度财政/半导体产出）→ 即时刷新；
+//   B 连续行情型（WTI/信用利差/收益率曲线/EPU 日频）→ **保持 21:00**，盘中实时化会让
+//     track record 采样点从"固定时点"漂移成"最后一次访问的时刻"，破坏历史可比性与回测口径。
+//     详见 utils/event-refresh.js 文件头。
+//
+// 定点时点选择（美东，全部错开整点以避免与平台其他定时任务撞在同一秒）：
+//   08:35 BLS/BEA 惯例发布时刻是 08:30，留 5 分钟给数据入库
+//   10:05 次级发布/修正，以及 08:35 那次源侧尚未更新的兜底
+//   14:05 FOMC 决议（14:00 发布）；同时兜底当日其它迟到的发布
 const FED_REFRESH_ENABLED = process.env.FED_REFRESH_ENABLED !== '0';
 if (FED_REFRESH_ENABLED) {
-  cron.schedule('5 14 * * *', () => {
+  // 有决议声明时走决议专用路径（含 Fed 声明解析与覆盖检查），无声明时退回通用事件检测
+  const eventSweep = (tag) => {
     runFedDecisionRefresh({ log: console.log })
-      .then(r => { if (r.updated) console.log('[fed-refresh] snapshot updated:', JSON.stringify(r)); })
-      .catch(err => console.warn('[fed-refresh] refresh failed (non-fatal, 21:00 cron will cover):', err.message));
-  }, { timezone: 'America/New_York' });
+      .then(r => {
+        if (r.updated) {
+          console.log(`[event-refresh:${tag}] fed decision applied:`, JSON.stringify(r));
+          return null;
+        }
+        // 无决议 → 通用检测：本月是否有 PCE/失业率/财政支出等新发布
+        return runEventDrivenRefresh({ today: todayET(), label: '事件型指标发布' });
+      })
+      .then(r => {
+        if (r?.updated) console.log(`[event-refresh:${tag}] snapshot updated:`, JSON.stringify(r));
+      })
+      .catch(err => console.warn(`[event-refresh:${tag}] failed (non-fatal, 21:00 cron will cover):`, err.message));
+  };
+  for (const [minute, hour, tag] of [[35, 8, 'morning'], [5, 10, 'late-morning']]) {
+    cron.schedule(`${minute} ${hour} * * *`, () => eventSweep(tag), { timezone: 'America/New_York' });
+  }
+  cron.schedule('5 14 * * *', () => eventSweep('afternoon-fomc'), { timezone: 'America/New_York' });
 }
 
 // 补更新看门狗（118号）：每小时检查快照是否过点未更新（21:00 任务被错过/中途失败时，

@@ -351,6 +351,10 @@ export async function fetchMacroData() {
     // 前端据此在决议当晚就显示正确方向，而不是"持平"；FRED 收录后自动回到 'fred'
     rateSource: fedOverride ? 'fed_statement' : 'fred',
     fedDecisionAction: fedDecision?.action ?? null,
+    // 127b：Fed 官网声明是否成功取到并解析（与下面日历推导的 rateDecisionDate 区分开）。
+    // 覆盖检查需要它来回答"日历说今天该有决议，但我们到底拿到声明没有"
+    fedDecisionSeen: !!fedDecision,
+    fedDecisionDate: fedDecision?.decisionDate ?? null,
     currentBalanceSheet,
     prevBalanceSheet,
     creditSpread,

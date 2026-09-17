@@ -52,3 +52,28 @@ export function getLastFomcDecisionDate(asOfDate = todayET(), onStale = null) {
   }
   return last;
 }
+
+/**
+ * 指定日期是否为 FOMC 决议日（日历内）。
+ *
+ * 用途（127b）：决议日当天若 Fed 声明解析失败（官网改版/措辞变化/网络故障），
+ * 系统会静默退回 FRED——也就是退回"显示持平、方向可能反了"的老问题。日历是独立于
+ * Fed 官网的第二信息源，用它可判定"今天本该有决议结果，但我们没拿到"，据此告警。
+ * 注意：日历可能缺当天的临时会议（加急会议不提前列入日程），故本函数只用于
+ * "日历说今天是决议日"这一侧的判断，反过来（日历说不是 → 一定没有决议）不成立。
+ * @param {string} date - 'YYYY-MM-DD'
+ */
+export function isFomcDecisionDate(date) {
+  return DECISION_DATES.includes(date);
+}
+
+/**
+ * 截至 asOfDate 已过（含当天）的最近一个决议日，与 asOfDate 相差几天。
+ * 供"决议日已过但仍未取到声明"的持续告警使用。
+ * @returns {number|null} 天数差；日历内无早于 asOfDate 的决议日时为 null
+ */
+export function daysSinceLastFomcDecision(asOfDate = todayET()) {
+  const last = getLastFomcDecisionDate(asOfDate);
+  if (!last) return null;
+  return Math.floor((Date.parse(asOfDate) - Date.parse(last)) / 86400000);
+}

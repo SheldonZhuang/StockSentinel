@@ -34,6 +34,9 @@ import {
 import { computeLocks } from '../api/locks.js';
 import { sendOpsAlert } from '../utils/mailer.js';
 import { todayET } from '../utils/datetime.js';
+import { getLastFomcDecisionDate, isFomcDecisionDate } from '../config/fomc-meetings.js';
+import { buildFedCoverageStatus, sendFedCoverageAlert } from './fed-coverage.js';
+import { evaluateEventRefresh, buildSnapshotPatch } from './event-refresh.js';
 
 const SEVERITY = { defense: 3, reduce: 2, neutral: 1, attack: 0 };
 const severity = s => SEVERITY[s] ?? 1;
@@ -48,6 +51,48 @@ const ATTEMPT_COOLDOWN_MS = 10 * 60 * 1000;
 /** 冷却中？（供调用方在 await 之前做零成本短路，避免每次页面加载都等一轮网络往返） */
 export function isFedRefreshCoolingDown() {
   return Date.now() - lastAttemptMs < ATTEMPT_COOLDOWN_MS;
+}
+
+/**
+ * 决议结果覆盖检查（127b）：日历说今天是 FOMC 决议日，但我们既没取到 Fed 声明、
+ * FRED 台阶也没落地 → 正在用过时数据判定方向，必须告警。
+ *
+ * 为什么需要它：解析靠固定句式，Fed 改版/改措辞、RSS 不可达都会让解析返回 null，
+ * 系统静默退回 FRED（即"显示持平、方向可能反了"的老问题），而唯一的痕迹是一行日志。
+ * 判据用两个独立源交叉：日历（该有决议）+ 官网（是否真拿到），缺一不发信避免噪声。
+ *
+ * 调用点：每日 cron（21:00，完整管道跑完后）与决议日即时重算。同一决议日只发一次。
+ * @param {object} p
+ * @param {object} p.macroData - fetchMacroData 的返回
+ * @param {string} [p.today]
+ * @param {object} [p.deps] - { alert, adminEmail }
+ * @returns {Promise<{alerted:boolean, status:object}>}
+ */
+export async function checkFedDecisionCoverage({ macroData, today = todayET(), deps = {} } = {}) {
+  const alert = deps.alert || sendOpsAlert;
+  const adminEmail = deps.adminEmail !== undefined ? deps.adminEmail : process.env.ADMIN_EMAIL;
+  const isDecisionDate = isFomcDecisionDate(today)
+    // 兜底：日历漏了当天（临时会议不提前列入日程）时，用"声明本身的决议日就是今天"补判
+    || macroData?.fedDecisionDate === today
+    // 再兜底：日历推导的最近决议日就是今天（覆盖 calendar 与声明日期口径不一致的情况）
+    || getLastFomcDecisionDate(today) === today;
+
+  const status = buildFedCoverageStatus({
+    today,
+    isDecisionDate,
+    gotStatement: !!macroData?.fedDecisionSeen,
+    rateSource: macroData?.rateSource || 'fred',
+    rateDecisionDate: macroData?.fedDecisionDate ?? macroData?.rateDecisionDate ?? null,
+    lastRateStepDate: macroData?.rateSteps?.[0]?.date ?? null,
+    fedStatementDate: macroData?.fedDecisionDate ?? null,
+  });
+
+  if (!status.alert) return { alerted: false, status };
+  const alerted = await sendFedCoverageAlert({ status, today, sendAlert: alert, adminEmail });
+  // 未发出只可能是"无管理员邮箱"或"同一决议日已发过"，两者都不是故障，记一行日志即可
+  // （真正的发送失败已在 sendFedCoverageAlert 内部 warn 并撤回去重标记）
+  if (!alerted) console.log(`[fed-coverage] coverage gap noted (not re-sent): ${status.stage}`);
+  return { alerted, status };
 }
 
 /**
@@ -86,7 +131,7 @@ export async function runFedDecisionRefresh({
   // 只有 Fed 源确实顶替了 FRED（决议已发布而序列尚未更新）才继续——
   // 否则说明 FRED 已是权威（或本次根本没读到决议），交给 21:00 完整 cron，避免无谓重算
   if (macroData.rateSource !== 'fed_statement') {
-    return { updated: false, reason: `rate_source_${macroData.rateSource}` };
+    return { updated: false, reason: `rate_source_${macroData.rateSource}`, macroData, today };
   }
   // 决议日必须落在"最新快照日 ≤ 决议日 ≤ 今天"区间内：
   //   早于快照日 → 该决议已被完整的每日管道计入，无需（也不应）再改写；
@@ -96,73 +141,40 @@ export async function runFedDecisionRefresh({
   // 本模块不参与改写历史快照（track record 不可篡改）
   const snapDate = snapshot.date;
   if (!(macroData.rateDecisionDate >= snapDate && macroData.rateDecisionDate <= today)) {
-    return { updated: false, reason: `decision_out_of_range (${macroData.rateDecisionDate} vs snapshot ${snapDate})` };
+    return { updated: false, reason: `decision_out_of_range (${macroData.rateDecisionDate} vs snapshot ${snapDate})`, macroData, today };
   }
   // 只在决议"新鲜"时改写（近 7 天内），避免历史决议因 FRED 长期异常而被反复重算
   const ageDays = Math.floor((Date.parse(today) - Date.parse(macroData.rateDecisionDate)) / 86400000);
-  if (ageDays > 7) return { updated: false, reason: `decision_too_old (${ageDays}d)` };
+  if (ageDays > 7) return { updated: false, reason: `decision_too_old (${ageDays}d)`, macroData, today };
 
   const overrides = await getOverrides();
-  // 货币维无手动覆盖通道（管理面板只提供财政/行政/AI供需/两把锁/capex指引），故直接自动判定
-  const monetary = calcMonetarySignal(macroData);
-  const locks = computeLocks(macroData, snapshot, overrides, today);
-
-  // 其余三维沿用快照生效值（本模块不重算它们：政策/财政/产业链在 14:00 无新增输入，
-  // 重算只会引入与 21:00 不一致的口径风险）
-  const fiscal = snapshot.fiscal_auto_signal || snapshot.fiscal_signal;
-  const admin = snapshot.admin_auto_signal || snapshot.admin_signal;
-  const aiSupply = snapshot.ai_supply_auto_signal || snapshot.ai_supply_signal;
-
-  const treeSignal = applyRealRateVeto(
-    applyCreditSpreadVeto(
-      applyYieldCurveVeto(
-        calcFinalSignal(aiSupply, monetary, fiscal, admin),
-        snapshot.yield_curve_inverted_days ?? null
-      ),
-      snapshot.credit_spread_90d_widen_bp ?? null
-    ),
-    macroData.currentRate, macroData.trimmedPce12m
-  );
-  const lockActiveNow = locks.sahmLockActive || locks.reactiveAdjustmentLockActive;
-  const spxAboveSma10 = snapshot.spx_above_sma10 == null ? null : !!snapshot.spx_above_sma10;
-  const candidate = applyTrendFloor(
-    applyTrendReentry(lockActiveNow ? 'defense' : treeSignal, {
-      sahmLockActive: locks.sahmLockActive,
-      reactiveLockActive: locks.reactiveAdjustmentLockActive,
-      spxAboveSma10,
-    }),
-    spxAboveSma10
-  );
-  // 降档守卫：重算结果比快照生效档更宽松 → 保持原档（等待 21:00 完整 cron 的结论）。
-  // 升档/持平则照常走迟滞（升档即时生效）
-  const prevEffective = snapshot.final_signal || null;
-  if (prevEffective && severity(candidate) < severity(prevEffective)) {
-    return { updated: false, reason: `would_ease (${candidate} < ${prevEffective})` };
+  // 走通用事件引擎（128号）：决议只影响货币维，其余维度沿用快照生效值。
+  // 引擎内已含"降档守卫/无变化不写库/只 UPDATE 不 INSERT"三条不变量，
+  // 与财政等其他事件型指标共用同一实现，避免两套判定链漂移
+  const evaluation = evaluateEventRefresh({
+    macroData,
+    policyData: null,                       // 决议不涉及财政维
+    snapshot,
+    overrides,
+    today,
+    dimensions: ['monetary'],
+    changedInputs: [{ key: 'rate_decision_date', label: `FOMC 决议（${macroData.fedDecisionAction}）` }],
+  });
+  if (!evaluation.apply) {
+    return { updated: false, reason: evaluation.reason, macroData, today };
   }
-  const hold = applyDowngradeHold(
-    candidate, prevEffective,
-    snapshot.final_downgrade_pending_since, today,
-    snapshot.final_downgrade_pending_candidate
-  );
-  const finalSignal = hold.signal;
-  if (finalSignal === prevEffective && monetary === snapshot.monetary_signal) {
-    return { updated: false, reason: 'no_change' };
-  }
+  const finalSignal = evaluation.finalSignal;
+  const monetary = evaluation.monetary;
+  const prevEffective = snapshot.final_signal;
 
   // 就地更新今天这条快照：只写货币维/利率组/锁/最终档位，其余字段原样保留——
   // 决议日 14:00 的重算不得覆盖 21:00 采样点的其余（收盘价/产业链/财报）字段语义
   const written = await updateFields(snapshot.id, {
-    monetary_signal: monetary,
-    final_signal: finalSignal,
+    ...buildSnapshotPatch(evaluation, macroData),
     fred_rate: macroData.currentRate,
     fred_rate_prev: macroData.prevRate,
     rate_source: macroData.rateSource,
     rate_decision_date: macroData.rateDecisionDate,
-    sahm_lock_active: locks.sahmLockActive ? 1 : 0,
-    reactive_adjustment_lock_active: locks.reactiveAdjustmentLockActive ? 1 : 0,
-    reactive_adjustment_lock_trigger_bp: locks.reactiveAdjustmentLockTriggerBp,
-    final_downgrade_pending_since: hold.pendingSince,
-    final_downgrade_pending_candidate: hold.pendingCandidate,
   });
   if (!written) return { updated: false, reason: 'patch_rejected' };
 
