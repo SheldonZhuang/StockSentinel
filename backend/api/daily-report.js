@@ -10,14 +10,19 @@ const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3-0324';
 
 const SIGNAL_CN = { attack: '进攻', neutral: '观望', reduce: '减仓观望', defense: '防守', loose: '宽松', tight: '收紧' };
 
-function buildFacts(payload) {
+// 导出供单测锁定格式（127号：货币行必须带取值来源，否则 LLM 会把"Fed 声明值"
+// 误当成"FRED 序列值"，在"距进攻还差什么"的解读里给出错误的时效性判断）
+export function buildFacts(payload) {
   const i = payload.indicators || {};
   const fmt = (v, d = 1) => (v === null || v === undefined ? '无数据' : Number(v).toFixed(d));
   return [
     `最终信号: ${SIGNAL_CN[payload.finalSignal] || payload.finalSignal}`,
     `四维: AI供需=${SIGNAL_CN[payload.aiSupplySignal]}，货币=${SIGNAL_CN[payload.monetarySignal]}，财政=${SIGNAL_CN[payload.fiscalSignal]}，行政=${SIGNAL_CN[payload.adminSignal]}`,
     `AI供需: 模型调用量趋势${fmt(i.modelUsageTrendPct)}%，云厂商capex滚动4季同比${fmt(i.capexYoY)}%${i.capexQtrYoY != null ? `（最新单季${i.capexQtrEnd || ''}同比${fmt(i.capexQtrYoY)}%，单季先于TTM反映拐点）` : ''}，半导体产出同比${fmt(i.semiIpYoy)}%${i.aiBubbleWarning ? '，⚠️泡沫预警触发' : ''}`,
-    `货币: 联邦基金利率${fmt(i.rate, 2)}%，资产负债表状态=${i.balanceSheetStatus || '无数据'}，萨姆值${fmt(i.sahmValue, 2)}${i.sahmLockActive ? '（萨姆锁激活）' : ''}${i.reactiveAdjustmentLockActive ? '（应对式调整锁激活）' : ''}`,
+    // 127号：货币行须带取值来源与决议日——决议当晚利率取自 Fed 官方声明（FRED 日更序列
+    // 要到次一工作日才有新台阶），不带这个标注时 LLM 会把"声明值"误读成"序列值"，
+    // 进而在"距进攻还差什么"的解读里给出错误的时效性判断
+    `货币: 联邦基金利率${fmt(i.rate, 2)}%${i.ratePrev != null ? `（上次决议前${fmt(i.ratePrev, 2)}%，本次${Number(i.rate) - Number(i.ratePrev) > 0 ? '加息' : Number(i.rate) - Number(i.ratePrev) < 0 ? '降息' : '按兵不动'}）` : ''}${i.rateSource === 'fed_statement' ? '【取自Fed官方声明，FRED序列尚未更新】' : ''}${i.rateDecisionDate ? `（决议日${i.rateDecisionDate}）` : ''}，资产负债表状态=${i.balanceSheetStatus || '无数据'}，萨姆值${fmt(i.sahmValue, 2)}${i.sahmLockActive ? '（萨姆锁激活）' : ''}${i.reactiveAdjustmentLockActive ? '（应对式调整锁激活）' : ''}`,
     `财政: 联邦支出TTM同比${fmt(i.fiscalOutlaysChangePct)}%`,
     `行政: WTI 30天${fmt(i.oilChange30dPct)}%（${i.oilSource || '无数据'}），日频EPU百分位${fmt(i.epuDailyPercentile, 0)}，贸易EPU百分位${fmt(i.epuTradePercentile, 0)}`,
     `判定规则: 进攻(非对称)=AI供需宽松+货币/财政/行政均不收紧(中性即可)+无锁+三否决器均未触发(①曲线:10y−3m近63个交易日中倒挂≥51天;②信用利差:Baa−10y 90日走阔≥+60bp;③实际利率:政策利率−12M截尾PCE≥1.5%——任一触发降为观望)；仅单维收紧=减仓观望；双维以上收紧或锁激活=全面防守(纯货币+财政共振只到减仓；上升趋势中树驱动与萨姆锁驱动的防守降级为减仓；趋势地板:跌破10月SMA时最终档位至少减仓观望)`,
