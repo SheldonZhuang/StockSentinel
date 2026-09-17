@@ -1,7 +1,9 @@
 # Stock Sentinel 股哨兵
 
 > US-market attack/defense signal system driven by four data dimensions (AI supply-demand,
-> monetary, fiscal, administrative policy), updated daily at 21:00 US Eastern, with a public
+> monetary, fiscal, administrative policy), updated daily at 21:00 US Eastern — with event-driven
+> inputs landing the same day they are published (FOMC decisions read from the Fed's own 14:00 ET
+> statement; 08:30 BLS/BEA monthly releases picked up by intraday sweeps) — with a public
 > tamper-evident track record and full historical backtest. All output is research reference
 > only — never investment advice. 仅供研究参考，不构成投资建议。
 

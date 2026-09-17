@@ -48,7 +48,11 @@ for US equities?
 • 4 output tiers: attack / watch / reduce / defense. Attack uses asymmetric AND logic with
   three veto gates (yield-curve inversion, credit-spread widening, real rates); defense
   fires on OR logic with recession locks (Sahm rule, ±50bp reactive moves).
-• Updated daily at 21:00 US Eastern after earnings and closing prices land.
+• Updated daily at 21:00 US Eastern after earnings and closing prices land. Event-driven
+  inputs land the same day they are published: FOMC decisions are read from the Fed's own
+  statement at 14:00 ET (no wait for the next-day FRED series), and 08:30 BLS/BEA monthly
+  releases (unemployment, Sahm, PCE, federal outlays, semiconductor output) are picked up
+  by intraday sweeps at 08:35 / 10:05 / 14:05 ET.
 • Verifiable: 26-year monthly backtest covering 6 crises, plus a public tamper-evident
   daily track record at https://stock-sentinel-eight.vercel.app/track-record
 • 6 endpoints: current signal, signal history, AI-chain bottleneck ranking, stock price
