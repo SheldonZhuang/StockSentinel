@@ -2,7 +2,8 @@ import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { deriveBalanceSheetStatus } from './signal.js';
 import { getLastFomcDecisionDate } from '../config/fomc-meetings.js';
-import { daysAgoET } from '../utils/datetime.js';
+import { fetchLatestFedDecision } from './fetch-fed-rate.js';
+import { daysAgoET, todayET } from '../utils/datetime.js';
 
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 const { FRED_SERIES, RATE_LOOKBACK_DAYS, BALANCE_SHEET_LOOKBACK_DAYS, BALANCE_SHEET_WINDOW_DAYS } = cfg;
@@ -153,6 +154,75 @@ export function calcRateSteps(observations) {
 }
 
 /**
+ * 决议结果三级取值（127号，2026-09-17）：Fed 声明（决议当日 14:00 ET，权威且即时）
+ * 优先于 FRED 日更序列（决议次日才见新台阶）。
+ *
+ * 背景：9/16 加息 25bp，当晚 21:00 快照的 FRED 值仍是 3.75，加旧的 decisionDataPending 护栏
+ * 只是"沿用上一快照基线"，结果是 currentRate=prevRate=3.75 → 判「暂停→宽松」——方向完全反了，
+ * 且网页显示「持平」。护栏只防住了"误报宽松"，防不住"显示与方向都错"。
+ *
+ * 覆盖规则：Fed 已发布且 FRED 尚未收录该台阶 → 用声明区间顶替 currentRate/prevRate，
+ * 并注入一条合成台阶（生效日=决议次一工作日），使应对式锁（|Δ|≥50bp）与
+ * stepsSince 扫描在决议当晚即能看到真实变动。
+ * FRED 收录后（台阶日 ≥ 生效日）本覆盖自动失效，退回纯序列口径——两者此时数值相同，无跳变。
+ *
+ * 不变量：仅当声明的生效日 ≤ 今天时才顶替（绝不把未来台阶提前计入，与"绝不提前跑"同向）；
+ * 任何解析/网络失败都返回 null，判定链退回原有 FRED 逻辑（新源绝不是单点故障）。
+ * @returns {object|null}
+ */
+export function applyFedDecisionOverride({ macroData, fedDecision, today }) {
+  if (!fedDecision) return null;
+  const { action, lower, upper, effectiveDate, decisionDate } = fedDecision;
+  const lastStepDate = macroData.rateSteps?.[0]?.date ?? null;
+  // FRED 已收录该台阶 → 序列即权威，无需顶替（此时两者数值一致，切换无跳变）
+  if (lastStepDate && effectiveDate && lastStepDate >= effectiveDate) return null;
+  // 生效日未到（决议日当天 ET 21:00 快照时点晚于次一工作日？否——当晚仍未生效）：
+  // 方向按"决议已作出"即时生效（与既有 calcDecisionPrevRate 语义一致，方向不等待门槛），
+  // 但仅限声明发布日不晚于今天，杜绝读到未来声明（RSS 时钟偏差/预发布）
+  if (!decisionDate || decisionDate > today) return null;
+
+  if (action === 'maintain') {
+    // 按兵不动：区间未变。FRED 现值通常已等于区间上限（3.75=3.75）→ 序列口径本就是"暂停"，
+    // 无需顶替；仅当 FRED 现值缺失（空观测）时用声明区间兜底，避免货币维静默转 neutral
+    if (macroData.currentRate != null) return null;
+    return {
+      currentRate: upper, prevRate: upper, rateSteps: macroData.rateSteps,
+      decisionDate, stepBp: 0, rateSource: 'fed_statement',
+    };
+  }
+
+  // 真实幅度 = 声明区间相对 FRED 上一档的位移。不可用"声明措辞"推断幅度：
+  // Fed 常写 "by 1/4 percentage point"，但也可能一次 50bp（危机应对），必须用数值差。
+  // FRED 上一档（prevRate，= 最近一次决议前的水平）或序列现值二者中取"离新区间更近的旧水平"：
+  // 决议当日 FRED 现值仍是旧区间上限（3.75），prevRate 也是 3.75 → 位移 25bp；
+  // 若同一快照内 FRED 已部分更新（边界情况），取能给出非零位移的那个
+  const priorUpper = macroData.currentRate;
+  const stepBp = priorUpper === null || priorUpper === undefined || Math.abs(upper - priorUpper) < 0.001
+    ? (macroData.prevRate !== null && macroData.prevRate !== undefined
+        ? Math.round((upper - macroData.prevRate) * 100) : null)
+    : Math.round((upper - priorUpper) * 100);
+
+  const existingSteps = macroData.rateSteps || [];
+  const syntheticStep = stepBp === null ? null : { date: effectiveDate, diffBp: stepBp, source: 'fed_statement' };
+  // prevRate 与 stepBp 必须同源：deriveSubSignals 用 (currentRate−prevRate) 判方向，
+  // 锁状态机用 stepBp 判幅度。若 prevRate 直接取区间下界而幅度按"旧上限"算，两者会不一致
+  // （例如 FRED 现值缺失但声明区间已下移 50bp 时，下界给 -25bp、幅度给 -50bp）。
+  // 统一口径：prevRate = 新区间上限 − 本次位移，两者恒定一致
+  const prevRateConsistent = stepBp === null ? lower : upper - stepBp / 100;
+  return {
+    currentRate: upper,
+    prevRate: prevRateConsistent,
+    rangeLower: lower,
+    // 合成台阶置于序列台阶之前（rateSteps 为降序）：锁状态机的 stepsSince 扫描按日期过滤，
+    // 生效日=次一工作日，仍落在"上次快照日 < 台阶日 ≤ 今天"窗口内
+    rateSteps: syntheticStep ? [syntheticStep, ...existingSteps] : existingSteps,
+    decisionDate,
+    stepBp,
+    rateSource: 'fed_statement',
+  };
+}
+
+/**
  * 拉取所有 FRED 指标，返回结构化对象
  * @returns {object} macroData
  */
@@ -203,6 +273,25 @@ export async function fetchMacroData() {
     prevDistinct: prevDistinctValue(rateObs),
     decisionDate: rateDecisionDate,
   });
+  // Fed 官方声明覆盖（127号）：FRED 日更序列在决议次日才见新台阶，决议当晚用声明值顶替。
+  // 放在 calcDecisionPrevRate 之后：声明只覆盖"最后一档"的语义，不改变该函数对
+  // "最近决议前水平"的推导（它仍需纯序列台阶来判断历史）
+  // FED_SOURCE_DISABLED=1 关掉外部源：单测默认关闭，避免测试依赖 Fed 官网可用性
+  // （网络慢/改版会让单测随机失败），也便于线上应急关闭该源
+  const fedDecision = process.env.FED_SOURCE_DISABLED === '1'
+    ? null
+    : await fetchLatestFedDecision({ today: todayET() }).catch(() => null);
+  const fedOverride = applyFedDecisionOverride({
+    macroData: { currentRate, prevRate, rateSteps },
+    fedDecision,
+    today: todayET(),
+  });
+  if (fedOverride) {
+    console.log(`[fetch-macro] Fed statement override: ${fedOverride.rateSource} ${fedDecision.decisionDate} ${fedDecision.action} → ${fedOverride.currentRate}% (FRED not yet updated)`);
+  }
+  const rateStepsEff = fedOverride?.rateSteps ?? rateSteps;
+  const currentRateEff = fedOverride?.currentRate ?? currentRate;
+  const prevRateEff = fedOverride?.prevRate ?? prevRate;
   const corePcePeriodDate = latestDate(corePceObs);
   const trimmedPce1mPeriodDate = latestDate(trimmedPce1mObs);
   const trimmedPcePeriodDate = latestDate(trimmedPceObs);
@@ -255,9 +344,13 @@ export async function fetchMacroData() {
   const yieldCurvePeriodDate = curveValid.length ? curveValid[0].date : null;
 
   return {
-    currentRate,
-    prevRate,
-    rateSteps,
+    currentRate: currentRateEff,
+    prevRate: prevRateEff,
+    rateSteps: rateStepsEff,
+    // 利率取值的来源（'fed_statement' = 决议当日用 Fed 声明顶替了尚未更新的 FRED 序列）：
+    // 前端据此在决议当晚就显示正确方向，而不是"持平"；FRED 收录后自动回到 'fred'
+    rateSource: fedOverride ? 'fed_statement' : 'fred',
+    fedDecisionAction: fedDecision?.action ?? null,
     currentBalanceSheet,
     prevBalanceSheet,
     creditSpread,

@@ -108,6 +108,9 @@ async function loadSignal() {
     // 后端无快照时返回 {status:'loading'}（HTTP 200），视同加载中，否则维度卡会渲染出 undefined 的 i18n key
     signal.value = res?.finalSignal ? res : null;
     if (res?.catchUp) startCatchUpPolling();
+    // 决议日即时重算（127号）：FOMC 决议当天后端会同步读 Fed 声明，并在响应前重建载荷，
+    // 故本次响应已是决议后的方向，前端无需额外轮询——rateSource 仅用于说明取值来源
+    // （'fed_statement' = 决议声明，'fred' = 日更序列）
   } catch (e) {
     console.error('Failed to load signal', e);
     signalError.value = true;

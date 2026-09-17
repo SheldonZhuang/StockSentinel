@@ -1,3 +1,31 @@
+# 127号: FOMC 决议当天即时生效（Fed 官方声明源） — 2026-09-17 【已完成】
+
+用户报告：美联储已公布加息数小时，网页未更新。目标：决策一旦公布，网页与决策系统同步反映。
+
+## 根因（证据链）
+- 现象：页面显示「联邦基金利率 3.75%，0.00%（持平）」，议息决定日期 2026年9月16日
+- 数据库实况：id=199 快照（date=2026-09-16，21:00 cron 产物）monetary=loose、fred_rate=3.75、fred_rate_prev=3.75
+- 日志实况：`[cron] FOMC decision 2026-09-16 not yet in FRED series, keeping previous rate baseline`
+- 根因三层：
+  1. **FRED 日更滞后**：DFEDTARU 决议当天（含当日 21:00）仍是旧区间 3.75-4.00 未变，新台阶要到次一工作日才入库（对应 Fed 声明 nextBusinessDay）
+  2. **旧护栏只防"误报宽松"，不防"方向错"**：decisionDataPending 沿用上一快照基线 → currentRate=prevRate=3.75 → deriveSubSignals 判 rateDiffBp=0 → 「暂停→宽松」→ 货币维 loose（方向完全反了）
+  3. **无 14:00 更新时点**：完整管道只在 21:00，决议日 14:00-21:00 这 7 小时（最需要信息的时段）页面停留在决议前状态
+
+## 落地
+- [x] `backend/api/fetch-fed-rate.js`（新）：Fed 货币政策 RSS 发现声明 → 抓正文 → 解析动词与目标区间（支持 "3-3/4" 分数写法、"by 1/4 percentage point" 幅度措辞）；任何失败返回 null 退回 FRED
+- [x] `backend/api/fetch-macro.js`：新增 `applyFedDecisionOverride`——Fed 已发布而 FRED 未收录台阶时顶替 currentRate/prevRate 并注入合成台阶（生效日=次一工作日）；prevRate 与 stepBp 强制同源；FED_SOURCE_DISABLED=1 可关
+- [x] `backend/utils/fed-refresh.js`（新）：决议日即时重算货币维+锁+档位并**就地 UPDATE** 当天快照（绝不 INSERT 新快照）；**降档守卫**（只允许升档/维持）；10 分钟冷却 + 依赖注入便于测试
+- [x] `backend/server.js`：14:05 ET 定点 cron + 每小时看门狗兜底 + /api/signal 访问触发（await 并重建载荷，本次响应即带决议后方向）
+- [x] `backend/utils/storage.js`：新列 `rate_source` + `updateSnapshotFields`（列白名单，防写错列静默丢字段）；**顺带修掉线上真实 bug：INSERT 列数 95 vs 占位符 96 → "96 values for 95 columns"，导致决议后第一次完整 cron 落库失败**
+- [x] `backend/api/payloads.js`：暴露 `rateSource`
+- [x] 七语言 hint + README + openapi.yaml + SKILL.md 同步（决议当天 14:00 后即生效）
+- [x] 测试：`fetch-fed-rate.test.js` 27 项（含 2026-09-16 加息声明真实正文回归）+ `fed-refresh.test.js` 10 项（降档守卫/只 UPDATE/失败降级/冷却）；backend 671/671、frontend 27/27、vite build 通过
+- [x] 线上修正：id=199 与 id=200 快照已就地修正为 rate=4/3.75、source=fed_statement、monetary=tight；/api/signal 与 /v1/signal 实测「4% 上升、tight」
+
+## 未做 / 待观察
+- [ ] 21:00 完整 cron 与 FRED 台阶落地后的一致性（FRED 收录 2026-09-17 台阶后应自动切回 rate_source=fred，无跳变）
+- [ ] 回测引擎（run-backtest/daily-replay）**不同步**本改动：历史回放无 Fed 声明源且回测按月采样，属有意为之，非漏改
+
 # 126号:第十轮系统性深度审查 — 2026-09-07 【已完成，commit aa3fe5a 已推送】
 
 ## 126b 收尾批次（2026-09-07 下午，commit 3bd57ba/544ca2e）

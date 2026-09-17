@@ -126,6 +126,7 @@ const SIGNAL_SNAPSHOT_NEW_COLUMNS = [
   'capex_qtr_prev_qtr_yoy REAL',
   'monetary_stale INTEGER',
   'usage_divergence INTEGER', // 120号②：调用量单独收紧但capex/半导体无佐证（OpenRouter份额漂移嫌疑，告警去重用）
+  'rate_source TEXT',         // 127号：利率取值来源 fred|fed_statement（决议当日 Fed 声明顶替尚未更新的 FRED 序列）
 ];
 
 // ai_chain_snapshots 的增量列（与 signal_snapshots 同机制：CREATE TABLE 管新库，ALTER 管存量库）
@@ -804,8 +805,9 @@ export async function saveSignalSnapshot(data) {
      sahm_lock_since, reactive_adjustment_lock_since, final_downgrade_pending_since,
      final_downgrade_pending_candidate,
      spx_close, spx_ma10m, spx_above_sma10, oil_level_low,
-     capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy, monetary_stale, usage_divergence)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     capex_qtr_yoy, capex_qtr_end, capex_signal, capex_qtr_prev_qtr_yoy, monetary_stale, usage_divergence,
+     rate_source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     data.date, data.monetarySignal, data.fiscalSignal, data.adminSignal, data.aiSupplySignal || 'neutral', data.finalSignal,
     data.fredRate, data.fredRatePrev, data.fredBalanceSheet, data.fredBalanceSheetPrev,
@@ -835,12 +837,38 @@ export async function saveSignalSnapshot(data) {
     data.spxClose, data.spxMa10m, data.spxAboveSma10, data.oilLevelLow,
     data.capexQtrYoY, data.capexQtrEnd, data.capexSignal, data.capexQtrPrevQtrYoY,
     data.monetaryStale ? 1 : 0, data.usageDivergence ? 1 : 0,
+    data.rateSource ?? 'fred',
   ]);
 }
 
 export async function getLatestSnapshot() {
   await getDb();
   return get('SELECT * FROM signal_snapshots ORDER BY date DESC, id DESC LIMIT 1');
+}
+
+/**
+ * 就地把某一条快照的指定列更新为新值（127号，FOMC 决议日即时重算专用）。
+ * 与 saveSignalSnapshot 的区别：后者 INSERT 一整行（新快照），本函数 UPDATE 既有行——
+ * 决议日 14:00 的重算必须落在"今天这条"快照上，不能新增一条（否则时间轴出现同日两条、
+ * track record 采样点被污染）。只允许更新白名单列名，杜绝调用方写错列造成静默丢字段。
+ * @param {number} id - signal_snapshots.id
+ * @param {object} patch - { column: value }，须在白名单内
+ * @returns {Promise<number>} 实际更新的列数
+ */
+const SNAPSHOT_PATCHABLE_COLUMNS = new Set([
+  'monetary_signal', 'final_signal', 'fred_rate', 'fred_rate_prev', 'rate_source',
+  'rate_decision_date', 'sahm_lock_active', 'reactive_adjustment_lock_active',
+  'reactive_adjustment_lock_trigger_bp', 'final_downgrade_pending_since',
+  'final_downgrade_pending_candidate',
+]);
+
+export async function updateSnapshotFields(id, patch) {
+  await getDb();
+  const keys = Object.keys(patch || {}).filter(k => SNAPSHOT_PATCHABLE_COLUMNS.has(k));
+  if (!keys.length) return 0;
+  const sets = keys.map(k => `${k} = ?`).join(', ');
+  run(`UPDATE signal_snapshots SET ${sets} WHERE id = ?`, [...keys.map(k => patch[k]), id]);
+  return keys.length;
 }
 
 export async function getSnapshotHistory(limit = 90) {

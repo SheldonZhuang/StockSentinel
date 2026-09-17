@@ -23,6 +23,10 @@ beforeEach(() => {
   process.env.FRED_API_KEY = 'test-key';
   // 大部分用例用调用序号模拟"第N个序列失败"，重试会移动序号，故默认关闭；重试行为单独测
   process.env.FRED_FETCH_RETRIES = '0';
+  // Fed 官方声明源（127号）默认关闭：单测不应依赖 fedreserve.gov 的可用性与措辞，
+  // 否则 Fed 改版/网络抖动会让整组单测随机失败。覆盖逻辑由 fetch-fed-rate.test.js
+  // 用固定 HTML 片段单独测（含真实 2026-09-16 加息声明正文）
+  process.env.FED_SOURCE_DISABLED = '1';
   vi.clearAllMocks();
 });
 

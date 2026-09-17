@@ -55,6 +55,7 @@ import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import { computeLocks } from './api/locks.js';
 import { initCatchUp, maybeCatchUp } from './utils/catch-up.js';
+import { runFedDecisionRefresh, isFedRefreshCoolingDown } from './utils/fed-refresh.js';
 import publicRouter from './api/public.js';
 import mcpRouter from './api/mcp.js';
 import { generateDailyReport } from './api/daily-report.js';
@@ -146,6 +147,23 @@ app.get('/api/signal', asyncRoute(async (req, res) => {
   // 绝不提前跑（美东21:45前期望的是昨日快照），只补"该跑而没跑成"的
   const cu = await maybeCatchUp();
   if (cu.overdue) payload.catchUp = cu;
+  // 决议日即时重算兜底（127号）：14:05 定点任务当时进程不在线/整点漏跑时，
+  // 页面访问即触发一次（内部只拉 Fed RSS+声明，不拉行情/LLM，成本极低且自带"无决议即退出"短路）。
+  // 必须在 res.json 之前 await 完成：它在数秒内就能算出决议后的档位，若 fire-and-forget
+  // 则本次响应仍带旧档位，前端要等到下一次刷新才看到决议结果（用户明确要求"一经公布即同步"）
+  if (!cu.overdue && !isFedRefreshCoolingDown()) {
+    try {
+      const fr = await runFedDecisionRefresh({ log: console.log });
+      if (fr.updated) {
+        console.log('[fed-refresh] snapshot updated on access trigger:', JSON.stringify(fr));
+        // 快照已就地更新 → 重建载荷，让本次响应就带上决议后的方向（而非等下次刷新）
+        const rebuilt = await buildSignalPayload();
+        if (rebuilt) return res.json(rebuilt);
+      }
+    } catch (err) {
+      console.warn('[fed-refresh] access-triggered refresh failed (non-fatal):', err.message);
+    }
+  }
   res.json(payload);
 }));
 
@@ -282,9 +300,15 @@ async function runDailyUpdateInner() {
   // 次日（叠加发布滞后可达次二日）才出现。这 1-2 天内 calcDecisionPrevRate 会把
   // "决议已开、数据未生效"误判为"按兵不动→宽松"——加息周期每次决议都会产生
   // 单日 tight→loose→tight 的快照污染与一封假"货币转收紧"邮件。修复：该窗口内
-  // 沿用上一快照的决议前基线（利率未变时方向自然与前日一致），台阶落地后自动恢复
+  // 沿用上一快照的决议前基线（利率未变时方向自然与前日一致），台阶落地后自动恢复。
+  //
+  // 127号（2026-09-17）优先级说明：本护栏是"不知道决议结果时"的兜底——它只能保证不误报宽松，
+  // 给出的是 currentRate=prevRate 的"持平"，方向仍然是错的。Fed 官方声明源（fed_statement）
+  // 已给出真实区间与方向时必须让位，否则会把 25bp 加息重新压回"持平"（9/16 实战：
+  // 网页显示"3.75% 0.00%（持平）"正是这条护栏的产物）。故仅 rateSource==='fred' 时生效
   const lastRateStepDate = macroData.rateSteps?.[0]?.date ?? null;
-  const decisionDataPending = !!macroData.rateDecisionDate
+  const decisionDataPending = macroData.rateSource !== 'fed_statement'
+    && !!macroData.rateDecisionDate
     && (lastRateStepDate === null || lastRateStepDate < macroData.rateDecisionDate)
     && (Date.parse(today) - Date.parse(macroData.rateDecisionDate)) / 86400000 <= 2
     && prevSnapshot?.fred_rate_prev != null;
@@ -473,6 +497,7 @@ async function runDailyUpdateInner() {
     finalSignal,
     fredRate: macroData.currentRate,
     fredRatePrev: macroData.prevRate,
+    rateSource: macroData.rateSource ?? 'fred', // 127号：取值来源（fed_statement=决议当日Fed声明顶替）
     fredBalanceSheet: macroData.currentBalanceSheet,
     fredBalanceSheetPrev: macroData.prevBalanceSheet,
     creditSpread: macroData.creditSpread,
@@ -733,11 +758,34 @@ await restoreDatabaseIfMissing()
 // 会用空库初始化内存句柄，随后 restore 落盘的文件被下一次 persist() 整库覆盖
 cron.schedule('0 21 * * *', () => runDailyUpdate().catch(err => alertCronFailure('cron', err)), { timezone: 'America/New_York' });
 
+// FOMC 决议日即时重算（127号，2026-09-17）：Fed 在美东 14:00 发布声明，而每日完整管道在 21:00
+// ——决议当天 14:00-21:00 这 7 小时网页仍显示决议前状态（2026-09-16 实战：加息 25bp 后页面
+// 仍是"3.75% 0.00%（持平）"，用户上午打开页面看到的正是决议前的数字）。
+// 14:05 定点触发（错开整点，且给 Fed 网站与 RSS 的发布留出缓冲）：
+//   - 只在"今天确实有 FOMC 决议"且"今天已有快照"时干活，否则一个请求都不发（见 fed-refresh.js）
+//   - 只重算货币维+锁+档位并就地更新今天这条快照，绝不降档；21:00 完整 cron 照常覆盖
+// 14:05 同时是"决议日"的判定门槛：RSS 里 pubDate 为 18:00 UTC（=14:00 ET）的声明在 14:05 必已可读
+const FED_REFRESH_ENABLED = process.env.FED_REFRESH_ENABLED !== '0';
+if (FED_REFRESH_ENABLED) {
+  cron.schedule('5 14 * * *', () => {
+    runFedDecisionRefresh({ log: console.log })
+      .then(r => { if (r.updated) console.log('[fed-refresh] snapshot updated:', JSON.stringify(r)); })
+      .catch(err => console.warn('[fed-refresh] refresh failed (non-fatal, 21:00 cron will cover):', err.message));
+  }, { timezone: 'America/New_York' });
+}
+
 // 补更新看门狗（118号）：每小时检查快照是否过点未更新（21:00 任务被错过/中途失败时，
 // 此前要等次日才有重试），过期即补跑——用户通常还没打开页面系统就已自愈。
 // 注入 runDailyUpdate 后，/api/signal 与 /v1/signal 的访问触发共用同一控制器（30分钟冷却）
 initCatchUp(() => runDailyUpdate().catch(err => alertCronFailure('catch-up', err)));
-cron.schedule('20 * * * *', () => { maybeCatchUp().catch(() => {}); }, { timezone: 'America/New_York' });
+cron.schedule('20 * * * *', () => {
+  maybeCatchUp().catch(() => {});
+  // 决议日即时重算的兜底重试（127号）：14:05 定点任务若因整点阻塞/进程重启而漏跑，
+  // 每小时再看一次。无决议时本模块只发 1 个 RSS 请求即退出（解析后短路），成本可忽略
+  runFedDecisionRefresh({ log: console.log })
+    .then(r => { if (r.updated) console.log('[fed-refresh] hourly watchdog updated snapshot:', JSON.stringify(r)); })
+    .catch(() => {});
+}, { timezone: 'America/New_York' });
 
 // 管理员账户种子（2026-07-30 审查修复，H3）：配置 ADMIN_PASSWORD 时启动即确保管理员
 // 账户存在，且公开注册接口拒绝注册 ADMIN_EMAIL——堵住"空库窗口内任何人抢注管理员

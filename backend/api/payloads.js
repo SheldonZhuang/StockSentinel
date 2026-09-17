@@ -97,6 +97,9 @@ export async function buildSignalPayload() {
       rate: snapshot.fred_rate,
       ratePrev: snapshot.fred_rate_prev,
       rateDecisionDate: snapshot.rate_decision_date,
+      // 127号：取值来源。'fed_statement' = 决议当日用 Fed 官方声明顶替了尚未更新的 FRED 序列
+      // ——前端据此在决议当晚显示真实方向，而不是 FRED 滞后造成的"0.00%（持平）"
+      rateSource: snapshot.rate_source || 'fred',
       rateSignal: deriveSubSignals({
         currentRate: snapshot.fred_rate,
         prevRate: snapshot.fred_rate_prev,
