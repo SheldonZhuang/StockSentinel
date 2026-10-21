@@ -14,6 +14,8 @@ const { edgarGet } = vi.hoisted(() => ({ edgarGet: vi.fn() }));
 vi.mock('../utils/edgar-client.js', async importOriginal => ({ ...(await importOriginal()), edgarGet }));
 const { sendAdminNotice } = vi.hoisted(() => ({ sendAdminNotice: vi.fn().mockResolvedValue({ sent: 1 }) }));
 vi.mock('../utils/mailer.js', () => ({ sendAdminNotice }));
+// 默认模型选择走 OpenRouter /models + 探测；这里固定成表里有价的模型，只测记账与预算
+vi.mock('../research/models.js', async importOriginal => ({ ...(await importOriginal()), resolveModel: async () => ({ id: 'x-ai/grok-4.7', price: { in: 2, out: 6 } }) }));
 
 const db = await import('../research/db.js');
 const { flattenCompanyFacts, refreshXbrlFacts, queryFact } = await import('../research/xbrl.js');

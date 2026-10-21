@@ -105,7 +105,7 @@ if (cmd === 'blind') {
       const md = fs.readFileSync(path.join(blindDir, `${m.code}.md`), 'utf8');
       try {
         const r = await chat({
-          pool: 'eval', purpose: 'judge_usefulness', ref: m.code, evalRunId: runId, model: JUDGE_MODEL,
+          pool: 'eval', purpose: 'judge_usefulness', ref: m.code, evalRunId: runId, model: JUDGE_MODEL, allowBanned: true, // 2026-10-21 已完成的盲评复现用
           messages: [{ role: 'system', content: RUBRIC }, { role: 'user', content: md }], maxTokens: 4000, json: true,
         });
         prev[m.code] = parseJsonLoose(r.text);

@@ -63,7 +63,9 @@
 - [ ] 阶段5：接入通道与事件驱动（2026-10-21 方案，待用户确认后实施）
   - [ ] 先修阶段4遗留：指引比较结论（高于/低于/区间内）由程序算；TSM 新闻稿表格程序解析成指标表
   - [ ] 事件驱动：小时看门狗内检测新 8-K(2.02)/10-Q/10-K/6-K → 增量采集 → Wiki 增量 → 生成笔记（初版/正式版）；失败重试、互斥、补跑与现有 catch-up 同模式
-  - [ ] 模型策略：deepseek 生成；自检有待核对项或 TSM → grok-4.7 重写一次（预算池 research，$0.5/日 $5/月）
+  - [x] 模型策略（用户 2026-10-21 定）：优先 OpenRouter 最新 Claude Opus/Fable → 备选 OpenRouter 最新 Grok；弃用 DeepSeek/GLM。research/models.js 按 /models 自动取各家族最新 + 探测区域可用性（缓存 24h），本机实测落到 grok-4.7（Opus 5.5/Fable 5.1 均 403 区域受限）；RESEARCH_MODEL 指定已弃用模型会被拒绝
+  - [ ] **待用户拍板：预算与模型的冲突**——云端若能用 Opus 5.5（$4/$20），每份约 $0.48，每月约 30 份 ≈ $14，超出 $5/月硬上限；Fable 5.1（$10/$50）约 $36/月。本机 Claude Code 备选只能本机跑、服务端调不到
+  - [x] 已推送 feat/research-agent（阶段1–4，bb002c5），未合并 main、未部署
   - [ ] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml
   - [ ] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）
   - [ ] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言

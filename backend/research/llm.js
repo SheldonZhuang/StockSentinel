@@ -13,7 +13,9 @@ import { sendAdminNotice } from '../utils/mailer.js';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-export const DEFAULT_MODEL = () => process.env.RESEARCH_MODEL || 'deepseek/deepseek-v3.2';
+// 默认模型不再写死：research/models.js 按用户定的优先级（OpenRouter 最新 Claude Opus/Fable → 最新 Grok）选，
+// 区域受限自动换下一个。显式传 o.model 时（评估、对比）仍用指定模型
+import { resolveModel, BANNED } from './models.js';
 
 // 每百万 token 美元价（OpenRouter 2026-10-21 实价）。返回的 usage.cost 优先；缺失时按此表估算。
 // 表里没有的模型拒绝调用：不知道价格就无法守预算
@@ -109,7 +111,14 @@ async function alertBudget(pool, reason) {
 export async function chat(o) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
-  const model = o.model || DEFAULT_MODEL();
+  let model = o.model;
+  if (!model) {
+    const r = await resolveModel();
+    model = r.id;
+    // /models 接口给的实价补进价格表（最新模型可能还没写进静态表）
+    if (!PRICES[model] && r.price?.in >= 0) PRICES[model] = r.price;
+  }
+  if (BANNED.test(model) && !o.allowBanned) throw new Error(`model ${model} is not allowed (DeepSeek / GLM dropped 2026-10-21; evaluation reruns must pass allowBanned)`);
   if (!PRICES[model]) throw new Error(`model ${model} has no price entry; refusing to call without a budget estimate`);
   if (!o.maxTokens) throw new Error('maxTokens is required'); // 不设时 OpenRouter 按模型上限预扣，免费额度账户直接 402
 

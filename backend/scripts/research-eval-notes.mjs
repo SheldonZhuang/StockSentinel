@@ -60,7 +60,7 @@ async function runModel(model) {
   console.log(`\n== ${model} (${runId}) ==`);
   const rows = await pMap(gold, Number(opt('concurrency') || 4), async g => {
     try {
-      const row = await generateNote({ ticker: g.ticker, fiscalLabel: g.fiscalLabel, pool: 'eval', model, evalRunId: runId, log: () => {} });
+      const row = await generateNote({ ticker: g.ticker, fiscalLabel: g.fiscalLabel, pool: 'eval', model, evalRunId: runId, allowBanned: true, log: () => {} }); // 评估可复现历史对比轮（含已弃用模型）
       console.log(`${g.ticker} ${g.fiscalLabel}: ${row.status} $${(row.cost_usd || 0).toFixed(4)} ${Math.round((row.latency_ms || 0) / 1000)}s`);
       return row;
     } catch (err) {
