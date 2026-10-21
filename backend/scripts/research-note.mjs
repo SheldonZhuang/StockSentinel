@@ -1,4 +1,4 @@
-// 生成研究笔记（129号阶段3）：node scripts/research-note.mjs MSFT FY2026Q4 [--model=deepseek/deepseek-v3.2] [--pool=research]
+// 生成研究笔记（129号阶段3）：node scripts/research-note.mjs MSFT FY2026Q4 [--model=<OpenRouter 模型 id，默认按 research/models.js 自动选>] [--pool=research]
 // 结果入 research.db 的 research_notes，并把 Markdown / JSON 打到 stdout（--out=<目录> 时写文件）
 import 'dotenv/config';
 import fs from 'fs';

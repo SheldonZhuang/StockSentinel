@@ -238,7 +238,7 @@ function keyFigures(table) {
  * @param {{ticker, fiscalLabel, pool?, model?, evalRunId?, log?}} o
  * @returns 入库的 research_notes 行（含 note_json / note_md）
  */
-export async function generateNote({ ticker, fiscalLabel, pool = 'research', model, evalRunId, allowBanned = false, log = console.log }) {
+export async function generateNote({ ticker, fiscalLabel, pool = 'research', model, evalRunId, log = console.log }) {
   await getResearchDb();
   const { fy, fq, filings, stage } = quarterFilings(ticker, fiscalLabel);
   if (!filings.length) throw new Error(`${ticker} ${fiscalLabel}: no filings ingested`);
@@ -252,7 +252,7 @@ export async function generateNote({ ticker, fiscalLabel, pool = 'research', mod
 
   const callLlm = async (messages, tools, toolChoice) => {
     const r = await chat({
-      pool, purpose: 'research_note', ticker, ref: `${ticker}:${fiscalLabel}`, model, evalRunId, allowBanned,
+      pool, purpose: 'research_note', ticker, ref: `${ticker}:${fiscalLabel}`, model, evalRunId,
       messages, maxTokens: 4000, tools, toolChoice, timeoutMs: 180000,
     });
     usage.tokensIn += r.tokensIn; usage.tokensOut += r.tokensOut; usage.costUsd += r.costUsd || 0; usage.calls++;

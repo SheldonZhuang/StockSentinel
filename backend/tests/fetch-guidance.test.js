@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 
 vi.mock('axios');
+// 模型选择（research/models.js）会请求 OpenRouter /models：测试里固定成一个可用模型
+vi.mock('../research/models.js', async importOriginal => ({ ...(await importOriginal()), resolveModel: async () => ({ id: 'x-ai/grok-4.7', price: { in: 2, out: 6 } }) }));
 // yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
 const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() }));
 vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));

@@ -19,15 +19,13 @@ import { resolveModel, BANNED } from './models.js';
 
 // 每百万 token 美元价（OpenRouter 2026-10-21 实价）。返回的 usage.cost 优先；缺失时按此表估算。
 // 表里没有的模型拒绝调用：不知道价格就无法守预算
+// 用户 2026-10-21：只用 Claude Opus / Fable 与 Grok；DeepSeek、GLM 永久弃用（价格表里也不留）。
+// 最新型号的价格由 research/models.js 从 OpenRouter /models 实时补进来，这里只是兜底
 export const PRICES = {
-  'deepseek/deepseek-v3.2': { in: 0.28, out: 0.42 },
-  'deepseek/deepseek-chat-v3-0324': { in: 0.29, out: 1.14 },
-  'qwen/qwen3-235b-a22b-2507': { in: 0.09, out: 0.55 },
   'anthropic/claude-opus-5.5': { in: 4, out: 20 },
-  'anthropic/claude-sonnet-5.5': { in: 2, out: 10 },
-  // OpenRouter 本机区域实测可用的强模型（2026-10-21；Anthropic / OpenAI 系列 403 区域受限）
+  'anthropic/claude-fable-5.1': { in: 10, out: 50 },
+  // OpenRouter 本机区域实测可用（2026-10-21；Anthropic 系列 403 区域受限）
   'x-ai/grok-4.7': { in: 2, out: 6 },
-  'z-ai/glm-5.3-prime': { in: 2.8, out: 8.8 }, // 有用性盲评的评委（不在被评模型里）
 };
 
 export const BUDGETS = {
@@ -118,7 +116,8 @@ export async function chat(o) {
     // /models 接口给的实价补进价格表（最新模型可能还没写进静态表）
     if (!PRICES[model] && r.price?.in >= 0) PRICES[model] = r.price;
   }
-  if (BANNED.test(model) && !o.allowBanned) throw new Error(`model ${model} is not allowed (DeepSeek / GLM dropped 2026-10-21; evaluation reruns must pass allowBanned)`);
+  // 用户 2026-10-21：DeepSeek / GLM 永久弃用，任何调用路径（含评估）都不放行
+  if (BANNED.test(model)) throw new Error(`model ${model} is not allowed (DeepSeek / GLM permanently dropped 2026-10-21)`);
   if (!PRICES[model]) throw new Error(`model ${model} has no price entry; refusing to call without a budget estimate`);
   if (!o.maxTokens) throw new Error('maxTokens is required'); // 不设时 OpenRouter 按模型上限预扣，免费额度账户直接 402
 

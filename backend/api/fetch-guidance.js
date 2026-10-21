@@ -32,9 +32,14 @@ import {
 } from '../utils/storage.js';
 import { sendSignalAlert, sendOpsAlert } from '../utils/mailer.js';
 import { edgarGet, submissionsUrl, archiveBase } from '../utils/edgar-client.js';
+import { resolveModel, BANNED } from '../research/models.js';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const GUIDANCE_MODEL = () => process.env.AI_REPORT_MODEL || 'deepseek/deepseek-chat-v3-0324';
+// 模型按用户 2026-10-21 定的优先级自动选（research/models.js）；AI_REPORT_MODEL 可显式指定，DeepSeek / GLM 一律拒绝
+const GUIDANCE_MODEL = async () => {
+  const pinned = process.env.AI_REPORT_MODEL;
+  return pinned && !BANNED.test(pinned) ? pinned : (await resolveModel()).id;
+};
 const LOOKBACK_DAYS = 10; // 只看最近10天的申报（每日跑，窗口重叠防漏）
 
 // web 检索用公司全名（裸 ticker 检索命中率低）
@@ -125,7 +130,7 @@ export async function analyzeGuidance(symbol, paragraphs) {
   if (!apiKey || !paragraphs) return null;
   try {
     const res = await axios.post(OPENROUTER_CHAT_URL, {
-      model: GUIDANCE_MODEL(),
+      model: await GUIDANCE_MODEL(),
       messages: [
         { role: 'system', content: '你是严谨的财报分析师。只依据给定文本判断，不推测文本之外的内容。输出严格的JSON。' },
         { role: 'user', content: `以下是 ${symbol} 财报新闻稿中与资本开支(capex)相关的段落。判断其中是否包含**前瞻性**的资本开支指引（对未来季度/年度capex的预期表述，历史数字和自由现金流定义不算），并提取本次财报季度的实际capex数值（现金流量表中 purchases of property and equipment，取最近一个完整季度的单季值，注意表格可能并列多个季度——取最新季）。\n\n${paragraphs}\n\n输出JSON（无其他文字）：{"hasGuidance": bool, "direction": "raise"|"maintain"|"cut"|"none", "quote": "指引原文英文摘录(无指引则空串)", "confidence": "high"|"low", "fyGuidance": "本财年capex指引摘要(如'FY2026 $72B'，无则空串)", "forwardGuidance": "对之后年度capex的表述摘要(无则空串)", "qtrCapexUsdMillions": 最新单季capex数值(百万美元,正数;文本中无法确定则null)}。direction判断标准：明确高于此前指引或大幅同比增长计划=raise；重申此前水平=maintain；明确低于此前指引或表述将削减/放缓=cut；无前瞻指引=none。` },
@@ -155,7 +160,7 @@ export async function analyzeGuidanceFromWeb(symbol, filingDate) {
   const company = COMPANY_NAMES[symbol] || symbol;
   try {
     const res = await axios.post(OPENROUTER_CHAT_URL, {
-      model: GUIDANCE_MODEL(),
+      model: await GUIDANCE_MODEL(),
       // OpenRouter web 插件：自动检索并把结果注入上下文，回答须给出可核查来源
       plugins: [{ id: 'web', max_results: 5 }],
       messages: [

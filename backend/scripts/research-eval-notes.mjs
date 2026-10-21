@@ -1,4 +1,4 @@
-// 研究笔记离线评估（129号阶段4）：npm run eval:research -- --models=deepseek/deepseek-v3.2,anthropic/claude-opus-5.5
+// 研究笔记离线评估（129号阶段4）：npm run eval:research -- --models=x-ai/grok-4.7  （不给 --models 时用线上同一套自动选择）
 //   --models=   逗号分隔，至少一个；每个模型生成 16 份笔记（8 家 × 最近 2 个正式版财季）后打分
 //   --regen-gold 重新生成金标（默认冻结，用已入库的 research/eval/notes-gold.json）
 //   --concurrency=4  同时生成的笔记数
@@ -16,6 +16,7 @@ import { buildGoldSet } from '../research/eval/gold.js';
 import { GOLD_PATH, USEFULNESS_PATH, USEFULNESS_AI_PATH, scoreNote, aggregate, readUsefulness } from '../research/eval/notes-eval.js';
 import { generateNote } from '../research/agent.js';
 import { PRICES } from '../research/llm.js';
+import { resolveModel } from '../research/models.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -60,7 +61,7 @@ async function runModel(model) {
   console.log(`\n== ${model} (${runId}) ==`);
   const rows = await pMap(gold, Number(opt('concurrency') || 4), async g => {
     try {
-      const row = await generateNote({ ticker: g.ticker, fiscalLabel: g.fiscalLabel, pool: 'eval', model, evalRunId: runId, allowBanned: true, log: () => {} }); // 评估可复现历史对比轮（含已弃用模型）
+      const row = await generateNote({ ticker: g.ticker, fiscalLabel: g.fiscalLabel, pool: 'eval', model, evalRunId: runId, log: () => {} });
       console.log(`${g.ticker} ${g.fiscalLabel}: ${row.status} $${(row.cost_usd || 0).toFixed(4)} ${Math.round((row.latency_ms || 0) / 1000)}s`);
       return row;
     } catch (err) {
@@ -103,7 +104,7 @@ if (opt('score-external')) {
   const rows = prev.noteIds.map(id => (id ? get('SELECT * FROM research_notes WHERE id = ?', [id]) : null));
   runs.push(finish(prev.model, prev.runId, rows));
 } else {
-  const models = (opt('models') || 'deepseek/deepseek-v3.2').split(',').filter(Boolean);
+  const models = (opt('models') || (await resolveModel()).id).split(',').filter(Boolean);
   for (const m of models) runs.push(await runModel(m));
 }
 

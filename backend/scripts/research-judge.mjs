@@ -1,13 +1,13 @@
 // 研究笔记有用性的 AI 盲评（129号阶段4，用户 2026-10-21 委托代打分）。
 // 为什么要盲评 + 双评委：被评的三个模型里有 Opus（也就是代打分的这一方）、grok、deepseek，任何一个来评都是自评。
 //   - 盲化：去掉模型名、运行信息（token/成本/耗时）与"（本机）"等字样，随机打乱后编号 N01..N48；
-//   - 评委一：z-ai/glm-5.3-prime（第四个模型，不在候选里），OpenRouter 记账；
+//   - 评委一：GLM-5.3-prime（2026-10-21 那一轮；之后 GLM 永久弃用，评分保留在 judge-glm.json）；
 //   - 评委二：本机 Opus 子代理（同样只看盲化文本）；
 //   - 结果写 research/eval/notes-usefulness-ai.csv，与用户自己的 notes-usefulness.csv 分开，表里单列"AI 盲评"。
 // 有用性只评"对研究者有没有用"（重点、对比、指引核对、风险是否切题、可读性）；数字对不对由程序指标负责，不让评委重复判断。
 //
 //   node scripts/research-judge.mjs blind            生成盲化笔记 data/_judge/N01.md… 与映射 research/eval/judge-map.json
-//   node scripts/research-judge.mjs glm              GLM 逐份评分 → research/eval/judge-glm.json
+//   node scripts/research-judge.mjs glm              已停用（GLM 永久弃用）；历史评分在 research/eval/judge-glm.json
 //   node scripts/research-judge.mjs aggregate        合并 GLM 与 Opus（research/eval/judge-opus.json）→ notes-usefulness-ai.csv + 一致性
 import 'dotenv/config';
 import fs from 'fs';
@@ -15,7 +15,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getResearchDb, get } from '../research/db.js';
 import { renderMarkdown } from '../research/agent.js';
-import { chat, parseJsonLoose } from '../research/llm.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const evalDir = path.join(__dirname, '../research/eval');
@@ -24,7 +23,6 @@ const MAP = path.join(evalDir, 'judge-map.json');
 const GLM_OUT = path.join(evalDir, 'judge-glm.json');
 const OPUS_OUT = path.join(evalDir, 'judge-opus.json');
 const AI_CSV = path.join(evalDir, 'notes-usefulness-ai.csv');
-const JUDGE_MODEL = 'z-ai/glm-5.3-prime';
 
 export const RUBRIC = `你是资深股票研究员，评估一份由程序与大模型自动生成的季度研究笔记"对研究者有多有用"。
 只评有用性，不评数字真伪（数字已由程序逐条核对过）。按以下五项各打 1–5 分，再给总分 1–5（总分是你的整体判断，不是平均）：
@@ -94,28 +92,9 @@ if (cmd === 'blind') {
   const leak = map.filter(m => /claude|deepseek|grok|opus|x-ai/i.test(fs.readFileSync(path.join(blindDir, `${m.code}.md`), 'utf8')));
   console.log(`blinded ${map.length} notes → ${blindDir}; leaks: ${leak.length ? leak.map(l => l.code).join(',') : 'none'}`);
 } else if (cmd === 'glm') {
-  const map = JSON.parse(fs.readFileSync(MAP, 'utf8'));
-  const prev = fs.existsSync(GLM_OUT) ? JSON.parse(fs.readFileSync(GLM_OUT, 'utf8')) : {};
-  const todo = map.filter(m => !prev[m.code]);
-  const runId = 'judge-2026-10-21-glm';
-  let i = 0;
-  await Promise.all(Array.from({ length: 4 }, async () => {
-    while (i < todo.length) {
-      const m = todo[i++];
-      const md = fs.readFileSync(path.join(blindDir, `${m.code}.md`), 'utf8');
-      try {
-        const r = await chat({
-          pool: 'eval', purpose: 'judge_usefulness', ref: m.code, evalRunId: runId, model: JUDGE_MODEL, allowBanned: true, // 2026-10-21 已完成的盲评复现用
-          messages: [{ role: 'system', content: RUBRIC }, { role: 'user', content: md }], maxTokens: 4000, json: true,
-        });
-        prev[m.code] = parseJsonLoose(r.text);
-        console.log(m.code, prev[m.code].overall, `$${r.costUsd.toFixed(4)}`);
-      } catch (err) {
-        console.log(m.code, 'error', err.message);
-      }
-      fs.writeFileSync(GLM_OUT, JSON.stringify(prev, null, 1));
-    }
-  }));
+  // 用户 2026-10-21：GLM 永久弃用。那一轮（2026-10-21）的 GLM 评分已存 judge-glm.json，aggregate 继续读取；不再调用 GLM
+  console.error('GLM judge retired (2026-10-21). Existing scores in research/eval/judge-glm.json are kept for aggregate.');
+  process.exit(1);
 } else if (cmd === 'aggregate') {
   const map = JSON.parse(fs.readFileSync(MAP, 'utf8'));
   const glm = JSON.parse(fs.readFileSync(GLM_OUT, 'utf8'));

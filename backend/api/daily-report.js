@@ -1,12 +1,12 @@
 // AI 日报：每日 cron 后用 LLM 把当日信号快照写成中英双语解读（获客内容引擎）
-// 经 OpenRouter 调用（复用已有 OPENROUTER_API_KEY），模型可用 AI_REPORT_MODEL 覆盖
+// 经 OpenRouter 调用（复用已有 OPENROUTER_API_KEY）。模型按用户 2026-10-21 定的优先级自动选（research/models.js：
+// 最新 Claude Opus/Fable → 最新 Grok，区域受限自动换下一个）；AI_REPORT_MODEL 可显式指定，但 DeepSeek / GLM 一律拒绝
 // 失败静默跳过——日报是增值内容，不能影响信号主链路
 import axios from 'axios';
 import { saveDailyReport } from '../utils/storage.js';
+import { resolveModel, BANNED } from '../research/models.js';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// 默认模型实测（2026-07-13，本机区域）：OpenAI/Gemini 系列 403 区域受限，DeepSeek 中英双语质量好且价格低
-const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3-0324';
 
 const SIGNAL_CN = { attack: '进攻', neutral: '观望', reduce: '减仓观望', defense: '防守', loose: '宽松', tight: '收紧' };
 
@@ -44,7 +44,8 @@ function parseJsonLoose(text) {
 export async function generateDailyReport(payload, attempt = 1) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey || !payload) return null;
-  const model = process.env.AI_REPORT_MODEL || DEFAULT_MODEL;
+  const pinned = process.env.AI_REPORT_MODEL;
+  const model = pinned && !BANNED.test(pinned) ? pinned : (await resolveModel()).id;
 
   try {
     const res = await axios.post(OPENROUTER_CHAT_URL, {
