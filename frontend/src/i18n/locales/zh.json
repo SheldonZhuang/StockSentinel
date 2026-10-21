@@ -283,6 +283,36 @@
       "allChannels": "全部渠道",
       "endpointStats": "功能调用热度（全站）",
       "endpointStatsHint": "近周期各端点调用量与独立用户数（含匿名与API key流量）——用户最需要的方向，资源投放的依据"
+    },
+    "research": {
+      "title": "研究文档采集",
+      "run": "立即增量采集",
+      "running": "采集中…",
+      "never": "尚未运行过采集",
+      "lastRun": "最近一次：{at}（{trigger}），新处理 {newFilings} 份，失败 {failed} 份",
+      "totals": "已解析 {filings} 份申报 / {chunks} 个块",
+      "coverageCaption": "各公司最近 8 个财季的已解析文件",
+      "colTicker": "公司",
+      "latest": "最新",
+      "issues": "数据质量问题（{n}）",
+      "noIssues": "无问题",
+      "pending": "另有 {n} 项未到法定申报期限（不算缺失）",
+      "colKind": "类型",
+      "colDetail": "详情",
+      "kinds": {
+        "missing_quarter": "缺季",
+        "duplicate": "重复",
+        "parse_failed": "解析失败",
+        "empty_section": "空章节",
+        "missing_section": "缺章节",
+        "pending_quarter": "未到期"
+      },
+      "budgetTitle": "LLM 预算（硬上限）与公司 Wiki",
+      "budgetLine": "日常：今日 {today} / {daily}，本月 {month} / {monthly}；其中 ask_company 本月 {ask} / {askCap}；首次回填累计 {backfill} / {backfillCap}",
+      "colWikiDone": "已处理申报",
+      "colWikiBlocked": "失败/受限",
+      "colWikiEntries": "有效条目",
+      "colWikiConflicts": "冲突条目"
     }
   },
   "settings": {

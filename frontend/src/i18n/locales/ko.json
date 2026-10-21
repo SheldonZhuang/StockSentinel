@@ -276,6 +276,36 @@
       "allChannels": "전체 채널",
       "endpointStats": "기능별 사용 현황(전체)",
       "endpointStatsHint": "엔드포인트별 호출 수와 고유 사용자 수(익명 및 API 키 트래픽 포함) — 사용자가 가장 필요로 하는 방향, 리소스 투자의 근거"
+    },
+    "research": {
+      "title": "리서치 문서 수집",
+      "run": "증분 수집 실행",
+      "running": "수집 중…",
+      "never": "아직 수집을 실행하지 않았습니다",
+      "lastRun": "최근 실행: {at} ({trigger}), 신규 {newFilings}건, 실패 {failed}건",
+      "totals": "파싱 완료 {filings}건 / {chunks}개 청크",
+      "coverageCaption": "기업별 최근 8개 회계 분기의 파싱된 공시",
+      "colTicker": "기업",
+      "latest": "최신",
+      "issues": "데이터 품질 문제 ({n})",
+      "noIssues": "문제 없음",
+      "pending": "그 외 {n}건은 제출 기한 전 (누락으로 집계하지 않음)",
+      "colKind": "유형",
+      "colDetail": "상세",
+      "kinds": {
+        "missing_quarter": "분기 누락",
+        "duplicate": "중복",
+        "parse_failed": "파싱 실패",
+        "empty_section": "빈 섹션",
+        "missing_section": "섹션 누락",
+        "pending_quarter": "기한 전"
+      },
+      "budgetTitle": "LLM 예산(하드 상한)과 기업 위키",
+      "budgetLine": "일상 운영: 오늘 {today} / {daily}, 이번 달 {month} / {monthly}; 그중 ask_company 이번 달 {ask} / {askCap}; 초기 백필 누적 {backfill} / {backfillCap}",
+      "colWikiDone": "처리한 공시",
+      "colWikiBlocked": "실패/제한",
+      "colWikiEntries": "유효 항목",
+      "colWikiConflicts": "충돌 항목"
     }
   },
   "settings": {

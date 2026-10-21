@@ -5,6 +5,8 @@
     <AdminPanel />
     <!-- 用户管理与API用量监控（123号） -->
     <UserPanel />
+    <!-- 研究文档采集与数据质量（129号） -->
+    <ResearchIngestPanel />
   </div>
 </template>
 
@@ -12,6 +14,7 @@
 import S5Panel from '../components/S5Panel.vue';
 import AdminPanel from '../components/AdminPanel.vue';
 import UserPanel from '../components/UserPanel.vue';
+import ResearchIngestPanel from '../components/ResearchIngestPanel.vue';
 </script>
 
 <style scoped>

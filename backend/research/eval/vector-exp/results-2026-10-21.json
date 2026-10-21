@@ -1,0 +1,410 @@
+{
+ "date": "2026-10-21",
+ "note": "30 题检索评估集；过滤条件与线上关键词检索相同；hybrid = BM25 前50 与 dense_en 前50 的 RRF(k=60)",
+ "results": {
+  "bge": {
+   "metrics": {
+    "bm25": {
+     "recallAt5": 0.833,
+     "mrrAt10": 0.64
+    },
+    "dense_en": {
+     "recallAt5": 0.6,
+     "mrrAt10": 0.422
+    },
+    "dense_zh": {
+     "recallAt5": 0.3,
+     "mrrAt10": 0.192
+    },
+    "hybrid": {
+     "recallAt5": 0.8,
+     "mrrAt10": 0.559
+    }
+   },
+   "perQuestion": {
+    "msft-capex-fy26q1": {
+     "bm25": 3,
+     "dense_en": 3,
+     "dense_zh": null,
+     "hybrid": 2
+    },
+    "msft-azure-fy26q1": {
+     "bm25": 1,
+     "dense_en": 2,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "msft-azure-fy26q2": {
+     "bm25": 1,
+     "dense_en": 9,
+     "dense_zh": null,
+     "hybrid": 5
+    },
+    "msft-cloud-fy26": {
+     "bm25": null,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": null
+    },
+    "msft-capex-fy26": {
+     "bm25": 3,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": 5
+    },
+    "nvda-dc-fy27q2": {
+     "bm25": 1,
+     "dense_en": 5,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "nvda-guide-fy27q3": {
+     "bm25": 2,
+     "dense_en": 2,
+     "dense_zh": null,
+     "hybrid": 2
+    },
+    "nvda-rev-fy27q2": {
+     "bm25": 10,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": null
+    },
+    "nvda-guide-fy27q2": {
+     "bm25": 1,
+     "dense_en": 2,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "nvda-china-fy27q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "googl-cloud-2026q2": {
+     "bm25": null,
+     "dense_en": 6,
+     "dense_zh": null,
+     "hybrid": null
+    },
+    "googl-capex-2026q1": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "googl-cloud-oi-2026q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "amzn-aws-2026q2": {
+     "bm25": 4,
+     "dense_en": 6,
+     "dense_zh": 3,
+     "hybrid": 4
+    },
+    "amzn-aws-2026q1": {
+     "bm25": 3,
+     "dense_en": 9,
+     "dense_zh": 3,
+     "hybrid": 5
+    },
+    "amzn-guide-2026q3": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "amzn-capex-2026q2": {
+     "bm25": 5,
+     "dense_en": 4,
+     "dense_zh": null,
+     "hybrid": 3
+    },
+    "meta-capex-guide-2026q2": {
+     "bm25": 1,
+     "dense_en": 3,
+     "dense_zh": 8,
+     "hybrid": 1
+    },
+    "meta-expense-guide-2026q1": {
+     "bm25": 1,
+     "dense_en": 2,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "meta-rl-rev-2026q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "meta-capex-h1-2026": {
+     "bm25": 2,
+     "dense_en": 3,
+     "dense_zh": 7,
+     "hybrid": 2
+    },
+    "amd-dc-2026q2": {
+     "bm25": 7,
+     "dense_en": 2,
+     "dense_zh": null,
+     "hybrid": 3
+    },
+    "amd-gm-2026q2": {
+     "bm25": 1,
+     "dense_en": 7,
+     "dense_zh": 1,
+     "hybrid": 3
+    },
+    "amd-guide-2026q3": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": 5,
+     "hybrid": null
+    },
+    "avgo-ai-fy26q3": {
+     "bm25": null,
+     "dense_en": null,
+     "dense_zh": 9,
+     "hybrid": null
+    },
+    "avgo-guide-fy26q4": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": 4
+    },
+    "tsm-gm-2026q3": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 2,
+     "hybrid": 1
+    },
+    "tsm-guide-2026q4": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 2,
+     "hybrid": 1
+    },
+    "tsm-3nm-2026q3": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 2,
+     "hybrid": 1
+    },
+    "tsm-gm-2025q4": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": 6
+    }
+   }
+  },
+  "e5": {
+   "metrics": {
+    "bm25": {
+     "recallAt5": 0.833,
+     "mrrAt10": 0.64
+    },
+    "dense_en": {
+     "recallAt5": 0.633,
+     "mrrAt10": 0.523
+    },
+    "dense_zh": {
+     "recallAt5": 0.533,
+     "mrrAt10": 0.404
+    },
+    "hybrid": {
+     "recallAt5": 0.733,
+     "mrrAt10": 0.603
+    }
+   },
+   "perQuestion": {
+    "msft-capex-fy26q1": {
+     "bm25": 3,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "msft-azure-fy26q1": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 4,
+     "hybrid": 1
+    },
+    "msft-azure-fy26q2": {
+     "bm25": 1,
+     "dense_en": 6,
+     "dense_zh": null,
+     "hybrid": 4
+    },
+    "msft-cloud-fy26": {
+     "bm25": null,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": null
+    },
+    "msft-capex-fy26": {
+     "bm25": 3,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "nvda-dc-fy27q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "nvda-guide-fy27q3": {
+     "bm25": 2,
+     "dense_en": 6,
+     "dense_zh": 2,
+     "hybrid": 2
+    },
+    "nvda-rev-fy27q2": {
+     "bm25": 10,
+     "dense_en": null,
+     "dense_zh": 4,
+     "hybrid": 9
+    },
+    "nvda-guide-fy27q2": {
+     "bm25": 1,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": 2
+    },
+    "nvda-china-fy27q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "googl-cloud-2026q2": {
+     "bm25": null,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 9
+    },
+    "googl-capex-2026q1": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "googl-cloud-oi-2026q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 4,
+     "hybrid": 1
+    },
+    "amzn-aws-2026q2": {
+     "bm25": 4,
+     "dense_en": 5,
+     "dense_zh": 1,
+     "hybrid": 4
+    },
+    "amzn-aws-2026q1": {
+     "bm25": 3,
+     "dense_en": 5,
+     "dense_zh": 1,
+     "hybrid": 5
+    },
+    "amzn-guide-2026q3": {
+     "bm25": 1,
+     "dense_en": 5,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "amzn-capex-2026q2": {
+     "bm25": 5,
+     "dense_en": null,
+     "dense_zh": null,
+     "hybrid": 9
+    },
+    "meta-capex-guide-2026q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": null,
+     "hybrid": 1
+    },
+    "meta-expense-guide-2026q1": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 7,
+     "hybrid": 1
+    },
+    "meta-rl-rev-2026q2": {
+     "bm25": 1,
+     "dense_en": 3,
+     "dense_zh": 7,
+     "hybrid": 1
+    },
+    "meta-capex-h1-2026": {
+     "bm25": 2,
+     "dense_en": 3,
+     "dense_zh": null,
+     "hybrid": 2
+    },
+    "amd-dc-2026q2": {
+     "bm25": 7,
+     "dense_en": 10,
+     "dense_zh": 9,
+     "hybrid": 9
+    },
+    "amd-gm-2026q2": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 2,
+     "hybrid": 1
+    },
+    "amd-guide-2026q3": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": 8,
+     "hybrid": null
+    },
+    "avgo-ai-fy26q3": {
+     "bm25": null,
+     "dense_en": null,
+     "dense_zh": 2,
+     "hybrid": null
+    },
+    "avgo-guide-fy26q4": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": 3,
+     "hybrid": 3
+    },
+    "tsm-gm-2026q3": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "tsm-guide-2026q4": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "tsm-3nm-2026q3": {
+     "bm25": 1,
+     "dense_en": 1,
+     "dense_zh": 1,
+     "hybrid": 1
+    },
+    "tsm-gm-2025q4": {
+     "bm25": 2,
+     "dense_en": null,
+     "dense_zh": 1,
+     "hybrid": 8
+    }
+   }
+  }
+ }
+}

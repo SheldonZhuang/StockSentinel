@@ -1,0 +1,434 @@
+{
+ "N01": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 5,
+  "readability": 4,
+  "overall": 4,
+  "reason": "抓住数据中心驱动与Meta协议，对华风险具体，但指引对照只并列数字未明确写出超指引。"
+ },
+ "N02": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 4,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "如实说明无数值指引，但摘要空泛、要点有模板化填充，风险为通用套话。"
+ },
+ "N03": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 3,
+  "readability": 4,
+  "overall": 4,
+  "reason": "点出一次性税收利益与资本开支上调，结构清楚，风险部分偏通用。"
+ },
+ "N04": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 3,
+  "readability": 3,
+  "overall": 4,
+  "reason": "指引对照清晰，但摘要措辞空泛，资本开支用途属无据推断，风险偏泛。"
+ },
+ "N05": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 3,
+  "readability": 4,
+  "overall": 4,
+  "reason": "区分了投资收益和经营利润并写明超指引，风险条目偏通用。"
+ },
+ "N06": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 2,
+  "readability": 3,
+  "overall": 4,
+  "reason": "Anthropic收益、分部利润和TTM自由现金流都写到了，篇幅偏长，风险多为套话。"
+ },
+ "N07": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 4,
+  "overall": 5,
+  "reason": "讲透了利润率下滑的原因（研发、诉讼、遣散）和自由现金流口径差异，有一处次要条目待核。"
+ },
+ "N08": {
+  "focus": 3,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "指引对照准确，但没解释净利润暴增来自投资收益，有误导风险；风险偏泛且有一条待核。"
+ },
+ "N09": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 2,
+  "risks": 3,
+  "readability": 3,
+  "overall": 3,
+  "reason": "把研发费用当作营业费用去对比指引，结论有误导；另有两条风险待核。"
+ },
+ "N10": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 4,
+  "risks": 5,
+  "readability": 4,
+  "overall": 4,
+  "reason": "供应承诺、口径重分类和H200风险都很具体，营业费用指引对照一条待核。"
+ },
+ "N11": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 5,
+  "reason": "超指引写得明确，AWS利润和OpenAI/Anthropic投资都点到了，可直接用于研究。"
+ },
+ "N12": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 3,
+  "risks": 3,
+  "readability": 3,
+  "overall": 2,
+  "reason": "核心营收、净利润和指引多条标为待核，缺资本开支，可用性大打折扣。"
+ },
+ "N13": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 3,
+  "risks": 5,
+  "readability": 3,
+  "overall": 4,
+  "reason": "风险具体，但收入明显超指引却不下结论，要点罗列冗长。"
+ },
+ "N14": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 5,
+  "reason": "超指引和下季指引都清楚，资本开支、融资及OpenAI投资抓得准。"
+ },
+ "N15": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 5,
+  "reason": "坦白说明没有数值指引，区分了股权投资收益，并购和租赁承诺都有价值。"
+ },
+ "N16": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 5,
+  "readability": 4,
+  "overall": 5,
+  "reason": "云毛利率下滑、Xbox减值和电力供应约束都很贴合本季，指引缺失也处理得诚实。"
+ },
+ "N17": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 2,
+  "risks": 4,
+  "readability": 3,
+  "overall": 3,
+  "reason": "积压订单很有价值，但把定性表述硬套成符合指引，指引条目待核。"
+ },
+ "N18": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 3,
+  "risks": 5,
+  "readability": 4,
+  "overall": 4,
+  "reason": "口径变更、中国出货和客户集中都很到位，但回避了营收是否超指引的判断。"
+ },
+ "N19": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 3,
+  "risks": 4,
+  "readability": 2,
+  "overall": 3,
+  "reason": "大段照搬原始表格，平台和地区数字两处待核，指引不作判断。"
+ },
+ "N20": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 4,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "如实说明无指引，但净利润下滑归因OpenAI缺出处，风险泛泛，税务一条待核。"
+ },
+ "N21": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 5,
+  "overall": 5,
+  "reason": "简洁地讲清了指引落点与费用和资本开支区间调整，利润承压原因明确。"
+ },
+ "N22": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 5,
+  "risks": 5,
+  "readability": 4,
+  "overall": 5,
+  "reason": "AI收入与指引逐项对照，一次性许可重分类和客户集中风险抓得很准。"
+ },
+ "N23": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 2,
+  "risks": 3,
+  "readability": 3,
+  "overall": 2,
+  "reason": "把76亿写成略高于指引的77亿，方向说反了；Rubin引用的是上季新闻稿，净利润归因也偏弱。"
+ },
+ "N24": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "毛利率改善原因与出货量和售价拆分清晰，但没明说营收超指引上沿。"
+ },
+ "N25": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 3,
+  "risks": 3,
+  "readability": 3,
+  "overall": 3,
+  "reason": "营收与净利两条核心数字及汇率风险未过核对，毛利率67.7%被误说成落在指引上限内，摘要空泛"
+ },
+ "N26": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 4,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "指引对照清楚，但分部与毛利率等关键变化多处待核对，缺增长驱动解释，风险为通用模板。"
+ },
+ "N27": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 3,
+  "readability": 5,
+  "overall": 4,
+  "reason": "结构清晰，指引对照准确且方向明确，制程结构变化到位，风险偏常规"
+ },
+ "N28": {
+  "focus": 5,
+  "comparison": 5,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 5,
+  "reason": "抓住一次性税收收益、资本开支指引上调、广告量价和RL亏损，指引对照完整，可直接用"
+ },
+ "N29": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 3,
+  "readability": 5,
+  "overall": 4,
+  "reason": "超指引判断清楚，制程占比回落与毛利率环比变化有对比，并提及全年资本预算，风险偏常规"
+ },
+ "N30": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 5,
+  "overall": 4,
+  "reason": "简洁准确，3纳米与先进制程占比环比对比清楚，指出下季利润率指引低于本季实际"
+ },
+ "N31": {
+  "focus": 4,
+  "comparison": 3,
+  "guidance": 3,
+  "risks": 4,
+  "readability": 3,
+  "overall": 3,
+  "reason": "抓到广告量价与一次性税收收益，但全年资本开支与费用指引这类关键条目未通过核对，摘要也带红标。"
+ },
+ "N32": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "如实说明无数值指引并点出0.27美元一次性项目，云毛利率与资本开支分析到位，风险贴合数据中心扩容，要点略重复表格。"
+ },
+ "N33": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "点出云业务加速、自由现金流转负、净利受投资收益扭曲以及TPU收入确认和融资，如实说明无数值指引"
+ },
+ "N34": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 5,
+  "readability": 4,
+  "overall": 4,
+  "reason": "数据中心、Rubin节奏、中国收入下滑和客户集中度都抓到了，下季指引完整，但没点明本季超出指引"
+ },
+ "N35": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 5,
+  "overall": 4,
+  "reason": "简洁，解释了净利环比下降是OpenAI收益基数造成，云毛利率与资本开支有趋势，如实说明无数值指引"
+ },
+ "N36": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 3,
+  "readability": 4,
+  "overall": 4,
+  "reason": "Azure增速、RPO与AI跑速选得准，诚实交代无数值指引；净利润环比下降未解释原因，风险偏通用。"
+ },
+ "N37": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 3,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "点出Anthropic投资收益与资本开支激增，但营收指引条目待核对且单位写错，变化与风险多为宏观和通用套话。"
+ },
+ "N38": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 3,
+  "risks": 3,
+  "readability": 3,
+  "overall": 3,
+  "reason": "AI半导体、RPO与许可收入重分类等关键变化都覆盖了，但Q4指引、分部占比等多处红标，削弱可直接引用性。"
+ },
+ "N39": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "云增长驱动、SpaceX投资收益、股债融资和自由现金流转负都抓到了，定性指引说明诚实"
+ },
+ "N40": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "利润率骤降归因于法律费用与遣散费，费用与资本开支指引变化交代清楚，风险具体；仅摘要有一处红标。"
+ },
+ "N41": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 5,
+  "risks": 5,
+  "readability": 5,
+  "overall": 5,
+  "reason": "收入、AI收入与指引对照清楚并区分了非GAAP口径，XPV平台、客户集中和残值担保等风险具体"
+ },
+ "N42": {
+  "focus": 3,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 3,
+  "readability": 3,
+  "overall": 3,
+  "reason": "营收与AI收入对指引清楚，但分部结构与EBITDA条目待核对，要点逐项罗列指标显得冗余，风险偏泛。"
+ },
+ "N43": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 3,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "驱动与客户集中度变化具体，但明显超指引仍拒绝下结论且有红标，遗漏RPO与重分类这类要点。"
+ },
+ "N44": {
+  "focus": 4,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 4,
+  "overall": 4,
+  "reason": "无红标，覆盖库存为AI加速器备货、客户集中度从29%升至42%等关键信息；对超指引的表述过于保守。"
+ },
+ "N45": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 2,
+  "risks": 4,
+  "readability": 3,
+  "overall": 3,
+  "reason": "把融资放进指引节，票据金额未过核对，凑数要点多，但担保与资本承诺类风险很具体"
+ },
+ "N46": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 4,
+  "readability": 5,
+  "overall": 4,
+  "reason": "云积压翻倍、投资收益、Wiz收购、40亿投资承诺都覆盖了，如实说明无数值指引"
+ },
+ "N47": {
+  "focus": 5,
+  "comparison": 4,
+  "guidance": 4,
+  "risks": 5,
+  "readability": 4,
+  "overall": 4,
+  "reason": "数据中心驱动、Meta 6GW合作与对华出口管制风险都很具体；已超出指引上限却只写成高于中枢，显得过于保守。"
+ },
+ "N48": {
+  "focus": 3,
+  "comparison": 3,
+  "guidance": 4,
+  "risks": 2,
+  "readability": 3,
+  "overall": 3,
+  "reason": "指引对照清楚，但地区与平台金额单位误导（千元当美元），董事会核准、单一部门、信用证这些填充项价值低"
+ }
+}

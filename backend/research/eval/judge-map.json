@@ -1,0 +1,338 @@
+[
+ {
+  "code": "N01",
+  "noteId": 57,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N02",
+  "noteId": 41,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q4"
+ },
+ {
+  "code": "N03",
+  "noteId": 80,
+  "model": "x-ai/grok-4.7",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N04",
+  "noteId": 51,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N05",
+  "noteId": 76,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N06",
+  "noteId": 79,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N07",
+  "noteId": 81,
+  "model": "x-ai/grok-4.7",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N08",
+  "noteId": 45,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N09",
+  "noteId": 60,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N10",
+  "noteId": 70,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q2"
+ },
+ {
+  "code": "N11",
+  "noteId": 49,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q2"
+ },
+ {
+  "code": "N12",
+  "noteId": 56,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N13",
+  "noteId": 86,
+  "model": "x-ai/grok-4.7",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q2"
+ },
+ {
+  "code": "N14",
+  "noteId": 59,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N15",
+  "noteId": 74,
+  "model": "x-ai/grok-4.7",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N16",
+  "noteId": 68,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q4"
+ },
+ {
+  "code": "N17",
+  "noteId": 44,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N18",
+  "noteId": 82,
+  "model": "x-ai/grok-4.7",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q1"
+ },
+ {
+  "code": "N19",
+  "noteId": 89,
+  "model": "x-ai/grok-4.7",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N20",
+  "noteId": 43,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N21",
+  "noteId": 66,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N22",
+  "noteId": 61,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N23",
+  "noteId": 50,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q1"
+ },
+ {
+  "code": "N24",
+  "noteId": 58,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N25",
+  "noteId": 55,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N26",
+  "noteId": 53,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N27",
+  "noteId": 84,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N28",
+  "noteId": 65,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N29",
+  "noteId": 71,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N30",
+  "noteId": 72,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N31",
+  "noteId": 47,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N32",
+  "noteId": 78,
+  "model": "x-ai/grok-4.7",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q4"
+ },
+ {
+  "code": "N33",
+  "noteId": 75,
+  "model": "x-ai/grok-4.7",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N34",
+  "noteId": 69,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "NVDA",
+  "fiscalLabel": "FY2027Q1"
+ },
+ {
+  "code": "N35",
+  "noteId": 67,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N36",
+  "noteId": 77,
+  "model": "x-ai/grok-4.7",
+  "ticker": "MSFT",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N37",
+  "noteId": 46,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AMZN",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N38",
+  "noteId": 52,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N39",
+  "noteId": 64,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N40",
+  "noteId": 48,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "META",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N41",
+  "noteId": 62,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N42",
+  "noteId": 54,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N43",
+  "noteId": 85,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q3"
+ },
+ {
+  "code": "N44",
+  "noteId": 88,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AVGO",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N45",
+  "noteId": 73,
+  "model": "deepseek/deepseek-v3.2",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q2"
+ },
+ {
+  "code": "N46",
+  "noteId": 63,
+  "model": "claude-opus-5.5-local（本机）",
+  "ticker": "GOOGL",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N47",
+  "noteId": 83,
+  "model": "x-ai/grok-4.7",
+  "ticker": "AMD",
+  "fiscalLabel": "FY2026Q1"
+ },
+ {
+  "code": "N48",
+  "noteId": 87,
+  "model": "x-ai/grok-4.7",
+  "ticker": "TSM",
+  "fiscalLabel": "FY2026Q2"
+ }
+]

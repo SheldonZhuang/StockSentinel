@@ -1,0 +1,13 @@
+{
+  "N26": {"focus": 3, "comparison": 3, "guidance": 4, "risks": 2, "readability": 3, "overall": 3, "reason": "指引对照清楚，但分部与毛利率等关键变化多处待核对，缺增长驱动解释，风险为通用模板。"},
+  "N31": {"focus": 4, "comparison": 3, "guidance": 3, "risks": 4, "readability": 3, "overall": 3, "reason": "抓到广告量价与一次性税收收益，但全年资本开支与费用指引这类关键条目未通过核对，摘要也带红标。"},
+  "N32": {"focus": 4, "comparison": 4, "guidance": 5, "risks": 4, "readability": 4, "overall": 4, "reason": "如实说明无数值指引并点出0.27美元一次性项目，云毛利率与资本开支分析到位，风险贴合数据中心扩容，要点略重复表格。"},
+  "N36": {"focus": 4, "comparison": 4, "guidance": 5, "risks": 3, "readability": 4, "overall": 4, "reason": "Azure增速、RPO与AI跑速选得准，诚实交代无数值指引；净利润环比下降未解释原因，风险偏通用。"},
+  "N37": {"focus": 3, "comparison": 3, "guidance": 3, "risks": 2, "readability": 3, "overall": 3, "reason": "点出Anthropic投资收益与资本开支激增，但营收指引条目待核对且单位写错，变化与风险多为宏观和通用套话。"},
+  "N38": {"focus": 4, "comparison": 4, "guidance": 3, "risks": 3, "readability": 3, "overall": 3, "reason": "AI半导体、RPO与许可收入重分类等关键变化都覆盖了，但Q4指引、分部占比等多处红标，削弱可直接引用性。"},
+  "N40": {"focus": 5, "comparison": 4, "guidance": 5, "risks": 4, "readability": 4, "overall": 4, "reason": "利润率骤降归因于法律费用与遣散费，费用与资本开支指引变化交代清楚，风险具体；仅摘要有一处红标。"},
+  "N42": {"focus": 3, "comparison": 4, "guidance": 4, "risks": 3, "readability": 3, "overall": 3, "reason": "营收与AI收入对指引清楚，但分部结构与EBITDA条目待核对，要点逐项罗列指标显得冗余，风险偏泛。"},
+  "N43": {"focus": 4, "comparison": 4, "guidance": 3, "risks": 4, "readability": 4, "overall": 4, "reason": "驱动与客户集中度变化具体，但明显超指引仍拒绝下结论且有红标，遗漏RPO与重分类这类要点。"},
+  "N44": {"focus": 4, "comparison": 4, "guidance": 4, "risks": 4, "readability": 4, "overall": 4, "reason": "无红标，覆盖库存为AI加速器备货、客户集中度从29%升至42%等关键信息；对超指引的表述过于保守。"},
+  "N47": {"focus": 5, "comparison": 4, "guidance": 4, "risks": 5, "readability": 4, "overall": 4, "reason": "数据中心驱动、Meta 6GW合作与对华出口管制风险都很具体；已超出指引上限却只写成高于中枢，显得过于保守。"}
+}

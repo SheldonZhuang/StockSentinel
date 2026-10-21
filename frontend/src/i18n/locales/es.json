@@ -276,6 +276,36 @@
       "allChannels": "Todos los canales",
       "endpointStats": "Popularidad de funciones (global)",
       "endpointStatsHint": "Llamadas y usuarios únicos por endpoint (incluye tráfico anónimo y por clave API) — dónde más le necesitan los usuarios"
+    },
+    "research": {
+      "title": "Captura de documentos de investigación",
+      "run": "Ejecutar captura incremental",
+      "running": "Capturando…",
+      "never": "La captura aún no se ha ejecutado",
+      "lastRun": "Última ejecución: {at} ({trigger}), {newFilings} nuevos, {failed} fallidos",
+      "totals": "{filings} presentaciones analizadas / {chunks} fragmentos",
+      "coverageCaption": "Presentaciones analizadas de los últimos 8 trimestres fiscales por empresa",
+      "colTicker": "Empresa",
+      "latest": "Último",
+      "issues": "Problemas de calidad de datos ({n})",
+      "noIssues": "Sin problemas",
+      "pending": "{n} más aún no vencidos (no cuentan como faltantes)",
+      "colKind": "Tipo",
+      "colDetail": "Detalle",
+      "kinds": {
+        "missing_quarter": "Trimestre faltante",
+        "duplicate": "Duplicado",
+        "parse_failed": "Error de análisis",
+        "empty_section": "Sección vacía",
+        "missing_section": "Sección faltante",
+        "pending_quarter": "Aún no vence"
+      },
+      "budgetTitle": "Presupuesto LLM (límites estrictos) y wiki de empresas",
+      "budgetLine": "Uso diario: hoy {today} / {daily}, este mes {month} / {monthly}; de ello ask_company este mes {ask} / {askCap}; carga inicial acumulada {backfill} / {backfillCap}",
+      "colWikiDone": "Presentaciones procesadas",
+      "colWikiBlocked": "Fallidas/bloqueadas",
+      "colWikiEntries": "Entradas activas",
+      "colWikiConflicts": "Entradas en conflicto"
     }
   },
   "settings": {

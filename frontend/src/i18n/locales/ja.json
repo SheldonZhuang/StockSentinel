@@ -276,6 +276,36 @@
       "allChannels": "全チャネル",
       "endpointStats": "機能別利用状況（全体）",
       "endpointStatsHint": "エンドポイント別の呼び出し数とユニークユーザー数（匿名・APIキー経由を含む）——ユーザーが最も必要とする方向へのリソース投資の指針"
+    },
+    "research": {
+      "title": "リサーチ文書の取得",
+      "run": "差分取得を実行",
+      "running": "取得中…",
+      "never": "まだ取得を実行していません",
+      "lastRun": "前回：{at}（{trigger}）、新規 {newFilings} 件、失敗 {failed} 件",
+      "totals": "解析済み {filings} 件 / {chunks} チャンク",
+      "coverageCaption": "各社の直近 8 会計四半期の解析済み書類",
+      "colTicker": "企業",
+      "latest": "最新",
+      "issues": "データ品質の問題（{n}）",
+      "noIssues": "問題なし",
+      "pending": "ほか {n} 件は提出期限前（欠落に含めない）",
+      "colKind": "種類",
+      "colDetail": "詳細",
+      "kinds": {
+        "missing_quarter": "四半期欠落",
+        "duplicate": "重複",
+        "parse_failed": "解析失敗",
+        "empty_section": "空のセクション",
+        "missing_section": "セクション欠落",
+        "pending_quarter": "期限前"
+      },
+      "budgetTitle": "LLM 予算（上限）と企業 Wiki",
+      "budgetLine": "通常運用：本日 {today} / {daily}、今月 {month} / {monthly}；うち ask_company 今月 {ask} / {askCap}；初回バックフィル累計 {backfill} / {backfillCap}",
+      "colWikiDone": "処理済み書類",
+      "colWikiBlocked": "失敗/制限",
+      "colWikiEntries": "有効なエントリ",
+      "colWikiConflicts": "矛盾するエントリ"
     }
   },
   "settings": {

@@ -283,6 +283,36 @@
       "allChannels": "All channels",
       "endpointStats": "Feature usage (site-wide)",
       "endpointStatsHint": "Calls and unique users per endpoint (incl. anonymous and API-key traffic) — where users need you most, guiding resource investment"
+    },
+    "research": {
+      "title": "Research filings ingest",
+      "run": "Run incremental ingest",
+      "running": "Ingesting…",
+      "never": "Ingest has not run yet",
+      "lastRun": "Last run: {at} ({trigger}), {newFilings} new, {failed} failed",
+      "totals": "{filings} filings parsed / {chunks} chunks",
+      "coverageCaption": "Parsed filings for the last 8 fiscal quarters per company",
+      "colTicker": "Company",
+      "latest": "Latest",
+      "issues": "Data quality issues ({n})",
+      "noIssues": "No issues",
+      "pending": "{n} more not yet past the filing deadline (not counted as missing)",
+      "colKind": "Type",
+      "colDetail": "Detail",
+      "kinds": {
+        "missing_quarter": "Missing quarter",
+        "duplicate": "Duplicate",
+        "parse_failed": "Parse failed",
+        "empty_section": "Empty section",
+        "missing_section": "Missing section",
+        "pending_quarter": "Not yet due"
+      },
+      "budgetTitle": "LLM budget (hard caps) and company wiki",
+      "budgetLine": "Daily ops: today {today} / {daily}, this month {month} / {monthly}; ask_company this month {ask} / {askCap}; initial backfill total {backfill} / {backfillCap}",
+      "colWikiDone": "Filings processed",
+      "colWikiBlocked": "Failed/blocked",
+      "colWikiEntries": "Active entries",
+      "colWikiConflicts": "Conflicting entries"
     }
   },
   "settings": {

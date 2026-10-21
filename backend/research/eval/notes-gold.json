@@ -1,0 +1,2516 @@
+{
+ "generated": "2026-10-21",
+ "commit": "73e7677",
+ "notes": [
+  {
+   "ticker": "MSFT",
+   "fiscalLabel": "FY2026Q4",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 90007000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 17.7,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 67.2,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001193125-26-323660",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 40603000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 35766000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 4.809999999999999,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 35802000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:msft:IntelligentCloudMember",
+     "label": "分部收入：Intelligent Cloud",
+     "kind": "number",
+     "value": 39306000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:IntelligentCloudMember",
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:msft:ProductivityAndBusinessProcessesMember",
+     "label": "分部收入：Productivity And Business Processes",
+     "kind": "number",
+     "value": 37847000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-323660",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:ProductivityAndBusinessProcessesMember",
+      "period": "2026-03-31..2026-06-30",
+      "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "not_disclosed",
+     "value": "财报新闻稿未给出数字指引",
+     "source": {
+      "type": "press_release",
+      "accession": "0001193125-26-323632",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323632/msft-ex99_1.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "MSFT",
+   "fiscalLabel": "FY2026Q3",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 82886000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 18.3,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 67.6,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001193125-26-191507",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 38398000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 31778000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 4.27,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 30876000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:msft:IntelligentCloudMember",
+     "label": "分部收入：Intelligent Cloud",
+     "kind": "number",
+     "value": 34681000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:IntelligentCloudMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:msft:ProductivityAndBusinessProcessesMember",
+     "label": "分部收入：Productivity And Business Processes",
+     "kind": "number",
+     "value": 35013000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001193125-26-191507",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:ProductivityAndBusinessProcessesMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "not_disclosed",
+     "value": "财报新闻稿未给出数字指引",
+     "source": {
+      "type": "press_release",
+      "accession": "0001193125-26-191457",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191457/msft-ex99_1.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "GOOGL",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 119796000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 24.2,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 61.6,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001652044-26-000071",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 40770000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 112193000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 9.11,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 44924000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "6M YTD (0001652044-26-000071) − 3M YTD (0001652044-26-000048)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:goog:GoogleCloudMember",
+     "label": "分部收入：Google Cloud",
+     "kind": "number",
+     "value": 24768000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=goog:GoogleCloudMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:goog:GoogleServicesMember",
+     "label": "分部收入：Google Services",
+     "kind": "number",
+     "value": 94540000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000071",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=goog:GoogleServicesMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "not_disclosed",
+     "value": "财报新闻稿未给出数字指引",
+     "source": {
+      "type": "press_release",
+      "accession": "0001652044-26-000066",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000066/googexhibit991q22026.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "GOOGL",
+   "fiscalLabel": "FY2026Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 109896000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 21.8,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 62.4,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001652044-26-000048",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 39696000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 62578000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 5.11,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 35674000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:goog:GoogleCloudMember",
+     "label": "分部收入：Google Cloud",
+     "kind": "number",
+     "value": 20028000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=goog:GoogleCloudMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:goog:GoogleServicesMember",
+     "label": "分部收入：Google Services",
+     "kind": "number",
+     "value": 89637000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001652044-26-000048",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=goog:GoogleServicesMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000048/goog-20260331.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "not_disclosed",
+     "value": "财报新闻稿未给出数字指引",
+     "source": {
+      "type": "press_release",
+      "accession": "0001652044-26-000043",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000043/googexhibit991q12026.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AMZN",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 200606000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 19.6,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 52.3,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001018724-26-000026",
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 27461000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 62647000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 5.75,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 54208000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:PaymentsToAcquireProductiveAssets",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:amzn:AmazonWebServicesSegmentMember",
+     "label": "分部收入：Amazon Web Services",
+     "kind": "number",
+     "value": 42232000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=amzn:AmazonWebServicesSegmentMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:amzn:NorthAmericaSegmentMember",
+     "label": "分部收入：North America",
+     "kind": "number",
+     "value": 116177000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000026",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=amzn:NorthAmericaSegmentMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Net sales are expected to be between $197.0 billion and $202.0 billion",
+     "numbers": [
+      197,
+      202
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001018724-26-000024",
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000024/amzn-20260630xex991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AMZN",
+   "fiscalLabel": "FY2026Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 181519000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 16.6,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 51.8,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001018724-26-000014",
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 23852000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 30255000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 2.78,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 44203000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:PaymentsToAcquireProductiveAssets",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:amzn:AmazonWebServicesSegmentMember",
+     "label": "分部收入：Amazon Web Services",
+     "kind": "number",
+     "value": 37587000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=amzn:AmazonWebServicesSegmentMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:amzn:NorthAmericaSegmentMember",
+     "label": "分部收入：North America",
+     "kind": "number",
+     "value": 104143000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001018724-26-000014",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=amzn:NorthAmericaSegmentMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Net sales are expected to be between $194.0 billion and $199.0 billion",
+     "numbers": [
+      194,
+      199
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001018724-26-000012",
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000012/amzn-20260331xex991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "META",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 60801000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 28,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 81.4,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001628280-26-050705",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 18775000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 15848000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 6.18,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 30116000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-03-31..2026-06-30",
+      "derived": "6M YTD (0001628280-26-050705) − 3M YTD (0001628280-26-028526)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:meta:FamilyOfAppsMember",
+     "label": "分部收入：Family Of Apps",
+     "kind": "number",
+     "value": 60370000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=meta:FamilyOfAppsMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "segment:meta:RealityLabsMember",
+     "label": "分部收入：Reality Labs",
+     "kind": "number",
+     "value": 431000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-050705",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=meta:RealityLabsMember",
+      "period": "2026-04-01..2026-06-30",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050705/meta-20260630.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "total revenue to be in the range of $61-64 billion",
+     "numbers": [
+      61,
+      64
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001628280-26-050596",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026050596/meta-06302026xexhibit991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "META",
+   "fiscalLabel": "FY2026Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 56311000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 33.1,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 81.9,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001628280-26-028526",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 22872000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 26773000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 10.44,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 18997000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:meta:FamilyOfAppsMember",
+     "label": "分部收入：Family Of Apps",
+     "kind": "number",
+     "value": 55909000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=meta:FamilyOfAppsMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "segment:meta:RealityLabsMember",
+     "label": "分部收入：Reality Labs",
+     "kind": "number",
+     "value": 402000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001628280-26-028526",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=meta:RealityLabsMember",
+      "period": "2026-01-01..2026-03-31",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028526/meta-20260331.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "total revenue to be in the range of $58-61 billion",
+     "numbers": [
+      58,
+      61
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001628280-26-028364",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026028364/meta-03312026xexhibit991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "NVDA",
+   "fiscalLabel": "FY2027Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 96221000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 105.9,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 75,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001045810-26-000075",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 63734000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 59688000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 2.46,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 2677000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:PaymentsToAcquireProductiveAssets",
+      "dims": null,
+      "period": "2026-04-26..2026-07-26",
+      "derived": "6M YTD (0001045810-26-000075) − 3M YTD (0001045810-26-000052)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "product:nvda:DataCenterMember",
+     "label": "产品线收入：Data Center",
+     "kind": "number",
+     "value": 89023000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:Revenues",
+      "dims": "srt:ProductOrServiceAxis=nvda:DataCenterMember",
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "segment:nvda:ComputeAndNetworkingSegmentMember",
+     "label": "分部收入：Compute And Networking",
+     "kind": "number",
+     "value": 88299000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000075",
+      "concept": "us-gaap:Revenues",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=nvda:ComputeAndNetworkingSegmentMember",
+      "period": "2026-04-27..2026-07-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Revenue is expected to be $108.0 billion, plus or minus 2%",
+     "numbers": [
+      108,
+      2
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001045810-26-000073",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "NVDA",
+   "fiscalLabel": "FY2027Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 81615000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 85.2,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:Revenues",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 74.9,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001045810-26-000052",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 53536000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 58321000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 2.39,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 1757000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:PaymentsToAcquireProductiveAssets",
+      "dims": null,
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "product:nvda:DataCenterMember",
+     "label": "产品线收入：Data Center",
+     "kind": "number",
+     "value": 75246000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:Revenues",
+      "dims": "srt:ProductOrServiceAxis=nvda:DataCenterMember",
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "segment:nvda:ComputeAndNetworkingSegmentMember",
+     "label": "分部收入：Compute And Networking",
+     "kind": "number",
+     "value": 74550000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001045810-26-000052",
+      "concept": "us-gaap:Revenues",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=nvda:ComputeAndNetworkingSegmentMember",
+      "period": "2026-01-26..2026-04-26",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000052/nvda-20260426.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Revenue is expected to be $91.0 billion, plus or minus 2%",
+     "numbers": [
+      91,
+      2
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001045810-26-000051",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000051/q1fy27pr.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AMD",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 11536000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 50.1,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 53.8,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0000002488-26-000123",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 1990000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 2297000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 1.38,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 808000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-03-28..2026-06-27",
+      "derived": "6M YTD (0000002488-26-000123) − 3M YTD (0000002488-26-000076)",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "segment:amd:DataCenterMember",
+     "label": "分部收入：Data Center",
+     "kind": "number",
+     "value": 6718000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=amd:DataCenterMember",
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "segment:amd:ClientAndGamingMember",
+     "label": "分部收入：Client And Gaming",
+     "kind": "number",
+     "value": 3841000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000123",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=amd:ClientAndGamingMember",
+      "period": "2026-03-29..2026-06-27",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000123/amd-20260627.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "AMD expects revenue to be approximately $13 billion, plus or minus $300 million",
+     "numbers": [
+      13,
+      300
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0000002488-26-000121",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000121/q22026991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AMD",
+   "fiscalLabel": "FY2026Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 10253000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 37.8,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 52.8,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0000002488-26-000076",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 1476000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 1383000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:NetIncomeLoss",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 0.84,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 389000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "segment:amd:DataCenterMember",
+     "label": "分部收入：Data Center",
+     "kind": "number",
+     "value": 5775000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=amd:DataCenterMember",
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "segment:amd:ClientAndGamingMember",
+     "label": "分部收入：Client And Gaming",
+     "kind": "number",
+     "value": 3605000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0000002488-26-000076",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=amd:ClientAndGamingMember",
+      "period": "2025-12-28..2026-03-28",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000076/amd-20260328.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "AMD expects revenue to be approximately $11.2 billion, plus or minus $300 million",
+     "numbers": [
+      11.2,
+      300
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0000002488-26-000072",
+      "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000072/q12026991.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AVGO",
+   "fiscalLabel": "FY2026Q3",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 29591000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 85.5,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 69.1,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001730168-26-000080",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 15955000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 13088000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:ProfitLoss",
+      "dims": null,
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 2.68,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 532000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-05-03..2026-08-02",
+      "derived": "9M YTD (0001730168-26-000080) − 6M YTD (0001730168-26-000054)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "segment:avgo:SemiconductorSolutionsMember",
+     "label": "分部收入：Semiconductor Solutions",
+     "kind": "number",
+     "value": 20839000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=avgo:SemiconductorSolutionsMember",
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "segment:avgo:InfrastructureSoftwareMember",
+     "label": "分部收入：Infrastructure Software",
+     "kind": "number",
+     "value": 8752000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000080",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=avgo:InfrastructureSoftwareMember",
+      "period": "2026-05-04..2026-08-02",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000080/avgo-20260802.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Q4 consolidated revenue growth is forecasted to increase 93% year-over-year to $34.8 billion",
+     "numbers": [
+      4,
+      93,
+      34.8
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001730168-26-000076",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000076/avgo-08022026x8kxex99.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "AVGO",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入",
+     "kind": "number",
+     "value": 22187000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比",
+     "kind": "number",
+     "value": 47.9,
+     "unit": "%",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": null,
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 69.5,
+     "unit": "%",
+     "source": {
+      "type": "derived",
+      "derived": "毛利 / 营业收入",
+      "accession": "0001730168-26-000054",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润",
+     "kind": "number",
+     "value": 10788000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:OperatingIncomeLoss",
+      "dims": null,
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润",
+     "kind": "number",
+     "value": 9310000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:ProfitLoss",
+      "dims": null,
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益",
+     "kind": "number",
+     "value": 1.91,
+     "unit": "USD/share",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:EarningsPerShareDiluted",
+      "dims": null,
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "capex",
+     "label": "资本开支",
+     "kind": "number",
+     "value": 231000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+      "dims": null,
+      "period": "2026-02-01..2026-05-03",
+      "derived": "6M YTD (0001730168-26-000054) − 3M YTD (0001730168-26-000016)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "segment:avgo:SemiconductorSolutionsMember",
+     "label": "分部收入：Semiconductor Solutions",
+     "kind": "number",
+     "value": 15009000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=avgo:SemiconductorSolutionsMember",
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "segment:avgo:InfrastructureSoftwareMember",
+     "label": "分部收入：Infrastructure Software",
+     "kind": "number",
+     "value": 7178000000,
+     "unit": "USD",
+     "source": {
+      "type": "xbrl",
+      "accession": "0001730168-26-000054",
+      "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "dims": "us-gaap:StatementBusinessSegmentsAxis=avgo:InfrastructureSoftwareMember",
+      "period": "2026-02-02..2026-05-03",
+      "derived": null,
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000054/avgo-20260503.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "quarter revenue guidance of approximately $29.4 billion",
+     "numbers": [
+      29.4
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001730168-26-000051",
+      "url": "https://www.sec.gov/Archives/edgar/data/1730168/000173016826000051/avgo-05032026x8kxex99.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "TSM",
+   "fiscalLabel": "FY2026Q2",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入（新台币）",
+     "kind": "number",
+     "value": 1270381000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比（新台币）",
+     "kind": "number",
+     "value": 36,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_usd",
+     "label": "营业收入（美元）",
+     "kind": "number",
+     "value": 40200000000,
+     "unit": "USD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_usd_yoy",
+     "label": "营业收入同比（美元）",
+     "kind": "number",
+     "value": 33.7,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 67.7,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润（新台币）",
+     "kind": "number",
+     "value": 766603000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润（新台币）",
+     "kind": "number",
+     "value": 706562000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "net_income_yoy",
+     "label": "净利润同比",
+     "kind": "number",
+     "value": 77.4,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益（新台币）",
+     "kind": "number",
+     "value": 27.25,
+     "unit": "TWD/share",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Revenue is expected to be between US$44.6 billion and US$45.8 billion",
+     "numbers": [
+      44.6,
+      45.8
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000451",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000451/a2q26e_withguidancexfinal.htm"
+     }
+    }
+   ]
+  },
+  {
+   "ticker": "TSM",
+   "fiscalLabel": "FY2026Q1",
+   "facts": [
+    {
+     "id": "revenue",
+     "label": "营业收入（新台币）",
+     "kind": "number",
+     "value": 1134103000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_yoy",
+     "label": "营业收入同比（新台币）",
+     "kind": "number",
+     "value": 35.1,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_usd",
+     "label": "营业收入（美元）",
+     "kind": "number",
+     "value": 35900000000,
+     "unit": "USD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "revenue_usd_yoy",
+     "label": "营业收入同比（美元）",
+     "kind": "number",
+     "value": 40.6,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "gross_margin",
+     "label": "毛利率",
+     "kind": "number",
+     "value": 66.2,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "operating_income",
+     "label": "营业利润（新台币）",
+     "kind": "number",
+     "value": 658966000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "net_income",
+     "label": "净利润（新台币）",
+     "kind": "number",
+     "value": 572480000000,
+     "unit": "TWD",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "net_income_yoy",
+     "label": "净利润同比",
+     "kind": "number",
+     "value": 58.3,
+     "unit": "%",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "eps_diluted",
+     "label": "稀释每股收益（新台币）",
+     "kind": "number",
+     "value": 22.08,
+     "unit": "TWD/share",
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "label": "下一季收入指引",
+     "kind": "guidance",
+     "value": "Revenue is expected to be between US$39.0 billion and US$40.2 billion",
+     "numbers": [
+      39,
+      40.2
+     ],
+     "source": {
+      "type": "press_release",
+      "accession": "0001046179-26-000199",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000199/a1q26e_withguidancexfinal.htm"
+     }
+    }
+   ]
+  }
+ ]
+}

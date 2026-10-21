@@ -73,6 +73,9 @@ export const api = {
     request(`/admin/users/${id}/usage?days=${days}&page=${page}` + (channel ? `&channel=${channel}` : '')),
   adminEndpointStats: (days = 30) => request(`/admin/endpoint-stats?days=${days}`),
   getReference: (category) => request(`/admin/reference?category=${category}`),
+  // 研究文档采集（129号）
+  adminResearchStatus: () => request('/admin/research/status'),
+  adminResearchIngest: (tickers) => request('/admin/research/ingest', { method: 'POST', body: JSON.stringify({ tickers }) }),
   setLockOverride: (type, expiresAt, note) =>
     request('/admin/lock-override', { method: 'POST', body: JSON.stringify({ type, expiresAt, note }) }),
   // 116号：撤销现存清锁覆盖（锁按 raw 状态恢复）

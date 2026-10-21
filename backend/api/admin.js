@@ -28,6 +28,7 @@ import { asyncRoute } from '../utils/async-route.js';
 import { invalidateKeyCache } from './public.js';
 import { flushCallLogs } from '../utils/usage-log.js';
 import { getCapeState } from '../utils/cape.js';
+import { getIngestStatus, runIngest, isIngestRunning } from '../research/ingest.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
@@ -344,6 +345,19 @@ router.get('/s5', requireAdmin, asyncRoute(async (req, res) => {
       note: '日度口径含CAPE层；假信号是常态(4/9)，机械执行是前提；浮亏-28.3%来自危机中段的解锁窗往返',
     },
   });
+}));
+
+// GET /api/admin/research/status — 研究文档采集状态（129号）：最近一次运行、覆盖矩阵、数据质量问题
+router.get('/research/status', requireAdmin, asyncRoute(async (req, res) => {
+  res.json(await getIngestStatus());
+}));
+
+// POST /api/admin/research/ingest — 手动触发增量采集（后台跑，立即返回；同进程互斥）
+router.post('/research/ingest', requireAdmin, asyncRoute(async (req, res) => {
+  if (isIngestRunning()) return res.status(409).json({ error: 'already running' });
+  const tickers = Array.isArray(req.body?.tickers) ? req.body.tickers.filter(t => typeof t === 'string').slice(0, 20) : undefined;
+  runIngest({ tickers, trigger: 'manual' }).catch(err => console.error('[research] manual ingest failed:', err.message));
+  res.status(202).json({ started: true });
 }));
 
 export default router;

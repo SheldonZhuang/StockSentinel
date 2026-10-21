@@ -276,6 +276,36 @@
       "allChannels": "Tous les canaux",
       "endpointStats": "Popularité des fonctions (global)",
       "endpointStatsHint": "Appels et utilisateurs uniques par endpoint (trafic anonyme et par clé API inclus) — là où les utilisateurs ont le plus besoin de vous"
+    },
+    "research": {
+      "title": "Collecte des documents de recherche",
+      "run": "Lancer la collecte incrémentale",
+      "running": "Collecte en cours…",
+      "never": "La collecte n'a pas encore été lancée",
+      "lastRun": "Dernière exécution : {at} ({trigger}), {newFilings} nouveaux, {failed} échecs",
+      "totals": "{filings} dépôts analysés / {chunks} segments",
+      "coverageCaption": "Dépôts analysés des 8 derniers trimestres fiscaux par société",
+      "colTicker": "Société",
+      "latest": "Dernier",
+      "issues": "Problèmes de qualité des données ({n})",
+      "noIssues": "Aucun problème",
+      "pending": "{n} autres pas encore échus (non comptés comme manquants)",
+      "colKind": "Type",
+      "colDetail": "Détail",
+      "kinds": {
+        "missing_quarter": "Trimestre manquant",
+        "duplicate": "Doublon",
+        "parse_failed": "Échec d'analyse",
+        "empty_section": "Section vide",
+        "missing_section": "Section manquante",
+        "pending_quarter": "Pas encore échu"
+      },
+      "budgetTitle": "Budget LLM (plafonds stricts) et wiki des sociétés",
+      "budgetLine": "Usage courant : aujourd'hui {today} / {daily}, ce mois {month} / {monthly} ; dont ask_company ce mois {ask} / {askCap} ; rattrapage initial cumulé {backfill} / {backfillCap}",
+      "colWikiDone": "Dépôts traités",
+      "colWikiBlocked": "Échec/bloqué",
+      "colWikiEntries": "Entrées actives",
+      "colWikiConflicts": "Entrées en conflit"
     }
   },
   "settings": {
