@@ -310,3 +310,33 @@ export async function sendOpsAlert(adminEmail, p) {
     }
   }
 }
+
+/**
+ * 通用管理员通知（129号：研究 Agent 预算超限等非"每日信号失败"类告警）。
+ * sendOpsAlert 的标题写死"每日信号更新失败"，研究模块的告警不能借用，否则会误导排障方向。
+ * @param {string} adminEmail
+ * @param {{subject: string, lines: string[]}} p
+ */
+export async function sendAdminNotice(adminEmail, p) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey.startsWith('re_placeholder') || !adminEmail) {
+    console.warn('[mailer] admin notice skipped (no RESEND_API_KEY or admin email)');
+    return { sent: 0, failed: 0 };
+  }
+  const resend = new Resend(apiKey);
+  const instanceTag = isReplica() ? '（replica 本机实例）' : '';
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #b45309;">${escapeHtml(p.subject)}${instanceTag}</h2>
+      ${(p.lines || []).map(l => `<p style="font-size: 13px; color: #333; line-height: 1.7;">${escapeHtml(l)}</p>`).join('')}
+      <p style="font-size: 12px; color: #888; margin-top: 16px;">本邮件仅发送给管理员。</p>
+    </div>`;
+  const from = process.env.RESEND_FROM || 'Stock Sentinel <onboarding@resend.dev>';
+  try {
+    await sendOne(resend, { from, to: adminEmail, subject: `【股哨兵研究】${p.subject}`, html });
+    return { sent: 1, failed: 0 };
+  } catch (err) {
+    console.error('[mailer] admin notice failed:', err.message);
+    return { sent: 0, failed: 1 };
+  }
+}

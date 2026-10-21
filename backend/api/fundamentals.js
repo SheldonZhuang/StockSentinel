@@ -1,14 +1,9 @@
 // 真实 P/S 计算（SEC EDGAR 官方 XBRL，无需key）：P/S = 股价 × 流通股本 ÷ TTM营收
 // 背景：FMP 免费层 ratios 只覆盖少数大盘股(其余402)，Yahoo quoteSummary 端点对本机限流，
 // EDGAR 是权威、免费且畅通的兜底。ETF/指数无财报 → null 属正常
-import axios from 'axios';
+// EDGAR 访问（UA/全局串行限速/瞬时故障重试/CIK 映射）统一走 utils/edgar-client.js（129号）
+import { edgarGet, tickerToCik } from '../utils/edgar-client.js';
 
-// SEC 公平访问政策要求 User-Agent 为"名称 邮箱"裸格式——带括号或版本号会被WAF拒绝(403)
-const EDGAR_HEADERS = {
-  'User-Agent': 'StockSentinel admin@stocksentinel.app',
-  'Accept-Encoding': 'gzip, deflate',
-};
-const TICKERS_URL = 'https://www.sec.gov/files/company_tickers.json';
 const conceptUrl = (cik, taxonomy, concept) =>
   `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${taxonomy}/${concept}.json`;
 
@@ -25,33 +20,6 @@ const REVENUE_CONCEPTS = [
 
 const DAY_MS = 86400000;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 财报数据按季更新，24小时缓存足够
-
-// SEC 限速 10次/秒：全局串行队列 + 最小间隔，watchlist 并发拉取时不齐发
-let edgarQueue = Promise.resolve();
-function edgarGet(url) {
-  const run = edgarQueue.then(async () => {
-    const res = await axios.get(url, { headers: EDGAR_HEADERS, timeout: 15000 });
-    await new Promise(r => setTimeout(r, 120));
-    return res;
-  });
-  // 队列继续推进（失败不阻塞后续请求）
-  edgarQueue = run.catch(() => {});
-  return run;
-}
-
-let cikMap = null;
-let cikMapAt = 0;
-async function tickerToCik(symbol) {
-  if (!cikMap || Date.now() - cikMapAt > CACHE_TTL_MS) {
-    const res = await edgarGet(TICKERS_URL);
-    cikMap = new Map();
-    for (const row of Object.values(res.data || {})) {
-      if (row?.ticker) cikMap.set(String(row.ticker).toUpperCase(), String(row.cik_str).padStart(10, '0'));
-    }
-    cikMapAt = Date.now();
-  }
-  return cikMap.get(String(symbol).toUpperCase()) || null;
-}
 
 /**
  * 从 units.USD 事实数组求 TTM 营收（纯函数）。

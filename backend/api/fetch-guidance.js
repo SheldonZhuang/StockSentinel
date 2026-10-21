@@ -31,11 +31,8 @@ import {
   getAlertSubscribers,
 } from '../utils/storage.js';
 import { sendSignalAlert, sendOpsAlert } from '../utils/mailer.js';
+import { edgarGet, submissionsUrl, archiveBase } from '../utils/edgar-client.js';
 
-const EDGAR_HEADERS = {
-  'User-Agent': 'StockSentinel admin@stocksentinel.app',
-  'Accept-Encoding': 'gzip, deflate',
-};
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const GUIDANCE_MODEL = () => process.env.AI_REPORT_MODEL || 'deepseek/deepseek-chat-v3-0324';
 const LOOKBACK_DAYS = 10; // 只看最近10天的申报（每日跑，窗口重叠防漏）
@@ -43,18 +40,13 @@ const LOOKBACK_DAYS = 10; // 只看最近10天的申报（每日跑，窗口重�
 // web 检索用公司全名（裸 ticker 检索命中率低）
 const COMPANY_NAMES = { MSFT: 'Microsoft', AMZN: 'Amazon', GOOGL: 'Alphabet (Google)', META: 'Meta Platforms' };
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
 /** 四家最近的业绩 8-K（item 2.02），过滤已处理的 accession */
 export async function findNewEarningsFilings(processedAccessions) {
   const out = [];
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
   for (const [symbol, { cik }] of Object.entries(chainCfg.HYPERSCALER_CIK)) {
     try {
-      const res = await axios.get(
-        `https://data.sec.gov/submissions/CIK${cik}.json`,
-        { headers: EDGAR_HEADERS, timeout: 20000 }
-      );
+      const res = await edgarGet(submissionsUrl(cik));
       const r = res.data.filings.recent;
       for (let i = 0; i < r.form.length; i++) {
         // 120号（L1）：recent 按受理时间排序，filingDate 非严格单调（补交/修正案会乱序），
@@ -67,27 +59,19 @@ export async function findNewEarningsFilings(processedAccessions) {
     } catch (err) {
       console.warn(`[guidance] submissions(${symbol}) failed:`, err.message);
     }
-    await sleep(150);
   }
   return out;
 }
 
 /** 拉 8-K 的 EX-99 新闻稿正文（去 HTML 标签）；找不到 exhibit 返回 null */
 export async function fetchPressReleaseText(cik, accession) {
-  const acc = accession.replace(/-/g, '');
-  const cikNum = String(Number(cik)); // 目录路径用无前导零
-  const idx = await axios.get(
-    `https://www.sec.gov/Archives/edgar/data/${cikNum}/${acc}/index.json`,
-    { headers: EDGAR_HEADERS, timeout: 20000 }
-  );
+  const base = archiveBase(cik, accession);
+  const idx = await edgarGet(`${base}/index.json`);
   const files = (idx.data.directory?.item || []).map(x => x.name).filter(n => n.endsWith('.htm'));
   // EX-99 命名各家不一（googexhibit991/ex99x1/pressrelease...），匹配常见模式
   const ex99 = files.find(n => /ex.{0,3}99|exhibit.?99|press/i.test(n));
   if (!ex99) return null;
-  const doc = await axios.get(
-    `https://www.sec.gov/Archives/edgar/data/${cikNum}/${acc}/${ex99}`,
-    { headers: EDGAR_HEADERS, timeout: 30000 }
-  );
+  const doc = await edgarGet(`${base}/${ex99}`, { timeout: 30000 });
   return String(doc.data)
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;|&#160;|&#58;/g, ' ')

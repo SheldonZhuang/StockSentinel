@@ -1,0 +1,1322 @@
+{
+ "runId": "eval-2026-10-21-deepseek_deepseek_v3.2-73e7677-v1",
+ "model": "deepseek/deepseek-v3.2（改进前流程）",
+ "date": "2026-10-21",
+ "commit": "73e7677",
+ "dirty": true,
+ "metrics": {
+  "notes": 16,
+  "failureRate": 0,
+  "numericAccuracy": 0.947,
+  "factCoverage": 0.706,
+  "sourceCoverage": 0.969,
+  "sourceAccuracy": 0.907,
+  "falseNotDisclosedRate": 0.026,
+  "fabricatedGuidance": 0,
+  "notDisclosedFacts": 4,
+  "latencyP50s": 191.5,
+  "latencyP95s": 320.7,
+  "costPerNoteUsd": 0.0185,
+  "costTotalUsd": 0.2963,
+  "usefulness": null,
+  "usefulnessN": 0,
+  "usefulnessAi": null,
+  "usefulnessAiN": 0
+ },
+ "perNote": [
+  {
+   "ticker": "MSFT",
+   "fiscalLabel": "FY2026Q4",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:msft:IntelligentCloudMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:msft:ProductivityAndBusinessProcessesMember",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "not_disclosed",
+     "mentioned": false,
+     "fabricated": false
+    }
+   ],
+   "claims": 17,
+   "withSource": 17,
+   "sourceVerified": 17
+  },
+  {
+   "ticker": "MSFT",
+   "fiscalLabel": "FY2026Q3",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:msft:IntelligentCloudMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:msft:ProductivityAndBusinessProcessesMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "not_disclosed",
+     "mentioned": false,
+     "fabricated": false
+    }
+   ],
+   "claims": 17,
+   "withSource": 17,
+   "sourceVerified": 17
+  },
+  {
+   "ticker": "GOOGL",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:goog:GoogleCloudMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:goog:GoogleServicesMember",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "not_disclosed",
+     "mentioned": false,
+     "fabricated": false
+    }
+   ],
+   "claims": 17,
+   "withSource": 17,
+   "sourceVerified": 16
+  },
+  {
+   "ticker": "GOOGL",
+   "fiscalLabel": "FY2026Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": true
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:goog:GoogleCloudMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:goog:GoogleServicesMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "not_disclosed",
+     "mentioned": false,
+     "fabricated": false
+    }
+   ],
+   "claims": 13,
+   "withSource": 13,
+   "sourceVerified": 13
+  },
+  {
+   "ticker": "AMZN",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amzn:AmazonWebServicesSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amzn:NorthAmericaSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 18,
+   "withSource": 18,
+   "sourceVerified": 15
+  },
+  {
+   "ticker": "AMZN",
+   "fiscalLabel": "FY2026Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": true
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amzn:AmazonWebServicesSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amzn:NorthAmericaSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 18,
+   "withSource": 17,
+   "sourceVerified": 16
+  },
+  {
+   "ticker": "META",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:meta:FamilyOfAppsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:meta:RealityLabsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 19,
+   "withSource": 19,
+   "sourceVerified": 14
+  },
+  {
+   "ticker": "META",
+   "fiscalLabel": "FY2026Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:meta:FamilyOfAppsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:meta:RealityLabsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 18,
+   "withSource": 17,
+   "sourceVerified": 14
+  },
+  {
+   "ticker": "NVDA",
+   "fiscalLabel": "FY2027Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": true
+    },
+    {
+     "id": "product:nvda:DataCenterMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:nvda:ComputeAndNetworkingSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 20,
+   "withSource": 18,
+   "sourceVerified": 18
+  },
+  {
+   "ticker": "NVDA",
+   "fiscalLabel": "FY2027Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "product:nvda:DataCenterMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:nvda:ComputeAndNetworkingSegmentMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 17,
+   "withSource": 16,
+   "sourceVerified": 16
+  },
+  {
+   "ticker": "AMD",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": true
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amd:DataCenterMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amd:ClientAndGamingMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 18,
+   "withSource": 18,
+   "sourceVerified": 18
+  },
+  {
+   "ticker": "AMD",
+   "fiscalLabel": "FY2026Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amd:DataCenterMember",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:amd:ClientAndGamingMember",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 0,
+   "withSource": 0,
+   "sourceVerified": 0
+  },
+  {
+   "ticker": "AVGO",
+   "fiscalLabel": "FY2026Q3",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:avgo:SemiconductorSolutionsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:avgo:InfrastructureSoftwareMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 15,
+   "withSource": 12,
+   "sourceVerified": 12
+  },
+  {
+   "ticker": "AVGO",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "capex",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:avgo:SemiconductorSolutionsMember",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "segment:avgo:InfrastructureSoftwareMember",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 18,
+   "withSource": 18,
+   "sourceVerified": 16
+  },
+  {
+   "ticker": "TSM",
+   "fiscalLabel": "FY2026Q2",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_usd",
+     "kind": "number",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_usd_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": false,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 15,
+   "withSource": 15,
+   "sourceVerified": 10
+  },
+  {
+   "ticker": "TSM",
+   "fiscalLabel": "FY2026Q1",
+   "failed": false,
+   "facts": [
+    {
+     "id": "revenue",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_usd",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "revenue_usd_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "gross_margin",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "operating_income",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "net_income_yoy",
+     "kind": "number",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "eps_diluted",
+     "kind": "number",
+     "mentioned": false,
+     "correct": null,
+     "falseNotDisclosed": false
+    },
+    {
+     "id": "next_q_revenue_guidance",
+     "kind": "guidance",
+     "mentioned": true,
+     "correct": true,
+     "falseNotDisclosed": false
+    }
+   ],
+   "claims": 14,
+   "withSource": 14,
+   "sourceVerified": 11
+  }
+ ],
+ "noteIds": [
+  9,
+  8,
+  10,
+  11,
+  12,
+  15,
+  13,
+  14,
+  16,
+  20,
+  18,
+  17,
+  19,
+  21,
+  22,
+  23
+ ]
+}

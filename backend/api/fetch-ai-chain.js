@@ -3,6 +3,7 @@ import chainCfg from '../config/ai-chain.config.js';
 import { calcRelativeReturn } from './fetch-policy.js';
 import { getDailyCloses } from './market-data.js';
 import { todayET, daysAgoET } from '../utils/datetime.js';
+import { edgarGet } from '../utils/edgar-client.js';
 
 const {
   STAGE_KEYS,
@@ -17,12 +18,7 @@ const {
   USAGE_FETCH_DAYS,
 } = chainCfg;
 
-// SEC EDGAR 官方 XBRL 数据：无需key，限速10次/秒；
-// SEC 公平访问政策要求 User-Agent 为"名称 邮箱"裸格式——带括号或版本号会被WAF拒绝(403)
-const EDGAR_HEADERS = {
-  'User-Agent': 'StockSentinel admin@stocksentinel.app',
-  'Accept-Encoding': 'gzip, deflate',
-};
+// SEC EDGAR 官方 XBRL 数据：无需key；UA/限速/重试统一走 utils/edgar-client.js（129号）
 const edgarUrl = (cik, concept) => `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/us-gaap/${concept}.json`;
 
 const NULL_USAGE = { modelUsageTrendPct: null, modelUsageLatestTokens: null, modelUsageAsOf: null };
@@ -381,10 +377,7 @@ export async function fetchCapexSeriesForSymbol(sym) {
   const { cik, concept } = HYPERSCALER_CIK[sym] || {};
   if (!cik) return null;
   try {
-    const res = await axios.get(edgarUrl(cik, concept), {
-      headers: EDGAR_HEADERS,
-      timeout: 20000,
-    });
+    const res = await edgarGet(edgarUrl(cik, concept));
     return deriveQuarterlyCapex(res.data?.units?.USD);
   } catch (err) {
     console.warn(`[fetch-ai-chain] EDGAR capex(${sym}) failed:`, err.message);
@@ -409,7 +402,6 @@ export async function fetchHyperscalerCapex() {
   for (const sym of Object.keys(HYPERSCALER_CIK)) {
     const series = await fetchCapexSeriesForSymbol(sym);
     if (series?.length) quartersBySymbol[sym] = series;
-    await sleep(150); // EDGAR 限速10次/秒，保守间隔
   }
   return { ...calcCapexYoY(quartersBySymbol), ...calcCapexQuarterYoY(quartersBySymbol) };
 }

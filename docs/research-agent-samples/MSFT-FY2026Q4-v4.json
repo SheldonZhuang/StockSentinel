@@ -1,0 +1,1004 @@
+{
+  "ticker": "MSFT",
+  "fiscal_period": "FY2026Q4",
+  "period_end": "2026-06-30",
+  "stage": "final",
+  "version": 4,
+  "based_on": [
+    {
+      "accession": "0001193125-26-323660",
+      "form": "10-K",
+      "filing_date": "2026-07-29",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+    },
+    {
+      "accession": "0001193125-26-323632",
+      "form": "8-K",
+      "filing_date": "2026-07-29",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323632/msft-ex99_1.htm"
+    }
+  ],
+  "summary": "微软FY2026Q4业绩表现强劲，营收和利润均实现显著增长。智能云业务继续成为主要增长引擎，而个人计算业务面临压力。公司持续加大AI基础设施投资，资本开支大幅增加。管理层未在上一季度提供具体财务指引，但强调了云和AI战略的重要性。",
+  "summary_status": "verified",
+  "summary_problems": [],
+  "key_figures": [
+    {
+      "id": "revenue",
+      "label": "营业收入",
+      "unit": "USD",
+      "value": 90007000000,
+      "prior_quarter": 82886000000,
+      "prior_year": 76441000000,
+      "qoq": 8.6,
+      "yoy": 17.7,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "cost_of_revenue",
+      "label": "营业成本",
+      "unit": "USD",
+      "value": 29525000000,
+      "prior_quarter": 26828000000,
+      "prior_year": 24014000000,
+      "qoq": 10.1,
+      "yoy": 22.9,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:CostOfGoodsAndServicesSold",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "gross_profit",
+      "label": "毛利",
+      "unit": "USD",
+      "value": 60482000000,
+      "prior_quarter": 56058000000,
+      "prior_year": 52427000000,
+      "qoq": 7.9,
+      "yoy": 15.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:GrossProfit",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "rnd",
+      "label": "研发费用",
+      "unit": "USD",
+      "value": 9997000000,
+      "prior_quarter": 8915000000,
+      "prior_year": 8829000000,
+      "qoq": 12.1,
+      "yoy": 13.2,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:ResearchAndDevelopmentExpense",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "operating_income",
+      "label": "营业利润",
+      "unit": "USD",
+      "value": 40603000000,
+      "prior_quarter": 38398000000,
+      "prior_year": 34323000000,
+      "qoq": 5.7,
+      "yoy": 18.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:OperatingIncomeLoss",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "net_income",
+      "label": "净利润",
+      "unit": "USD",
+      "value": 35766000000,
+      "prior_quarter": 31778000000,
+      "prior_year": 27233000000,
+      "qoq": 12.5,
+      "yoy": 31.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:NetIncomeLoss",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "eps_diluted",
+      "label": "稀释每股收益",
+      "unit": "USD/share",
+      "value": 4.809999999999999,
+      "prior_quarter": 4.27,
+      "prior_year": 3.6500000000000004,
+      "qoq": 12.6,
+      "yoy": 31.8,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:EarningsPerShareDiluted",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "operating_cash_flow",
+      "label": "经营活动现金流",
+      "unit": "USD",
+      "value": 55441000000,
+      "prior_quarter": 46679000000,
+      "prior_year": 42647000000,
+      "qoq": 18.8,
+      "yoy": 30,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "capex",
+      "label": "资本开支（购置物业与设备）",
+      "unit": "USD",
+      "value": 35802000000,
+      "prior_quarter": 30876000000,
+      "prior_year": 17079000000,
+      "qoq": 16,
+      "yoy": 109.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+        "dims": null,
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "gross_margin",
+      "label": "毛利率",
+      "unit": "%",
+      "value": 67.2,
+      "prior_quarter": 67.6,
+      "prior_year": 68.6,
+      "qoq": -0.4,
+      "yoy": -1.4,
+      "change_unit": "pp",
+      "source": {
+        "type": "derived",
+        "derived": "毛利 / 营业收入",
+        "accession": "0001193125-26-323660",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "operating_margin",
+      "label": "营业利润率",
+      "unit": "%",
+      "value": 45.1,
+      "prior_quarter": 46.3,
+      "prior_year": 44.9,
+      "qoq": -1.2,
+      "yoy": 0.2,
+      "change_unit": "pp",
+      "source": {
+        "type": "derived",
+        "derived": "营业利润 / 营业收入",
+        "accession": "0001193125-26-323660",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "free_cash_flow",
+      "label": "自由现金流（经营现金流 − 资本开支）",
+      "unit": "USD",
+      "value": 19639000000,
+      "prior_quarter": 15803000000,
+      "prior_year": 25568000000,
+      "qoq": 24.3,
+      "yoy": -23.2,
+      "change_unit": "%",
+      "source": {
+        "type": "derived",
+        "derived": "经营活动现金流 − 资本开支（公司自己的 FCF 口径可能不同）",
+        "accession": "0001193125-26-323660",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:DynamicsProductsAndCloudServicesMember",
+      "label": "产品线收入：Dynamics Products And Cloud Services",
+      "unit": "USD",
+      "value": 2374000000,
+      "prior_quarter": 2292000000,
+      "prior_year": 2136000000,
+      "qoq": 3.6,
+      "yoy": 11.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:DynamicsProductsAndCloudServicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:EnterpriseAndPartnerServicesMember",
+      "label": "产品线收入：Enterprise And Partner Services",
+      "unit": "USD",
+      "value": 2113000000,
+      "prior_quarter": 2087000000,
+      "prior_year": 1994000000,
+      "qoq": 1.2,
+      "yoy": 6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:EnterpriseAndPartnerServicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:LinkedInCorporationMember",
+      "label": "产品线收入：Linked In Corporation",
+      "unit": "USD",
+      "value": 5189000000,
+      "prior_quarter": 4832000000,
+      "prior_year": 4622000000,
+      "qoq": 7.4,
+      "yoy": 12.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:LinkedInCorporationMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:MicrosoftThreeSixFiveCommercialProductsAndCloudServicesMember",
+      "label": "产品线收入：Microsoft 365 Commercial Products And Cloud Services",
+      "unit": "USD",
+      "value": 27914000000,
+      "prior_quarter": 25593000000,
+      "prior_year": 24318000000,
+      "qoq": 9.1,
+      "yoy": 14.8,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:MicrosoftThreeSixFiveCommercialProductsAndCloudServicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:MicrosoftThreeSixFiveConsumerProductsAndCloudServicesMember",
+      "label": "产品线收入：Microsoft 365 Consumer Products And Cloud Services",
+      "unit": "USD",
+      "value": 2369000000,
+      "prior_quarter": 2297000000,
+      "prior_year": 2035000000,
+      "qoq": 3.1,
+      "yoy": 16.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:MicrosoftThreeSixFiveConsumerProductsAndCloudServicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:SearchAdvertisingMember",
+      "label": "产品线收入：Search Advertising",
+      "unit": "USD",
+      "value": 3859000000,
+      "prior_quarter": 3808000000,
+      "prior_year": null,
+      "qoq": 1.3,
+      "yoy": null,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:SearchAdvertisingMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:ServerProductsAndCloudServicesMember",
+      "label": "产品线收入：Server Products And Cloud Services",
+      "unit": "USD",
+      "value": 37096000000,
+      "prior_quarter": 32592000000,
+      "prior_year": 27878000000,
+      "qoq": 13.8,
+      "yoy": 33.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:ServerProductsAndCloudServicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:msft:WindowsAndDevicesMember",
+      "label": "产品线收入：Windows And Devices",
+      "unit": "USD",
+      "value": 4013000000,
+      "prior_quarter": 4041000000,
+      "prior_year": 4329000000,
+      "qoq": -0.7,
+      "yoy": -7.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=msft:WindowsAndDevicesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:us-gaap:ProductMember",
+      "label": "产品线收入：Product",
+      "unit": "USD",
+      "value": 17234000000,
+      "prior_quarter": 15089000000,
+      "prior_year": 17136000000,
+      "qoq": 14.2,
+      "yoy": 0.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=us-gaap:ProductMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "product:us-gaap:ServiceOtherMember",
+      "label": "产品线收入：Service Other",
+      "unit": "USD",
+      "value": 72773000000,
+      "prior_quarter": 67797000000,
+      "prior_year": 59305000000,
+      "qoq": 7.3,
+      "yoy": 22.7,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:ProductOrServiceAxis=us-gaap:ServiceOtherMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "geo:country:US",
+      "label": "地区收入：US",
+      "unit": "USD",
+      "value": 46971000000,
+      "prior_quarter": 42336000000,
+      "prior_year": 39012000000,
+      "qoq": 10.9,
+      "yoy": 20.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:StatementGeographicalAxis=country:US",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "geo:us-gaap:NonUsMember",
+      "label": "地区收入：Non Us",
+      "unit": "USD",
+      "value": 43036000000,
+      "prior_quarter": 40550000000,
+      "prior_year": 37429000000,
+      "qoq": 6.1,
+      "yoy": 15,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "srt:StatementGeographicalAxis=us-gaap:NonUsMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "segment:msft:IntelligentCloudMember",
+      "label": "分部收入：Intelligent Cloud",
+      "unit": "USD",
+      "value": 39306000000,
+      "prior_quarter": 34681000000,
+      "prior_year": 29878000000,
+      "qoq": 13.3,
+      "yoy": 31.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:IntelligentCloudMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "segment:msft:MorePersonalComputingMember",
+      "label": "分部收入：More Personal Computing",
+      "unit": "USD",
+      "value": 12854000000,
+      "prior_quarter": 13192000000,
+      "prior_year": 13451000000,
+      "qoq": -2.6,
+      "yoy": -4.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:MorePersonalComputingMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    },
+    {
+      "id": "segment:msft:ProductivityAndBusinessProcessesMember",
+      "label": "分部收入：Productivity And Business Processes",
+      "unit": "USD",
+      "value": 37847000000,
+      "prior_quarter": 35013000000,
+      "prior_year": 33112000000,
+      "qoq": 8.1,
+      "yoy": 14.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001193125-26-323660",
+        "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:ProductivityAndBusinessProcessesMember",
+        "period": "2026-03-31..2026-06-30",
+        "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+        "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+      }
+    }
+  ],
+  "highlights": [
+    {
+      "text": "第四季度营收达到900.1亿美元，环比增长8.6%，同比增长17.7%，主要受智能云业务强劲增长驱动。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "revenue",
+          "label": "营业收入",
+          "value": "$90.01B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "segment:msft:IntelligentCloudMember",
+          "label": "分部收入：Intelligent Cloud",
+          "value": "$39.31B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:IntelligentCloudMember",
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "智能云分部收入达393.1亿美元，环比增长13.3%，同比增长31.6%，成为增长最快的业务板块。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "segment:msft:IntelligentCloudMember",
+          "label": "分部收入：Intelligent Cloud",
+          "value": "$39.31B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:IntelligentCloudMember",
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "净利润为357.7亿美元，环比增长12.5%，同比增长31.3%，稀释每股收益达4.81美元。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "net_income",
+          "label": "净利润",
+          "value": "$35.77B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:NetIncomeLoss",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "eps_diluted",
+          "label": "稀释每股收益",
+          "value": "$4.81",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:EarningsPerShareDiluted",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "经营活动现金流为554.4亿美元，环比增长18.8%，但自由现金流为196.4亿美元，同比下降23.2%，主要因资本开支大幅增加。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "operating_cash_flow",
+          "label": "经营活动现金流",
+          "value": "$55.44B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "free_cash_flow",
+          "label": "自由现金流（经营现金流 − 资本开支）",
+          "value": "$19.64B",
+          "source": {
+            "type": "derived",
+            "derived": "经营活动现金流 − 资本开支（公司自己的 FCF 口径可能不同）",
+            "accession": "0001193125-26-323660",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "个人计算分部收入为128.5亿美元，环比下降2.6%，同比下降4.4%，显示该业务面临持续压力。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "segment:msft:MorePersonalComputingMember",
+          "label": "分部收入：More Personal Computing",
+          "value": "$12.85B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+            "dims": "us-gaap:StatementBusinessSegmentsAxis=msft:MorePersonalComputingMember",
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "资本开支达358.0亿美元，环比增长16%，同比增长109.6%，反映公司对AI基础设施的持续大规模投资。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "capex",
+          "label": "资本开支（购置物业与设备）",
+          "value": "$35.80B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        }
+      ]
+    }
+  ],
+  "guidance_check": [
+    {
+      "text": "上一季度管理层未提供具体的财务指引，仅表示将在季度财报电话会议中提供前瞻性指引。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 251,
+          "accession": "0001193125-26-191457",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            3618,
+            3783
+          ],
+          "quote": "Business Outlook\nMicrosoft will provide forward-looking guidance in connection with this quarterly earnings announcement on its earnings conference call and webcast.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191457/msft-ex99_1.htm"
+        }
+      ]
+    },
+    {
+      "text": "管理层强调将继续投资于云和AI战略，包括数据中心、计算机系统和AI基础设施。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 207,
+          "accession": "0001193125-26-191507",
+          "form": "10-Q",
+          "section": "mdna",
+          "char_range": [
+            115540,
+            115686
+          ],
+          "quote": "We will continue to invest in capital expenditures to support growth in our cloud offerings and our investments in AI infrastructure and training.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+        }
+      ]
+    },
+    {
+      "text": "公司预计现有现金、现金等价物、短期投资、经营现金流和资本市场融资将继续足以支持未来12个月及之后的运营活动。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 204,
+          "accession": "0001193125-26-191507",
+          "form": "10-Q",
+          "section": "mdna",
+          "char_range": [
+            107807,
+            108219
+          ],
+          "quote": "We expect existing cash, cash equivalents, short-term investments, cash flows from operations, and access to capital markets to continue to be sufficient to fund our operating activities and cash commitments for investing and financing activities, such as dividends, share repurchases, debt maturities, and material capital expenditures, for at least the next 12 months and thereafter for the foreseeable future.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526191507/msft-20260331.htm"
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "text": "公司持续加大对AI基础设施的投资，第四季度资本开支达358.0亿美元，主要用于支持云服务和AI训练的基础设施建设。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "capex",
+          "label": "资本开支（购置物业与设备）",
+          "value": "$35.80B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001193125-26-323660",
+            "concept": "us-gaap:PaymentsToAcquirePropertyPlantAndEquipment",
+            "dims": null,
+            "period": "2026-03-31..2026-06-30",
+            "derived": "12M YTD (0001193125-26-323660) − 9M YTD (0001193125-26-191507)",
+            "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+          }
+        },
+        {
+          "type": "text",
+          "chunk_id": 78,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "mdna",
+          "char_range": [
+            178535,
+            178687
+          ],
+          "quote": "We will continue to invest in capital expenditures to support growth in our cloud offerings and our investments in AI training and other infrastructure.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "智能云业务的成本收入增长44%，主要由于为支持不断增长的客户需求而对AI基础设施的投资。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 69,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "mdna",
+          "char_range": [
+            159499,
+            159624
+          ],
+          "quote": "Cost of revenue increased $17.7 billion or 44% driven by investments in AI infrastructure to support growing customer demand.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "公司面临日益激烈的竞争环境，技术行业竞争激烈，进入门槛低，技术变化快速。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 19,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            49554,
+            49783
+          ],
+          "quote": "Barriers to entry in many of our businesses are low and many of the areas in which we compete evolve rapidly with changing and disruptive technologies, shifting user needs, and frequent introductions of new products and services.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "云和AI战略需要大量投资，取决于不断变化的客户需求、技术发展、竞争动态和监管条件。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 22,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            56024,
+            56298
+          ],
+          "quote": "Our cloud and AI strategy requires substantial investments and depends on evolving customer demand, technological developments, competitive dynamics, and regulatory conditions, any of which could adversely affect our business, financial condition, and results of operations.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "text": "公司面临激烈的市场竞争，技术行业进入门槛低，技术变化快速，可能影响公司的竞争地位和经营业绩。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 19,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            49554,
+            49783
+          ],
+          "quote": "Barriers to entry in many of our businesses are low and many of the areas in which we compete evolve rapidly with changing and disruptive technologies, shifting user needs, and frequent introductions of new products and services.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "云和AI战略需要大量资本投资，但相关收入可能无法在预期时间或预期水平实现，投资回报存在不确定性。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 22,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            56579,
+            56901
+          ],
+          "quote": "These investments are being made at significant scale and on an accelerated timeline, require substantial and increasing capital expenditures and continued access to capital, and are in advance of fully developed revenue streams. The associated revenue may not be realized in the expected timeframes or at expected levels.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "监管环境日益复杂，包括竞争法、AI监管、数据隐私和网络安全等方面的法律风险可能增加合规成本和运营风险。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 43,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            103232,
+            103614
+          ],
+          "quote": "New, existing, and evolving laws and regulations, or interpretations or applications of existing laws and regulations in a manner inconsistent with our interpretations of such laws and regulations or our practices, may result in modification of our products and services, altered business models and operations, increased costs, reputational damage, and civil or criminal liability.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    },
+    {
+      "text": "基础设施扩张面临挑战，包括土地可用性、许可要求、电力供应限制和人才短缺等问题可能影响数据中心建设进度和成本。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 39,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            94135,
+            94316
+          ],
+          "quote": "Our ability to develop additional capacity is also subject to land availability, zoning restrictions, environmental reviews, permitting requirements, and other regulatory approvals.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        },
+        {
+          "type": "text",
+          "chunk_id": 39,
+          "accession": "0001193125-26-323660",
+          "form": "10-K",
+          "section": "risk_factors",
+          "char_range": [
+            95092,
+            95556
+          ],
+          "quote": "The construction and operation of datacenters also requires significant numbers of skilled technical, engineering, construction, and operational personnel. Labor shortages, competition for talent, wage inflation, labor disputes, immigration restrictions, or shortages of specialized contractors could increase operating and construction costs, extend project timelines, and adversely affect our ability to deploy infrastructure at the pace required to meet demand.",
+          "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm"
+        }
+      ]
+    }
+  ],
+  "not_disclosed": [
+    "Xbox业务具体收入数据",
+    "下一季度具体财务指引",
+    "AI投资的具体回报时间表",
+    "各细分市场的详细竞争态势分析",
+    "单季分部/产品线收入：msft:XBOXMember"
+  ],
+  "market_context": "Stock Sentinel macro signal as of 2026-10-20: overall reduce; AI supply loose, monetary tight, fiscal neutral, administrative tight.\nAI chain stage ranking (relative return): 1.cloud 3.chip 5.memory 6.optical 2.packaging 4.power\nCapex guidance tracker for MSFT: 2026-07-29 maintain: CY2026 ~$175B capex+finance leases (restated from ~$190B by useful-life accounting change 15y->25y; actual spending unchanged) (source: web, media reports, not a filing)",
+  "run": {
+    "model": "deepseek/deepseek-v3.2",
+    "tokens_in": 66475,
+    "tokens_out": 2027,
+    "cost_usd": 0.012715,
+    "latency_ms": 106685,
+    "llm_calls": 7
+  },
+  "disclaimer": "本笔记由程序与大模型根据公司向 SEC 提交的文件自动生成，仅供研究参考，不构成投资建议；不提供买卖建议或股价预测。"
+}

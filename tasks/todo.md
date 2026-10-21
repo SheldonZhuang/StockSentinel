@@ -1,3 +1,75 @@
+# 129号: 公司研究 Agent — 2026-10-21 【阶段0完成，待用户答复待定项】
+
+> 提示词见 tasks/research-agent-prompts.md；每会话一个阶段。方案要点（阶段0）：
+> - 独立 research.db + data/filings/ 原文缓存（不进主库：storage.persist 每次写全量导出，主库430KB，原文会拖慢全站写入；不进 GitHub 备份，EDGAR 可重拉）
+> - EDGAR 抽 utils/edgar-client.js 统一 UA/全局串行限速(≤10req/s)/重试，迁移现有三处副本
+> - 数字一律 XBRL companyfacts 直取，LLM 只做文字段（MD&A/指引/风险）的摘要与对比；出处校验用程序字符串比对
+> - 检索：sql.js 实测无 FTS5、有 FTS4 → 关键词用 FTS4+JS 侧 BM25；向量本地 transformers.js（待定）
+> - TSM 走 20-F/6-K + IFRS(TWD) 单独适配；8-K 只取 item 2.02 的 EX-99.1
+> - 成本：单独 llm_runs 账本，日/月硬上限；评估预算与生产分开
+
+> 用户拍板（2026-10-21）：①笔记不参与信号判定，纯展示 ②8-K 当天出初版、10-Q 后出正式版 ③ask_company 对 free 开放、单独低额度（5次/日），keyless 不开放（默认，待确认） ④先关键词检索，评估证明有用再上本地 bge-small ⑤日常管线在云端 primary 跑；eval:research 只在本机跑，评估花费不进云端账本 ⑥评估强模型 Claude Opus 5.5，每轮上限 $12，超限中止；阶段4开跑前查 OpenRouter 实价，再请用户确认 ⑦回填 8季×8家 可以 ⑧keyless 不开放 ask_company；ask_company 单独 $3/月子池，用完当月关闭（已确认）
+> 成本上限草案：日常 $5/月、$0.5/日；其中 ask_company 子池 $3/月；评估独立预算；三账分开，超限停跑+告警
+
+- [x] 阶段0：摸底 + 方案（只读）
+- [ ] 阶段4前：查 Opus 5.5 实价，请用户确认
+- [x] 阶段1：文档采集和切块（2026-10-21）
+  - [x] utils/edgar-client.js 统一 UA/串行限速/瞬时重试，迁移 fundamentals/fetch-guidance/fetch-ai-chain 三处（原 710 测试不变全过）
+  - [x] research/{db,parse,filings,ingest}.js + config/research.config.js + scripts/research-ingest.mjs
+  - [x] TSM 6-K 按主文档名分两类（新闻稿/季度合并财报）；修正案不收
+  - [x] 管理后台 ResearchIngestPanel（覆盖矩阵/数据质量/手动触发）+ /api/admin/research/{status,ingest} + 七语言
+  - [x] 回填：119 份全解析、7857 块、出处逐字核对 0 不一致；重跑零下载；11 项 pending 均未到法定期限
+  - [x] 测试：后端 751/751（+41），前端 31/31（+4）；结果写入 docs/research-agent.md
+  - [ ] 未做（按计划属阶段5）：定时/事件触发、云端部署；research.db 约 30MB 内存需在部署前评估
+- [ ] 阶段2：检索和公司 Wiki（2026-10-21 开始）
+  - [x] 关键词检索：JS 内存 BM25（sql.js FTS4 实测单查 ~600ms 且无 bm25 排序，不用）；过滤 ticker/财季/章节/话题
+  - [x] 中文问题 → 检索词：公司名/财季解析 + 财务术语中英对照表（确定性、零成本、可复现）
+  - [x] 检索评估集 30 题；金标逐字取自原文，数值题 XBRL 交叉核对（自检不过直接报错）
+  - [x] 指标：v0 recall@5 0.733 → v1 0.833（看失败题后改通用规则，可能偏乐观，已如实记录）；MRR@10 0.640；出处命中率 0.979
+  - [x] XBRL 数值层 xbrl_facts（18347 条）+ queryFact（YTD 差分推算单季，标 derived）
+  - [x] LLM 账本 llm_runs + 四池硬上限 + 超限告警（sendAdminNotice）；402 余额不足同样即停
+  - [x] 公司 Wiki 管线（逐字引文校验/冲突保留两条/增量）；试跑 1 份 $0.0019
+  - [ ] **阻塞：OpenRouter 免费层余额为 0，几千 token 请求即 402** → 用户充值后跑 Wiki 回填（预估 $0.3–0.5）；线上日报/指引检测可能也受影响（未核实云端）
+  - [x] 向量实验（用户同意重跑，排共享渲染锁、pythonw 脱离运行、分片续跑）：bge 融合 0.800、e5 融合 0.733，均低于 BM25 0.833 → 不接入；结果存 research/eval/vector-exp/results-2026-10-21.json
+  - [ ] Wiki 全量回填：用户决定"有需要再充值"，挂起
+  - 模型：deepseek/deepseek-v3.2（$0.28/$0.42 每百万 token，OpenRouter 2026-10-21 实价）；Opus 5.5 实价 $4/$20（阶段4用）
+- [ ] 阶段3：研究 Agent 与笔记生成（2026-10-21 开始）
+  - [x] Inline XBRL 解析 → ixbrl_facts（51 份、50517 条，含分部/产品线维度）；接入采集流程
+  - [x] 指标表（代码确定性计算，YTD 差分/毛利/比率/FCF 标 derived）；MSFT/NVDA/AMZN 关键数字与原文逐项核对一致
+  - [x] Agent 循环（工具调用，8 轮上限，最后两轮强制交稿）：search_filings / get_prior_guidance / read_wiki / get_market_context / submit_note
+  - [x] 硬规则 + 自检（verify.js：出处/逐字引文/数字可溯源/禁建议/摘要数字）+ 失败回喂重试一次 + 仍失败标"待人工核对"
+  - [x] 记账（research_notes + llm_runs）；初版/正式版；CLI scripts/research-note.mjs；测试 12 例（后端全量 790 过）
+  - [x] 用户充值后真实运行：MSFT v4 17/17 通过 $0.0127；NVDA v3 16/17 通过 $0.0206；样例存 docs/research-agent-samples/
+  - [x] 真实运行暴露并修复：核对器单位换算（亿/万）、正文出处标记、块号差一位；指标表纳入双维分部（NVDA/GOOGL）与地区收入
+  - [ ] 待阶段4量化：核对器只验"数字在出处里"，不验"出处语义支持结论"（NVDA 非GAAP毛利率条引了指引原文而非实际值）
+  - 局限：成员改名（MSFT Gaming→XBOX）单季值记"未披露"；deepseek 单份 2–8 分钟
+- [ ] 阶段4：评估框架（2026-10-21 开始）
+  - [x] Wiki 全量回填（$0.50，119/119）；冲突口径收紧为"同期指引数字变化"（244 → 14 条真冲突）
+  - [x] 金标冻结 research/eval/notes-gold.json：16 份 × 10 事实 = 160（数值 144 / 指引 12 / 未披露 4），全部程序从 XBRL 或新闻稿逐字取
+  - [x] 打分器 notes-eval.js（数值准确率/事实覆盖率/出处覆盖率/出处准确率/未披露误报/捏造指引/失败率/延迟/成本）+ 有用性打分表 CSV
+  - [x] npm run eval:research：生成 → 打分 → 结果 JSON → 自动写 docs 表（日期+commit）；评估笔记与线上笔记分开计版本（eval_run 列）
+  - [x] deepseek 一轮：$0.30，数值准确率 94.7%，覆盖率 70.6%，出处准确率 90.7%，0 捏造指引，失败率 0
+  - [x] 打分器两处误判修正后重打分（不重跑模型、不改金标）："营业利润率"被当成营业利润；年份识别吞掉"2006.1亿"等金额
+  - [x] Opus 5.5 经 OpenRouter 区域 403 → 改用本机 Claude Code Opus 5.5 子代理当写稿模型（scripts/research-tool.mjs，同工具/同自检/同打分）；16/16 交稿，数值准确率 100%
+  - [x] 改进（程序补关键指标、"未披露"自动清理、TSM 单位提示、上季指引标注、禁引未来申报）后 deepseek 重跑：覆盖率 70.6%→94.4%，未披露误报 2.6%→0
+  - [x] 修 research.db 落盘在 Windows 上被读进程占用时 rename EPERM（退避重试）
+  - [ ] 剩余：TSM 新台币量级 deepseek 仍错（提示无效）→ 程序解析 TSM 新闻稿成指标表；有用性 1–5 待用户在 research/eval/notes-usefulness.csv 打分
+  - [x] grok-4.7 一轮（用户同意）：数值 100%、覆盖 95.0%、出处 97.6%，$2.15 共 16 份；TSM 量级全对
+  - [x] 打分器修"下季收入指引"匹配（"第三季的展望"漏判 / "全年营收指引"误配），四轮统一重打分
+  - [x] 48 份笔记导出 Markdown（docs/research-agent-review/，不进 git）供人工打分
+  - [x] 有用性：用户委托代打分 → AI 双评委盲评（GLM-5.3-prime $1.24 + 本机 Opus；去模型名与程序生成标注；11 份截断笔记拆段重评）：Opus 4.59 / grok 4.06 / deepseek 3.56，两评委排序一致、45/48 份差距 ≤1
+  - [x] 评委发现核对器盲区：比较方向错（"76亿略高于77亿"）能过自检 → 阶段5改为程序计算"高于/低于/符合指引"结论
+  - [x] 阶段4完成
+- [ ] 阶段5：接入通道与事件驱动（2026-10-21 方案，待用户确认后实施）
+  - [ ] 先修阶段4遗留：指引比较结论（高于/低于/区间内）由程序算；TSM 新闻稿表格程序解析成指标表
+  - [ ] 事件驱动：小时看门狗内检测新 8-K(2.02)/10-Q/10-K/6-K → 增量采集 → Wiki 增量 → 生成笔记（初版/正式版）；失败重试、互斥、补跑与现有 catch-up 同模式
+  - [ ] 模型策略：deepseek 生成；自检有待核对项或 TSM → grok-4.7 重写一次（预算池 research，$0.5/日 $5/月）
+  - [ ] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml
+  - [ ] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）
+  - [ ] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言
+  - [ ] 云端：research.db ~30MB 内存 + 原文缓存 ~28MB 落 Railway 卷；部署前给用户改动清单
+- [ ] 阶段6：公开展示材料
+
 # 127b + 128号: 决议覆盖告警 + 事件型指标即时刷新 — 2026-09-17 【已完成】
 
 ## 127b 决议覆盖告警（用户："请补上"）

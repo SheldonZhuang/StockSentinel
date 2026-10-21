@@ -1,0 +1,903 @@
+{
+  "ticker": "NVDA",
+  "fiscal_period": "FY2027Q2",
+  "period_end": "2026-07-26",
+  "stage": "final",
+  "version": 3,
+  "based_on": [
+    {
+      "accession": "0001045810-26-000075",
+      "form": "10-Q",
+      "filing_date": "2026-08-26",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+    },
+    {
+      "accession": "0001045810-26-000073",
+      "form": "8-K",
+      "filing_date": "2026-08-26",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+    }
+  ],
+  "summary": "英伟达FY2027Q2业绩表现强劲，营收同比增长105.9%至962.2亿美元，超出管理层指引范围。数据中心业务继续驱动增长，营收同比增长116.6%至890.2亿美元。公司面临供应链约束和出口管制风险，同时大幅增加了供应承诺以应对未来需求。",
+  "summary_status": "verified",
+  "summary_problems": [],
+  "key_figures": [
+    {
+      "id": "revenue",
+      "label": "营业收入",
+      "unit": "USD",
+      "value": 96221000000,
+      "prior_quarter": 81615000000,
+      "prior_year": 46743000000,
+      "qoq": 17.9,
+      "yoy": 105.9,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "cost_of_revenue",
+      "label": "营业成本",
+      "unit": "USD",
+      "value": 24079000000,
+      "prior_quarter": 20458000000,
+      "prior_year": 12890000000,
+      "qoq": 17.7,
+      "yoy": 86.8,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:CostOfRevenue",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "gross_profit",
+      "label": "毛利",
+      "unit": "USD",
+      "value": 72142000000,
+      "prior_quarter": 61157000000,
+      "prior_year": 33853000000,
+      "qoq": 18,
+      "yoy": 113.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:GrossProfit",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "rnd",
+      "label": "研发费用",
+      "unit": "USD",
+      "value": 7054000000,
+      "prior_quarter": 6321000000,
+      "prior_year": 4291000000,
+      "qoq": 11.6,
+      "yoy": 64.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:ResearchAndDevelopmentExpense",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "operating_income",
+      "label": "营业利润",
+      "unit": "USD",
+      "value": 63734000000,
+      "prior_quarter": 53536000000,
+      "prior_year": 28440000000,
+      "qoq": 19,
+      "yoy": 124.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:OperatingIncomeLoss",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "net_income",
+      "label": "净利润",
+      "unit": "USD",
+      "value": 59688000000,
+      "prior_quarter": 58321000000,
+      "prior_year": 26422000000,
+      "qoq": 2.3,
+      "yoy": 125.9,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:NetIncomeLoss",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "eps_diluted",
+      "label": "稀释每股收益",
+      "unit": "USD/share",
+      "value": 2.46,
+      "prior_quarter": 2.39,
+      "prior_year": 1.08,
+      "qoq": 2.9,
+      "yoy": 127.8,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:EarningsPerShareDiluted",
+        "dims": null,
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "operating_cash_flow",
+      "label": "经营活动现金流",
+      "unit": "USD",
+      "value": 24077000000,
+      "prior_quarter": 50344000000,
+      "prior_year": 15365000000,
+      "qoq": -52.2,
+      "yoy": 56.7,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+        "dims": null,
+        "period": "2026-04-26..2026-07-26",
+        "derived": "6M YTD (0001045810-26-000075) − 3M YTD (0001045810-26-000052)",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "capex",
+      "label": "资本开支（购置物业与设备）",
+      "unit": "USD",
+      "value": 2677000000,
+      "prior_quarter": 1757000000,
+      "prior_year": 1895000000,
+      "qoq": 52.4,
+      "yoy": 41.3,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:PaymentsToAcquireProductiveAssets",
+        "dims": null,
+        "period": "2026-04-26..2026-07-26",
+        "derived": "6M YTD (0001045810-26-000075) − 3M YTD (0001045810-26-000052)",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "gross_margin",
+      "label": "毛利率",
+      "unit": "%",
+      "value": 75,
+      "prior_quarter": 74.9,
+      "prior_year": 72.4,
+      "qoq": 0.1,
+      "yoy": 2.6,
+      "change_unit": "pp",
+      "source": {
+        "type": "derived",
+        "derived": "毛利 / 营业收入",
+        "accession": "0001045810-26-000075",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "operating_margin",
+      "label": "营业利润率",
+      "unit": "%",
+      "value": 66.2,
+      "prior_quarter": 65.6,
+      "prior_year": 60.8,
+      "qoq": 0.6,
+      "yoy": 5.4,
+      "change_unit": "pp",
+      "source": {
+        "type": "derived",
+        "derived": "营业利润 / 营业收入",
+        "accession": "0001045810-26-000075",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "free_cash_flow",
+      "label": "自由现金流（经营现金流 − 资本开支）",
+      "unit": "USD",
+      "value": 21400000000,
+      "prior_quarter": 48587000000,
+      "prior_year": 13470000000,
+      "qoq": -56,
+      "yoy": 58.9,
+      "change_unit": "%",
+      "source": {
+        "type": "derived",
+        "derived": "经营活动现金流 − 资本开支（公司自己的 FCF 口径可能不同）",
+        "accession": "0001045810-26-000075",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "segment:nvda:ComputeAndNetworkingSegmentMember",
+      "label": "分部收入：Compute And Networking",
+      "unit": "USD",
+      "value": 88299000000,
+      "prior_quarter": 74550000000,
+      "prior_year": 41331000000,
+      "qoq": 18.4,
+      "yoy": 113.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=nvda:ComputeAndNetworkingSegmentMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "segment:nvda:GraphicsSegmentMember",
+      "label": "分部收入：Graphics",
+      "unit": "USD",
+      "value": 7922000000,
+      "prior_quarter": 7065000000,
+      "prior_year": 5412000000,
+      "qoq": 12.1,
+      "yoy": 46.4,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ConsolidationItemsAxis=us-gaap:OperatingSegmentsMember;us-gaap:StatementBusinessSegmentsAxis=nvda:GraphicsSegmentMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "product:nvda:AICloudsIndustrialEnterpriseMember",
+      "label": "产品线收入：AI Clouds Industrial Enterprise",
+      "unit": "USD",
+      "value": 40313000000,
+      "prior_quarter": 37377000000,
+      "prior_year": 16928000000,
+      "qoq": 7.9,
+      "yoy": 138.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ProductOrServiceAxis=nvda:AICloudsIndustrialEnterpriseMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "product:nvda:DataCenterMember",
+      "label": "产品线收入：Data Center",
+      "unit": "USD",
+      "value": 89023000000,
+      "prior_quarter": 75246000000,
+      "prior_year": 41096000000,
+      "qoq": 18.3,
+      "yoy": 116.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ProductOrServiceAxis=nvda:DataCenterMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "product:nvda:EdgeComputingMember",
+      "label": "产品线收入：Edge Computing",
+      "unit": "USD",
+      "value": 7198000000,
+      "prior_quarter": 6369000000,
+      "prior_year": 5647000000,
+      "qoq": 13,
+      "yoy": 27.5,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ProductOrServiceAxis=nvda:EdgeComputingMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "product:nvda:HyperscaleMember",
+      "label": "产品线收入：Hyperscale",
+      "unit": "USD",
+      "value": 48710000000,
+      "prior_quarter": 37869000000,
+      "prior_year": 24168000000,
+      "qoq": 28.6,
+      "yoy": 101.5,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:ProductOrServiceAxis=nvda:HyperscaleMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "geo:country:TW",
+      "label": "地区收入：TW",
+      "unit": "USD",
+      "value": 26985000000,
+      "prior_quarter": 12006000000,
+      "prior_year": 8902000000,
+      "qoq": 124.8,
+      "yoy": 203.1,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:StatementGeographicalAxis=country:TW",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "geo:country:US",
+      "label": "地区收入：US",
+      "unit": "USD",
+      "value": 60074000000,
+      "prior_quarter": 63769000000,
+      "prior_year": 32897000000,
+      "qoq": -5.8,
+      "yoy": 82.6,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:StatementGeographicalAxis=country:US",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "geo:nvda:ChinaIncludingHongKongMember",
+      "label": "地区收入：China Including Hong Kong",
+      "unit": "USD",
+      "value": 7880000000,
+      "prior_quarter": 4550000000,
+      "prior_year": 3985000000,
+      "qoq": 73.2,
+      "yoy": 97.7,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:StatementGeographicalAxis=nvda:ChinaIncludingHongKongMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    },
+    {
+      "id": "geo:nvda:OtherCountriesMember",
+      "label": "地区收入：Other Countries",
+      "unit": "USD",
+      "value": 1282000000,
+      "prior_quarter": 1290000000,
+      "prior_year": 959000000,
+      "qoq": -0.6,
+      "yoy": 33.7,
+      "change_unit": "%",
+      "source": {
+        "type": "xbrl",
+        "accession": "0001045810-26-000075",
+        "concept": "us-gaap:Revenues",
+        "dims": "srt:StatementGeographicalAxis=nvda:OtherCountriesMember",
+        "period": "2026-04-27..2026-07-26",
+        "derived": null,
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+      }
+    }
+  ],
+  "highlights": [
+    {
+      "text": "第二季度营收达到962.2亿美元，环比增长17.9%，同比增长105.9%，主要由数据中心业务驱动。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "revenue",
+          "label": "营业收入",
+          "value": "$96.22B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": null,
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "product:nvda:DataCenterMember",
+          "label": "产品线收入：Data Center",
+          "value": "$89.02B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": "srt:ProductOrServiceAxis=nvda:DataCenterMember",
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "数据中心业务营收为890.2亿美元，环比增长18.3%，同比增长116.6%。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "product:nvda:DataCenterMember",
+          "label": "产品线收入：Data Center",
+          "value": "$89.02B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": "srt:ProductOrServiceAxis=nvda:DataCenterMember",
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "毛利率为75.0%，环比提升0.1个百分点，同比提升2.6个百分点，营业利润率达到66.2%。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "gross_margin",
+          "label": "毛利率",
+          "value": "75.0%",
+          "source": {
+            "type": "derived",
+            "derived": "毛利 / 营业收入",
+            "accession": "0001045810-26-000075",
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "operating_margin",
+          "label": "营业利润率",
+          "value": "66.2%",
+          "source": {
+            "type": "derived",
+            "derived": "营业利润 / 营业收入",
+            "accession": "0001045810-26-000075",
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "台湾地区营收大幅增长，达到269.8亿美元，环比增长124.8%，同比增长203.1%，而美国地区营收环比下降5.8%至600.7亿美元。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "geo:country:TW",
+          "label": "地区收入：TW",
+          "value": "$26.98B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": "srt:StatementGeographicalAxis=country:TW",
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "geo:country:US",
+          "label": "地区收入：US",
+          "value": "$60.07B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": "srt:StatementGeographicalAxis=country:US",
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        }
+      ]
+    },
+    {
+      "text": "经营活动现金流为240.8亿美元，环比下降52.2%，但同比增长56.7%，自由现金流为214.0亿美元。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "operating_cash_flow",
+          "label": "经营活动现金流",
+          "value": "$24.08B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:NetCashProvidedByUsedInOperatingActivities",
+            "dims": null,
+            "period": "2026-04-26..2026-07-26",
+            "derived": "6M YTD (0001045810-26-000075) − 3M YTD (0001045810-26-000052)",
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "metric",
+          "metric": "free_cash_flow",
+          "label": "自由现金流（经营现金流 − 资本开支）",
+          "value": "$21.40B",
+          "source": {
+            "type": "derived",
+            "derived": "经营活动现金流 − 资本开支（公司自己的 FCF 口径可能不同）",
+            "accession": "0001045810-26-000075",
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        }
+      ]
+    }
+  ],
+  "guidance_check": [
+    {
+      "text": "第二季度实际营收962.2亿美元高于管理层指引的910亿美元±2%的范围。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "revenue",
+          "label": "营业收入",
+          "value": "$96.22B",
+          "source": {
+            "type": "xbrl",
+            "accession": "0001045810-26-000075",
+            "concept": "us-gaap:Revenues",
+            "dims": null,
+            "period": "2026-04-27..2026-07-26",
+            "derived": null,
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "text",
+          "chunk_id": 5142,
+          "accession": "0001045810-26-000051",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            3967,
+            4025
+          ],
+          "quote": "Revenue is expected to be $91.0 billion, plus or minus 2%.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000051/q1fy27pr.htm"
+        }
+      ]
+    },
+    {
+      "text": "GAAP毛利率75.0%在指引的74.9%±50个基点范围内。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "metric",
+          "metric": "gross_margin",
+          "label": "毛利率",
+          "value": "75.0%",
+          "source": {
+            "type": "derived",
+            "derived": "毛利 / 营业收入",
+            "accession": "0001045810-26-000075",
+            "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+          }
+        },
+        {
+          "type": "text",
+          "chunk_id": 5142,
+          "accession": "0001045810-26-000051",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            4109,
+            4221
+          ],
+          "quote": "GAAP and non-GAAP gross margins are expected to be 74.9% and 75.0%, respectively, plus or minus 50 basis points.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000051/q1fy27pr.htm"
+        }
+      ]
+    },
+    {
+      "text": "非GAAP毛利率75.0%在指引的75.0%±50个基点范围内。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5142,
+          "accession": "0001045810-26-000051",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            4109,
+            4221
+          ],
+          "quote": "GAAP and non-GAAP gross margins are expected to be 74.9% and 75.0%, respectively, plus or minus 50 basis points.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000051/q1fy27pr.htm"
+        }
+      ]
+    },
+    {
+      "text": "管理层对第三季度营收指引为1080亿美元±2%，GAAP和非GAAP毛利率指引均为74.0%±50个基点。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5062,
+          "accession": "0001045810-26-000073",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            2646,
+            2705
+          ],
+          "quote": "Revenue is expected to be $108.0 billion, plus or minus 2%.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+        },
+        {
+          "type": "text",
+          "chunk_id": 5062,
+          "accession": "0001045810-26-000073",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            2789,
+            2877
+          ],
+          "quote": "GAAP and non-GAAP gross margins are expected to be 74.0%, plus or minus 50 basis points.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "text": "下一代数据中心架构Vera Rubin已在2027财年第三季度开始生产发货，公司将同时发货Blackwell和Rubin系统。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5019,
+          "accession": "0001045810-26-000075",
+          "form": "10-Q",
+          "section": "mdna",
+          "char_range": [
+            70791,
+            71043
+          ],
+          "quote": "Our next-generation Data Center architecture, Vera Rubin, began production shipments in the third quarter of fiscal year 2027. We will be shipping both Blackwell and Rubin systems in the future and are currently experiencing certain supply constraints.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+        }
+      ]
+    },
+    {
+      "text": "供应和产能承诺从上季度的1190亿美元大幅增加至2790亿美元，以应对未来几年需求。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5019,
+          "accession": "0001045810-26-000075",
+          "form": "10-Q",
+          "section": "mdna",
+          "char_range": [
+            71779,
+            71936
+          ],
+          "quote": "We have significantly increased our supply and capacity commitments from $119 billion last quarter to $279 billion as of July 26, 2026 to meet future demand.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+        }
+      ]
+    },
+    {
+      "text": "公司宣布与微软合作重新设计Windows PC，推出NVIDIA RTX Spark超级芯片，并扩展了NVIDIA DRIVE Hyperion机器人出租车平台生态系统。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5064,
+          "accession": "0001045810-26-000073",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            6602,
+            6748
+          ],
+          "quote": "Partnered with Microsoft to reinvent the Windows PC with NVIDIA RTX Spark™ — a 1-petaflop superchip with the full CUDA™ and NVIDIA RTX™ ecosystem.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+        },
+        {
+          "type": "text",
+          "chunk_id": 5064,
+          "accession": "0001045810-26-000073",
+          "form": "8-K",
+          "section": "press_release",
+          "char_range": [
+            7115,
+            7260
+          ],
+          "quote": "Expanded the NVIDIA DRIVE Hyperion™ robotaxi-ready platform ecosystem, including strategic collaborations with Foxconn, VinFast, Uber and HUMAIN.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000073/q2fy27pr.htm"
+        }
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "text": "公司面临供应链约束和生产复杂性挑战，可能导致生产延迟、需求管理困难、收入波动和质量问题。",
+      "status": "needs_review",
+      "problems": [
+        "引文在块 5019 里找不到：The scale and size of our production needs and the complexit"
+      ],
+      "evidence": []
+    },
+    {
+      "text": "出口管制限制持续影响公司业务，中国反垄断监管机构初步认定公司遵守美国出口管制要求的行为违反了中国对Mellanox收购的批准条款。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5047,
+          "accession": "0001045810-26-000075",
+          "form": "10-Q",
+          "section": "risk_factors",
+          "char_range": [
+            124535,
+            124891
+          ],
+          "quote": "On September 15, 2025, China's antitrust regulators published their preliminary finding that our compliance with applicable U.S. export controls, which required us to offer degraded products to the Chinese market, discriminated unfairly against customers in the China market and therefore violated the terms of China's approval of our Mellanox acquisition.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+        }
+      ]
+    },
+    {
+      "text": "供应承诺存在财务风险，如果未来需求或计划与预期不同，公司可能无法减少这些承诺。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5040,
+          "accession": "0001045810-26-000075",
+          "form": "10-Q",
+          "section": "risk_factors",
+          "char_range": [
+            109842,
+            110161
+          ],
+          "quote": "To support our operations and growth, we commit capital to secure supply and capacity, obtain cloud services, and lease data center capacity. These arrangements require substantial payments over many years. If future demand, our needs or plans differ from our expectations, we may be unable to reduce these commitments.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+        }
+      ]
+    },
+    {
+      "text": "美国政府可能对芯片设计施加强制性功能要求，如芯片跟踪和节流机制，这可能引入系统漏洞并影响产品需求。",
+      "status": "verified",
+      "problems": [],
+      "evidence": [
+        {
+          "type": "text",
+          "chunk_id": 5052,
+          "accession": "0001045810-26-000075",
+          "form": "10-Q",
+          "section": "risk_factors",
+          "char_range": [
+            134056,
+            134331
+          ],
+          "quote": "Such government mandates in chip designs could introduce system vulnerabilities and expose us to significant risk and potential liability, negatively impact demand for our products, and could have a material impact on our business, operating results, and financial condition.",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000075/nvda-20260726.htm"
+        }
+      ]
+    }
+  ],
+  "not_disclosed": [
+    "具体产品线毛利率",
+    "各细分市场的营业利润率",
+    "应收账款和存货的详细构成",
+    "研发费用的具体项目分配"
+  ],
+  "market_context": "Stock Sentinel macro signal as of 2026-10-20: overall reduce; AI supply loose, monetary tight, fiscal neutral, administrative tight.\nAI chain stage ranking (relative return): 1.cloud 3.chip 5.memory 6.optical 2.packaging 4.power",
+  "run": {
+    "model": "deepseek/deepseek-v3.2",
+    "tokens_in": 106893,
+    "tokens_out": 3895,
+    "cost_usd": 0.020581,
+    "latency_ms": 196231,
+    "llm_calls": 9
+  },
+  "disclaimer": "本笔记由程序与大模型根据公司向 SEC 提交的文件自动生成，仅供研究参考，不构成投资建议；不提供买卖建议或股价预测。"
+}

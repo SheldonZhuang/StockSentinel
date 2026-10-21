@@ -276,6 +276,36 @@
       "allChannels": "Alle Kanäle",
       "endpointStats": "Funktionsnutzung (gesamt)",
       "endpointStatsHint": "Aufrufe und eindeutige Nutzer je Endpoint (inkl. anonymem und API-Key-Verkehr) — wo Nutzer Sie am meisten brauchen"
+    },
+    "research": {
+      "title": "Erfassung von Research-Dokumenten",
+      "run": "Inkrementelle Erfassung starten",
+      "running": "Erfassung läuft…",
+      "never": "Noch keine Erfassung ausgeführt",
+      "lastRun": "Letzter Lauf: {at} ({trigger}), {newFilings} neu, {failed} fehlgeschlagen",
+      "totals": "{filings} Einreichungen geparst / {chunks} Abschnitte",
+      "coverageCaption": "Geparste Einreichungen der letzten 8 Geschäftsquartale je Unternehmen",
+      "colTicker": "Unternehmen",
+      "latest": "Neueste",
+      "issues": "Datenqualitätsprobleme ({n})",
+      "noIssues": "Keine Probleme",
+      "pending": "{n} weitere noch nicht fällig (nicht als fehlend gezählt)",
+      "colKind": "Typ",
+      "colDetail": "Details",
+      "kinds": {
+        "missing_quarter": "Fehlendes Quartal",
+        "duplicate": "Duplikat",
+        "parse_failed": "Parsing fehlgeschlagen",
+        "empty_section": "Leerer Abschnitt",
+        "missing_section": "Fehlender Abschnitt",
+        "pending_quarter": "Noch nicht fällig"
+      },
+      "budgetTitle": "LLM-Budget (harte Obergrenzen) und Unternehmens-Wiki",
+      "budgetLine": "Laufender Betrieb: heute {today} / {daily}, dieser Monat {month} / {monthly}; davon ask_company diesen Monat {ask} / {askCap}; Erstbefüllung gesamt {backfill} / {backfillCap}",
+      "colWikiDone": "Verarbeitete Einreichungen",
+      "colWikiBlocked": "Fehlgeschlagen/gesperrt",
+      "colWikiEntries": "Aktive Einträge",
+      "colWikiConflicts": "Widersprüchliche Einträge"
     }
   },
   "settings": {

@@ -6,3 +6,6 @@ backend/data/*.db-*
 dist/
 .superpowers/
 server.log
+backend/data/filings/
+docs/research-agent-review/
+backend/data/_judge/
