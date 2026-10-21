@@ -2,7 +2,10 @@
 // 每个值带出处：accession + XBRL 概念 + 维度 + 期间；推算值（Q4 = 全年 − 9M，毛利率 = 毛利 / 收入…）标 derived 并写明算式。
 // 本季 / 上季 / 去年同期一律从"本期申报"里取——10-Q 自带去年同期列，与本季同一份文件同一口径；
 // 上季从上一份定期报告取（重述后数字以最新申报为准，与 SEC 口径一致）。
-import { all } from './db.js';
+import fs from 'fs';
+import path from 'path';
+import { all, filingsDir } from './db.js';
+import { tsmMetricTable } from './guidance.js';
 
 const DAY = 86400000;
 const span = f => (Date.parse(f.period_end) - Date.parse(f.period_start)) / DAY + 1;
@@ -76,6 +79,8 @@ const pct = (a, b) => (a == null || b == null || b === 0 ? null : Math.round(((a
  *   没有该季定期报告（只有 8-K 初版）时返回 null
  */
 export function buildMetricTable(ticker, fiscalYear, fiscalQuarter) {
+  // TSM 没有季度 XBRL：从 6-K 财报新闻稿的固定格式表格解析（单位换算由程序做，不交给模型）
+  if (ticker === 'TSM') return tsmTable(fiscalYear, fiscalQuarter);
   const seq = periodicFilings(ticker);
   const i = seq.findIndex(f => f.fiscal_year === fiscalYear && f.fiscal_quarter === fiscalQuarter);
   if (i < 0) return null;
@@ -186,12 +191,28 @@ export function buildMetricTable(ticker, fiscalYear, fiscalQuarter) {
   };
 }
 
-/** 数字展示：金额按十亿/百万美元，百分比保留一位 */
+function tsmTable(fiscalYear, fiscalQuarter) {
+  const f = all(`SELECT accession, document, document_url, period_end, filing_date FROM filings WHERE ticker = 'TSM' AND doc_kind = 'earnings_release'
+                 AND status = 'parsed' AND fiscal_year = ? AND fiscal_quarter = ? ORDER BY filing_date DESC`, [fiscalYear, fiscalQuarter])[0];
+  if (!f) return null;
+  const text = fs.readFileSync(path.join(filingsDir(), f.accession, `${f.document}.txt`), 'utf8');
+  const prevQ = fiscalQuarter === 1 ? `FY${fiscalYear - 1}Q4` : `FY${fiscalYear}Q${fiscalQuarter - 1}`;
+  const t = tsmMetricTable(text, {
+    fiscalLabel: `FY${fiscalYear}Q${fiscalQuarter}`, priorQuarter: prevQ, priorYear: `FY${fiscalYear - 1}Q${fiscalQuarter}`,
+    periodEnd: f.period_end, source: { accession: f.accession, filingDate: f.filing_date, url: f.document_url },
+  });
+  return t.metrics.length ? t : null;
+}
+
+/** 数字展示：金额按十亿/百万美元（新台币金额加 NT 前缀），百分比保留一位 */
 export function fmt(v, unit) {
   if (v == null) return '未披露';
   if (unit === '%') return `${v.toFixed(1)}%`;
   if (unit === 'USD/share') return `$${v.toFixed(2)}`;
+  if (unit === 'TWD/share') return `NT$${v.toFixed(2)}`;
   const a = Math.abs(v);
+  // 新台币金额：按"亿元"写（与中文财经习惯一致；1 亿 = 1e8），程序换算，模型照抄
+  if (unit === 'TWD') return `新台币${(v / 1e8).toFixed(2)}亿元`;
   if (a >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (a >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
   return `$${v.toFixed(0)}`;

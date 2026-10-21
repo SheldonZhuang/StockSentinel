@@ -99,7 +99,8 @@ export function verifyClaim(claim, ctx) {
   if (!text) return { ok: false, reasons: ['empty text'], evidence: [] };
   if (ADVICE.test(text)) reasons.push('含买卖建议/目标价/股价预测');
   const ev = Array.isArray(claim.evidence) ? claim.evidence : [];
-  if (!ev.length) reasons.push('没有出处');
+  // noEvidenceOk：程序生成的"未给出数字指引"这类陈述，说的是"没有"，本身无数字、无可引原文
+  if (!ev.length && !(claim.generated && claim.noEvidenceOk)) reasons.push('没有出处');
   const used = []; // 已核对的证据（指标行 / 引文原文），供数量比对
   for (const e of ev) {
     if (e && e.metric) {
