@@ -15,7 +15,7 @@ const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // 默认模型不再写死：research/models.js 按用户定的优先级（OpenRouter 最新 Claude Opus/Fable → 最新 Grok）选，
 // 区域受限自动换下一个。显式传 o.model 时（评估、对比）仍用指定模型
-import { resolveModel, BANNED } from './models.js';
+import { resolveModel, BANNED, providerFor } from './models.js';
 
 // 每百万 token 美元价（OpenRouter 2026-10-21 实价）。返回的 usage.cost 优先；缺失时按此表估算。
 // 表里没有的模型拒绝调用：不知道价格就无法守预算
@@ -111,7 +111,11 @@ export async function chat(o) {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
   let model = o.model;
   if (!model) {
-    const r = await resolveModel();
+    // 方案 B（用户 2026-10-21）：Claude 优先；本月日常预算用掉 80% 后，剩余调用自动改用 Grok（便宜 3–5 倍），
+    // 到 100% 才停。只对日常池生效，评估池按显式指定的模型跑
+    const bs = budgetStatus();
+    const tight = (o.pool === 'research' || o.pool === 'ask') && bs.researchMonth >= BUDGETS.research.monthly * 0.8;
+    const r = await resolveModel({ prefer: tight || o.preferGrok ? 'grok' : 'claude' });
     model = r.id;
     // /models 接口给的实价补进价格表（最新模型可能还没写进静态表）
     if (!PRICES[model] && r.price?.in >= 0) PRICES[model] = r.price;
@@ -134,14 +138,15 @@ export async function chat(o) {
   const t0 = Date.now();
   const ref = o.pool === 'eval' ? `${o.evalRunId}:${o.ref || ''}` : (o.ref || null);
   try {
-    const res = await axios.post(OPENROUTER_CHAT_URL, {
-      model,
+    const prov = providerFor(model); // OpenRouter，或 Claude 网关（gateway: 前缀，OpenAI 兼容接口）
+    const res = await axios.post(prov.url, {
+      model: prov.model,
       messages: o.messages,
       temperature: o.temperature ?? 0,
       max_tokens: o.maxTokens,
-      usage: { include: true },
+      ...(prov.provider === 'openrouter' ? { usage: { include: true } } : {}),
       ...(o.tools ? { tools: o.tools, tool_choice: o.toolChoice || 'auto' } : o.json ? { response_format: { type: 'json_object' } } : {}),
-    }, { headers: { Authorization: `Bearer ${apiKey}` }, timeout: o.timeoutMs || 120000 });
+    }, { headers: { Authorization: `Bearer ${prov.key}` }, timeout: o.timeoutMs || 120000 });
     const u = res.data?.usage || {};
     const tokensIn = u.prompt_tokens ?? 0;
     const tokensOut = u.completion_tokens ?? 0;

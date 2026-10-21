@@ -291,3 +291,21 @@ describe('verifyClaim 不许引用本季之后的申报', async () => {
   });
   it('写 FY2026Q4 时同一块 → 通过', () => expect(vc(claim, { ...ctx, asOf: '2026-07-29' }).ok).toBe(true));
 });
+
+describe('verifyClaim 块号记错多位与表格类型名', async () => {
+  const { verifyClaim: vc, quantitiesIn } = await import('../research/verify.js');
+  const a = { id: 5029, ticker: 'NVDA', accession: 'q', form_type: '10-Q', section: 'mdna', char_start: 0, char_end: 30, source_url: 'u', text: 'Gaming revenue was up.' };
+  const b = { id: 5019, ticker: 'NVDA', accession: 'q', form_type: '10-Q', section: 'mdna', char_start: 100, char_end: 200, source_url: 'u', text: 'We have significantly increased our supply and capacity commitments from $119 billion last quarter to $279 billion.' };
+  const other = { ...b, id: 7000, accession: 'other' };
+  const quote = 'increased our supply and capacity commitments from $119 billion last quarter to $279 billion';
+  it('引文在本次看过的同一申报其他块里 → 通过，按真实块记出处', () => {
+    const r = vc({ text: '供应承诺从$119 billion增至$279 billion', evidence: [{ chunk_id: 5029, quote }] }, { ticker: 'NVDA', metricsById: new Map(), chunksById: new Map([[5029, a], [5019, b]]) });
+    expect(r.ok).toBe(true);
+    expect(r.evidence[0].chunk_id).toBe(5019);
+  });
+  it('只在别的申报里有 → 不通过', () => {
+    const r = vc({ text: '供应承诺增至$279 billion', evidence: [{ chunk_id: 5029, quote }] }, { ticker: 'NVDA', metricsById: new Map(), chunksById: new Map([[5029, a], [7000, other]]) });
+    expect(r.ok).toBe(false);
+  });
+  it('"10-Q""8-K"不是数字', () => expect(quantitiesIn('10-Q披露，8-K公告')).toEqual([]));
+});

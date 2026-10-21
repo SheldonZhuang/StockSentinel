@@ -4,7 +4,7 @@
 // 失败静默跳过——日报是增值内容，不能影响信号主链路
 import axios from 'axios';
 import { saveDailyReport } from '../utils/storage.js';
-import { resolveModel, BANNED } from '../research/models.js';
+import { resolveModel, BANNED, providerFor } from '../research/models.js';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -42,14 +42,14 @@ function parseJsonLoose(text) {
  * LLM 偶发输出非 JSON（实测 2026-07-17/19/20 三次），失败自动重试一次
  */
 export async function generateDailyReport(payload, attempt = 1) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey || !payload) return null;
+  if (!process.env.OPENROUTER_API_KEY || !payload) return null;
   const pinned = process.env.AI_REPORT_MODEL;
   const model = pinned && !BANNED.test(pinned) ? pinned : (await resolveModel()).id;
 
   try {
-    const res = await axios.post(OPENROUTER_CHAT_URL, {
-      model,
+    const p = providerFor(model); // OpenRouter 或 Claude 网关（gateway:前缀）
+    const res = await axios.post(p.url, {
+      model: p.model,
       messages: [
         {
           role: 'system',
@@ -65,7 +65,7 @@ export async function generateDailyReport(payload, attempt = 1) {
       // ——此前 7-17/19/20 三天日报失败的"no JSON object in LLM output"正是这个 402 被吞
       max_tokens: 1200,
     }, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { Authorization: `Bearer ${p.key}` },
       timeout: 60000,
     });
 

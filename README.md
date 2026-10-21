@@ -108,7 +108,10 @@ MOOMOO_WS_HOST=127.0.0.1               # moomoo OpenD 本机网关，美股LV3�
 MOOMOO_WS_PORT=33333                   # OpenD 的 WebSocket 端口（与 TCP 11111 是两个开关）
 MOOMOO_WS_KEY=your_opend_ws_key        # 对应 OpenD"WebSocket鉴权密钥"字段——勿填进"WebSocket私钥/证书"(SSL文件字段)，会致OpenD设置错误无法登录；排障见 docs/moomoo-cloud-setup.md
 FMP_API_KEY=your_fmp_key               # P/E、P/S 估值补全（可选）
-OPENROUTER_API_KEY=your_openrouter_key # 模型调用量监测 + AI日报（可选）
+OPENROUTER_API_KEY=your_openrouter_key # 模型调用量监测 + AI日报 + 研究 Agent（可选）
+CLAUDE_GATEWAY_URL=https://your-claude-gateway   # 可选：OpenAI 兼容的 Claude 网关；OpenRouter 上的 Claude 不可用时优先用它
+CLAUDE_GATEWAY_KEY=your_gateway_key              # 与上一行成对；都不配则 Claude 不可用时直接用最新 Grok
+# 模型选择（backend/research/models.js）：OpenRouter 最新 Claude Opus/Fable → 网关 Claude → OpenRouter 最新 Grok；DeepSeek / GLM 永久弃用
 CLOUDFLARE_API_TOKEN=your_cf_token # AI需求第二源：Radar全网AI bot流量趋势，仅用于usage分歧核查邮件的独立佐证，不进判定（可选，免费申请仅需Radar读权限）
 GITHUB_BACKUP_REPO=owner/private-repo  # 数据库每日备份（可选）
 GITHUB_BACKUP_TOKEN=fine_grained_pat   # 仅需该仓库 Contents 读写（可选）

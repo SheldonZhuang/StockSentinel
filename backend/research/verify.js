@@ -16,7 +16,7 @@ const ADVICE = /(建议(买入|卖出|增持|减持|持有)|买入评级|卖出�
 const NUM = /\d[\d,]*(?:\.\d+)?/g;
 // 年份只认"像年份"的：后面不能跟小数点、千分位、量级单位、百分号或区间连字符——
 // 否则"2006.1亿美元"（AMZN 营收）会被当成年份 2006 删掉、剩下 ".1"，"1970-2020亿美元"整段消失（2026-10-21 deepseek 评估轮发现）
-const LABEL = /\bFY\d{4}(?:Q[1-4])?\b|(?<![\d.,$])(?:19|20)\d{2}\s*[-–至到]\s*(?:19|20)\d{2}(?=\s*年)|(?<![\d.,$])(?:19|20)\d{2}(?![\d.,]|\s*(?:万亿|千亿|百亿|十亿|亿|千万|百万|万|%|billion|million|trillion|bn|mn|[BMKT]\b)|\s*[-–~至到]\s*\$?\d)|\bQ[1-4]\b|第[一二三四]季度/gi;
+const LABEL = /\bFY\d{4}(?:Q[1-4])?\b|(?<![\d.,$])(?:19|20)\d{2}\s*[-–至到]\s*(?:19|20)\d{2}(?=\s*年)|(?<![\d.,$])(?:19|20)\d{2}(?![\d.,]|\s*(?:万亿|千亿|百亿|十亿|亿|千万|百万|万|%|billion|million|trillion|bn|mn|[BMKT]\b)|\s*[-–~至到]\s*\$?\d)|\bQ[1-4]\b|第[一二三四]季度|\b(?:10-[QK]|8-K|6-K|20-F)\b/gi;
 
 /** 陈述里需要核对的数字（去掉财年/季度标签、年份；去掉千分位） */
 export function numbersIn(text) {
@@ -122,6 +122,13 @@ export function verifyClaim(claim, ctx) {
         for (const id of [c.id - 1, c.id + 1]) {
           const n = ctx.chunksById.get(id) || ctx.loadChunk?.(id);
           if (n && n.accession === c.accession && (loc = locateQuote(n.text, e.quote))) { src = n; break; }
+        }
+      }
+      // 块号记错不止差一位（2026-10-21 网关 Opus：引文在块 5019，标成 5029）：再在本次运行模型实际看过的、
+      // 同一申报的块里找。仍须逐字存在，且只认模型确实检索到过的块——不扩大到全库
+      if (!loc) {
+        for (const n of ctx.chunksById.values()) {
+          if (n.id !== c.id && n.accession === c.accession && (loc = locateQuote(n.text, e.quote))) { src = n; break; }
         }
       }
       if (!loc) { reasons.push(`引文在块 ${e.chunk_id} 里找不到：${String(e.quote || '').slice(0, 60)}`); continue; }
