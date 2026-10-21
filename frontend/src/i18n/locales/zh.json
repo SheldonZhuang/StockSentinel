@@ -432,9 +432,43 @@
     "home": "股哨兵 Stock Sentinel — 美股进攻/防守信号",
     "trackRecord": "信号存档 Track Record — 股哨兵",
     "login": "登录 — 股哨兵",
-    "admin": "后台管理 — 股哨兵"
+    "admin": "后台管理 — 股哨兵",
+    "research": "公司研究笔记"
   },
   "home": {
     "loginCta": "登录后可管理自选股、开启信号邮件提醒"
+  },
+  "research": {
+    "navLink": "公司研究",
+    "title": "AI 产业链公司研究笔记",
+    "subtitle": "根据 SEC 申报自动生成；每条陈述附出处，数字来自 XBRL 或程序解析的财报表格，指引是否达成由程序计算。",
+    "empty": "暂无研究笔记。",
+    "companies": "公司",
+    "quarters": "财季",
+    "preliminary": "初版",
+    "final": "正式版",
+    "needsReview": "待人工核对",
+    "periodEnd": "报告期末",
+    "basedOn": "依据：",
+    "summary": "摘要",
+    "keyFigures": "关键数字",
+    "colMetric": "指标",
+    "colCurrent": "本季",
+    "colPriorQ": "上季",
+    "colPriorY": "去年同期",
+    "colQoQ": "环比",
+    "colYoY": "同比",
+    "generated": "程序生成",
+    "sources": "出处（{n}）",
+    "dataSource": "数据",
+    "openFiling": "原文",
+    "chars": "字符 {a}–{b}",
+    "notDisclosed": "未披露",
+    "sec": {
+      "highlights": "要点",
+      "guidance_check": "对照管理层指引",
+      "changes": "变化",
+      "risks": "风险点"
+    }
   }
 }

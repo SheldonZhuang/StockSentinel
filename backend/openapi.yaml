@@ -213,3 +213,88 @@ paths:
                   model: { type: string, description: 生成所用 LLM 标识 }
                   disclaimer: { type: string }
         "404": { description: 尚未生成 }
+  /research/notes:
+    get:
+      operationId: listResearchNotes
+      summary: 有研究笔记的公司与财季列表（AI 产业链 8 家：MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）
+      responses:
+        "200":
+          description: 每个公司财季的最新版本
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticker: { type: string }
+                        fiscal_label: { type: string, description: 财年财季，如 FY2026Q4（各公司财年口径不同） }
+                        version: { type: integer }
+                        stage: { type: string, enum: [preliminary, final], description: preliminary=仅财报新闻稿；final=已有 10-Q/10-K/季度合并财报 }
+                        status: { type: string, enum: [ok, needs_review], description: needs_review=有陈述未通过程序核对 }
+                        created_at: { type: string }
+                  disclaimer: { type: string }
+  /research/notes/{ticker}/{quarter}:
+    get:
+      operationId: getResearchNote
+      summary: 某公司某财季的结构化研究笔记（每条陈述附出处；对照指引的结论由程序计算）
+      parameters:
+        - { name: ticker, in: path, required: true, schema: { type: string, example: NVDA } }
+        - { name: quarter, in: path, required: true, schema: { type: string, pattern: '^FY\d{4}Q[1-4]$', example: FY2027Q2 } }
+      responses:
+        "200":
+          description: 笔记（key_figures 数字来自 XBRL 或程序解析的财报表格；highlights/guidance_check/changes/risks 每条带 evidence 与 status）
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        "404": { description: 该公司财季暂无笔记 }
+  /research/notes/{ticker}:
+    get:
+      operationId: getLatestResearchNote
+      summary: 某公司最新财季的研究笔记
+      parameters:
+        - { name: ticker, in: path, required: true, schema: { type: string, example: MSFT } }
+      responses:
+        "200": { description: 笔记, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+        "404": { description: 暂无笔记 }
+  /research/ask:
+    post:
+      operationId: askCompany
+      summary: 就一家公司提问；答案只依据其 SEC 申报与 XBRL 数据，每句附出处，未通过程序核对的句子不返回
+      description: 需要 API key（不带 key 返回 403）；独立于通用额度的每日次数：free 5 次、pro 50 次。不回答买卖建议、目标价、股价预测类问题（返回 400）。月度预算用尽时返回 503。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticker, question]
+              properties:
+                ticker: { type: string, example: NVDA }
+                question: { type: string, maxLength: 500, example: 英伟达最近一季数据中心收入多少，同比增长多少？ }
+      responses:
+        "200":
+          description: 回答
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticker: { type: string }
+                  question: { type: string }
+                  answer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        text: { type: string }
+                        sources: { type: array, items: { type: object, additionalProperties: true }, description: 'type=data（指标表）或 filing（SEC 原文：链接、字符区间、逐字引文）' }
+                  unverified: { type: integer, description: 被丢弃的未通过核对的句子数 }
+                  disclaimer: { type: string }
+        "400": { description: 拒答（买卖建议/目标价/股价预测）或参数不合法 }
+        "403": { description: 需要 API key }
+        "429": { description: 当日 ask 次数用尽 }
+        "503": { description: 本月 ask 预算用尽 }

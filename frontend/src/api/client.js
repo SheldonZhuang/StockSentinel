@@ -73,6 +73,9 @@ export const api = {
     request(`/admin/users/${id}/usage?days=${days}&page=${page}` + (channel ? `&channel=${channel}` : '')),
   adminEndpointStats: (days = 30) => request(`/admin/endpoint-stats?days=${days}`),
   getReference: (category) => request(`/admin/reference?category=${category}`),
+  // 公司研究笔记（129号阶段5，公开只读）
+  researchNotes: () => request('/research/notes'),
+  researchNote: (ticker, quarter) => request(`/research/notes/${encodeURIComponent(ticker)}${quarter ? `/${encodeURIComponent(quarter)}` : ''}`),
   // 研究文档采集（129号）
   adminResearchStatus: () => request('/admin/research/status'),
   adminResearchIngest: (tickers) => request('/admin/research/ingest', { method: 'POST', body: JSON.stringify({ tickers }) }),

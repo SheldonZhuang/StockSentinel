@@ -10,6 +10,7 @@ import { getSnapshotHistory, getApiKeyRecord, getLatestDailyReport, loadApiUsage
 import { ipRateLimit, normalizeIpForQuota } from '../utils/ip-rate-limit.js';
 import { callLogger } from '../utils/usage-log.js';
 import { maybeCatchUp } from '../utils/catch-up.js';
+import { askCompany, getNote, listNotes } from '../research/ask.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -144,7 +145,7 @@ export async function rateLimit(req, res, next) {
     return res.status(401).json({ error: 'invalid_api_key', message: 'API key is invalid or disabled' });
   }
   // 挂归属信息供调用明细埋点读取（/v1 与 /mcp 复用本中间件，埋点归属同源）
-  req.usageMeta = { keyId: resolved.keyId ?? null, userId: resolved.userId ?? null, identifier: resolved.id };
+  req.usageMeta = { keyId: resolved.keyId ?? null, userId: resolved.userId ?? null, identifier: resolved.id, tier: resolved.tier };
   const limit = TIER_DAILY_LIMITS[resolved.tier];
   const day = new Date().toISOString().slice(0, 10);
   await ensureUsageLoaded(day);
@@ -238,6 +239,51 @@ router.get('/backtest/summary', asyncRoute(async (req, res) => {
   }
   const { summary } = JSON.parse(fs.readFileSync(p, 'utf8'));
   res.json(withDisclaimer({ summary }));
+}));
+
+// ---- 公司研究 Agent（129号阶段5）----
+// ask 的单独额度（用户 2026-10-21 定）：keyless 不开放；free 每日 5 次；pro 每日 50 次。同时受 ask 预算池（每月 $3）约束
+const ASK_DAILY_LIMITS = { keyless: 0, free: 5, pro: 50 };
+const askUsage = new Map(); // identifier → { day, count }（内存计数；进程重启清零可接受：预算池才是硬上限）
+
+/** ask 次数额度（/v1 与 /mcp 共用）：返回 null 表示放行并已计数，否则返回 {status, error, message} */
+export function takeAskQuota(meta = {}) {
+  const tier = meta.keyId == null ? 'keyless' : (meta.tier || 'free');
+  const limit = ASK_DAILY_LIMITS[tier] ?? 0;
+  if (!limit) return { status: 403, error: 'api_key_required', message: 'ask requires an API key (free tier: 5/day)' };
+  const day = new Date().toISOString().slice(0, 10);
+  const e = askUsage.get(meta.identifier);
+  const count = e && e.day === day ? e.count : 0;
+  if (count >= limit) return { status: 429, error: 'ask_rate_limited', message: `Daily ask limit of ${limit} reached (tier: ${tier})` };
+  askUsage.set(meta.identifier, { day, count: count + 1 });
+  return null;
+}
+
+// GET /v1/research/notes — 有线上笔记的公司与财季
+router.get('/research/notes', asyncRoute(async (req, res) => {
+  res.json(withDisclaimer({ notes: await listNotes() }));
+}));
+
+// GET /v1/research/notes/:ticker/:quarter? — 某公司某财季（FY2026Q4）的研究笔记，省略 quarter 取最新
+router.get('/research/notes/:ticker{/:quarter}', asyncRoute(async (req, res) => { // Express 5 可选参数写法
+  const note = await getNote(req.params.ticker, req.params.quarter);
+  if (!note) return res.status(404).json({ error: 'not_found', message: 'No research note for this company/quarter yet' });
+  res.json(withDisclaimer(note));
+}));
+
+// POST /v1/research/ask {ticker, question} — 针对一家公司的问题，回答每句带出处（核对不过的句子不返回）
+router.post('/research/ask', express.json({ limit: '4kb' }), asyncRoute(async (req, res) => {
+  const denied = takeAskQuota(req.usageMeta);
+  if (denied) return res.status(denied.status).json({ error: denied.error, message: denied.message });
+  const { ticker, question } = req.body || {};
+  try {
+    const out = await askCompany(ticker, question);
+    if (out.refused) return res.status(400).json({ error: 'refused', message: out.refused });
+    res.json(withDisclaimer(out));
+  } catch (err) {
+    if (err?.name === 'BudgetExceededError') return res.status(503).json({ error: 'budget_exhausted', message: 'ask is paused for this month (budget cap reached)' });
+    throw err;
+  }
 }));
 
 // GET /v1/daily-report — AI 生成的每日信号解读（中英双语）

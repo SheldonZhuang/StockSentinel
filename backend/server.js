@@ -55,6 +55,8 @@ import { asyncRoute } from './utils/async-route.js';
 import { buildSignalPayload, buildAiChainPayload } from './api/payloads.js';
 import { computeLocks } from './api/locks.js';
 import { initCatchUp, maybeCatchUp } from './utils/catch-up.js';
+import { researchEnabled, runResearchPipeline } from './research/pipeline.js';
+import { getNote as getResearchNote, listNotes as listResearchNotes } from './research/ask.js';
 import { runFedDecisionRefresh, isFedRefreshCoolingDown, checkFedDecisionCoverage } from './utils/fed-refresh.js';
 import { runEventDrivenRefresh } from './utils/event-refresh.js';
 import publicRouter from './api/public.js';
@@ -191,6 +193,16 @@ app.get('/api/daily-report', asyncRoute(async (req, res) => {
   const report = await getLatestDailyReport();
   if (!report) return res.json({ status: 'none' });
   res.json({ date: report.date, zh: report.content_zh, en: report.content_en });
+}));
+
+// 公司研究笔记（129号阶段5）：网站只读页用，公开、不计 /v1 额度（与 /v1/research/notes 同源同口径）
+app.get('/api/research/notes', asyncRoute(async (req, res) => {
+  res.json({ notes: await listResearchNotes() });
+}));
+app.get('/api/research/notes/:ticker{/:quarter}', asyncRoute(async (req, res) => {
+  const note = await getResearchNote(req.params.ticker, req.params.quarter);
+  if (!note) return res.status(404).json({ error: 'not_found' });
+  res.json(note);
 }));
 
 app.get('/api/ai-chain', asyncRoute(async (req, res) => {
@@ -812,6 +824,11 @@ if (FED_REFRESH_ENABLED) {
 initCatchUp(() => runDailyUpdate().catch(err => alertCronFailure('catch-up', err)));
 cron.schedule('20 * * * *', () => {
   maybeCatchUp().catch(() => {});
+  // 公司研究 Agent（129号阶段5）：新财报落地即增量采集并生成笔记。默认关（RESEARCH_ENABLED=1 才跑），
+  // 只在 primary 实例；与信号判定完全独立（研究笔记不参与判定）
+  if (researchEnabled()) {
+    runResearchPipeline({ trigger: 'watchdog' }).catch(err => console.warn('[research] watchdog run failed:', err.message));
+  }
   // 决议日即时重算的兜底重试（127号）：14:05 定点任务若因整点阻塞/进程重启而漏跑，
   // 每小时再看一次。无决议时本模块只发 1 个 RSS 请求即退出（解析后短路），成本可忽略
   runFedDecisionRefresh({ log: console.log })

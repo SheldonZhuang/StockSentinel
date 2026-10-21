@@ -44,10 +44,12 @@ describe('POST /mcp (Streamable HTTP, stateless)', () => {
     expect(res.status).toBe(200);
     const names = res.body.result.tools.map(t => t.name).sort();
     expect(names).toEqual([
+      'ask_company',
       'get_ai_chain',
       'get_backtest_summary',
       'get_current_signal',
       'get_daily_report',
+      'get_research_note',
       'get_signal_history',
       'get_stock_percentile',
     ]);

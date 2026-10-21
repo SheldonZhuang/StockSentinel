@@ -432,9 +432,43 @@
     "home": "Stock Sentinel — 미국 시장 공격/방어 시그널",
     "trackRecord": "시그널 기록 — Stock Sentinel",
     "login": "로그인 — Stock Sentinel",
-    "admin": "관리자 — Stock Sentinel"
+    "admin": "관리자 — Stock Sentinel",
+    "research": "기업 리서치 노트"
   },
   "home": {
     "loginCta": "로그인하면 관심 종목 관리와 이메일 알림을 사용할 수 있습니다"
+  },
+  "research": {
+    "navLink": "기업 리서치",
+    "title": "AI 공급망 기업 리서치 노트",
+    "subtitle": "SEC 공시에서 자동 생성됩니다. 모든 서술에 출처를 표시하며, 수치는 XBRL 또는 프로그램이 분석한 실적표에서 가져오고 가이던스 비교는 프로그램이 계산합니다.",
+    "empty": "아직 리서치 노트가 없습니다.",
+    "companies": "기업",
+    "quarters": "회계 분기",
+    "preliminary": "잠정본",
+    "final": "확정본",
+    "needsReview": "검토 필요",
+    "periodEnd": "기말",
+    "basedOn": "근거: ",
+    "summary": "요약",
+    "keyFigures": "주요 수치",
+    "colMetric": "지표",
+    "colCurrent": "이번 분기",
+    "colPriorQ": "직전 분기",
+    "colPriorY": "전년 동기",
+    "colQoQ": "전분기 대비",
+    "colYoY": "전년 대비",
+    "generated": "프로그램 생성",
+    "sources": "출처 ({n})",
+    "dataSource": "데이터",
+    "openFiling": "원문",
+    "chars": "문자 {a}–{b}",
+    "notDisclosed": "미공개",
+    "sec": {
+      "highlights": "핵심",
+      "guidance_check": "가이던스 대비",
+      "changes": "변화",
+      "risks": "리스크"
+    }
   }
 }

@@ -31,6 +31,8 @@ description: Use when the user asks about US stock market attack/defense posture
 ## 如何调用
 
 优先用 MCP 工具（stock-sentinel 服务器）：`get_current_signal` / `get_signal_history` / `get_ai_chain` / `get_stock_percentile` / `get_backtest_summary` / `get_daily_report`。
+
+公司研究（AI 产业链 8 家：MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）：`get_research_note`（某财季结构化研究笔记，每条陈述带 SEC 出处，指引是否达成由程序计算）/ `ask_company`（就一家公司提问，答案逐句带出处、核对不过的句子不返回，需 API key）。研究笔记**不参与**进攻/防守信号判定；引用时说明"仅供研究参考"，不要据此给买卖建议。
 无 MCP 时直接 GET REST API：`{BASE}/v1/signal` 等（请求头 `X-API-Key` 可选），规范见 backend/openapi.yaml。
 
 ## 解读规范（重要）

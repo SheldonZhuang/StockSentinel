@@ -18,6 +18,12 @@ const routes = [
     meta: { titleKey: 'pageTitle.trackRecord' },
   },
   {
+    // 公司研究笔记（129号阶段5）：公开只读
+    path: '/research',
+    component: () => import('./views/ResearchView.vue'),
+    meta: { titleKey: 'pageTitle.research' },
+  },
+  {
     path: '/login',
     component: () => import('./views/LoginView.vue'),
     meta: { titleKey: 'pageTitle.login' },

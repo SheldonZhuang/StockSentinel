@@ -13,7 +13,8 @@ import { fileURLToPath } from 'url';
 import { buildSignalPayload, buildAiChainPayload } from './payloads.js';
 import { fetchStockData } from './fetch-stocks.js';
 import { getSnapshotHistory, getLatestDailyReport } from '../utils/storage.js';
-import { rateLimit } from './public.js';
+import { rateLimit, takeAskQuota } from './public.js';
+import { askCompany, getNote } from '../research/ask.js';
 import { ipRateLimit } from '../utils/ip-rate-limit.js';
 import { recordCall } from '../utils/usage-log.js';
 
@@ -24,8 +25,8 @@ const asText = payload => ({
   content: [{ type: 'text', text: JSON.stringify({ ...payload, disclaimer: DISCLAIMER }) }],
 });
 
-function buildServer() {
-  const server = new McpServer({ name: 'stock-sentinel', version: '1.0.3' });
+function buildServer(usageMeta = {}) {
+  const server = new McpServer({ name: 'stock-sentinel', version: '1.1.0' });
 
   server.tool(
     'get_current_signal',
@@ -103,6 +104,39 @@ function buildServer() {
     }
   );
 
+  // ---- 公司研究 Agent（129号阶段5）----
+  server.tool(
+    'get_research_note',
+    '获取 AI 产业链公司（MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）某财季的结构化研究笔记：关键数字（XBRL，本季/上季/去年同期/环比/同比）、要点、对照管理层指引（是否达成由程序计算）、变化、风险点、未披露项。每条陈述附出处（XBRL 字段或 SEC 原文链接+字符区间+逐字引文）；未通过程序核对的陈述标 needs_review。quarter 用财年口径如 FY2026Q4（MSFT 财年 6 月结束、NVDA 1 月结束），省略取最新。仅供研究参考，不构成投资建议，不提供买卖建议或股价预测。',
+    {
+      ticker: z.string().describe('MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM'),
+      quarter: z.string().regex(/^FY\d{4}Q[1-4]$/i).optional().describe('财年财季，如 FY2026Q4；省略取最新'),
+    },
+    async ({ ticker, quarter }) => {
+      const note = await getNote(ticker, quarter);
+      if (!note) return asText({ error: 'not_found', message: 'No research note for this company/quarter yet' });
+      const { markdown, ...rest } = note; // 结构化字段足够，省掉重复的 Markdown 正文
+      return asText(rest);
+    }
+  );
+
+  server.tool(
+    'ask_company',
+    '就一家 AI 产业链公司（MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）提问，答案只依据其 SEC 申报原文与 XBRL 数据，每句附出处；程序逐句核对，核对不通过的句子不返回（unverified 计数）。不回答买卖建议、目标价或股价预测类问题。需要 API key（free 每日 5 次）。仅供研究参考，不构成投资建议。',
+    { ticker: z.string(), question: z.string().min(2).max(500) },
+    async ({ ticker, question }) => {
+      const denied = takeAskQuota(usageMeta);
+      if (denied) return asText({ error: denied.error, message: denied.message });
+      try {
+        const out = await askCompany(ticker, question);
+        return asText(out.refused ? { error: 'refused', message: out.refused } : out);
+      } catch (err) {
+        if (err?.name === 'BudgetExceededError') return asText({ error: 'budget_exhausted', message: 'ask is paused for this month (budget cap reached)' });
+        throw err;
+      }
+    }
+  );
+
   return server;
 }
 
@@ -157,7 +191,7 @@ router.post('/', (req, res, next) => {
   next();
 }, (req, res, next) => {
   (async () => {
-    const server = buildServer();
+    const server = buildServer(req.usageMeta);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // 无状态：每请求新实例，无会话粘性，天然适配多实例部署
       enableJsonResponse: true,

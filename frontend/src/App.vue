@@ -11,6 +11,7 @@
       </router-link>
       <div class="nav-right">
         <router-link to="/track-record" class="nav-link">{{ $t('track.navLink') }}</router-link>
+        <router-link to="/research" class="nav-link">{{ $t('research.navLink') }}</router-link>
         <!-- 主题切换 -->
         <button class="nav-btn" :title="$t('app.theme')" :aria-label="$t('app.theme')"
                 :aria-pressed="theme === 'dark'" @click="toggleTheme">

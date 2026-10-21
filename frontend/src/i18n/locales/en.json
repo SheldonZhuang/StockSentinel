@@ -432,9 +432,43 @@
     "home": "Stock Sentinel — US market attack/defense signal",
     "trackRecord": "Track Record — Stock Sentinel",
     "login": "Log in — Stock Sentinel",
-    "admin": "Admin — Stock Sentinel"
+    "admin": "Admin — Stock Sentinel",
+    "research": "Company research notes"
   },
   "home": {
     "loginCta": "Log in to manage your watchlist and enable signal email alerts"
+  },
+  "research": {
+    "navLink": "Research",
+    "title": "AI supply-chain company research notes",
+    "subtitle": "Generated from SEC filings. Every statement cites its source; numbers come from XBRL or program-parsed earnings tables, and guidance verdicts are computed by the program.",
+    "empty": "No research notes yet.",
+    "companies": "Companies",
+    "quarters": "Fiscal quarters",
+    "preliminary": "Preliminary",
+    "final": "Final",
+    "needsReview": "Needs review",
+    "periodEnd": "Period end",
+    "basedOn": "Based on: ",
+    "summary": "Summary",
+    "keyFigures": "Key figures",
+    "colMetric": "Metric",
+    "colCurrent": "This quarter",
+    "colPriorQ": "Prior quarter",
+    "colPriorY": "Year ago",
+    "colQoQ": "QoQ",
+    "colYoY": "YoY",
+    "generated": "program-generated",
+    "sources": "Sources ({n})",
+    "dataSource": "Data",
+    "openFiling": "Filing",
+    "chars": "chars {a}–{b}",
+    "notDisclosed": "Not disclosed",
+    "sec": {
+      "highlights": "Highlights",
+      "guidance_check": "Versus guidance",
+      "changes": "Changes",
+      "risks": "Risks"
+    }
   }
 }

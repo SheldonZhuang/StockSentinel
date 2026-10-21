@@ -28,7 +28,7 @@ const asText = body => ({ content: [{ type: 'text', text: body }] });
 
 const server = new McpServer({
   name: 'stock-sentinel',
-  version: '1.0.3', // 与 backend/api/mcp.js 保持同版
+  version: '1.1.0', // 与 backend/api/mcp.js 保持同版（1.1.0：新增研究笔记 / ask_company）
 });
 
 server.tool(
@@ -80,6 +80,33 @@ server.tool(
   '获取AI生成的每日信号解读（中英双语）：今日档位、由哪些维度和数据驱动、距离进攻/防守的条件差距。',
   {},
   async () => asText(await callApi('/daily-report'))
+);
+
+// ---- 公司研究 Agent（129号阶段5；描述与 backend/api/mcp.js 同步）----
+server.tool(
+  'get_research_note',
+  '获取 AI 产业链公司（MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）某财季的结构化研究笔记：关键数字（XBRL，本季/上季/去年同期/环比/同比）、要点、对照管理层指引（是否达成由程序计算）、变化、风险点、未披露项。每条陈述附出处（XBRL 字段或 SEC 原文链接+字符区间+逐字引文）；未通过程序核对的陈述标 needs_review。quarter 用财年口径如 FY2026Q4（MSFT 财年 6 月结束、NVDA 1 月结束），省略取最新。仅供研究参考，不构成投资建议，不提供买卖建议或股价预测。',
+  {
+    ticker: z.string().describe('MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM'),
+    quarter: z.string().regex(/^FY\d{4}Q[1-4]$/i).optional().describe('财年财季，如 FY2026Q4；省略取最新'),
+  },
+  async ({ ticker, quarter }) => asText(await callApi(`/research/notes/${encodeURIComponent(ticker)}${quarter ? `/${encodeURIComponent(quarter)}` : ''}`))
+);
+
+server.tool(
+  'ask_company',
+  '就一家 AI 产业链公司（MSFT/GOOGL/AMZN/META/NVDA/AMD/AVGO/TSM）提问，答案只依据其 SEC 申报原文与 XBRL 数据，每句附出处；程序逐句核对，核对不通过的句子不返回（unverified 计数）。不回答买卖建议、目标价或股价预测类问题。需要 API key（free 每日 5 次）。仅供研究参考，不构成投资建议。',
+  { ticker: z.string(), question: z.string().min(2).max(500) },
+  async ({ ticker, question }) => {
+    const res = await fetch(`${API_URL}/v1/research/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(API_KEY ? { 'X-API-Key': API_KEY } : {}) },
+      body: JSON.stringify({ ticker, question }),
+    });
+    const body = await res.text();
+    if (!res.ok) throw new Error(`API ${res.status}: ${body.slice(0, 300)}`);
+    return asText(body);
+  }
 );
 
 const transport = new StdioServerTransport();

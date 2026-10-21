@@ -29,6 +29,7 @@ import { invalidateKeyCache } from './public.js';
 import { flushCallLogs } from '../utils/usage-log.js';
 import { getCapeState } from '../utils/cape.js';
 import { getIngestStatus, runIngest, isIngestRunning } from '../research/ingest.js';
+import { runResearchPipeline, isResearchPipelineRunning } from '../research/pipeline.js';
 
 const router = express.Router();
 const VALID_SIGNALS = ['loose', 'neutral', 'tight'];
@@ -357,6 +358,13 @@ router.post('/research/ingest', requireAdmin, asyncRoute(async (req, res) => {
   if (isIngestRunning()) return res.status(409).json({ error: 'already running' });
   const tickers = Array.isArray(req.body?.tickers) ? req.body.tickers.filter(t => typeof t === 'string').slice(0, 20) : undefined;
   runIngest({ tickers, trigger: 'manual' }).catch(err => console.error('[research] manual ingest failed:', err.message));
+  res.status(202).json({ started: true });
+}));
+
+// POST /api/admin/research/run — 手动跑一轮完整管线（采集 → Wiki → 到期笔记），后台执行；受同一预算上限约束
+router.post('/research/run', requireAdmin, asyncRoute(async (req, res) => {
+  if (isResearchPipelineRunning()) return res.status(409).json({ error: 'already running' });
+  runResearchPipeline({ trigger: 'manual' }).catch(err => console.error('[research] manual pipeline failed:', err.message));
   res.status(202).json({ started: true });
 }));
 

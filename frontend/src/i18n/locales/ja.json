@@ -432,9 +432,43 @@
     "home": "Stock Sentinel — 米国市場の攻守シグナル",
     "trackRecord": "シグナル履歴 — Stock Sentinel",
     "login": "ログイン — Stock Sentinel",
-    "admin": "管理画面 — Stock Sentinel"
+    "admin": "管理画面 — Stock Sentinel",
+    "research": "企業リサーチノート"
   },
   "home": {
     "loginCta": "ログインするとウォッチリスト管理とメール通知が利用できます"
+  },
+  "research": {
+    "navLink": "企業リサーチ",
+    "title": "AI サプライチェーン企業のリサーチノート",
+    "subtitle": "SEC 提出書類から自動生成。各記述に出典を付記し、数値は XBRL またはプログラムが解析した決算表から取得、ガイダンスとの比較はプログラムが計算します。",
+    "empty": "リサーチノートはまだありません。",
+    "companies": "企業",
+    "quarters": "会計四半期",
+    "preliminary": "速報版",
+    "final": "確定版",
+    "needsReview": "要確認",
+    "periodEnd": "期末",
+    "basedOn": "根拠：",
+    "summary": "要約",
+    "keyFigures": "主要数値",
+    "colMetric": "指標",
+    "colCurrent": "当四半期",
+    "colPriorQ": "前四半期",
+    "colPriorY": "前年同期",
+    "colQoQ": "前期比",
+    "colYoY": "前年比",
+    "generated": "プログラム生成",
+    "sources": "出典（{n}）",
+    "dataSource": "データ",
+    "openFiling": "原文",
+    "chars": "文字 {a}–{b}",
+    "notDisclosed": "未開示",
+    "sec": {
+      "highlights": "要点",
+      "guidance_check": "ガイダンスとの比較",
+      "changes": "変化",
+      "risks": "リスク"
+    }
   }
 }

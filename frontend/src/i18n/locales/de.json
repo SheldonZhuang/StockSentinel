@@ -432,9 +432,43 @@
     "home": "Stock Sentinel — Angriffs-/Verteidigungssignal US-Markt",
     "trackRecord": "Signalarchiv — Stock Sentinel",
     "login": "Anmelden — Stock Sentinel",
-    "admin": "Verwaltung — Stock Sentinel"
+    "admin": "Verwaltung — Stock Sentinel",
+    "research": "Research-Notizen"
   },
   "home": {
     "loginCta": "Melden Sie sich an, um Ihre Watchlist zu verwalten und E-Mail-Alarme zu aktivieren"
+  },
+  "research": {
+    "navLink": "Research",
+    "title": "Research-Notizen zu Unternehmen der KI-Lieferkette",
+    "subtitle": "Aus SEC-Einreichungen erzeugt. Jede Aussage nennt ihre Quelle; Zahlen stammen aus XBRL oder vom Programm ausgewerteten Ergebnistabellen, der Abgleich mit der Prognose wird vom Programm berechnet.",
+    "empty": "Noch keine Research-Notizen.",
+    "companies": "Unternehmen",
+    "quarters": "Geschäftsquartale",
+    "preliminary": "Vorläufig",
+    "final": "Final",
+    "needsReview": "Prüfung nötig",
+    "periodEnd": "Periodenende",
+    "basedOn": "Grundlage: ",
+    "summary": "Zusammenfassung",
+    "keyFigures": "Kennzahlen",
+    "colMetric": "Kennzahl",
+    "colCurrent": "Quartal",
+    "colPriorQ": "Vorquartal",
+    "colPriorY": "Vorjahr",
+    "colQoQ": "ggü. Vorquartal",
+    "colYoY": "ggü. Vorjahr",
+    "generated": "vom Programm erzeugt",
+    "sources": "Quellen ({n})",
+    "dataSource": "Daten",
+    "openFiling": "Einreichung",
+    "chars": "Zeichen {a}–{b}",
+    "notDisclosed": "Nicht veröffentlicht",
+    "sec": {
+      "highlights": "Kernpunkte",
+      "guidance_check": "Abgleich mit Prognose",
+      "changes": "Veränderungen",
+      "risks": "Risiken"
+    }
   }
 }

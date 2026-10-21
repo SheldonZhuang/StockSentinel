@@ -432,9 +432,43 @@
     "home": "Stock Sentinel — Signal attaque/défense du marché US",
     "trackRecord": "Historique des signaux — Stock Sentinel",
     "login": "Connexion — Stock Sentinel",
-    "admin": "Administration — Stock Sentinel"
+    "admin": "Administration — Stock Sentinel",
+    "research": "Notes de recherche"
   },
   "home": {
     "loginCta": "Connectez-vous pour gérer votre liste et activer les alertes e-mail"
+  },
+  "research": {
+    "navLink": "Recherche",
+    "title": "Notes de recherche sur les sociétés de la chaîne IA",
+    "subtitle": "Générées à partir des dépôts SEC. Chaque affirmation cite sa source ; les chiffres viennent du XBRL ou de tableaux analysés par le programme, et la comparaison aux prévisions est calculée par le programme.",
+    "empty": "Aucune note de recherche pour l'instant.",
+    "companies": "Sociétés",
+    "quarters": "Trimestres fiscaux",
+    "preliminary": "Préliminaire",
+    "final": "Définitive",
+    "needsReview": "À vérifier",
+    "periodEnd": "Fin de période",
+    "basedOn": "Sources : ",
+    "summary": "Résumé",
+    "keyFigures": "Chiffres clés",
+    "colMetric": "Indicateur",
+    "colCurrent": "Trimestre",
+    "colPriorQ": "Trimestre précédent",
+    "colPriorY": "Il y a un an",
+    "colQoQ": "T/T",
+    "colYoY": "A/A",
+    "generated": "généré par le programme",
+    "sources": "Sources ({n})",
+    "dataSource": "Données",
+    "openFiling": "Dépôt",
+    "chars": "caractères {a}–{b}",
+    "notDisclosed": "Non publié",
+    "sec": {
+      "highlights": "Points clés",
+      "guidance_check": "Par rapport aux prévisions",
+      "changes": "Évolutions",
+      "risks": "Risques"
+    }
   }
 }

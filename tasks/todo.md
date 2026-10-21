@@ -61,10 +61,18 @@
   - [x] 评委发现核对器盲区：比较方向错（"76亿略高于77亿"）能过自检 → 阶段5改为程序计算"高于/低于/符合指引"结论
   - [x] 阶段4完成
 - [ ] 阶段5：接入通道与事件驱动（2026-10-21 方案，待用户确认后实施）
-  - [ ] 先修阶段4遗留：指引比较结论（高于/低于/区间内）由程序算；TSM 新闻稿表格程序解析成指标表
-  - [ ] 事件驱动：小时看门狗内检测新 8-K(2.02)/10-Q/10-K/6-K → 增量采集 → Wiki 增量 → 生成笔记（初版/正式版）；失败重试、互斥、补跑与现有 catch-up 同模式
+  - [x] 阶段4遗留：收入指引对照结论由程序算（guidance.js）；TSM 新闻稿表格程序解析成指标表（50f6f6c）
+  - [x] 事件驱动：research/pipeline.js 挂小时看门狗（采集 → Wiki 增量 → 最近财季初版/正式版笔记，互斥、失败当天最多 3 次）；**默认关**，RESEARCH_ENABLED=1 且 primary 才跑；管理员可 POST /api/admin/research/run 手动跑
+  - [x] /v1/research/notes、/v1/research/notes/:ticker{/:quarter}、POST /v1/research/ask（keyless 403、free 5/日、pro 50/日；拒答买卖建议；核对不过的句子不返回）+ openapi.yaml
+  - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
+  - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
+  - [ ] 云端：笔记要在云端出现，需在 Railway 设 RESEARCH_ENABLED=1（首轮采集约 50 秒、30MB 原文缓存落卷，然后为 8 家最近一季各生成一份笔记）；云端是否配 Claude 网关待用户决定
+  - [ ] mcp 包 1.1.0 发布到 npm / MCP 注册表：对外发布，需用户确认
   - [x] 模型策略（用户 2026-10-21 定）：优先 OpenRouter 最新 Claude Opus/Fable → 备选 OpenRouter 最新 Grok；弃用 DeepSeek/GLM。research/models.js 按 /models 自动取各家族最新 + 探测区域可用性（缓存 24h），本机实测落到 grok-4.7（Opus 5.5/Fable 5.1 均 403 区域受限）；RESEARCH_MODEL 指定已弃用模型会被拒绝
-  - [ ] **待用户拍板：预算与模型的冲突**——云端若能用 Opus 5.5（$4/$20），每份约 $0.48，每月约 30 份 ≈ $14，超出 $5/月硬上限；Fable 5.1（$10/$50）约 $36/月。本机 Claude Code 备选只能本机跑、服务端调不到
+  - [x] 用户定"能用 Claude 就用，不能用就用 Grok 最新版"+ 方案 B：models.js 候选 OpenRouter Claude → Claude 网关（CLAUDE_GATEWAY_URL/KEY 显式配置）→ Grok；月预算 80% 后自动降到 Grok；AI 日报与指引检测同用（web 检索只走 OpenRouter）。本机配网关实测 Opus 5.5 写 NVDA 笔记 $0.26
+  - [x] DeepSeek / GLM 全部移除（所有项目，含线上日报与指引检测默认模型）；规则写入工作区 CLAUDE.md
+  - [x] 已合并 main 并推送（3abfe93 / 72f29ca / 356416e），线上 /api/signal 200
+  - 云端是否配置 Claude 网关：用户未明确授权把本机网关 key 放进 Railway → 未配；云端目前 Claude 不可用时用 Grok
   - [x] 已推送 feat/research-agent（阶段1–4，bb002c5），未合并 main、未部署
   - [ ] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml
   - [ ] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）

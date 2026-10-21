@@ -401,7 +401,7 @@ export function renderMarkdown(n) {
     `# ${n.ticker} ${n.fiscal_period} 研究笔记（${n.stage === 'final' ? '正式版' : '初版：仅财报新闻稿'}，v${n.version}）`,
     `报告期末 ${n.period_end}。依据：${n.based_on.map(b => `[${b.form} ${b.filing_date}](${b.url})`).join('、')}`,
     `## 摘要\n${n.summary_status === 'verified' ? '' : '🔴 **待人工核对** '}${n.summary}${n.summary_problems?.length ? `\n- 核对未通过：${n.summary_problems.join('；')}` : ''}`,
-    n.key_figures.length ? `## 关键数字（XBRL）\n| 指标 | 本季 | 上季 | 去年同期 | 环比 | 同比 |\n|---|---|---|---|---|---|\n${n.key_figures.map(k => `| ${k.label} | ${fmt(k.value, k.unit)} | ${fmt(k.prior_quarter, k.unit)} | ${fmt(k.prior_year, k.unit)} | ${chg(k.qoq, k.change_unit)} | ${chg(k.yoy, k.change_unit)} |`).join('\n')}` : '',
+    n.key_figures.length ? `## 关键数字（${n.key_figures[0]?.source?.type === 'xbrl' ? 'XBRL' : '程序解析自财报新闻稿'}）\n| 指标 | 本季 | 上季 | 去年同期 | 环比 | 同比 |\n|---|---|---|---|---|---|\n${n.key_figures.map(k => `| ${k.label} | ${fmt(k.value, k.unit)} | ${fmt(k.prior_quarter, k.unit)} | ${fmt(k.prior_year, k.unit)} | ${chg(k.qoq, k.change_unit)} | ${chg(k.yoy, k.change_unit)} |`).join('\n')}` : '',
     `## 要点\n${claims(n.highlights)}`,
     `## 对照管理层指引\n${claims(n.guidance_check)}`,
     `## 变化\n${claims(n.changes)}`,
