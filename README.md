@@ -60,6 +60,21 @@
 （注册与订阅状态、剩余时间与配额、按用户端点统计与30天调用明细、全站功能热度——资源投放依据），
 详见 [docs/admin-guide.md](docs/admin-guide.md)。
 
+## 公司研究 Agent
+
+对 AI 产业链 8 家公司（MSFT、GOOGL、AMZN、META、NVDA、AMD、AVGO、TSM）的 SEC 财报与公告，自动生成每季一份带出处的结构化研究笔记，内容包括：
+- 关键数字，以及与上季、去年同期的对比；
+- 是否达成管理层指引，这一结论由程序计算；
+- 业务变化与风险点。
+
+每条陈述都附 SEC 原文链接、字符区间和逐字引文，生成后由程序逐条核对；核对不通过的陈述标记为"待人工核对"，不会被悄悄保留。研究笔记**不参与**进攻/防守信号判定。
+
+- **网站**：[`/research`](https://stock-sentinel-eight.vercel.app/research)，公开只读，点数字可跳到原文出处
+- **开放 API**：`GET /v1/research/notes/{ticker}/{quarter}`、`POST /v1/research/ask`（问答需要 API key，free 档每日 5 次）
+- **MCP**：`get_research_note`、`ask_company`
+- **评估**：`npm run eval:research`。160 个 XBRL 金标事实上，Claude 与 Grok 数值准确率 100%；AI 盲评有用性分别为 4.59 / 4.06（5 分制）
+- **文档**：架构、评估方法、已知局限与成本见 [docs/research-agent.md](docs/research-agent.md)；演示脚本见 [docs/research-agent-demo-script.md](docs/research-agent-demo-script.md)
+
 ## 技术栈
 
 - **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT

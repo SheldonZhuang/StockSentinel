@@ -1,3 +1,20 @@
+# Railway 安全事件（2026-10-21 起）— 待处理
+
+Railway 披露：环境变量可能被第三方读取（部分已解密），建议轮换 Railway 里的全部环境变量；全平台暂停构建/部署
+（这是 10-21 起 main 推送一直不上线的真实原因）。本机 .env 与 Railway 共用同一批密钥，两边都要换。
+
+- [x] 核实（只读，2026-10-22）：OPENROUTER_API_KEY 已被吊销（401 User not found）；FRED/TIINGO/TWELVEDATA/CLOUDFLARE/GITHUB_BACKUP_TOKEN 仍有效；RESEND 为仅发信 key；备份仓提交均为正常每日备份
+- [x] OPENROUTER_API_KEY 已由用户更换（2026-10-22）：本机实测新 key 可用（$25 额度已用 $4.87，与本系统账本 $4.66 + 未入账的探测请求相符，未见被盗用迹象）；本机后端已重启加载新 key
+- [ ] 影响记录：10-21 快照 AI 供需 loose→neutral，原因是旧 key 被吊销导致"模型调用量"取数 401（按既定规则，单一子信号缺失不触发 stale-keep）；最终档位仍为 reduce，无实际影响。云端要等 Railway 恢复部署后才会用上新 key（改 Railway 变量需重新部署才生效）
+- 用户决定（2026-10-22）：其他密钥暂不轮换；Railway 上其他 11 个项目暂不处理
+- [ ] 用户在各服务后台重新签发，填入 Railway 与 backend/.env（不在对话里贴值）：
+  - RESEND_API_KEY、FRED_API_KEY、TIINGO_API_KEY、TWELVEDATA_API_KEY、CLOUDFLARE_API_TOKEN、GITHUB_BACKUP_TOKEN（含吊销旧 PAT）、FMP_API_KEY（若在 Railway 配过）
+  - JWT_SECRET（换后所有用户需重新登录）、ADMIN_PASSWORD（换后须同步更新管理员账户密码）
+  - BACKUP_ENCRYPTION_KEY：换新钥前确认能解密旧备份；旧钥离线留存（历史备份仍用旧钥加密）
+  - MOOMOO_WS_KEY 若在 Railway 配过也要换（本机 OpenD 网关）
+- [ ] Railway 恢复构建后：确认自动部署最新 main（b1ba89d），验证 /v1/research/notes 200、日报改用新模型；检查服务日志是否有异常调用
+- [ ] Railway 恢复前的风险：线上仍是 9-17 版本，AI 日报仍走 DeepSeek（且 OpenRouter key 已失效，今晚日报大概率生成失败，不影响信号）
+
 # 129号: 公司研究 Agent — 2026-10-21 【阶段0完成，待用户答复待定项】
 
 > 提示词见 tasks/research-agent-prompts.md；每会话一个阶段。方案要点（阶段0）：

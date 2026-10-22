@@ -33,6 +33,10 @@ confirmation window; upgrades to defense are immediate.
 - /stock/{symbol} — price percentile + P/E + P/S for any US ticker
 - /backtest/summary — 26-year backtest headline numbers
 - /daily-report — LLM-generated bilingual (zh/en) daily interpretation
+- /research/notes — companies and fiscal quarters that have a research note (AI supply chain: MSFT GOOGL AMZN META NVDA AMD AVGO TSM)
+- /research/notes/{ticker}/{quarter} — structured quarterly research note from SEC filings; every claim cites its source (XBRL field, or SEC URL + char range + verbatim quote); guidance verdicts are computed, not generated
+- POST /research/ask {ticker, question} — company Q&A answered only from that company's filings, every sentence cited; unverifiable sentences are dropped (API key required; free 5/day)
+- MCP tools for the same: get_research_note, ask_company
 
 Rate limits: keyless 25/day/IP; free key 250/day; pro key 10,000/day ($9.99/mo).
 Keys are issued by the admin (contact via GitHub). Pro quota is tied to subscription validity.
@@ -41,6 +45,7 @@ Keys are issued by the admin (contact via GitHub). Pro quota is tied to subscrip
 
 - Website (7 languages: zh en fr de es ja ko): https://stock-sentinel-eight.vercel.app/
 - Public track record: https://stock-sentinel-eight.vercel.app/track-record
+- Company research notes (read-only, click any number to open the SEC source): https://stock-sentinel-eight.vercel.app/research
 - Source & docs: https://github.com/SheldonZhuang/StockSentinel
 
 ## Disclaimer

@@ -180,7 +180,9 @@ onMounted(async () => {
     quarter.value = String(route.query.quarter || '');
     await loadNote();
   } catch (e) {
-    error.value = e.message;
+    // 后端还没有研究接口（前端先于后端上线，如 Railway 暂停部署期间）时 404：按"暂无笔记"显示，不把原始错误甩给访客
+    if (e.status === 404) companies.value = [];
+    else error.value = e.message;
   } finally {
     loading.value = false;
   }

@@ -78,6 +78,14 @@ describe('ResearchView', () => {
     expect(w.text()).toContain('暂无研究笔记');
   });
 
+  it('后端还没有研究接口（404）→ 显示暂无笔记，不显示原始错误', async () => {
+    api.researchNotes.mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 }));
+    const w = await mountView();
+    await flushPromises();
+    expect(w.text()).toContain('暂无研究笔记');
+    expect(w.text()).not.toContain('Not Found');
+  });
+
   it('七语言 research 键齐全', () => {
     const keys = o => Object.entries(o).flatMap(([k, v]) => (typeof v === 'object' ? keys(v).map(s => `${k}.${s}`) : [k])).sort();
     const ref = keys(zh.research);
