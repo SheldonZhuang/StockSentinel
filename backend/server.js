@@ -495,7 +495,7 @@ async function runDailyUpdateInner() {
   // 只回填落库展示字段，判定链与信号级 stale 标志（上面按原始 null 判定）语义零变化
   const staleKeptGroups = staleKeepIndicators(macroData, policyData, prevSnapshot);
   if (staleKeptGroups.length) {
-    console.warn(`[cron] stale-keep: 当日拉取失败，沿用上一快照参考指标组: ${staleKeptGroups.join(', ')}`);
+    console.warn(`[cron] stale-keep: 当日拉取失败，沿用上一快照参考指标组: ${staleKeptGroups.join(', ')}${macroData.fredMaintenance ? '（根因：FRED API 维护中，返回 HTML 维护页）' : ''}`);
   }
 
   // 新鲜度看门狗（114b号）：stale-keep 会无限沿用旧值，序列改名/停更这类永久失效会被静默掩盖。

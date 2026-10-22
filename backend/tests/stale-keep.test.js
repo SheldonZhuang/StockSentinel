@@ -56,6 +56,23 @@ describe('staleKeepIndicators（114号：参考指标组级 stale-keep）', () =
     expect(macro.unemployment).toBeNull();
   });
 
+  // 2026-10-22：FRED API 整体维护（HTML 维护页 + 200），利率与资产负债表落库为 null，
+  // 货币维档位已由 monetaryStale 沿用，但展示层整维"暂无数据"。现在数值也按组沿用（不动判定）
+  it('FRED 整体维护：利率与资产负债表按组沿用上一快照（展示用），参考期如实带旧日期', () => {
+    const macro = { ...freshMacro(), currentRate: null, prevRate: null, rateSource: null, currentBalanceSheet: null, prevBalanceSheet: null, balanceSheetPeriodDate: null, balanceSheetReleaseDate: null };
+    const prev = {
+      fred_rate: 4, fred_rate_prev: 3.75, rate_source: 'fred',
+      fred_balance_sheet: 6755639, fred_balance_sheet_prev: 6812000, balance_sheet_period_date: '2026-10-15', balance_sheet_release_date: '2026-10-16',
+    };
+    const kept = staleKeepIndicators(macro, {}, prev);
+    expect(kept).toEqual(expect.arrayContaining(['rate', 'balanceSheet']));
+    expect(macro).toMatchObject({ currentRate: 4, prevRate: 3.75, rateSource: 'fred', currentBalanceSheet: 6755639, balanceSheetPeriodDate: '2026-10-15' });
+  });
+
+  it('利率组没有参考期 → 不参与超龄告警', () => {
+    expect(checkIndicatorFreshness({ currentRate: 4 }, {}, '2026-10-22').map(o => o.name)).not.toContain('rate');
+  });
+
   it('无上一快照（全新库首跑）→ 直接返回空', () => {
     const macro = freshMacro();
     macro.corePce = null;

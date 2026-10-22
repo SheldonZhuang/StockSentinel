@@ -42,7 +42,16 @@ export async function fetchSeries(seriesId, startDate, apiKey, units = '') {
   const unitsParam = units ? `&units=${units}` : '';
   const url = `${FRED_BASE}?series_id=${seriesId}&observation_start=${startDate}&api_key=${apiKey}&file_type=json&sort_order=desc${unitsParam}`;
   const res = await getWithRetry(url);
-  return res.data.observations || [];
+  // FRED 维护期返回 HTML 维护页且状态码仍是 200（2026-10-21 实测"Site Maintenance … proactive maintenance"）。
+  // 过去这里静默当成"0 条观测"，所有序列变 null、只剩 stale-keep 日志，看不出根因。改为明确抛错，
+  // 由上层各序列的独立容错按"拉取失败"处理（结果不变：null → stale-keep），但日志与告警写清是 FRED 维护
+  if (typeof res.data === 'string' || !Array.isArray(res.data?.observations)) {
+    const body = typeof res.data === 'string' ? res.data : JSON.stringify(res.data || {});
+    const err = new Error(/maintenance/i.test(body) ? 'FRED API under maintenance (HTML maintenance page)' : `FRED unexpected response for ${seriesId}`);
+    err.code = 'FRED_UNAVAILABLE';
+    throw err;
+  }
+  return res.data.observations;
 }
 
 /**
@@ -238,14 +247,19 @@ export async function fetchMacroData() {
 
   // 利率与资产负债表是货币信号的必要输入，失败即 throw（调用方整体降级）；
   // 其余序列各自独立降级为空数组——SAHM/失业率/PCE 任一瞬时 429 不应击穿整条每日管道
+  let fredMaintenance = false; // 任一序列遇到 FRED 维护页即置位，随返回值带给调用方（日志/运维告警写明根因）
   const degraded = (promise, label) => promise.catch(err => {
+    if (err.code === 'FRED_UNAVAILABLE') fredMaintenance = true;
     console.warn(`[fetch-macro] ${label} fetch failed (degraded to null):`, err.message);
     return [];
   });
 
   const [rateObs, bsObs, corePceObs, trimmedPce1mObs, trimmedPceObs, trimmedPce12mObs, unrateObs, sahmObs, creditObs, curveObs] = await Promise.all([
-    fetchSeries(FRED_SERIES.RATE, rateStart, apiKey),
-    fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey),
+    // FRED 维护（HTML 维护页）时利率/资产负债表也降级为空、不抛：与改动前"静默 0 条观测"的结果一致——
+    // 快照照常生成，货币维档位由 monetaryStale 沿用、数值由 stale-keep 沿用，track record 不断档。
+    // 其他错误（鉴权、网络等）维持原行为：throw，由 runDailyUpdate 告警"当日快照未生成"
+    fetchSeries(FRED_SERIES.RATE, rateStart, apiKey).catch(err => { if (err.code !== 'FRED_UNAVAILABLE') throw err; console.warn(`[fetch-macro] ${FRED_SERIES.RATE}: ${err.message}`); fredMaintenance = true; return []; }),
+    fetchSeries(FRED_SERIES.BALANCE_SHEET, bsStart, apiKey).catch(err => { if (err.code !== 'FRED_UNAVAILABLE') throw err; console.warn(`[fetch-macro] ${FRED_SERIES.BALANCE_SHEET}: ${err.message}`); fredMaintenance = true; return []; }),
     degraded(fetchSeries(FRED_SERIES.CORE_PCE, pceStart, apiKey, 'pc1'), 'CORE_PCE'),       // 同比变动百分比
     degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE_1M, pceStart, apiKey), 'TRIMMED_PCE_1M'),   // 本身就是年化变动率
     degraded(fetchSeries(FRED_SERIES.TRIMMED_MEAN_PCE, pceStart, apiKey), 'TRIMMED_PCE'),       // 本身就是年化变动率
@@ -355,6 +369,7 @@ export async function fetchMacroData() {
     // 覆盖检查需要它来回答"日历说今天该有决议，但我们到底拿到声明没有"
     fedDecisionSeen: !!fedDecision,
     fedDecisionDate: fedDecision?.decisionDate ?? null,
+    fredMaintenance,
     currentBalanceSheet,
     prevBalanceSheet,
     creditSpread,

@@ -25,6 +25,12 @@ const GROUPS = [
   ['semiIp', 'policy', { semiIpYoy: 'semi_ip_yoy', semiIpPeriodDate: 'semi_ip_period_date', semiIpReleaseDate: 'semi_ip_release_date' }, 100],
   ['fiscal', 'policy', { outlaysTtm: 'fiscal_outlays_ttm', outlaysTtmPrev: 'fiscal_outlays_ttm_prev', outlaysChangePct: 'fiscal_outlays_change_pct', fiscalPeriodDate: 'fiscal_period_date', fiscalReleaseDate: 'fiscal_release_date' }, 100],
   ['oil', 'policy', { oilWti: 'oil_wti', oilChange30dPct: 'oil_change_30d_pct', oilPeriodDate: 'oil_period_date', oilSource: 'oil_source', oilLevelLow: 'oil_level_low' }, 10],
+  // 货币维展示字段（2026-10-22 补：FRED API 整体维护时，货币维档位已由 server.js 的 monetaryStale 沿用上一快照，
+  // 但利率与资产负债表数值仍落库为 null，前端整维显示"暂无数据"。与上面各组同一边界：只回填展示，不改判定）。
+  // 利率组没有参考期字段（FOMC 决议日 rateDecisionDate 来自 Fed 声明源，不随 FRED 故障丢失，不纳入回填），
+  // 因此不做超龄告警——货币维的持续故障已有 monetaryStale + 每日运维告警覆盖
+  ['rate', 'macro', { currentRate: 'fred_rate', prevRate: 'fred_rate_prev', rateSource: 'rate_source' }, null],
+  ['balanceSheet', 'macro', { currentBalanceSheet: 'fred_balance_sheet', prevBalanceSheet: 'fred_balance_sheet_prev', balanceSheetPeriodDate: 'balance_sheet_period_date', balanceSheetReleaseDate: 'balance_sheet_release_date' }, 120],
 ];
 
 /**
@@ -66,6 +72,7 @@ export function checkIndicatorFreshness(macroData, policyData, todayStr) {
   if (isNaN(todayMs)) return [];
   const overdue = [];
   for (const [name, which, mapping, budgetDays] of GROUPS) {
+    if (budgetDays == null) continue; // 无参考期的组（rate）不做超龄判定
     const target = which === 'macro' ? macroData : policyData;
     if (!target) continue;
     const keyField = Object.keys(mapping)[0];
