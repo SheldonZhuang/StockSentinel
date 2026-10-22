@@ -128,9 +128,11 @@ function dedupe(key, fn) {
 
 async function closesFromYahoo(symbol, startDate, endDate) {
   try {
-    const bars = await yahooFinance.historical(symbol, { period1: startDate, period2: endDate });
-    const closes = (bars || [])
-      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.adjClose ?? b.close }))
+    // 用 chart() 而非 historical()：Yahoo 偶发返回 close 为 null、其余字段有值的半残 bar（2026-10-16 全市场出现），
+    // historical() 遇到会 console.error 整根 bar（绕过 logger 刷屏）并抛错丢弃整段序列；chart() 保留 null，由下方过滤
+    const res = await yahooFinance.chart(symbol, { period1: startDate, period2: endDate, interval: '1d' });
+    const closes = (res?.quotes || [])
+      .map(b => ({ date: b.date instanceof Date ? b.date.toISOString().slice(0, 10) : String(b.date).slice(0, 10), close: b.adjclose ?? b.close }))
       .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
     if (closes.length) return closes;
   } catch (err) {

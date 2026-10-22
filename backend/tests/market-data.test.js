@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
 // yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
-const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() }));
+// chart() 由 historical 夹具适配：测试按 bar 数组编写，chart 包成 {quotes}（adjClose→adjclose）
+const __yfMock = vi.hoisted(() => {
+  const m = { historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() };
+  m.chart = vi.fn(async (...a) => ({ quotes: ((await m.historical(...a)) || []).map(({ adjClose, ...b }) => (adjClose === undefined ? b : { ...b, adjclose: adjClose })) }));
+  return m;
+});
 vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));
 
 import axios from 'axios';
@@ -28,6 +33,20 @@ describe('getDailyCloses 三层回退', () => {
     expect(closes).toEqual([
       { date: '2026-07-01', close: 100 },
       { date: '2026-07-02', close: 101 },
+    ]);
+    expect(axios.get).not.toHaveBeenCalled();
+  });
+
+  it('Yahoo 返回 close 为 null 的半残 bar（2026-10-16 实例）：只丢这一根，不抛错不回退', async () => {
+    yahooFinance.chart.mockResolvedValueOnce({ quotes: [
+      { date: new Date('2026-10-15'), open: 100, high: 101, low: 99, close: 100, adjclose: 100, volume: 1 },
+      { date: new Date('2026-10-16'), open: 101, high: 102, low: 98, close: null, adjclose: null, volume: 1 },
+      { date: new Date('2026-10-19'), open: 102, high: 103, low: 101, close: 102, adjclose: 102, volume: 1 },
+    ] });
+    const closes = await getDailyCloses('QQQ', '2026-10-15', '2026-10-19');
+    expect(closes).toEqual([
+      { date: '2026-10-15', close: 100 },
+      { date: '2026-10-19', close: 102 },
     ]);
     expect(axios.get).not.toHaveBeenCalled();
   });

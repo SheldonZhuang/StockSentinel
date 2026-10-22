@@ -7,7 +7,12 @@ vi.mock('axios');
 // 模型选择（research/models.js）会请求 OpenRouter /models：测试里固定成一个可用模型
 vi.mock('../research/models.js', async importOriginal => ({ ...(await importOriginal()), resolveModel: async () => ({ id: 'x-ai/grok-4.7', price: { in: 2, out: 6 }, provider: 'openrouter' }), resolveOpenRouterModel: async () => ({ id: 'x-ai/grok-4.7', provider: 'openrouter' }) }));
 // yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
-const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() }));
+// chart() 由 historical 夹具适配：测试按 bar 数组编写，chart 包成 {quotes}（adjClose→adjclose）
+const __yfMock = vi.hoisted(() => {
+  const m = { historical: vi.fn(), quote: vi.fn(), quoteSummary: vi.fn(), fundamentalsTimeSeries: vi.fn() };
+  m.chart = vi.fn(async (...a) => ({ quotes: ((await m.historical(...a)) || []).map(({ adjClose, ...b }) => (adjClose === undefined ? b : { ...b, adjclose: adjClose })) }));
+  return m;
+});
 vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));
 vi.mock('../utils/storage.js', () => ({
   getProcessedGuidanceAccessions: vi.fn().mockResolvedValue([]),

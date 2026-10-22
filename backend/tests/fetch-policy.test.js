@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
 // yahoo-finance2 v4（126号升级）：默认导出为类，vi.hoisted 让 mock 对象在被提升的 vi.mock 工厂之前就位
-const __yfMock = vi.hoisted(() => ({ historical: vi.fn(), quote: vi.fn() }));
+// chart() 由 historical 夹具适配：测试按 bar 数组编写，chart 包成 {quotes}（adjClose→adjclose）
+const __yfMock = vi.hoisted(() => {
+  const m = { historical: vi.fn(), quote: vi.fn() };
+  m.chart = vi.fn(async (...a) => ({ quotes: ((await m.historical(...a)) || []).map(({ adjClose, ...b }) => (adjClose === undefined ? b : { ...b, adjclose: adjClose })) }));
+  return m;
+});
 vi.mock('yahoo-finance2', () => ({ default: class { constructor() { return __yfMock; } } }));
 
 import axios from 'axios';
