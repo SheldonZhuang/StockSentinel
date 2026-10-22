@@ -95,7 +95,9 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [ ] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）
   - [ ] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言
   - [ ] 云端：research.db ~30MB 内存 + 原文缓存 ~28MB 落 Railway 卷；部署前给用户改动清单
-- [ ] 阶段6：公开展示材料
+- [x] 阶段6：公开展示材料（2026-10-22）——docs/research-agent.md 开头对外总览（问题/架构/数据流/评估/局限/成本/开源组件许可证）、README 新节、三分钟演示脚本、llms.txt 与 sitemap 收录 /research
+- [x] 可选·开源量化组件评估（2026-10-22）：Qlib 与 QuantMuse 均不接（价格驱动 alpha 工具，8 只股票 × 季度粒度无统计意义；Qlib 美股数据依赖已限流的 Yahoo、需整套 Python 栈；QuantMuse 已停更）。备选"基于 XBRL 的自算基本面因子块"未实施，需用户决定
+- [x] 本机后端配置 Claude 网关（.env，不进 git、不进 Railway）：本机模型选择 → gateway:claude-opus-5-5；本机后端已重启
 
 # 127b + 128号: 决议覆盖告警 + 事件型指标即时刷新 — 2026-09-17 【已完成】
 
