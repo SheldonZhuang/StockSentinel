@@ -81,6 +81,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] 阶段4遗留：收入指引对照结论由程序算（guidance.js）；TSM 新闻稿表格程序解析成指标表（50f6f6c）
   - [x] 事件驱动：research/pipeline.js 挂小时看门狗（采集 → Wiki 增量 → 最近财季初版/正式版笔记，互斥、失败当天最多 3 次）；**默认关**，RESEARCH_ENABLED=1 且 primary 才跑；管理员可 POST /api/admin/research/run 手动跑
         2026-10-24：用户已在 Railway 设 RESEARCH_ENABLED=1；01:20/02:20 两轮后线上 notes 仍为 0。推断原因：云端新库 119 份历史申报全部待 Wiki 抽取，旧顺序 Wiki 先跑烧光 $0.5 日额度，笔记排不上 → 9cb178f 改为先笔记后 Wiki、Wiki 只补近 120 天。当日额度大概率已用完，预计 10-25 UTC 0 点后首轮出笔记；未看云端日志，原因未经日志证实
+        2026-10-24 14:40 UTC 复查：notes 仍为 0。本地新库复现：采集 61 秒、8 家都判定"到期"（noteDue 正常）。剩余疑点只在云端：①当日 00:20–02:20 UTC 三轮旧顺序 Wiki 已用完 $0.5 日额度（修复在 02:30 后上线，日额度按 UTC 日重置）②云端选到的模型（本机 Opus/Fable 区域 403 → Grok；Railway US West 可能拿到 Opus $4/$20，一份笔记约 $0.26，日额度只够 1–2 份）。10-25 01:30 UTC 后再查；仍为 0 需看 Railway 日志 [research] 行
   - [x] /v1/research/notes、/v1/research/notes/:ticker{/:quarter}、POST /v1/research/ask（keyless 403、free 5/日、pro 50/日；拒答买卖建议；核对不过的句子不返回）+ openapi.yaml
   - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
   - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
@@ -99,7 +100,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml（核对 2026-10-24：b31550a，上方 [x] 行）
   - [x] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）（核对 2026-10-24：b31550a，mcp 1.1.0）
   - [x] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言（核对 2026-10-24：b31550a，前端 /research 页）
-  - [ ] 云端：research.db ~30MB 内存 + 原文缓存 ~28MB 落 Railway 卷；部署前给用户改动清单
+  - [x] 云端：research.db 落卷（核对 2026-10-24：research/db.js 与主库 storage.js 同样按 RAILWAY_VOLUME_MOUNT_PATH 落卷；本地新库复现首轮采集 61 秒、121 份申报、85MB）
 - [x] 阶段6：公开展示材料（2026-10-22）——docs/research-agent.md 开头对外总览（问题/架构/数据流/评估/局限/成本/开源组件许可证）、README 新节、三分钟演示脚本、llms.txt 与 sitemap 收录 /research
 - [x] 可选·开源量化组件评估（2026-10-22）：Qlib 与 QuantMuse 均不接（价格驱动 alpha 工具，8 只股票 × 季度粒度无统计意义；Qlib 美股数据依赖已限流的 Yahoo、需整套 Python 栈；QuantMuse 已停更）。备选"基于 XBRL 的自算基本面因子块"未实施，需用户决定
 - [x] 本机后端配置 Claude 网关（.env，不进 git、不进 Railway）：本机模型选择 → gateway:claude-opus-5-5；本机后端已重启
@@ -157,7 +158,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 - [x] 线上修正：id=199 与 id=200 快照已就地修正为 rate=4/3.75、source=fed_statement、monetary=tight；/api/signal 与 /v1/signal 实测「4% 上升、tight」
 
 ## 未做 / 待观察
-- [ ] 21:00 完整 cron 与 FRED 台阶落地后的一致性（FRED 收录 2026-09-17 台阶后应自动切回 rate_source=fred，无跳变）
+- [x] 21:00 完整 cron 与 FRED 台阶落地后的一致性（核对 2026-10-24：云端 /api/signal indicators.rateSource = fred，已自动切回）
 - [x] 回测引擎（run-backtest/daily-replay）**不同步**本改动：历史回放无 Fed 声明源且回测按月采样，属有意为之，非漏改（核对 2026-10-24：backtest 目录无 Fed 声明源，属有意设计）
 
 # 126号:第十轮系统性深度审查 — 2026-09-07 【已完成，commit aa3fe5a 已推送】
@@ -424,7 +425,7 @@ cron 定在 UTC 06:00 = 美东凌晨1-2点,恰是 FRED 夜间维护/高延迟窗
       stale-keep 语义零变化
 - [x] 测试:现有 mock 计数用例设 FRED_FETCH_RETRIES=0;新增重试用例+stale-keep 单测（核对 2026-10-24：tests/fetch-macro.test.js 设 FRED_FETCH_RETRIES，stale-keep.test.js 存在）
 - [x] 全量测试通过后 commit+push(Railway/Vercel 自动部署,startup runDailyUpdate 会当天回填)（核对 2026-10-24：c5dce9b 已提交上线）
-- [ ] 验证:云端 /api/signal 缺失字段恢复;本机重启后端同步恢复
+- [x] 验证:云端 /api/signal 缺失字段恢复（核对 2026-10-24：线上 /api/signal 顶层无 null 字段，dataDate 2026-10-24）
 
 **诚实披露(不在本次范围,留观察)**:萨姆值/曲线倒挂天数当日拉取失败时,锁触发与进攻否决
 仍按 null fail-open(既有行为)。stale-keep 只回填展示层;若要让防守侧判定也用昨日值,

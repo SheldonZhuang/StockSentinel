@@ -9,3 +9,5 @@ server.log
 backend/data/filings/
 docs/research-agent-review/
 backend/data/_judge/
+
+__pycache__/
