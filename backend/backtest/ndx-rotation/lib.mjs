@@ -18,9 +18,9 @@ export function readJSON(f, dflt) { try { return JSON.parse(fs.readFileSync(f, '
 export function writeJSON(f, obj) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(obj, null, 1)); }
 
 /** 通用缓存：文件存在直接读，否则调用 fetcher 并落盘。fetcher 返回字符串。 */
-export async function cached(rel, fetcher) {
+export async function cached(rel, fetcher, { refresh = false } = {}) {
   const f = path.join(DATA, rel);
-  if (fs.existsSync(f)) return fs.readFileSync(f, 'utf8');
+  if (fs.existsSync(f) && !(refresh && !OFFLINE)) return fs.readFileSync(f, 'utf8');
   if (OFFLINE) throw new Error('offline, missing cache: ' + rel);
   const txt = await fetcher();
   fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -40,7 +40,8 @@ export const edgarText = (url) => edgarGet(url, { responseType: 'text', timeout:
 
 /** Tiingo 日线（含 adjOpen/adjClose）；404 记为 null 结果也落盘，避免重复请求。 */
 let lastTiingo = 0;
-export async function tiingo(ticker) {
+// refresh=true：忽略缓存重新下载并覆盖（模拟盘信号要最新收盘；回测默认读缓存保证可复现）
+export async function tiingo(ticker, { refresh = false } = {}) {
   const rel = `tiingo/${ticker.replace(/[^A-Za-z0-9.-]/g, '_')}.json`;
   const txt = await cached(rel, async () => {
     for (let attempt = 0; attempt < 40; attempt++) {
@@ -59,7 +60,7 @@ export async function tiingo(ticker) {
       }
     }
     throw new Error('tiingo retries exhausted ' + ticker);
-  });
+  }, { refresh });
   return JSON.parse(txt);
 }
 
