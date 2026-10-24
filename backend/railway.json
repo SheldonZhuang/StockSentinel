@@ -1,5 +1,14 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "/backend/**",
+      "!/backend/tests/**",
+      "!/backend/backtest/lab/**",
+      "!/backend/backtest/ndx-rotation/**",
+      "!/backend/**/*.md"
+    ]
+  },
   "deploy": {
     "startCommand": "node server.js"
   }
