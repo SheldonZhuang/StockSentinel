@@ -9,6 +9,7 @@ import * as S from './strategies.mjs';
 import { readJSON } from '../ndx-rotation/lib.mjs';
 import { holdLeg } from '../ndx-rotation/engine.mjs';
 import { tradingDays } from '../ndx-rotation/calendar.mjs';
+import { hypoRows } from './hypo10-13.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const START = '2010-04-01', INIT = 10000, MONTHLY = 3000 / 7.8;
@@ -87,6 +88,7 @@ const END = [P.dates.at(-1), days.at(-1)].sort()[0]; // 共同末日
 const rows = [];
 for (const [name, mk] of LAB) { const r = backtest(P, mk(), { start: START }); rows.push([name, settle(r, END)]); }
 for (const [name, legs] of ROT) rows.push([name, settle(await navOf(legs), END)]);
+rows.push(...(await hypoRows(END))); // 假设 10–13：开盘成交逐日账户模拟（定投版在开盘买入）
 
 console.log(`窗口 ${START} → ${END}；本金 ${usd(INIT)}；定投每月 3000 HKD ≈ $${MONTHLY.toFixed(2)}，累计投入 ${usd(rows[0][1].dca.invested)}`);
 for (const [title, k] of [['A. 一次性 $10,000、无定投（年化 = CAGR）', 'lump'], ['B. $10,000 + 每月 3000 HKD 定投（年化 = XIRR）', 'dca']]) {
