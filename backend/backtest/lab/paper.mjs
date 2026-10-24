@@ -63,13 +63,31 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   console.log(`\nAlpaca Paper：净值 $${equity.toLocaleString()}，现金 $${(+acct.cash).toLocaleString()}，持仓 ${Object.keys(pos).length} 个`);
   console.log('账户层目标（三策略各 1/3）与调仓计划：');
   const syms = new Set([...Object.keys(combined), ...Object.keys(pos)]);
-  let cashW = 1;
+  let cashW = 1; const plan = [];
   for (const s of syms) {
     const w = combined[s] || 0; cashW -= w;
     const px = await lastTrade(s);
-    const want = Math.floor(equity * w / px), have = pos[s] || 0, d = want - have;
+    // 留 2% 现金缓冲：市价单成交价可能高于参考价，避免满仓买单因购买力不足被拒
+    const want = Math.floor(equity * w * 0.98 / px), have = pos[s] || 0, d = want - have;
+    plan.push({ s, d, px });
     console.log(`  ${s.padEnd(5)} 目标 ${(w * 100).toFixed(1).padStart(5)}%  价 $${px.toFixed(2).padStart(8)}  目标 ${String(want).padStart(5)} 股  现有 ${String(have).padStart(5)}  → ${d === 0 ? '不动' : (d > 0 ? '买 ' : '卖 ') + Math.abs(d) + ' 股（约 $' + Math.round(Math.abs(d) * px).toLocaleString() + '）'}`);
   }
   console.log(`  现金  目标 ${(cashW * 100).toFixed(1)}%`);
-  console.log('\n未下单。确认后执行：下一步实现 --submit（市价单、开盘后、逐笔回报写入 out/paper-fills.jsonl）');
+  if (!process.argv.includes('--submit')) { console.log('\n未下单（加 --submit --confirmed 才会提交到 Alpaca Paper）'); process.exit(0); }
+  if (!process.argv.includes('--confirmed')) throw new Error('--submit 需要同时带 --confirmed（用户确认过本次调仓计划）');
+  // 先卖后买；市价 day 单（休市时提交会排队到下一个开盘）；client_order_id 含信号日，同一天重复执行会被 Alpaca 拒绝（幂等）
+  const fs = await import('fs');
+  const logF = path.join(HERE, 'out/paper-orders.jsonl');
+  const ordersPlan = plan.sort((a, b) => a.d - b.d);
+  for (const o of ordersPlan) {
+    if (o.d === 0) continue;
+    const body = { symbol: o.s, qty: String(Math.abs(o.d)), side: o.d > 0 ? 'buy' : 'sell', type: 'market', time_in_force: 'day', client_order_id: `lab-${asOf}-${o.s}-${o.d > 0 ? 'b' : 's'}` };
+    try {
+      const r = await axios.post('https://paper-api.alpaca.markets/v2/orders', body, { headers: { 'APCA-API-KEY-ID': process.env.ALPACA_PAPER_KEY, 'APCA-API-SECRET-KEY': process.env.ALPACA_PAPER_SECRET }, timeout: 20000 });
+      console.log(`  已提交 ${body.side} ${body.qty} ${body.symbol} → ${r.data.status}（id ${r.data.id}）`);
+      fs.appendFileSync(logF, JSON.stringify({ at: new Date().toISOString(), signalDate: asOf, refPx: o.px, ...body, id: r.data.id, status: r.data.status }) + '\n');
+    } catch (e) {
+      console.log(`  失败 ${body.side} ${body.qty} ${body.symbol}：${e?.response?.status} ${JSON.stringify(e?.response?.data || e.message).slice(0, 160)}`);
+    }
+  }
 }
