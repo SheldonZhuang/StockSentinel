@@ -67,8 +67,10 @@ export async function loadAll() {
   return { rf, vxn, px, sig: { QQQ: indicators(await ohlc('QQQ')) } };
 }
 
-export function calendar(D, end) {
-  const days = [...D.px.TQQQ.keys()].filter(d => d >= START && d <= end && D.px.QQQ.has(d) && D.sig.QQQ.has(d)).sort();
+// from：起算日（默认 2010-04-01）；D.days 存在时用它作交易日历（2000 年起的合成 TQQQ 压力测试用，不需要 QQQ 指标）
+export function calendar(D, end, from = START) {
+  const base = D.days || [...D.px.TQQQ.keys()].filter(d => D.px.QQQ.has(d) && D.sig.QQQ.has(d));
+  const days = base.filter(d => d >= from && d <= end).sort();
   // 现金腿 = 国库券：BIL（SPDR 1–3 个月国库券 ETF，2007-05 上市，真实总回报）；缺 BIL 报价的日子按 3 个月国库券利率 DTB3 计息
   const bil = D.px.BIL, bill = new Map(); let b = 1;
   days.forEach((d, i) => {

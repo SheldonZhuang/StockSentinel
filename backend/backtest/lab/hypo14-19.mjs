@@ -7,13 +7,13 @@
 // 用法（backend/ 下）：node backtest/lab/hypo14-19.mjs
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { loadAll, calendar, bs, xirr, addDays, INIT, MONTHLY, OPT_SPREAD } from './hypo10-13.mjs';
+import { loadAll, calendar, bs, xirr, addDays, START, INIT, MONTHLY, OPT_SPREAD } from './hypo10-13.mjs';
 
 const ROLL_BEFORE = 91; // 到期前 3 个月卖出
 
 /** @param years 期限 1/2/3 */
-export function simLeaps(D, end, { years = 1, dca = false, ivMult = 3, spread = OPT_SPREAD, strike = 1.02, log = null, start = null } = {}) {
-  const cal = calendar(D, end), bill = cal.bill, days = start ? cal.days.filter(d => d >= start) : cal.days;
+export function simLeaps(D, end, { years = 1, dca = false, ivMult = 3, spread = OPT_SPREAD, strike = 1.02, log = null, start = null, dcaMode = 'addSame' } = {}) {
+  const cal = calendar(D, end, start || START), bill = cal.bill, days = cal.days;
   const T = D.px.TQQQ;
   const sigma = d => Math.max(0.3, ivMult * D.vxn(d) / 100), r = d => D.rf(d) / 100;
   const yf = (a, b) => (Date.parse(b) - Date.parse(a)) / (365 * 864e5);
@@ -39,7 +39,7 @@ export function simLeaps(D, end, { years = 1, dca = false, ivMult = 3, spread = 
     }
     if (dca && i > 0 && d.slice(0, 7) !== prev.slice(0, 7)) {
       invested += MONTHLY; flows.push({ d, amt: -MONTHLY });
-      if (opt) opt.n += MONTHLY / (price(opt, Sx, d, prev) * (1 + spread)); else cash += MONTHLY;
+      if (opt && dcaMode === 'addSame') opt.n += MONTHLY / (price(opt, Sx, d, prev) * (1 + spread)); else cash += MONTHLY; // nextRoll：存国库券，下次换仓一起买新合约
     }
     if (!opt && cash > 0) open(d, i ? prev : d);
     const c = T.get(d).ac, v = cash + (opt ? opt.n * price(opt, c, d, d) : 0);
