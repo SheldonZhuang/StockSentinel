@@ -85,7 +85,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
   - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
   - [ ] 云端：笔记要在云端出现，需在 Railway 设 RESEARCH_ENABLED=1（首轮采集约 50 秒、30MB 原文缓存落卷，然后为 8 家最近一季各生成一份笔记）；云端是否配 Claude 网关待用户决定
-  - [ ] mcp 包 1.1.0 发布到 npm / MCP 注册表：用户已同意发布（2026-10-22）。已就绪：打包 3 个文件、server.json 通过官方校验、mcp-publisher v1.8.1 已下载并核对校验和。
+  - [x] （2026-10-24 完成：npm stock-sentinel-mcp@1.1.0 用户发布；MCP 注册表 io.github.SheldonZhuang/stock-sentinel 1.1.0 由 mcp-publisher 经 gh token 发布）mcp 包 1.1.0 发布到 npm / MCP 注册表：用户已同意发布（2026-10-22）。已就绪：打包 3 个文件、server.json 通过官方校验、mcp-publisher v1.8.1 已下载并核对校验和。
         2026-10-24：npm 已恢复（All Systems Operational），npm pack 预检 1.1.0 / 3 文件 / 5.3kB 正常，npm 上最新仍是 1.0.3；等用户登录。mcp-publisher 在 %TEMP%	mp.iLw8u5ETSzmcp-publisher.exe（临时目录，可能被清理）
         ~~卡在 npm 平台事故~~（status.npmjs.org 2026-10-22 02:37 UTC "Degraded Package Install and Publishing"，登录 POST 返回 503，带 token 的请求挂起）。
         恢复后：用户 `npm login --registry=https://registry.npmjs.org/ --auth-type=web`（本机默认 registry 是 npmmirror，必须显式指定）→ npm publish → mcp-publisher publish → 核对两边版本
