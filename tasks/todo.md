@@ -5,15 +5,15 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 
 - [x] 核实（只读，2026-10-22）：OPENROUTER_API_KEY 已被吊销（401 User not found）；FRED/TIINGO/TWELVEDATA/CLOUDFLARE/GITHUB_BACKUP_TOKEN 仍有效；RESEND 为仅发信 key；备份仓提交均为正常每日备份
 - [x] OPENROUTER_API_KEY 已由用户更换（2026-10-22）：本机实测新 key 可用（$25 额度已用 $4.87，与本系统账本 $4.66 + 未入账的探测请求相符，未见被盗用迹象）；本机后端已重启加载新 key
-- [ ] 影响记录：10-21 快照 AI 供需 loose→neutral，原因是旧 key 被吊销导致"模型调用量"取数 401（按既定规则，单一子信号缺失不触发 stale-keep）；最终档位仍为 reduce，无实际影响。云端要等 Railway 恢复部署后才会用上新 key（改 Railway 变量需重新部署才生效）
+- [x] 影响记录（2026-10-24 已恢复：云端 10-22 快照 AI 供需回到 loose，新 key 生效）：10-21 快照 AI 供需 loose→neutral，原因是旧 key 被吊销导致"模型调用量"取数 401（按既定规则，单一子信号缺失不触发 stale-keep）；最终档位仍为 reduce，无实际影响。云端要等 Railway 恢复部署后才会用上新 key（改 Railway 变量需重新部署才生效）
 - 用户决定（2026-10-22）：其他密钥暂不轮换；Railway 上其他 11 个项目暂不处理
 - [ ] 用户在各服务后台重新签发，填入 Railway 与 backend/.env（不在对话里贴值）：
   - RESEND_API_KEY、FRED_API_KEY、TIINGO_API_KEY、TWELVEDATA_API_KEY、CLOUDFLARE_API_TOKEN、GITHUB_BACKUP_TOKEN（含吊销旧 PAT）、FMP_API_KEY（若在 Railway 配过）
   - JWT_SECRET（换后所有用户需重新登录）、ADMIN_PASSWORD（换后须同步更新管理员账户密码）
   - BACKUP_ENCRYPTION_KEY：换新钥前确认能解密旧备份；旧钥离线留存（历史备份仍用旧钥加密）
   - MOOMOO_WS_KEY 若在 Railway 配过也要换（本机 OpenD 网关）
-- [ ] Railway 恢复构建后：确认自动部署最新 main（b1ba89d），验证 /v1/research/notes 200、日报改用新模型；检查服务日志是否有异常调用
-- [ ] Railway 恢复前的风险：线上仍是 9-17 版本，AI 日报仍走 DeepSeek（且 OpenRouter key 已失效，今晚日报大概率生成失败，不影响信号）
+- [x] Railway 恢复构建后（2026-10-24 核实）：GitHub 部署状态 a6d133b Railway/Vercel 均 success；/v1/research/notes 200（notes 空，因 RESEARCH_ENABLED 未开）；10-22 日报与快照按时生成（createdAt 2026-10-23 01:00 UTC）。日报所用模型、服务日志需用户在 Railway 面板看（本机 railway CLI 登录失效）
+- [x] （已过期）Railway 恢复前的风险：线上仍是 9-17 版本，AI 日报仍走 DeepSeek（且 OpenRouter key 已失效，今晚日报大概率生成失败，不影响信号）
 
 # 129号: 公司研究 Agent — 2026-10-21 【阶段0完成，待用户答复待定项】
 
@@ -84,7 +84,11 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
   - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
   - [ ] 云端：笔记要在云端出现，需在 Railway 设 RESEARCH_ENABLED=1（首轮采集约 50 秒、30MB 原文缓存落卷，然后为 8 家最近一季各生成一份笔记）；云端是否配 Claude 网关待用户决定
-  - [ ] mcp 包 1.1.0 发布到 npm / MCP 注册表：对外发布，需用户确认
+  - [ ] mcp 包 1.1.0 发布到 npm / MCP 注册表：用户已同意发布（2026-10-22）。已就绪：打包 3 个文件、server.json 通过官方校验、mcp-publisher v1.8.1 已下载并核对校验和。
+        2026-10-24：npm 已恢复（All Systems Operational），npm pack 预检 1.1.0 / 3 文件 / 5.3kB 正常，npm 上最新仍是 1.0.3；等用户登录。mcp-publisher 在 %TEMP%	mp.iLw8u5ETSzmcp-publisher.exe（临时目录，可能被清理）
+        ~~卡在 npm 平台事故~~（status.npmjs.org 2026-10-22 02:37 UTC "Degraded Package Install and Publishing"，登录 POST 返回 503，带 token 的请求挂起）。
+        恢复后：用户 `npm login --registry=https://registry.npmjs.org/ --auth-type=web`（本机默认 registry 是 npmmirror，必须显式指定）→ npm publish → mcp-publisher publish → 核对两边版本
+  - 用户决定（2026-10-22）：自算基本面因子块不做（现有关键数字已覆盖，评委扣分点不在数字维度；如无必要勿增实体）
   - [x] 模型策略（用户 2026-10-21 定）：优先 OpenRouter 最新 Claude Opus/Fable → 备选 OpenRouter 最新 Grok；弃用 DeepSeek/GLM。research/models.js 按 /models 自动取各家族最新 + 探测区域可用性（缓存 24h），本机实测落到 grok-4.7（Opus 5.5/Fable 5.1 均 403 区域受限）；RESEARCH_MODEL 指定已弃用模型会被拒绝
   - [x] 用户定"能用 Claude 就用，不能用就用 Grok 最新版"+ 方案 B：models.js 候选 OpenRouter Claude → Claude 网关（CLAUDE_GATEWAY_URL/KEY 显式配置）→ Grok；月预算 80% 后自动降到 Grok；AI 日报与指引检测同用（web 检索只走 OpenRouter）。本机配网关实测 Opus 5.5 写 NVDA 笔记 $0.26
   - [x] DeepSeek / GLM 全部移除（所有项目，含线上日报与指引检测默认模型）；规则写入工作区 CLAUDE.md
