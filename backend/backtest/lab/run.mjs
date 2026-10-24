@@ -13,7 +13,7 @@ const usd = x => `$${Math.round(x).toLocaleString('en-US')}`;
 async function validateSynth(sym) {
   const real = (await tiingo(sym)).rows;
   const P = await loadPanel([sym], { extend: true });   // 上市后是真实数据
-  const { LEVERED } = await import('./data.mjs');
+  const { LEVERED, SWAP_SPREAD } = await import('./data.mjs');
   const { base, L, er } = LEVERED[sym];
   const B = await loadPanel([base], { from: real[1].d, extend: false });
   let syn = 1, act = 1; const d0 = B.dates[0];
@@ -21,7 +21,7 @@ async function validateSynth(sym) {
   let n = 0, se = 0;
   for (let i = 1; i < B.dates.length; i++) {
     const d = B.dates[i]; if (!realMap.has(d)) continue;
-    const rs = L * B.ret[base][i] - (L - 1) * B.rf[i] - er / 100 / 252, ra = realMap.get(d);
+    const rs = L * B.ret[base][i] - (L - 1) * (B.rf[i] + SWAP_SPREAD / 100 / 252) - er / 100 / 252, ra = realMap.get(d);
     syn *= 1 + rs; act *= 1 + ra; se += (rs - ra) ** 2; n++;
   }
   const yrs = n / 252;

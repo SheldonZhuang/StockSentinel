@@ -61,14 +61,21 @@ export const gem = ({ us = 'SPY', intl = 'EFA', bond = 'AGG', lookback = 252 }) 
   return emit(ctx.state, { [pick]: 1 });
 };
 
-/** 加速双动量 ADM：月末，score = 1/3/6 月回报之和，取 us/intl 较高者；都 < 0 则持 bond */
-export const adm = ({ us = 'SPY', intl = 'EFA', bond = 'TLT' }) => ctx => {
+/**
+ * 加速双动量 ADM：月末，score = 1/3/6 月回报之和，取 us/intl 较高者；都 < 0 则持 bond。
+ * hold 可把信号标的映射到实际持有标的（如 {SPY:'SSO'}：用 SPY 打分、持 2x）；
+ * volTarget 可选：对持有的风险腿按 20 日波动缩放仓位（月末定，不日调），剩余现金。
+ */
+export const adm = ({ us = 'SPY', intl = 'EFA', bond = 'TLT', hold = {}, volTarget = null, volN = 20 }) => ctx => {
   if (!ctx.monthEnd && ctx.state.last) return null;
   const sc = t => ctx.mom(t, 21) + ctx.mom(t, 63) + ctx.mom(t, 126);
   const a = sc(us), b = sc(intl);
   if (!(a === a && b === b)) return null;
   const pick = Math.max(a, b) < 0 ? bond : a >= b ? us : intl;
-  return emit(ctx.state, { [pick]: 1 });
+  const sym = hold[pick] || pick;
+  let w = 1;
+  if (volTarget && pick !== bond) { const v = ctx.vol(sym, volN); if (v > 0) w = Math.min(1, Math.round(volTarget / v * 10) / 10); }
+  return emit(ctx.state, w > 0 ? { [sym]: w } : {});
 };
 
 /**

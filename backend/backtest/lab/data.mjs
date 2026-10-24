@@ -12,6 +12,9 @@ export const LEVERED = {
   UPRO: { base: 'SPY', L: 3, er: 0.91 },
   SSO: { base: 'SPY', L: 2, er: 0.89 },
 };
+/** 合成杠杆的融资利差（%/年，加在 rf 上、按借入的 L−1 倍计）：五只真实 ETF 上市后重叠期反解为 0.54–0.81%，取 0.6%
+ *  （2026-10-24 校准；不加时合成年化比真实高 0.8–2.2pp） */
+export const SWAP_SPREAD = 0.6;
 /** 早期替代：ETF 上市前用同类共同基金的总回报拼接（只用收益率，不用价格水平） */
 export const PROXY = { TLT: 'VUSTX', IEF: 'VUSTX', AGG: 'VBMFX', EFA: 'VGTSX', SPY: 'VFINX' };
 
@@ -47,7 +50,7 @@ async function returnsOf(t, { extend, rf }) {
   if (LEVERED[t]) {
     const { base, L, er } = LEVERED[t];
     const b = await returnsOf(base, { extend: true, rf });
-    early = new Map([...b.ret].filter(([d]) => d <= first).map(([d, r]) => [d, L * r - (L - 1) * rf(d) / 100 / 252 - er / 100 / 252]));
+    early = new Map([...b.ret].filter(([d]) => d <= first).map(([d, r]) => [d, L * r - (L - 1) * (rf(d) + SWAP_SPREAD) / 100 / 252 - er / 100 / 252]));
   } else if (PROXY[t]) {
     early = (await returnsOf(PROXY[t], { extend: false })).ret;
     early = new Map([...early].filter(([d]) => d <= first));
