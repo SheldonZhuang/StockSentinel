@@ -10,7 +10,7 @@ import axios from 'axios';
 import { cached, tiingo } from '../ndx-rotation/lib.mjs';
 import { riskFree } from './data.mjs';
 
-const START = '2010-04-01', INIT = 10000, MONTHLY = 3000 / 7.8, COST = 0.0005, OPT_SPREAD = 0.03;
+export const START = '2010-04-01', INIT = 10000, MONTHLY = 3000 / 7.8, COST = 0.0005, OPT_SPREAD = 0.03;
 
 // ---------- 数据 ----------
 async function ohlc(t) { // 复权高低收（KDJ 要用高低价；ndx-rotation 的缓存只存了开收）
@@ -45,19 +45,19 @@ function indicators(rows) {
   return out;
 }
 
-function xirr(flows) {
+export function xirr(flows) {
   const t0 = Date.parse(flows[0].d);
   const f = r => flows.reduce((s, c) => s + c.amt / (1 + r) ** ((Date.parse(c.d) - t0) / (365.25 * 864e5)), 0);
   let lo = -0.99, hi = 5; for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; f(m) > 0 ? (lo = m) : (hi = m); }
   return (lo + hi) / 2;
 }
 const ncdf = x => { const t = 1 / (1 + 0.2316419 * Math.abs(x)), d = 0.3989423 * Math.exp(-x * x / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return x > 0 ? 1 - p : p; };
-function bs(type, S, K, T, r, s) {
+export function bs(type, S, K, T, r, s) {
   if (T <= 0) return Math.max(type === 'c' ? S - K : K - S, 0);
   const d1 = (Math.log(S / K) + (r + s * s / 2) * T) / (s * Math.sqrt(T)), d2 = d1 - s * Math.sqrt(T);
   return type === 'c' ? S * ncdf(d1) - K * Math.exp(-r * T) * ncdf(d2) : K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
 }
-const addDays = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
+export const addDays = (d, n) => new Date(Date.parse(d) + n * 864e5).toISOString().slice(0, 10);
 
 export async function loadAll() {
   const rf = await riskFree(), vxn = await vxnSeries();
@@ -67,7 +67,7 @@ export async function loadAll() {
   return { rf, vxn, px, sig: { QQQ: indicators(await ohlc('QQQ')) } };
 }
 
-function calendar(D, end) {
+export function calendar(D, end) {
   const days = [...D.px.TQQQ.keys()].filter(d => d >= START && d <= end && D.px.QQQ.has(d) && D.sig.QQQ.has(d)).sort();
   // 现金腿 = 国库券：BIL（SPDR 1–3 个月国库券 ETF，2007-05 上市，真实总回报）；缺 BIL 报价的日子按 3 个月国库券利率 DTB3 计息
   const bil = D.px.BIL, bill = new Map(); let b = 1;
