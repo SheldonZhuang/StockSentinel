@@ -29,7 +29,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 > 成本上限草案：日常 $5/月、$0.5/日；其中 ask_company 子池 $3/月；评估独立预算；三账分开，超限停跑+告警
 
 - [x] 阶段0：摸底 + 方案（只读）
-- [ ] 阶段4前：查 Opus 5.5 实价，请用户确认
+- [x] 阶段4前：查 Opus 5.5 实价，请用户确认（核对 2026-10-24：阶段4已用 Opus 5.5 实价 $4/$20，阶段4完成）
 - [x] 阶段1：文档采集和切块（2026-10-21）
   - [x] utils/edgar-client.js 统一 UA/串行限速/瞬时重试，迁移 fundamentals/fetch-guidance/fetch-ai-chain 三处（原 710 测试不变全过）
   - [x] research/{db,parse,filings,ingest}.js + config/research.config.js + scripts/research-ingest.mjs
@@ -37,8 +37,8 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] 管理后台 ResearchIngestPanel（覆盖矩阵/数据质量/手动触发）+ /api/admin/research/{status,ingest} + 七语言
   - [x] 回填：119 份全解析、7857 块、出处逐字核对 0 不一致；重跑零下载；11 项 pending 均未到法定期限
   - [x] 测试：后端 751/751（+41），前端 31/31（+4）；结果写入 docs/research-agent.md
-  - [ ] 未做（按计划属阶段5）：定时/事件触发、云端部署；research.db 约 30MB 内存需在部署前评估
-- [ ] 阶段2：检索和公司 Wiki（2026-10-21 开始）
+  - [x] 未做（按计划属阶段5）：定时/事件触发、云端部署；research.db 约 30MB 内存需在部署前评估（核对 2026-10-24：事件触发已由 b31550a research/pipeline.js 落地；云端部署另见 RESEARCH_ENABLED 条）
+- [x] 阶段2：检索和公司 Wiki（2026-10-21 开始）（核对 2026-10-24：子项均已完成，Wiki 回填见阶段4）
   - [x] 关键词检索：JS 内存 BM25（sql.js FTS4 实测单查 ~600ms 且无 bm25 排序，不用）；过滤 ticker/财季/章节/话题
   - [x] 中文问题 → 检索词：公司名/财季解析 + 财务术语中英对照表（确定性、零成本、可复现）
   - [x] 检索评估集 30 题；金标逐字取自原文，数值题 XBRL 交叉核对（自检不过直接报错）
@@ -46,11 +46,11 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] XBRL 数值层 xbrl_facts（18347 条）+ queryFact（YTD 差分推算单季，标 derived）
   - [x] LLM 账本 llm_runs + 四池硬上限 + 超限告警（sendAdminNotice）；402 余额不足同样即停
   - [x] 公司 Wiki 管线（逐字引文校验/冲突保留两条/增量）；试跑 1 份 $0.0019
-  - [ ] **阻塞：OpenRouter 免费层余额为 0，几千 token 请求即 402** → 用户充值后跑 Wiki 回填（预估 $0.3–0.5）；线上日报/指引检测可能也受影响（未核实云端）
+  - [x] **阻塞：OpenRouter 免费层余额为 0，几千 token 请求即 402** → 用户充值后跑 Wiki 回填（预估 $0.3–0.5）；线上日报/指引检测可能也受影响（未核实云端）（核对 2026-10-24：已充值，Wiki 回填 119/119 完成（见阶段4））
   - [x] 向量实验（用户同意重跑，排共享渲染锁、pythonw 脱离运行、分片续跑）：bge 融合 0.800、e5 融合 0.733，均低于 BM25 0.833 → 不接入；结果存 research/eval/vector-exp/results-2026-10-21.json
-  - [ ] Wiki 全量回填：用户决定"有需要再充值"，挂起
+  - [x] Wiki 全量回填：用户决定"有需要再充值"，挂起（核对 2026-10-24：阶段4已回填 $0.50、119/119）
   - 模型：deepseek/deepseek-v3.2（$0.28/$0.42 每百万 token，OpenRouter 2026-10-21 实价）；Opus 5.5 实价 $4/$20（阶段4用）
-- [ ] 阶段3：研究 Agent 与笔记生成（2026-10-21 开始）
+- [x] 阶段3：研究 Agent 与笔记生成（2026-10-21 开始）（核对 2026-10-24：子项已完成，见阶段4评估）
   - [x] Inline XBRL 解析 → ixbrl_facts（51 份、50517 条，含分部/产品线维度）；接入采集流程
   - [x] 指标表（代码确定性计算，YTD 差分/毛利/比率/FCF 标 derived）；MSFT/NVDA/AMZN 关键数字与原文逐项核对一致
   - [x] Agent 循环（工具调用，8 轮上限，最后两轮强制交稿）：search_filings / get_prior_guidance / read_wiki / get_market_context / submit_note
@@ -58,9 +58,9 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] 记账（research_notes + llm_runs）；初版/正式版；CLI scripts/research-note.mjs；测试 12 例（后端全量 790 过）
   - [x] 用户充值后真实运行：MSFT v4 17/17 通过 $0.0127；NVDA v3 16/17 通过 $0.0206；样例存 docs/research-agent-samples/
   - [x] 真实运行暴露并修复：核对器单位换算（亿/万）、正文出处标记、块号差一位；指标表纳入双维分部（NVDA/GOOGL）与地区收入
-  - [ ] 待阶段4量化：核对器只验"数字在出处里"，不验"出处语义支持结论"（NVDA 非GAAP毛利率条引了指引原文而非实际值）
+  - [x] 待阶段4量化：核对器只验"数字在出处里"，不验"出处语义支持结论"（NVDA 非GAAP毛利率条引了指引原文而非实际值）（核对 2026-10-24：阶段4出处准确率已量化（deepseek 90.7%/grok 97.6%））
   - 局限：成员改名（MSFT Gaming→XBOX）单季值记"未披露"；deepseek 单份 2–8 分钟
-- [ ] 阶段4：评估框架（2026-10-21 开始）
+- [x] 阶段4：评估框架（2026-10-21 开始）（核对 2026-10-24：阶段4完成）
   - [x] Wiki 全量回填（$0.50，119/119）；冲突口径收紧为"同期指引数字变化"（244 → 14 条真冲突）
   - [x] 金标冻结 research/eval/notes-gold.json：16 份 × 10 事实 = 160（数值 144 / 指引 12 / 未披露 4），全部程序从 XBRL 或新闻稿逐字取
   - [x] 打分器 notes-eval.js（数值准确率/事实覆盖率/出处覆盖率/出处准确率/未披露误报/捏造指引/失败率/延迟/成本）+ 有用性打分表 CSV
@@ -70,7 +70,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] Opus 5.5 经 OpenRouter 区域 403 → 改用本机 Claude Code Opus 5.5 子代理当写稿模型（scripts/research-tool.mjs，同工具/同自检/同打分）；16/16 交稿，数值准确率 100%
   - [x] 改进（程序补关键指标、"未披露"自动清理、TSM 单位提示、上季指引标注、禁引未来申报）后 deepseek 重跑：覆盖率 70.6%→94.4%，未披露误报 2.6%→0
   - [x] 修 research.db 落盘在 Windows 上被读进程占用时 rename EPERM（退避重试）
-  - [ ] 剩余：TSM 新台币量级 deepseek 仍错（提示无效）→ 程序解析 TSM 新闻稿成指标表；有用性 1–5 待用户在 research/eval/notes-usefulness.csv 打分
+  - [x] 剩余：TSM 新台币量级 deepseek 仍错（提示无效）→ 程序解析 TSM 新闻稿成指标表；有用性 1–5 待用户在 research/eval/notes-usefulness.csv 打分（核对 2026-10-24：50f6f6c TSM 新闻稿程序解析；有用性由 AI 双评委打分）
   - [x] grok-4.7 一轮（用户同意）：数值 100%、覆盖 95.0%、出处 97.6%，$2.15 共 16 份；TSM 量级全对
   - [x] 打分器修"下季收入指引"匹配（"第三季的展望"漏判 / "全年营收指引"误配），四轮统一重打分
   - [x] 48 份笔记导出 Markdown（docs/research-agent-review/，不进 git）供人工打分
@@ -95,9 +95,9 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] 已合并 main 并推送（3abfe93 / 72f29ca / 356416e），线上 /api/signal 200
   - 云端是否配置 Claude 网关：用户未明确授权把本机网关 key 放进 Railway → 未配；云端目前 Claude 不可用时用 Grok
   - [x] 已推送 feat/research-agent（阶段1–4，bb002c5），未合并 main、未部署
-  - [ ] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml
-  - [ ] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）
-  - [ ] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言
+  - [x] /v1/research/notes/:ticker/:quarter、/v1/research/ask（free 5 次/日，keyless 不开放，ask 子池 $3/月）+ openapi.yaml（核对 2026-10-24：b31550a，上方 [x] 行）
+  - [x] MCP 两个工具 get_research_note / ask_company（backend/api/mcp.js + mcp/index.js 同步）（核对 2026-10-24：b31550a，mcp 1.1.0）
+  - [x] 前端只读页 /research：公司 → 季度笔记 → 点数字跳原文（SEC 链接 + 字符区间高亮）；七语言（核对 2026-10-24：b31550a，前端 /research 页）
   - [ ] 云端：research.db ~30MB 内存 + 原文缓存 ~28MB 落 Railway 卷；部署前给用户改动清单
 - [x] 阶段6：公开展示材料（2026-10-22）——docs/research-agent.md 开头对外总览（问题/架构/数据流/评估/局限/成本/开源组件许可证）、README 新节、三分钟演示脚本、llms.txt 与 sitemap 收录 /research
 - [x] 可选·开源量化组件评估（2026-10-22）：Qlib 与 QuantMuse 均不接（价格驱动 alpha 工具，8 只股票 × 季度粒度无统计意义；Qlib 美股数据依赖已限流的 Yahoo、需整套 Python 栈；QuantMuse 已停更）。备选"基于 XBRL 的自算基本面因子块"未实施，需用户决定
@@ -157,7 +157,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 
 ## 未做 / 待观察
 - [ ] 21:00 完整 cron 与 FRED 台阶落地后的一致性（FRED 收录 2026-09-17 台阶后应自动切回 rate_source=fred，无跳变）
-- [ ] 回测引擎（run-backtest/daily-replay）**不同步**本改动：历史回放无 Fed 声明源且回测按月采样，属有意为之，非漏改
+- [x] 回测引擎（run-backtest/daily-replay）**不同步**本改动：历史回放无 Fed 声明源且回测按月采样，属有意为之，非漏改（核对 2026-10-24：backtest 目录无 Fed 声明源，属有意设计）
 
 # 126号:第十轮系统性深度审查 — 2026-09-07 【已完成，commit aa3fe5a 已推送】
 
@@ -364,10 +364,10 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 
 ## ⚠️ 判定参数/输入变更——按授权边界原则不自动执行,待用户拍板
 
-- [ ] **M1 WALCL QT判定结构性失灵**:0.25%阈值套在单周环比上,真实QT节奏($5-22B/周≈0.1-0.25%)基本永不触发拦截,反被TGA波动等单周噪声随机打出tight/loose。建议改4周或13周窗口(阈值等比重标定)。影响:当前货币维可能loose→neutral
-- [ ] **M2 曲线倒挂严格连续计数漏浅倒挂**:单日转正即清零,2019年型浅倒挂(多次短暂转正)永远攒不满63天,否决器整轮不点火。建议"近63交易日≥80%天数倒挂"或允许≤5天间断
-- [ ] **M3 否决器输入fail-open×stale次序**:倒挂天数/信用利差当日拉取失败→null→放行attack,次日恢复→收回(单日attack↔neutral翻转+反向邮件对)。建议否决器输入沿用上一快照观测(对"只限attack"的角色这才是fail-safe)——属stale值进判定,114号同类项曾明确留给用户
-- [ ] **方法论三缺口(专家评价,详见对话)**:①利率"水平盲"(5.5%高位长暂停判宽松)——建议实际利率>阈值时暂停只给neutral的attack护栏;②AI需求侧单点依赖OpenRouter——二源交叉应提为必做;③缺"市场自身"防守维(宽度/动量)——"宏观未动市场先崩"象限目前无人站岗
+- [x] **M1 WALCL QT判定结构性失灵**:0.25%阈值套在单周环比上,真实QT节奏($5-22B/周≈0.1-0.25%)基本永不触发拦截,反被TGA波动等单周噪声随机打出tight/loose。建议改4周或13周窗口(阈值等比重标定)。影响:当前货币维可能loose→neutral（核对 2026-10-24：87c37e1 120b号 WALCL 13周窗口上线）
+- [x] **M2 曲线倒挂严格连续计数漏浅倒挂**:单日转正即清零,2019年型浅倒挂(多次短暂转正)永远攒不满63天,否决器整轮不点火。建议"近63交易日≥80%天数倒挂"或允许≤5天间断（核对 2026-10-24：87c37e1 曲线窗口63日中倒挂≥51天）
+- [x] **M3 否决器输入fail-open×stale次序**:倒挂天数/信用利差当日拉取失败→null→放行attack,次日恢复→收回(单日attack↔neutral翻转+反向邮件对)。建议否决器输入沿用上一快照观测(对"只限attack"的角色这才是fail-safe)——属stale值进判定,114号同类项曾明确留给用户（核对 2026-10-24：87c37e1 否决器 stale 沿用）
+- [x] **方法论三缺口(专家评价,详见对话)**:①利率"水平盲"(5.5%高位长暂停判宽松)——建议实际利率>阈值时暂停只给neutral的attack护栏;②AI需求侧单点依赖OpenRouter——二源交叉应提为必做;③缺"市场自身"防守维(宽度/动量)——"宏观未动市场先崩"象限目前无人站岗（核对 2026-10-24：87c37e1 实际利率否决器；1f4537d Cloudflare Radar 第二源；a60efe9 趋势地板）
 
 ## 遗留观察(低优先,未修)
 - 日报LLM生成replica也每天跑一遍(成本×2,正确性无碍);S5 playbook.note后端硬编码中文(仅管理员可见);S5手册版本行未随信用利差否决器补重审记录(不改S5动作)
@@ -415,14 +415,14 @@ cron 定在 UTC 06:00 = 美东凌晨1-2点,恰是 FRED 夜间维护/高延迟窗
 必须成功的利率/资产负债表当天恰好抢通,12M截尾PCE云端偶然成功,故呈"部分有部分无"。
 
 **方案(两层,均不改判定语义)**:
-- [ ] ① fetchSeries/fetchReleaseDate 加重试:超时/429/5xx 重试2次(4s/8s退避),env可配
+- [x] ① fetchSeries/fetchReleaseDate 加重试:超时/429/5xx 重试2次(4s/8s退避),env可配（核对 2026-10-24：c5dce9b 114号重试，fetch-macro.js FRED_FETCH_RETRIES）
       (FRED_FETCH_RETRIES/FRED_RETRY_DELAY_MS);fetch-policy 复用同函数自动受益
-- [ ] ② 指标级 stale-keep(backend/utils/stale-keep.js 纯函数):保存快照前,值仍为 null 的
+- [x] ② 指标级 stale-keep(backend/utils/stale-keep.js 纯函数):保存快照前,值仍为 null 的（核对 2026-10-24：c5dce9b backend/utils/stale-keep.js，tests/stale-keep.test.js）
       参考指标组(值+参考期+发布日整组)沿用上一快照——月度/日频序列昨日观测依然有效,
       参考期如实显示旧日期。放在四维信号/锁/曲线否决计算**之后**,判定链与既有信号级
       stale-keep 语义零变化
-- [ ] 测试:现有 mock 计数用例设 FRED_FETCH_RETRIES=0;新增重试用例+stale-keep 单测
-- [ ] 全量测试通过后 commit+push(Railway/Vercel 自动部署,startup runDailyUpdate 会当天回填)
+- [x] 测试:现有 mock 计数用例设 FRED_FETCH_RETRIES=0;新增重试用例+stale-keep 单测（核对 2026-10-24：tests/fetch-macro.test.js 设 FRED_FETCH_RETRIES，stale-keep.test.js 存在）
+- [x] 全量测试通过后 commit+push(Railway/Vercel 自动部署,startup runDailyUpdate 会当天回填)（核对 2026-10-24：c5dce9b 已提交上线）
 - [ ] 验证:云端 /api/signal 缺失字段恢复;本机重启后端同步恢复
 
 **诚实披露(不在本次范围,留观察)**:萨姆值/曲线倒挂天数当日拉取失败时,锁触发与进攻否决
@@ -717,7 +717,7 @@ LLM 判 none 正确;$195-205B 指引是 CFO 电话会口头给的——新闻稿
 - [x] 护栏首战复盘：时间护栏拦住了预览稿类污染，但AMZN档中了新变体"旧指引回声"（两实例分别记consensus推算/旧计划maintained）——N3安全性未破（maintain/raise不触发下修）
 - [x] 三层修复：117号启动自愈补丁（两实例定点修正+manual_verified定档）/ 暂定档48小时复检机制（web源每日重检自动纠正，press_release与人工定档豁免）/ prompt加"maintain须本次重申，否则none次日重试"
 - [x] 文档归档（Q2结果表/规则文档/SKILL）；579测试全过；推送部署
-- [ ] 8/8检查点：EDGAR四家10-Q/10-K落齐后共同季翻新2026Q2、N1/N2首次实战翻新、填系统口径行
+- [x] 8/8检查点：EDGAR四家10-Q/10-K落齐后共同季翻新2026Q2、N1/N2首次实战翻新、填系统口径行（核对 2026-10-24：5f0d1ef 108号收官核验）
 
 
 ## 118号（2026-07-31 快照补更新，用户口称115号）
