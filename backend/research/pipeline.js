@@ -18,6 +18,7 @@ import { invalidateSearchIndex } from './search.js';
 import { sendAdminNotice } from '../utils/mailer.js';
 
 const MAX_FAILED_PER_DAY = 3;
+const WIKI_WINDOW_DAYS = 120; // 一个财季 + 申报滞后的余量
 let running = false;
 
 export function researchEnabled(env = process.env) {
@@ -66,7 +67,8 @@ export async function runResearchPipeline({ trigger = 'watchdog', log = console.
     summary.ingest = await runIngest({ tickers, trigger, log: () => {} });
     if (summary.ingest.newFilings) invalidateSearchIndex();
     // Wiki 增量：只处理新入库、尚未进 Wiki 的申报（处理过的不再花钱）
-    summary.wiki = await updateWiki({ tickers, pool: 'research', log: () => {} });
+    // 先笔记后 Wiki：两者共用日额度（$0.5/日），笔记是用户可见产出，优先；Wiki 只补近 WIKI_WINDOW_DAYS 天的新申报
+    // （2026-10-24：云端新库首轮 119 份历史申报全部待抽取，旧顺序下 Wiki 先烧光日额度，笔记一直为 0）
     for (const t of tickers) {
       const due = noteDue(t);
       if (!due) continue;
@@ -75,6 +77,8 @@ export async function runResearchPipeline({ trigger = 'watchdog', log = console.
       log(`[research] note ${t} ${due.fiscalLabel} ${due.stage}: ${row.status} via ${row.model} $${(row.cost_usd || 0).toFixed(4)}`);
       if (row.status === 'failed' && /budget/i.test(row.error || '')) break; // 预算停了，后面的也会停
     }
+    const since = new Date(Date.now() - WIKI_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
+    summary.wiki = await updateWiki({ tickers, pool: 'research', since, log: () => {} });
     if (summary.ingest.newFilings || summary.notes.length) log(`[research] pipeline: ${JSON.stringify({ newFilings: summary.ingest.newFilings, wiki: summary.wiki?.processed, notes: summary.notes.length })}`);
     return summary;
   } catch (err) {

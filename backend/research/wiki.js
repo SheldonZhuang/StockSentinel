@@ -140,12 +140,14 @@ export function acceptEntries(filing, chunksById, entries) {
  * 处理尚未进 Wiki 的申报（按申报日升序）。
  * @param {{tickers?, pool?, limit?, log?}} o  pool：'backfill'（首次回填）或 'research'（日常增量）
  */
-export async function updateWiki({ tickers, pool = 'research', limit = Infinity, log = console.log } = {}) {
+// since：只处理 filing_date ≥ since 的申报（日常管线用，避免新库首轮把历史 8 季全部回填、烧光日额度后笔记永远排不上；
+// 历史回填走 scripts/research-wiki.mjs 的 backfill 池，用户 2026-10-22 定为"有需要再做"）
+export async function updateWiki({ tickers, pool = 'research', limit = Infinity, since = null, log = console.log } = {}) {
   await getResearchDb();
-  const filt = tickers?.length ? `AND f.ticker IN (${tickers.map(() => '?').join(',')})` : '';
+  const filt = (tickers?.length ? `AND f.ticker IN (${tickers.map(() => '?').join(',')})` : '') + (since ? ' AND f.filing_date >= ?' : '');
   const todo = all(`SELECT f.* FROM filings f LEFT JOIN wiki_runs w USING(accession)
                     WHERE f.status = 'parsed' AND (w.status IS NULL OR w.status <> 'done') ${filt}
-                    ORDER BY f.filing_date, f.accession`, tickers || []);
+                    ORDER BY f.filing_date, f.accession`, [...(tickers || []), ...(since ? [since] : [])]);
   const summary = { processed: 0, accepted: 0, rejected: 0, conflicts: 0, failed: 0, stoppedByBudget: false };
   for (const filing of todo.slice(0, limit)) {
     const chunks = all('SELECT * FROM chunks WHERE accession = ? ORDER BY section, seq', [filing.accession]);

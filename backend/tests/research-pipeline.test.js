@@ -67,12 +67,16 @@ describe('noteDue', () => {
 });
 
 describe('runResearchPipeline', () => {
-  it('采集 → Wiki → 为到期的季度生成笔记（日常池）', async () => {
+  it('采集 → 笔记先于 Wiki（共用日额度，笔记优先）；Wiki 只补近 120 天申报', async () => {
     process.env.RESEARCH_TICKERS = 'NVDA';
     filing('q10', 'periodic', '10-Q', 2027, 2);
     const s = await runResearchPipeline({ log: () => {} });
     expect(runIngest).toHaveBeenCalledWith(expect.objectContaining({ tickers: ['NVDA'] }));
-    expect(updateWiki).toHaveBeenCalledWith(expect.objectContaining({ pool: 'research' }));
+    expect(updateWiki).toHaveBeenCalledWith(expect.objectContaining({ pool: 'research', since: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }));
+    expect(generateNote.mock.invocationCallOrder[0]).toBeLessThan(updateWiki.mock.invocationCallOrder[0]);
+    const since = updateWiki.mock.calls[0][0].since;
+    expect((Date.now() - Date.parse(since)) / 864e5).toBeGreaterThan(119);
+    expect((Date.now() - Date.parse(since)) / 864e5).toBeLessThan(122);
     expect(generateNote).toHaveBeenCalledWith(expect.objectContaining({ ticker: 'NVDA', fiscalLabel: 'FY2027Q2', pool: 'research' }));
     expect(s.notes).toEqual([expect.objectContaining({ stage: 'final', status: 'ok' })]);
     delete process.env.RESEARCH_TICKERS;
