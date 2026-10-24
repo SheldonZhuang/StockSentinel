@@ -80,6 +80,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 - [ ] 阶段5：接入通道与事件驱动（2026-10-21 方案，待用户确认后实施）
   - [x] 阶段4遗留：收入指引对照结论由程序算（guidance.js）；TSM 新闻稿表格程序解析成指标表（50f6f6c）
   - [x] 事件驱动：research/pipeline.js 挂小时看门狗（采集 → Wiki 增量 → 最近财季初版/正式版笔记，互斥、失败当天最多 3 次）；**默认关**，RESEARCH_ENABLED=1 且 primary 才跑；管理员可 POST /api/admin/research/run 手动跑
+        2026-10-24：用户已在 Railway 设 RESEARCH_ENABLED=1；01:20/02:20 两轮后线上 notes 仍为 0。推断原因：云端新库 119 份历史申报全部待 Wiki 抽取，旧顺序 Wiki 先跑烧光 $0.5 日额度，笔记排不上 → 9cb178f 改为先笔记后 Wiki、Wiki 只补近 120 天。当日额度大概率已用完，预计 10-25 UTC 0 点后首轮出笔记；未看云端日志，原因未经日志证实
   - [x] /v1/research/notes、/v1/research/notes/:ticker{/:quarter}、POST /v1/research/ask（keyless 403、free 5/日、pro 50/日；拒答买卖建议；核对不过的句子不返回）+ openapi.yaml
   - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
   - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
