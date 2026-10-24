@@ -48,7 +48,7 @@ export function simLeaps(D, end, { years = 1, dca = false, ivMult = 3, spread = 
   }
   const final = curve.at(-1).v, yrs = yf(curve[0].d, curve.at(-1).d);
   const ann = dca ? xirr([...flows, { d: curve.at(-1).d, amt: final }]) : (final / INIT) ** (1 / yrs) - 1;
-  return { end: curve.at(-1).d, final, invested, gain: final - invested, ret: final / invested - 1, ann, mdd, ddWin, rolls, wiped };
+  return { end: curve.at(-1).d, final, invested, gain: final - invested, ret: final / invested - 1, ann, mdd, ddWin, rolls, wiped, curve };
 }
 
 /** 汇总表用 */

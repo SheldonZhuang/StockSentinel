@@ -7,8 +7,7 @@
 // 用法（backend/ 下）：node backtest/lab/robust-top3.mjs
 import { loadAll, xirr, INIT, MONTHLY, COST } from './hypo10-13.mjs';
 import { simLeaps } from './hypo14-19.mjs';
-import { tiingo } from '../ndx-rotation/lib.mjs';
-import { SWAP_SPREAD } from './data.mjs';
+import { synth2000 } from './synth.mjs';
 
 const END = '2026-10-21';
 const pct = x => `${(x * 100).toFixed(1)}%`, usd = x => `$${Math.round(x).toLocaleString('en-US')}`;
@@ -34,31 +33,6 @@ const STRATS = [
   ['滚动 3 年期 Call（假设18/19）', (D, o) => simLeaps(D, END, { years: 3, ...o })],
   ['全仓 TQQQ（假设8/9-3）', (D, o) => simHold(D, END, o)],
 ];
-
-// ---------- 2000 年起的合成数据集 ----------
-async function synth2000(D) {
-  const q = (await tiingo('QQQ')).rows, realT = D.px.TQQQ, first = [...realT.keys()].sort()[0];
-  const T = new Map(); let c = 1, prevQ = null;
-  for (const r of q) {
-    if (r.d >= first) break;
-    if (prevQ) {
-      const fin = (2 * (D.rf(r.d) + SWAP_SPREAD) + 0.86) / 100 / 252;
-      const o = c * (1 + 3 * (r.ao / prevQ.ac - 1));
-      c = c * (1 + 3 * (r.ac / prevQ.ac - 1) - fin);
-      T.set(r.d, { ao: Math.max(o, 1e-9), ac: Math.max(c, 1e-9) });
-    }
-    prevQ = r;
-  }
-  // 与真实 TQQQ 首日按收盘衔接（缩放合成段使其末值 = 真实首日开盘）
-  const k = realT.get(first).ao / c;
-  const px = new Map([...[...T].map(([d, v]) => [d, { ao: v.ao * k, ac: v.ac * k }]), ...realT]);
-  // VXN 2001-02 前：QQQ 20 日已实现波动 × 1.2（隐含通常高于已实现）
-  const rv = new Map(); const rs = q.map((r, i) => (i ? Math.log(r.ac / q[i - 1].ac) : 0));
-  q.forEach((r, i) => { if (i >= 20) { const w = rs.slice(i - 19, i + 1), m = w.reduce((a, b) => a + b, 0) / 20; rv.set(r.d, Math.sqrt(w.reduce((a, b) => a + (b - m) ** 2, 0) / 19 * 252) * 100 * 1.2); } });
-  const vxn = d => (d < '2001-02-02' ? rv.get(d) ?? 60 : D.vxn(d));
-  const days = q.map(r => r.d).filter(d => d >= '2000-01-03' && px.has(d));
-  return { ...D, px: { ...D.px, TQQQ: px }, vxn, days };
-}
 
 const D = await loadAll();
 

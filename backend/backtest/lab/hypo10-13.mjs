@@ -30,7 +30,7 @@ async function vxnSeries() {
 }
 
 /** 指标：SMA120、布林(20,2)、KDJ(9,3,3)、近 20 日最高收盘；返回 Map<date, {...}> */
-function indicators(rows) {
+export function indicators(rows) {
   const out = new Map(); let K = 50, D = 50;
   for (let i = 0; i < rows.length; i++) {
     const c = rows[i].c, w = (n) => rows.slice(Math.max(0, i - n + 1), i + 1);
@@ -85,8 +85,8 @@ const prevSigDay = (sig, d) => { let best = null; for (const k of sig.keys()) if
  * 假设 10/11：100% TQQQ 或 100% 现金腿（TMF 或国库券），入场 = 均线条件，离场 = 自入场以来信号最高收盘回撤 2%。
  * rule='literal'：用户原文"空仓时收盘低于 120 日线就买入"；rule='trend'：反过来，收盘高于 120 日线才买（顺势对照）
  */
-export function simH10(D, end, { signal = 'QQQ', cash = 'BILL', rule = 'literal', dca = false } = {}) {
-  const { days, bill } = calendar(D, end);
+export function simH10(D, end, { signal = 'QQQ', cash = 'BILL', rule = 'literal', dca = false, start = START } = {}) {
+  const { days, bill } = calendar(D, end, start);
   const S = D.sig[signal], P = s => (s === 'BILL' ? bill : D.px[s]);
   const wantIn = x => (rule === 'literal' ? x.c < x.s120 : x.c > x.s120);
   let pk = null, ddWin = null, sym, units, invested = INIT, peak = null, pending = null, trades = 0, inDays = 0, maxV = 0, mdd = 0;
@@ -105,7 +105,7 @@ export function simH10(D, end, { signal = 'QQQ', cash = 'BILL', rule = 'literal'
       if (x.c < peak * 0.98) { pending = cash; peak = null; }
     } else if (wantIn(x)) { pending = 'TQQQ'; peak = null; }
   }
-  return finish(curve, flows, invested, { trades, inMarket: inDays / days.length, mdd, ddWin });
+  return finish(curve, flows, invested, { trades, inMarket: inDays / days.length, mdd, ddWin, curve });
 }
 
 /**
