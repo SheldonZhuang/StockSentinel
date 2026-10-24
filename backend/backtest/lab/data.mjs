@@ -33,7 +33,27 @@ export async function riskFree() {
   };
 }
 
+/**
+ * CBOE 策略指数（总回报、无费用）：CBOE:PUT（卖 ATM 月度 put，2007 起日频）、CBOE:BXM（备兑 ATM call，2002-03 起）。
+ * 扣 CBOE_FEE（%/年）近似可投资产品（PUTW 0.44%、XYLD 0.60%）的费用与执行损耗。
+ */
+export const CBOE_FEE = 0.5;
+async function cboeRows(idx) {
+  const txt = await cached(`cboe/${idx}.csv`, async () => {
+    const r = await axios.get(`https://cdn-api.cboe.com/api/global/us_indices/daily_prices/${idx}_History.csv`, { timeout: 60000, headers: { 'User-Agent': 'Mozilla/5.0' }, responseType: 'text' });
+    return r.data;
+  });
+  const rows = txt.trim().split(/\r?\n/).slice(1).map(l => { const [md, v] = l.split(','); const [m, d, y] = md.split('/'); return { d: `${y}-${m}-${d}`, v: +v }; })
+    .filter(r => r.v > 0).sort((a, b) => (a.d < b.d ? -1 : 1));
+  // PUT 2007 前是稀疏点（几年一个），只保留日频段：相邻点间隔 ≤ 7 天的连续段起点之后
+  let k = rows.length - 1; while (k > 0 && Date.parse(rows[k].d) - Date.parse(rows[k - 1].d) <= 7 * 864e5) k--;
+  const daily = rows.slice(k);
+  const fee = CBOE_FEE / 100 / 252;
+  let ac = 1; return daily.map((r, i) => { if (i) ac *= daily[i].v / daily[i - 1].v - fee; return { d: r.d, ac }; });
+}
+
 async function rawRows(t) {
+  if (t.startsWith('CBOE:')) return cboeRows(t.slice(5));
   const r = await tiingo(t);
   if (r.notFound || !r.rows?.length) throw new Error(`no data for ${t}`);
   return r.rows;
@@ -78,8 +98,12 @@ export async function loadPanel(syms, { from = '1999-01-01', to = '9999-12-31', 
   dates.sort();
   const n = dates.length, px = {}, ret = {};
   for (const s of syms) {
+    // 先累乘成各自的总回报水平，再在共同日历上取相邻两日的水平比：某标的单独缺一天（如 CBOE 指数与 ETF 假日不一致）
+    // 时，那天的收益并入下一共同日，不会丢失（直接取日收益会丢）
+    const lvl = new Map(); let v = 1;
+    for (const [d, r] of [...series[s]].sort((a, b) => (a[0] < b[0] ? -1 : 1))) { v *= 1 + r; lvl.set(d, v); }
     const r = new Float64Array(n), p = new Float64Array(n);
-    for (let i = 0; i < n; i++) { r[i] = i === 0 ? 0 : series[s].get(dates[i]); p[i] = i === 0 ? 1 : p[i - 1] * (1 + r[i]); }
+    for (let i = 0; i < n; i++) { r[i] = i === 0 ? 0 : lvl.get(dates[i]) / lvl.get(dates[i - 1]) - 1; p[i] = i === 0 ? 1 : p[i - 1] * (1 + r[i]); }
     ret[s] = r; px[s] = p;
   }
   const rfd = Float64Array.from(dates, d => rf(d) / 100 / 252);

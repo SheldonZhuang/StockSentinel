@@ -79,6 +79,55 @@ export const adm = ({ us = 'SPY', intl = 'EFA', bond = 'TLT', hold = {}, volTarg
 };
 
 /**
+ * 多资产时间序列动量（管理期货的 ETF 只做多近似）：月末，每个资产 12 个月回报 > 现金 则持有，
+ * 持有的资产按逆波动率分配到组合目标波动 target（单资产上限 capEach，总仓位 ≤ 1），否则现金。
+ * 与真实 CTA 的差别：不做空、无期货杠杆，2022 年那种"做空债券赚钱"拿不到，只能躲开。
+ */
+export const tsmom = ({ syms, lookback = 252, volN = 63, target = 0.10, capEach = 0.4 }) => ctx => {
+  if (!ctx.monthEnd && ctx.state.last) return null;
+  const mc = ctx.mom('CASH', lookback);
+  const on = syms.filter(t => ctx.mom(t, lookback) > mc);
+  if (syms.some(t => !(ctx.mom(t, lookback) === ctx.mom(t, lookback)))) return null;
+  if (!on.length) return emit(ctx.state, {});
+  const iv = on.map(t => 1 / ctx.vol(t, volN)), tot = iv.reduce((a, b) => a + b, 0);
+  // 等风险贡献近似（忽略相关性）：w_i ∝ 1/σ_i，再整体缩放到目标波动（按"各资产独立"的上界估计，偏保守）
+  let w = on.map((t, k) => iv[k] / tot);
+  const portVol = Math.sqrt(on.reduce((a, t, k) => a + (w[k] * ctx.vol(t, volN)) ** 2, 0));
+  const scale = Math.min(1 / w.reduce((a, b) => a + b, 0), target / portVol);
+  w = w.map(x => Math.min(capEach, x * scale));
+  return emit(ctx.state, Object.fromEntries(on.map((t, k) => [t, Math.round(w[k] * 100) / 100]).filter(([, v]) => v > 0)));
+};
+
+/** 逆波动率风险平价（只做多，不加杠杆）：月末按 1/σ 分配，总仓位 1 */
+export const riskParity = ({ syms, volN = 63 }) => ctx => {
+  if (!ctx.monthEnd && ctx.state.last) return null;
+  const iv = syms.map(t => 1 / ctx.vol(t, volN));
+  if (iv.some(x => !(x > 0) || !isFinite(x))) return null;
+  const tot = iv.reduce((a, b) => a + b, 0);
+  return (ctx.state.last = Object.fromEntries(syms.map((t, k) => [t, Math.round(iv[k] / tot * 1000) / 1000])));
+};
+
+/**
+ * 组合：把多个子策略按固定资金比例分账，每个子策略在自己的账内独立运行（各自状态、各自漂移），
+ * 月末把各账的实际权重按 alloc 重新合成并再平衡（各账资金回到 alloc）。
+ * 只要任一子策略今天发出新目标，或月末，就输出合并后的目标。
+ */
+export const combo = (parts) => {
+  const subs = parts.map(([alloc, mk]) => ({ alloc, f: mk(), st: {}, w: {} }));
+  return ctx => {
+    let changed = false;
+    for (const s of subs) {
+      const t = s.f({ ...ctx, state: s.st });
+      if (t) { s.w = t; changed = true; }
+    }
+    if (!changed && !ctx.monthEnd) return null;
+    const out = {};
+    for (const s of subs) for (const [k, v] of Object.entries(s.w)) out[k] = (out[k] || 0) + s.alloc * v;
+    return out;
+  };
+};
+
+/**
  * 行业趋势（Zarattini & Antonacci 简化版，只做多）：每个行业 entryN 日新高进场、exitN 日新低出场；
  * 持有中的行业按逆波动率分配，总仓位 ≤ 1（不加杠杆），其余现金。月末或有进出时重算权重。
  */
