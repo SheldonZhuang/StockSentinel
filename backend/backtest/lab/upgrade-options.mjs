@@ -3,7 +3,7 @@
 //   U1 深度实值 LEAPS：行权价 = 股价×0.6（Delta≈0.87，时间价值小、不会轻易归零），100% 资金
 //   U2 平值 LEAPS（=假设 19 可执行版，但按实测期权链重新定价）
 //   U3 80% TQQQ + 20% 深度实值 LEAPS，每次换仓时再平衡回 80/20
-//   U4 80% TQQQ + 20% 平值 LEAPS（=假设 12 去掉择时信号）
+//   假设21（原 U4）80% TQQQ + 20% 平值 LEAPS（=假设 12 去掉择时信号），换仓时再平衡回 80/20
 //   U5 50% TQQQ + 50% 深度实值 LEAPS
 // 期权定价按 2026-10-25 moomoo 实测 TQQQ 期权链校准：平值 IV ≈ 2.1×VXN，实值更高（K/S=0.6 时约 1.1 倍）；
 //   单边价差深度实值 ≈ 2%、平值 ≈ 3–5%，默认 3%（另测 5%）；每张 $0.65。到期选当时最远的 1 月，到期前 91 天换仓。
@@ -68,7 +68,7 @@ export const V = [
   ['U1 深度实值LEAPS 100%（K=0.6S）', (D, o) => simMix(D, END, { ...o, w: 0, kRatio: 0.6 })],
   ['U2 平值LEAPS 100%（K=1.02S，实测定价）', (D, o) => simMix(D, END, { ...o, w: 0, kRatio: 1.02 })],
   ['U3 TQQQ 80% + 深度实值LEAPS 20%', (D, o) => simMix(D, END, { ...o, w: 0.8, kRatio: 0.6 })],
-  ['U4 TQQQ 80% + 平值LEAPS 20%', (D, o) => simMix(D, END, { ...o, w: 0.8, kRatio: 1.02 })],
+  ['假设21 TQQQ 80% + 平值LEAPS 20%', (D, o) => simMix(D, END, { ...o, w: 0.8, kRatio: 1.02 })],
   ['U5 TQQQ 50% + 深度实值LEAPS 50%', (D, o) => simMix(D, END, { ...o, w: 0.5, kRatio: 0.6 })],
 ];
 
