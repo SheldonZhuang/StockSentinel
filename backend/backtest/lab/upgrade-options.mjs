@@ -15,13 +15,13 @@ import { synth2000 } from './synth.mjs';
 
 const yf = (a, b) => (Date.parse(b) - Date.parse(a)) / (365 * 864e5);
 
-export function simMix(D, end, { start, dca = true, w = 0, kRatio = 0.6, ivBase = 2.1, half = 0.03, fee = 0.65, rollDays = 91 } = {}) {
+export function simMix(D, end, { start, dca = true, w = 0, kRatio = 0.6, ivBase = 2.1, half = 0.03, fee = 0.65, rollDays = 91, init = INIT } = {}) {
   const { days, bill } = calendar(D, end, start), T = D.px.TQQQ;
   const r = d => D.rf(d) / 100;
   const sig = (d, K, S) => Math.max(0.3, ivBase * D.vxn(d) / 100 * (K < S ? 1 + 0.25 * (1 - K / S) : 1));
   const val = (o, S, d, vd) => bs('c', S, o.K, yf(d, o.exp), r(d), sig(vd, o.K, S));
-  let shares = 0, optCash = 0, stockCash = 0, opt = null, invested = INIT;
-  const flows = [{ d: days[0], amt: -INIT }], curve = [];
+  let shares = 0, optCash = 0, stockCash = 0, opt = null, invested = init;
+  const flows = [{ d: days[0], amt: -init }], curve = [];
   const ratio = d => { const x = T.get(d); return x.o ? x.o / x.ao : null; };
   const buyShares = d => {
     const x = T.get(d), rt = ratio(d);
@@ -39,7 +39,7 @@ export function simMix(D, end, { start, dca = true, w = 0, kRatio = 0.6, ivBase 
     else { opt.n += optCash / ask; optCash = 0; }
   };
   // 建仓
-  stockCash = INIT * w; optCash = INIT * (1 - w);
+  stockCash = init * w; optCash = init * (1 - w);
   for (let i = 0; i < days.length; i++) {
     const d = days[i], prev = i ? days[i - 1] : d, S = T.get(d).ao, newMonth = i && d.slice(0, 7) !== prev.slice(0, 7);
     if (i) { const g = bill.get(d).ac / bill.get(prev).ac; optCash *= g; stockCash *= g; }
@@ -57,7 +57,7 @@ export function simMix(D, end, { start, dca = true, w = 0, kRatio = 0.6, ivBase 
     const c = T.get(d).ac;
     curve.push({ d, v: optCash + stockCash + shares * c + (opt ? opt.n * val(opt, c, d, d) : 0) });
   }
-  return { ...stats(curve, flows, invested, {}), curve, dbg: { shares, optCash, stockCash, opt } };
+  return { ...stats(curve, flows, invested, {}, init), curve, dbg: { shares, optCash, stockCash, opt } };
 }
 
 import path from 'path';

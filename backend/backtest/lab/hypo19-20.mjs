@@ -22,12 +22,12 @@ const thirdFriday = (y, m) => { const dow = new Date(Date.UTC(y, m - 1, 1)).getU
 /** 当天可买到的最远 1 月 LEAPS 到期日（9 月起挂出 Y+3 年 1 月） */
 export const farJan = d => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return thirdFriday(m >= 9 ? y + 3 : y + 2, 1); };
 
-export function stats(curve, flows, invested, extra) {
+export function stats(curve, flows, invested, extra, init = INIT) {
   const final = curve.at(-1).v;
-  let peak = 0, mdd = 0, inv = INIT, below = 0, belowStart = null, belowLongest = 0;
+  let peak = 0, mdd = 0, inv = init, below = 0, belowStart = null, belowLongest = 0;
   for (let i = 0; i < curve.length; i++) {
     const { d, v } = curve[i];
-    if (i && d.slice(0, 7) !== curve[i - 1].d.slice(0, 7) && invested > INIT) inv += MONTHLY;
+    if (i && d.slice(0, 7) !== curve[i - 1].d.slice(0, 7) && invested > init) inv += MONTHLY;
     peak = Math.max(peak, v); mdd = Math.min(mdd, v / peak - 1); below = Math.min(below, v / inv - 1);
     if (v < inv) belowStart ??= d; else if (belowStart) { belowLongest = Math.max(belowLongest, yf(belowStart, d)); belowStart = null; }
   }
@@ -37,9 +37,9 @@ export function stats(curve, flows, invested, extra) {
 }
 
 /** 假设 20：TQQQ 买持 + 定投。whole=true 只买整股（名义价），零头留国库券 */
-export function simH20(D, end, { start, dca = true, whole = false } = {}) {
+export function simH20(D, end, { start, dca = true, whole = false, init = INIT } = {}) {
   const { days, bill } = calendar(D, end, start), T = D.px.TQQQ;
-  let units = 0, cash = INIT, invested = INIT; const flows = [{ d: days[0], amt: -INIT }], curve = [];
+  let units = 0, cash = init, invested = init; const flows = [{ d: days[0], amt: -init }], curve = [];
   const buy = d => {
     const row = T.get(d), adjPx = row.ao * (1 + COST);
     if (whole && row.o) { const nomPx = row.o * (1 + COST), k = Math.floor(cash / nomPx); units += k * row.o / row.ao; cash -= k * nomPx; }
@@ -52,7 +52,7 @@ export function simH20(D, end, { start, dca = true, whole = false } = {}) {
     if (i === 0 || (dca && d.slice(0, 7) !== days[i - 1].slice(0, 7))) buy(d);
     curve.push({ d, v: cash + units * T.get(d).ac });
   }
-  return stats(curve, flows, invested, {});
+  return stats(curve, flows, invested, {}, init);
 }
 
 /** 假设 19 可执行版（见文件头） */
