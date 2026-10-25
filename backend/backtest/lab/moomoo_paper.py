@@ -6,8 +6,9 @@ Moomoo 模拟盘执行器：假设 19（滚动 TQQQ 远月 LEAPS Call + 定投�
   - 只用 TrdEnv.SIMULATE，只用美股模拟账户 ACC_ID；代码里没有 REAL 分支，也不调用 unlock_trade
   - 只交易 US.TQQQ 与 TQQQ 期权；每笔下单前再核对一次标的前缀
 
-账本：模拟账户有 1000 万虚拟资金，但两个策略各自只按"$10,000 本金 + 每月 3000 HKD"的预算运作。
+账本：模拟账户有 1000 万虚拟资金，但三个策略各自只按"$51,000 本金 + 每月 3000 HKD"的预算运作。
   预算记在 out/moomoo_paper_state.json（每个策略一个子账本：已投入、可用现金、持仓），券商账户只是执行通道。
+  本金：用户 2026-10-25 统一改为 $51,000（原 $10,000）。
   两个策略的持仓在券商端互不重叠（一个只持 TQQQ 股票，一个只持 TQQQ Call），可直接对账。
 
 规则（与回测 hypo19-20.mjs 一致）：
@@ -38,7 +39,7 @@ from moomoo import (RET_OK, OpenQuoteContext, OpenSecTradeContext, OrderStatus, 
 ENV = TrdEnv.SIMULATE          # 硬编码：只用模拟盘
 ACC_ID = None                  # 启动时自动选：唯一一个美股 SIMULATE 账户（重置模拟盘后账号会变，2026-10-24 为 2926355）；有多个时用 --acc-id 指定
 UNDERLYING = 'US.TQQQ'
-INIT_USD = 10000.0
+INIT_USD = 51000.0             # 用户 2026-10-25：三个策略统一 $5.1 万本金（20% 期权额度够买 4 张平值远月 Call）
 MONTHLY_USD = 3000 / 7.8
 STRIKE_RATIO = 1.02
 MIN_YEARS = 2.0                # 到期日须 >2 年
@@ -99,7 +100,7 @@ def migrate(s, today):
     """旧状态文件（只有 H19/H20）补上假设 21；各子账本改用自己的 started 标记决定是否建仓"""
     if 'H21' not in s:
         s['H21'] = new_h21(today)
-        log('新增子账本：H21（$10,000，股票池 $8,000 + 期权池 $2,000）')
+        log(f'新增子账本：H21（${INIT_USD:,.0f}，股票池 ${INIT_USD * H21_STOCK:,.0f} + 期权池 ${INIT_USD * (1 - H21_STOCK):,.0f}）')
     for k in ('H19', 'H20'):
         s[k].setdefault('started', bool(s.get('last_run')))
     return s
@@ -452,7 +453,7 @@ def status(b, s):
     log(f"模拟账户 {ACC_ID}：总资产 ${f['total_assets']:,.2f}  现金 ${f['cash']:,.2f}  购买力 ${f['power']:,.2f}")
     log(f'券商持仓：{pos or "无"}')
     if not s:
-        log('子账本：尚未初始化（第一次 run 时建立，三个策略各 $10,000）')
+        log(f'子账本：尚未初始化（第一次 run 时建立，三个策略各 ${INIT_USD:,.0f}）')
         return
     s = migrate(s, today_et())
     o19, o21 = s['H19']['option'], s['H21']['option']
@@ -516,7 +517,7 @@ def main():
             smoke(b); return
         if s is None:
             s = new_state(today)
-            log('初始化子账本：H19、H20、H21 各 $10,000')
+            log(f'初始化子账本：H19、H20、H21 各 ${INIT_USD:,.0f}')
             if a.cmd == 'run' and a.submit:
                 save_state(s)
         acts, funding = plan(b, s, today)

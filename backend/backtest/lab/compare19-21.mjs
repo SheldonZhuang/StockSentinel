@@ -9,10 +9,12 @@ import { simH20, END } from './hypo19-20.mjs';
 import { synth2000 } from './synth.mjs';
 import { simMix } from './upgrade-options.mjs';
 
+// 本金：--init=51000（默认 10000）
+const INIT0 = +(process.argv.find(a => a.startsWith('--init='))?.split('=')[1] || 10000);
 const H = [
-  ['假设19 平值LEAPS 100%', (D, o) => simMix(D, END, { ...o, w: 0, kRatio: 1.02 })],
-  ['假设20 TQQQ 买持', (D, o) => simH20(D, END, { start: o.start, dca: o.dca, whole: true })],
-  ['假设21 TQQQ 80% + 平值LEAPS 20%', (D, o) => simMix(D, END, { ...o, w: 0.8, kRatio: 1.02 })],
+  ['假设19 平值LEAPS 100%', (D, o) => simMix(D, END, { init: INIT0, ...o, w: 0, kRatio: 1.02 })],
+  ['假设20 TQQQ 买持', (D, o) => simH20(D, END, { start: o.start, dca: o.dca, whole: true, init: INIT0 })],
+  ['假设21 TQQQ 80% + 平值LEAPS 20%', (D, o) => simMix(D, END, { init: INIT0, ...o, w: 0.8, kRatio: 1.02 })],
 ];
 const pct = x => `${(x * 100).toFixed(1)}%`, usd = x => `$${Math.round(x).toLocaleString('en-US')}`;
 const D = await loadAll(), S = await synth2000(D);
