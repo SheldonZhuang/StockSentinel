@@ -1,5 +1,6 @@
 """
-Moomoo 模拟盘执行器：假设 19（滚动 TQQQ 远月 LEAPS Call + 定投）与假设 20（TQQQ 买持 + 定投，只买整股）。
+Moomoo 模拟盘执行器：假设 19（滚动 TQQQ 远月 LEAPS Call + 定投）、假设 20（TQQQ 买持 + 定投，只买整股）、
+假设 21（80% TQQQ + 20% 平值远月 LEAPS，定投按 80/20 拆分，换仓日再平衡回 80/20）。
 
 安全约束（硬编码，不可通过参数改）：
   - 只用 TrdEnv.SIMULATE，只用美股模拟账户 ACC_ID；代码里没有 REAL 分支，也不调用 unlock_trade
@@ -77,11 +78,31 @@ def save_state(s):
     os.replace(tmp, STATE_F)
 
 
+H21_STOCK = 0.8                # 假设 21：80% TQQQ + 20% 平值 LEAPS，换仓时再平衡
+
+
+def new_h21(today):
+    """假设 21 子账本：股票池与期权池分开记现金（定投按 80/20 拆分），持股与合约各自记"""
+    return {'invested': INIT_USD, 'cash_stock': INIT_USD * H21_STOCK, 'cash_opt': INIT_USD * (1 - H21_STOCK),
+            'contributions': [{'d': today, 'usd': INIT_USD}], 'shares': 0, 'option': None, 'started': False}
+
+
 def new_state(today):
-    sleeve = lambda: {'invested': INIT_USD, 'cash': INIT_USD, 'contributions': [{'d': today, 'usd': INIT_USD}]}
+    sleeve = lambda: {'invested': INIT_USD, 'cash': INIT_USD, 'contributions': [{'d': today, 'usd': INIT_USD}], 'started': False}
     return {'created': today, 'last_month_funded': today[:7],
             'H20': {**sleeve(), 'shares': 0},
-            'H19': {**sleeve(), 'option': None}}  # option: {code, strike, expiry, qty}
+            'H19': {**sleeve(), 'option': None},  # option: {code, strike, expiry, qty}
+            'H21': new_h21(today)}
+
+
+def migrate(s, today):
+    """旧状态文件（只有 H19/H20）补上假设 21；各子账本改用自己的 started 标记决定是否建仓"""
+    if 'H21' not in s:
+        s['H21'] = new_h21(today)
+        log('新增子账本：H21（$10,000，股票池 $8,000 + 期权池 $2,000）')
+    for k in ('H19', 'H20'):
+        s[k].setdefault('started', bool(s.get('last_run')))
+    return s
 
 
 class Broker:
@@ -254,6 +275,71 @@ def roll_date(expiry):
     return (datetime.fromisoformat(expiry) - timedelta(days=ROLL_DAYS)).strftime('%Y-%m-%d')
 
 
+def plan_h21(b, s, today, spot, ask, funding, may_buy):
+    """假设 21：股票池买整股；期权池攒够 1 张就买（建仓或加买同一张）；换仓日卖 Call → 再平衡回 80/20 → 买新 Call"""
+    h = s['H21']
+    add_s = MONTHLY_USD * H21_STOCK if funding else 0
+    add_o = MONTHLY_USD * (1 - H21_STOCK) if funding else 0
+    opt = h['option']
+    if opt and today >= roll_date(opt['expiry']):
+        nxt = b.far_call(spot, today)
+        if nxt['expiry'] <= opt['expiry']:
+            raise RuntimeError(f"H21 到了换仓日但最远到期 {nxt['expiry']} 不晚于现持 {opt['expiry']}，不换仓，需人工检查期权链")
+        return [('H21_ROLL', f"H21 换仓：卖出 {opt['qty']} 张 {opt['code']} → 再平衡回 80/20 → 买 {nxt['code']}（到期 {nxt['expiry']}）")]
+    if not may_buy:
+        return [('H21_WAIT', f"H21 今天不是建仓/定投/换仓日，不动（股票池 ${h['cash_stock']:,.2f}，期权池 ${h['cash_opt']:,.2f}）")]
+    acts = []
+    cs, co = h['cash_stock'] + add_s, h['cash_opt'] + add_o
+    k = math.floor(cs / (ask * 1.004))
+    acts.append(('H21_STOCK', f'H21 股票池买 {k} 股 TQQQ（可用 ${cs:,.2f}）', k) if k > 0 else ('H21_WAIT', f'H21 股票池 ${cs:,.2f} 不够 1 股'))
+    tgt = b.far_call(spot, today) if not opt else {k2: opt[k2] for k2 in ('code', 'strike', 'expiry')}
+    oask = float(b.snapshot([tgt['code']])[tgt['code']]['ask_price'] or 0)
+    n = math.floor(co / (oask * 100 + 1)) if oask > 0 else 0
+    acts.append(('H21_OPT', f"H21 期权池{'加买' if opt else '建仓'} {n} 张 {tgt['code']}（卖价 {oask}，可用 ${co:,.2f}）", n, tgt) if n > 0
+                else ('H21_WAIT', f'H21 期权池 ${co:,.2f} 不够 1 张（约 ${oask * 100:,.0f}），继续攒'))
+    return acts
+
+
+def h21_rebalance_and_buy(b, s, today):
+    """换仓日：Call 已卖完、钱在期权池 → 按当前价把总资产调回 80/20（卖或买 TQQQ 整股）→ 期权池买新的最远 Call"""
+    h = s['H21']
+    snap = b.snapshot([UNDERLYING])[UNDERLYING]
+    bid, ask = float(snap['bid_price'] or 0), float(snap['ask_price'] or 0)
+    total = h['cash_stock'] + h['cash_opt'] + h['shares'] * bid
+    want = total * H21_STOCK
+    have = h['shares'] * bid + h['cash_stock']
+    log(f"H21 再平衡：总资产 ${total:,.2f}，目标股票 ${want:,.2f}，当前股票+股票池 ${have:,.2f}")
+    if have > want:  # 股票多了：先用股票池现金补期权池，不够再卖股
+        move = min(h['cash_stock'], have - want); h['cash_stock'] -= move; h['cash_opt'] += move
+        sell = math.floor((have - want - move) / bid) if bid > 0 else 0
+        if sell > 0:
+            r = chase(b, UNDERLYING, TrdSide.SELL, sell, False, 'H21 rebalance sell')
+            h['shares'] -= r['filled']; h['cash_opt'] += r['filled'] * r['avg'] - (r['fee'] or 0)
+    else:            # 股票少了：从期权池拨钱到股票池再买整股
+        move = min(h['cash_opt'], want - have); h['cash_opt'] -= move; h['cash_stock'] += move
+        k = math.floor(h['cash_stock'] / (ask * 1.004)) if ask > 0 else 0
+        if k > 0:
+            r = chase(b, UNDERLYING, TrdSide.BUY, k, False, 'H21 rebalance buy')
+            h['shares'] += r['filled']; h['cash_stock'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
+    save_state(s)
+    spot = float(snap['last_price'])
+    tgt = b.far_call(spot, today)
+    oask = float(b.snapshot([tgt['code']])[tgt['code']]['ask_price'] or 0)
+    n = math.floor(h['cash_opt'] / (oask * 100 + 1)) if oask > 0 else 0
+    if n > 0:
+        h21_buy_opt(b, s, n, tgt)
+
+
+def h21_buy_opt(b, s, n, tgt):
+    h = s['H21']
+    r = chase(b, tgt['code'], TrdSide.BUY, n, True, 'H21 LEAPS buy')
+    if r['filled'] > 0:
+        o = h['option'] or {'code': tgt['code'], 'strike': tgt['strike'], 'expiry': tgt['expiry'], 'qty': 0}
+        o['qty'] += r['filled']; h['option'] = o
+        h['cash_opt'] -= r['filled'] * r['avg'] * 100 + (r['fee'] or 0)
+    save_state(s)
+
+
 def plan(b, s, today, force_buy=False):
     """根据子账本与实时行情给出今天要做的动作（只读，不下单）。返回 (动作列表, 是否本月首次入账)"""
     acts = []
@@ -263,9 +349,11 @@ def plan(b, s, today, force_buy=False):
     funding = s['last_month_funded'] != today[:7]
     add = MONTHLY_USD if funding else 0
     if funding:
-        acts.append(('FUND', f'新月份：两个子账本各入账定投 ${MONTHLY_USD:.2f}'))
-    # 只在三种日子买入：第一次运行（建仓）、每月首个交易日（定投）、H19 换仓日。其他日子即使有零头现金也不买
-    may_buy = funding or force_buy or not s.get('last_run')
+        acts.append(('FUND', f'新月份：三个子账本各入账定投 ${MONTHLY_USD:.2f}（H21 按 80/20 分进股票池/期权池）'))
+    # 只在三种日子买入：该子账本第一次运行（建仓）、每月首个交易日（定投）、换仓日。其他日子即使有零头现金也不买
+    may = lambda k: funding or force_buy or not s[k].get('started')
+    acts += plan_h21(b, s, today, spot, ask, funding, may('H21'))
+    may_buy = may('H20')
     # H20：可用现金全部按整股买
     h20cash = s['H20']['cash'] + add
     k = math.floor(h20cash / (ask * 1.004)) if may_buy else 0
@@ -280,6 +368,7 @@ def plan(b, s, today, force_buy=False):
             raise RuntimeError(f"到了换仓日但最远到期 {nxt['expiry']} 不晚于现持 {opt['expiry']}，不换仓，需人工检查期权链")
         acts.append(('H19_ROLL', f"H19 换仓：卖出 {opt['qty']} 张 {opt['code']}（到期 {opt['expiry']}），再买 {nxt['code']}（到期 {nxt['expiry']}）"))
         return acts, funding
+    may_buy = may('H19')
     if not may_buy:
         acts.append(('H19_WAIT', f'H19 今天不是建仓/定投/换仓日，不动（现金 ${h19cash:,.2f}）'))
         return acts, funding
@@ -299,8 +388,31 @@ def execute(b, s, today, acts, funding):
             s[k]['cash'] += MONTHLY_USD
             s[k]['invested'] += MONTHLY_USD
             s[k]['contributions'].append({'d': today, 'usd': MONTHLY_USD})
+        h = s['H21']
+        h['cash_stock'] += MONTHLY_USD * H21_STOCK; h['cash_opt'] += MONTHLY_USD * (1 - H21_STOCK)
+        h['invested'] += MONTHLY_USD; h['contributions'].append({'d': today, 'usd': MONTHLY_USD})
         s['last_month_funded'] = today[:7]
         save_state(s)
+    for a in acts:
+        if a[0] == 'H21_STOCK':
+            r = chase(b, UNDERLYING, TrdSide.BUY, a[2], False, 'H21 TQQQ 80%')
+            s['H21']['shares'] += r['filled']
+            s['H21']['cash_stock'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
+            save_state(s)
+        elif a[0] == 'H21_OPT':
+            h21_buy_opt(b, s, a[2], a[3])
+        elif a[0] == 'H21_ROLL':
+            o = s['H21']['option']
+            r = chase(b, o['code'], TrdSide.SELL, int(o['qty']), True, 'H21 roll sell')
+            s['H21']['cash_opt'] += r['filled'] * r['avg'] * 100 - (r['fee'] or 0)
+            o['qty'] -= r['filled']
+            if o['qty'] <= 0:
+                s['H21']['option'] = None
+            save_state(s)
+            if s['H21']['option'] is None:  # 旧合约卖完才再平衡、买新的
+                h21_rebalance_and_buy(b, s, today)
+    for k in ('H19', 'H20', 'H21'):
+        s[k]['started'] = True
     for a in acts:
         if a[0] == 'H20_BUY':
             r = chase(b, UNDERLYING, TrdSide.BUY, a[2], False, 'H20 TQQQ hold+DCA')
@@ -316,8 +428,12 @@ def execute(b, s, today, acts, funding):
                 s['H19']['option'] = None
             save_state(s)
             if s['H19']['option'] is None:  # 旧合约卖完才买新的
-                acts2, _ = plan(b, s, today, force_buy=True)
-                execute(b, s, today, [x for x in acts2 if x[0] == 'H19_BUY'], False)
+                spot = float(b.snapshot([UNDERLYING])[UNDERLYING]['last_price'])
+                tgt = b.far_call(spot, today)
+                oask = float(b.snapshot([tgt['code']])[tgt['code']]['ask_price'] or 0)
+                n = math.floor(s['H19']['cash'] / (oask * 100 + 1)) if oask > 0 else 0
+                if n > 0:
+                    execute(b, s, today, [('H19_BUY', 'H19 换仓买入', n, tgt)], False)
         elif a[0] == 'H19_BUY':
             tgt = a[3]
             r = chase(b, tgt['code'], TrdSide.BUY, a[2], True, 'H19 LEAPS buy')
@@ -336,25 +452,34 @@ def status(b, s):
     log(f"模拟账户 {ACC_ID}：总资产 ${f['total_assets']:,.2f}  现金 ${f['cash']:,.2f}  购买力 ${f['power']:,.2f}")
     log(f'券商持仓：{pos or "无"}')
     if not s:
-        log('子账本：尚未初始化（第一次 run 时建立，两个策略各 $10,000）')
+        log('子账本：尚未初始化（第一次 run 时建立，三个策略各 $10,000）')
         return
-    codes = [UNDERLYING] + ([s['H19']['option']['code']] if s['H19']['option'] else [])
+    s = migrate(s, today_et())
+    o19, o21 = s['H19']['option'], s['H21']['option']
+    codes = list({UNDERLYING, *(o['code'] for o in (o19, o21) if o)})
     snap = b.snapshot(codes)
     px = float(snap[UNDERLYING]['last_price'])
-    v20 = s['H20']['cash'] + s['H20']['shares'] * px
-    o = s['H19']['option']
-    ov = float(snap[o['code']]['last_price']) * 100 * o['qty'] if o else 0
-    v19 = s['H19']['cash'] + ov
-    for k, v in (('H20 TQQQ 买持+定投', v20), ('H19 远月 Call+定投', v19)):
-        sl = s['H20' if k.startswith('H20') else 'H19']
-        log(f"{k}：已投入 ${sl['invested']:,.2f}  市值 ${v:,.2f}  收益 {v / sl['invested'] - 1:+.2%}  可用现金 ${sl['cash']:,.2f}")
-    log(f"  H20 持股 {s['H20']['shares']}；H19 合约 {o or '无'}" + (f"，换仓日 {roll_date(o['expiry'])}" if o else ''))
-    # 对账：券商持仓应 ≥ 子账本持仓（模拟账户里若有别的持仓不影响）
-    bad = []
-    if pos.get(UNDERLYING, 0) < s['H20']['shares']:
-        bad.append(f"TQQQ 券商 {pos.get(UNDERLYING, 0)} < 账本 {s['H20']['shares']}")
-    if o and pos.get(o['code'], 0) < o['qty']:
-        bad.append(f"{o['code']} 券商 {pos.get(o['code'], 0)} < 账本 {o['qty']}")
+    ov = lambda o: float(snap[o['code']]['last_price']) * 100 * o['qty'] if o else 0
+    h21 = s['H21']
+    rows = [
+        ('H19 远月 Call+定投', s['H19'], s['H19']['cash'] + ov(o19), f"合约 {o19['qty']} 张 {o19['code']}（换仓日 {roll_date(o19['expiry'])}）" if o19 else '尚无合约'),
+        ('H20 TQQQ 买持+定投', s['H20'], s['H20']['cash'] + s['H20']['shares'] * px, f"持股 {s['H20']['shares']}"),
+        ('H21 TQQQ 80%+Call 20%', h21, h21['cash_stock'] + h21['cash_opt'] + h21['shares'] * px + ov(o21),
+         f"持股 {h21['shares']}，" + (f"合约 {o21['qty']} 张 {o21['code']}（换仓日 {roll_date(o21['expiry'])}）" if o21 else '尚无合约')
+         + f"，股票池 ${h21['cash_stock']:,.2f} 期权池 ${h21['cash_opt']:,.2f}"),
+    ]
+    for name, sl, v, detail in rows:
+        log(f"{name}：已投入 ${sl['invested']:,.2f}  市值 ${v:,.2f}  收益 {v / sl['invested'] - 1:+.2%}  | {detail}")
+    if h21['shares'] or o21:
+        stock_v = h21['shares'] * px + h21['cash_stock']
+        tot = stock_v + h21['cash_opt'] + ov(o21)
+        log(f"  H21 当前比例：股票 {stock_v / tot:.1%} / 期权 {(tot - stock_v) / tot:.1%}（目标 80/20，只在换仓日调整）")
+    # 对账：H20 与 H21 都持 TQQQ，H19 与 H21 可能持同一张 Call → 按代码汇总后与券商比
+    need = {UNDERLYING: s['H20']['shares'] + h21['shares']}
+    for o in (o19, o21):
+        if o:
+            need[o['code']] = need.get(o['code'], 0) + o['qty']
+    bad = [f"{c} 券商 {pos.get(c, 0)} < 账本合计 {q}" for c, q in need.items() if q and pos.get(c, 0) < q]
     log('对账：' + ('一致' if not bad else '不一致 → ' + '；'.join(bad)))
 
 
@@ -372,7 +497,7 @@ def smoke(b):
 
 
 def main():
-    ap = argparse.ArgumentParser(description='Moomoo 模拟盘：假设 19 / 20（只用 SIMULATE）')
+    ap = argparse.ArgumentParser(description='Moomoo 模拟盘：假设 19 / 20 / 21（只用 SIMULATE）')
     ap.add_argument('cmd', choices=['status', 'plan', 'run', 'smoke'])
     ap.add_argument('--submit', action='store_true', help='run 时真正向模拟盘下单；不带则只打印计划')
     ap.add_argument('--force', action='store_true', help='休市时也尝试（只用于调试；休市挂单会排到下个交易日）')
@@ -383,13 +508,15 @@ def main():
     try:
         today = today_et()
         s = load_state()
+        if s is not None:
+            s = migrate(s, today)
         if a.cmd == 'status':
             status(b, s); return
         if a.cmd == 'smoke':
             smoke(b); return
         if s is None:
             s = new_state(today)
-            log('初始化子账本：H19、H20 各 $10,000')
+            log('初始化子账本：H19、H20、H21 各 $10,000')
             if a.cmd == 'run' and a.submit:
                 save_state(s)
         acts, funding = plan(b, s, today)
