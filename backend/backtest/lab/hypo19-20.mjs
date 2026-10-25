@@ -22,7 +22,7 @@ const thirdFriday = (y, m) => { const dow = new Date(Date.UTC(y, m - 1, 1)).getU
 /** 当天可买到的最远 1 月 LEAPS 到期日（9 月起挂出 Y+3 年 1 月） */
 export const farJan = d => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return thirdFriday(m >= 9 ? y + 3 : y + 2, 1); };
 
-function stats(curve, flows, invested, extra) {
+export function stats(curve, flows, invested, extra) {
   const final = curve.at(-1).v;
   let peak = 0, mdd = 0, inv = INIT, below = 0, belowStart = null, belowLongest = 0;
   for (let i = 0; i < curve.length; i++) {
