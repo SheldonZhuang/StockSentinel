@@ -42,6 +42,7 @@ UNDERLYING = 'US.TQQQ'
 INIT_USD = 51000.0             # 用户 2026-10-25：三个策略统一 $5.1 万本金（20% 期权额度够买 4 张平值远月 Call）
 MONTHLY_USD = 3000 / 7.8
 STRIKE_RATIO = 1.02
+STRIKE_BAND = 0.05              # 行权价在目标 ±5% 内按价差最小挑
 MIN_YEARS = 2.0                # 到期日须 >2 年
 ROLL_DAYS = 91                 # 到期前 3 个月换仓
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -153,7 +154,8 @@ class Broker:
         return r == RET_OK and any(x.get('time') == d for x in days)
 
     def far_call(self, spot, today):
-        """最远到期日（须 >2 年）上最接近 spot×1.02 的 Call"""
+        """最远到期日（须 >2 年）的 Call。行权价：在 spot×1.02 的 ±5% 范围内选买卖价差（占中间价比例）最小、且有报价和未平仓的那张；
+        范围内都没有有效报价时，退回最接近 spot×1.02 的那张（用户 2026-10-25 确认：实测 C68 未平仓 87、价差约 10%，C70 未平仓 563、约 6%）"""
         r, exps = self.q.get_option_expiration_date(UNDERLYING)
         if r != RET_OK:
             raise RuntimeError(f'到期日查询失败：{exps}')
@@ -166,7 +168,21 @@ class Broker:
             raise RuntimeError(f'期权链查询失败：{ch}')
         target = spot * STRIKE_RATIO
         ch = ch.assign(dist=(ch['strike_price'] - target).abs()).sort_values('dist')
-        best = ch.iloc[0]
+        near = ch[ch['dist'] <= target * STRIKE_BAND]
+        pick = None
+        if not near.empty:
+            snap = self.snapshot(near['code'].tolist())
+            cands = []
+            for code in near['code']:
+                x = snap[code]
+                bid, ask, oi = float(x['bid_price'] or 0), float(x['ask_price'] or 0), float(x.get('option_open_interest') or 0)
+                if bid > 0 and ask > bid and oi > 0:
+                    cands.append(((ask - bid) / ((ask + bid) / 2), -oi, code))
+            if cands:
+                cands.sort()
+                pick = cands[0][2]
+                log(f"选合约：目标行权价 {target:.2f}，±{STRIKE_BAND:.0%} 内价差最小 → {pick}（价差 {cands[0][0]:.1%}，未平仓 {-cands[0][1]:.0f}）")
+        best = ch[ch['code'] == pick].iloc[0] if pick else ch.iloc[0]
         return {'code': best['code'], 'strike': float(best['strike_price']), 'expiry': far}
 
     # ---------- 账户 ----------
