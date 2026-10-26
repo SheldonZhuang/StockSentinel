@@ -34,7 +34,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from moomoo import (RET_OK, OpenQuoteContext, OpenSecTradeContext, OrderStatus, OrderType, ModifyOrderOp,
-                    TrdEnv, TrdMarket, TrdSide, OptionType, TradeDateMarket)
+                    TrdEnv, TrdMarket, TrdSide, OptionType, TradeDateMarket, KLType, AuType)
 
 ENV = TrdEnv.SIMULATE          # 硬编码：只用模拟盘
 ACC_ID = None                  # 启动时自动选：唯一一个美股 SIMULATE 账户（重置模拟盘后账号会变，2026-10-24 为 2926355）；有多个时用 --acc-id 指定
@@ -94,7 +94,21 @@ def new_state(today):
     return {'created': today, 'last_month_funded': today[:7],
             'H20': {**sleeve(), 'shares': 0},
             'H19': {**sleeve(), 'option': None},  # option: {code, strike, expiry, qty}
-            'H21': new_h21(today)}
+            'H21': new_h21(today),
+            'H22': new_h22(today)}
+
+
+# 假设 22：TQQQ 按波动调仓位。目标仓位 = min(上限, 80% ÷ TQQQ 近 20 日年化波动)，按 0.1 倍取整，
+# 偏离目标 ≥ 0.1 倍才调仓。上限 1.2 倍：按实盘 3 倍 ETF 常见 75% 维持保证金（最多 1.33 倍）留缓冲（用户 2026-10-26：按实盘限制跑）
+H22_TARGET_VOL = 0.80
+H22_CAP = 1.2
+H22_STEP = 0.1
+H22_MAINT = 0.75               # 权益/持仓市值 低于它 → 当天强制降到 1 倍（模拟追保）
+
+
+def new_h22(today):
+    return {'invested': INIT_USD, 'cash': INIT_USD, 'shares': 0, 'contributions': [{'d': today, 'usd': INIT_USD}],
+            'started': False, 'target': None, 'borrowed_interest': 0.0}
 
 
 def migrate(s, today):
@@ -102,6 +116,9 @@ def migrate(s, today):
     if 'H21' not in s:
         s['H21'] = new_h21(today)
         log(f'新增子账本：H21（${INIT_USD:,.0f}，股票池 ${INIT_USD * H21_STOCK:,.0f} + 期权池 ${INIT_USD * (1 - H21_STOCK):,.0f}）')
+    if 'H22' not in s:
+        s['H22'] = new_h22(today)
+        log(f'新增子账本：H22（${INIT_USD:,.0f}，TQQQ 按波动调仓位，最多 {H22_CAP} 倍）')
     for k in ('H19', 'H20'):
         s[k].setdefault('started', bool(s.get('last_run')))
     return s
@@ -357,6 +374,42 @@ def h21_buy_opt(b, s, n, tgt):
     save_state(s)
 
 
+def tqqq_vol20(b, today):
+    """TQQQ 近 20 个交易日年化波动（用截至昨天的复权日收盘，今天盘中的价格不进入计算，与回测"收盘出信号"一致）"""
+    start = (datetime.fromisoformat(today) - timedelta(days=45)).strftime('%Y-%m-%d')
+    r, k, _ = b.q.request_history_kline(UNDERLYING, start=start, end=today, ktype=KLType.K_DAY, autype=AuType.QFQ, max_count=60)
+    if r != RET_OK or len(k) < 22:
+        raise RuntimeError(f'TQQQ 日线不足，无法算波动：{k if r != RET_OK else len(k)}')
+    closes = [float(c) for d, c in zip(k['time_key'], k['close']) if str(d)[:10] < today][-21:]
+    rets = [math.log(closes[i] / closes[i - 1]) for i in range(1, len(closes))]
+    m = sum(rets) / len(rets)
+    return math.sqrt(sum((x - m) ** 2 for x in rets) / (len(rets) - 1) * 252)
+
+
+def plan_h22(b, s, today, spot, bid, ask, funding):
+    """假设 22：每天算目标仓位；偏离 ≥ 0.1 倍、或新月份定投、或第一次建仓时调仓到目标（整股）；
+    权益/持仓 < 75% 时当天强制降到 1 倍。负现金 = 融资借款，按 3 个月国库券 + 2.5% 在状态里计利息（回测口径）"""
+    h = s['H22']
+    vol = tqqq_vol20(b, today)
+    target = min(H22_CAP, round(H22_TARGET_VOL / vol / H22_STEP) * H22_STEP)
+    cash = h['cash'] + (MONTHLY_USD if funding else 0)
+    pos_v = h['shares'] * spot
+    equity = cash + pos_v
+    cur = pos_v / equity if equity > 0 else 0
+    margin_call = h['shares'] > 0 and cur > 1 and (equity / pos_v) < H22_MAINT
+    if margin_call:
+        target = 1.0
+    drift = abs(cur - target) >= H22_STEP - 1e-9
+    if not (drift or funding or not h.get('started') or margin_call):
+        return [('H22_WAIT', f'H22 不调仓：TQQQ 20 日波动 {vol:.0%} → 目标 {target:.1f} 倍，当前 {cur:.2f} 倍（偏离 < {H22_STEP} 倍）')]
+    want = math.floor(equity * target / (ask if target * equity > pos_v else bid))
+    d = want - int(h['shares'])
+    why = '追保强平' if margin_call else ('建仓' if not h.get('started') else ('定投' if funding else '偏离目标'))
+    if d == 0:
+        return [('H22_WAIT', f'H22 {why}：目标 {target:.1f} 倍，股数已对上')]
+    return [('H22_TRADE', f"H22 {why}：TQQQ 20 日波动 {vol:.0%} → 目标 {target:.1f} 倍（当前 {cur:.2f} 倍），{'买' if d > 0 else '卖'} {abs(d)} 股", d, target, vol)]
+
+
 def plan(b, s, today, force_buy=False):
     """根据子账本与实时行情给出今天要做的动作（只读，不下单）。返回 (动作列表, 是否本月首次入账)"""
     acts = []
@@ -366,10 +419,11 @@ def plan(b, s, today, force_buy=False):
     funding = s['last_month_funded'] != today[:7]
     add = MONTHLY_USD if funding else 0
     if funding:
-        acts.append(('FUND', f'新月份：三个子账本各入账定投 ${MONTHLY_USD:.2f}（H21 按 80/20 分进股票池/期权池）'))
+        acts.append(('FUND', f'新月份：四个子账本各入账定投 ${MONTHLY_USD:.2f}（H21 按 80/20 分进股票池/期权池）'))
     # 只在三种日子买入：该子账本第一次运行（建仓）、每月首个交易日（定投）、换仓日。其他日子即使有零头现金也不买
     may = lambda k: funding or force_buy or not s[k].get('started')
     acts += plan_h21(b, s, today, spot, ask, funding, may('H21'))
+    acts += plan_h22(b, s, today, spot, float(snap['bid_price'] or 0) or spot, ask, funding)
     may_buy = may('H20')
     # H20：可用现金全部按整股买
     h20cash = s['H20']['cash'] + add
@@ -399,6 +453,80 @@ def plan(b, s, today, force_buy=False):
     return acts, funding
 
 
+# ---------- 邮件汇报（Resend REST API，复用 backend/.env 的 RESEND_API_KEY 与 ADMIN_EMAIL；用户 2026-10-26 确认 7 个节点）----------
+def _env(key):
+    v = os.environ.get(key)
+    if v:
+        return v
+    f = os.path.join(HERE, '..', '..', '.env')
+    if os.path.exists(f):
+        for line in open(f, encoding='utf-8-sig'):
+            if line.startswith(key + '='):
+                return line.split('=', 1)[1].strip().strip('"').strip("'")
+    return None
+
+
+def notify(subject, lines):
+    """发一封管理员邮件；失败只记日志不抛出（汇报失败不能阻断交易）。返回是否发出"""
+    import html as _h
+    import urllib.request
+    import urllib.error
+    key, to = _env('RESEND_API_KEY'), _env('ADMIN_EMAIL')
+    if not key or not to:
+        log(f'邮件未发（缺 RESEND_API_KEY 或 ADMIN_EMAIL）：{subject}')
+        return False
+    body = ''.join(f'<p style="font-size:13px;line-height:1.7;margin:4px 0;font-family:monospace">{_h.escape(l)}</p>' for l in lines)
+    payload = {'from': _env('RESEND_FROM') or 'Stock Sentinel <onboarding@resend.dev>', 'to': to,
+               'subject': f'【股哨兵模拟盘】{subject}', 'html': f'<div style="max-width:720px">{body}<p style="color:#888;font-size:12px">模拟盘（SIMULATE）自动汇报，非投资建议。</p></div>'}
+    req = urllib.request.Request('https://api.resend.com/emails', data=json.dumps(payload).encode(), method='POST',
+                                 headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json',
+                                          'User-Agent': 'stock-sentinel-paper/1.0'})  # 默认 Python-urllib UA 会被 Resend 前置防火墙 403
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            ok = 200 <= r.status < 300
+    except urllib.error.HTTPError as e:
+        log(f'邮件发送失败：HTTP {e.code} {e.read().decode("utf-8", "replace")[:200]}'); ok = False
+    except Exception as e:
+        log(f'邮件发送失败：{e}'); ok = False
+    append_log({'email': subject, 'ok': ok})
+    log(('已发邮件：' if ok else '邮件失败：') + subject)
+    return ok
+
+
+def summary_lines(b, s):
+    """五个子账本（目前四个）按总资产降序的一页摘要"""
+    o19, o21 = s['H19']['option'], s['H21']['option']
+    codes = list({UNDERLYING, *(o['code'] for o in (o19, o21) if o)})
+    snap = b.snapshot(codes)
+    px = float(snap[UNDERLYING]['last_price'])
+    ov = lambda o: float(snap[o['code']]['last_price']) * 100 * o['qty'] if o else 0
+    h21, h22 = s['H21'], s['H22']
+    rows = [
+        ('假设19 远月Call 100%', s['H19']['invested'], s['H19']['cash'] + ov(o19)),
+        ('假设20 TQQQ 买持', s['H20']['invested'], s['H20']['cash'] + s['H20']['shares'] * px),
+        ('假设21 TQQQ80%+Call20%', h21['invested'], h21['cash_stock'] + h21['cash_opt'] + h21['shares'] * px + ov(o21)),
+        ('假设22 TQQQ 按波动调仓位', h22['invested'], h22['cash'] + h22['shares'] * px),
+    ]
+    rows.sort(key=lambda r: -r[2])
+    out = [f'TQQQ 现价 ${px:.2f}', '排名 | 策略 | 已投入 | 总资产 | 收益率']
+    out += [f'{i + 1} | {n} | ${inv:,.0f} | ${v:,.0f} | {v / inv - 1:+.2%}' for i, (n, inv, v) in enumerate(rows)]
+    out.append(f"假设22 当前杠杆 {h22['shares'] * px / max(h22['cash'] + h22['shares'] * px, 1e-9):.2f} 倍，累计融资利息 ${h22.get('borrowed_interest', 0):,.2f}")
+    return out, rows
+
+
+def h22_accrue(s, today):
+    """H22 子账本现金为负 = 融资借款：从上次计息日到今天，按 (3 个月国库券约 4% + 2.5%) 年化计息扣在子账本里。
+    模拟盘券商对整个账户计不计利息与子账本无关；这里按实盘口径自己记，评估时和回测可比"""
+    h = s['H22']
+    last = h.get('interest_to') or today
+    days = (datetime.fromisoformat(today) - datetime.fromisoformat(last)).days
+    if days > 0 and h['cash'] < 0:
+        i = -h['cash'] * (0.04 + 0.025) * days / 365
+        h['cash'] -= i
+        h['borrowed_interest'] = h.get('borrowed_interest', 0) + i
+    h['interest_to'] = today
+
+
 def execute(b, s, today, acts, funding):
     if funding:
         for k in ('H20', 'H19'):
@@ -408,10 +536,20 @@ def execute(b, s, today, acts, funding):
         h = s['H21']
         h['cash_stock'] += MONTHLY_USD * H21_STOCK; h['cash_opt'] += MONTHLY_USD * (1 - H21_STOCK)
         h['invested'] += MONTHLY_USD; h['contributions'].append({'d': today, 'usd': MONTHLY_USD})
+        h2 = s['H22']; h2['cash'] += MONTHLY_USD; h2['invested'] += MONTHLY_USD; h2['contributions'].append({'d': today, 'usd': MONTHLY_USD})
         s['last_month_funded'] = today[:7]
         save_state(s)
+    h22_accrue(s, today)
     for a in acts:
-        if a[0] == 'H21_STOCK':
+        if a[0] == 'H22_TRADE':
+            d = a[2]
+            r = chase(b, UNDERLYING, TrdSide.BUY if d > 0 else TrdSide.SELL, abs(d), False, f'H22 vol-target {a[3]:.1f}x')
+            q = r['filled'] if d > 0 else -r['filled']
+            s['H22']['shares'] += q
+            s['H22']['cash'] -= q * r['avg'] + (r['fee'] or 0)
+            s['H22']['target'] = a[3]
+            save_state(s)
+        elif a[0] == 'H21_STOCK':
             r = chase(b, UNDERLYING, TrdSide.BUY, a[2], False, 'H21 TQQQ 80%')
             s['H21']['shares'] += r['filled']
             s['H21']['cash_stock'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
@@ -428,7 +566,7 @@ def execute(b, s, today, acts, funding):
             save_state(s)
             if s['H21']['option'] is None:  # 旧合约卖完才再平衡、买新的
                 h21_rebalance_and_buy(b, s, today)
-    for k in ('H19', 'H20', 'H21'):
+    for k in ('H19', 'H20', 'H21', 'H22'):
         s[k]['started'] = True
     for a in acts:
         if a[0] == 'H20_BUY':
@@ -484,6 +622,8 @@ def status(b, s):
         ('H21 TQQQ 80%+Call 20%', h21, h21['cash_stock'] + h21['cash_opt'] + h21['shares'] * px + ov(o21),
          f"持股 {h21['shares']}，" + (f"合约 {o21['qty']} 张 {o21['code']}（换仓日 {roll_date(o21['expiry'])}）" if o21 else '尚无合约')
          + f"，股票池 ${h21['cash_stock']:,.2f} 期权池 ${h21['cash_opt']:,.2f}"),
+        ('H22 TQQQ 按波动调仓位', s['H22'], s['H22']['cash'] + s['H22']['shares'] * px,
+         f"持股 {s['H22']['shares']}，当前 {(s['H22']['shares'] * px) / max(s['H22']['cash'] + s['H22']['shares'] * px, 1e-9):.2f} 倍（目标 {s['H22'].get('target') or '-'}），现金 ${s['H22']['cash']:,.2f}" + (f"（融资中，累计利息 ${s['H22'].get('borrowed_interest', 0):,.2f}）" if s['H22']['cash'] < 0 else '')),
     ]
     for name, sl, v, detail in rows:
         log(f"{name}：已投入 ${sl['invested']:,.2f}  市值 ${v:,.2f}  收益 {v / sl['invested'] - 1:+.2%}  | {detail}")
@@ -492,12 +632,13 @@ def status(b, s):
         tot = stock_v + h21['cash_opt'] + ov(o21)
         log(f"  H21 当前比例：股票 {stock_v / tot:.1%} / 期权 {(tot - stock_v) / tot:.1%}（目标 80/20，只在换仓日调整）")
     # 对账：H20 与 H21 都持 TQQQ，H19 与 H21 可能持同一张 Call → 按代码汇总后与券商比
-    need = {UNDERLYING: s['H20']['shares'] + h21['shares']}
+    need = {UNDERLYING: s['H20']['shares'] + h21['shares'] + s['H22']['shares']}
     for o in (o19, o21):
         if o:
             need[o['code']] = need.get(o['code'], 0) + o['qty']
     bad = [f"{c} 券商 {pos.get(c, 0)} < 账本合计 {q}" for c, q in need.items() if q and pos.get(c, 0) < q]
     log('对账：' + ('一致' if not bad else '不一致 → ' + '；'.join(bad)))
+    return bad
 
 
 def smoke(b):
@@ -513,8 +654,48 @@ def smoke(b):
     return st
 
 
+def report(b, s, today, acts, funding, prev, n_orders0, bad):
+    """按用户 2026-10-26 确认的节点发邮件：首次成交 / 月度定投 / 期权换仓 / 风险预警 / 执行异常 / 假设22 调仓"""
+    new = []
+    if os.path.exists(LOG_F):
+        with open(LOG_F, encoding='utf-8') as f:
+            new = [json.loads(l) for i, l in enumerate(f) if i >= n_orders0]
+    fills = [r for r in new if r.get('order_id') and r.get('filled')]
+    lines, rows = summary_lines(b, s)
+    fill_lines = [f"{r['remark']} | {r['side']} {r['filled']:g}/{r['qty']:g} {r['code']} @ {r['avg']} | 中间价 {r['mid']:.3f} 偏离 "
+                  + ('—' if r.get('slip_vs_mid') is None else f"{r['slip_vs_mid'] * 100:+.2f}%") + f" | 费用 {r.get('fee')}" for r in fills]
+    unfilled = [r for r in new if r.get('order_id') and r.get('filled', 0) < r.get('qty', 0)]
+    first = [k for k, was in prev['firsts'].items() if not was]
+    if first and fills:
+        notify(f"首次建仓完成（{'、'.join(first)}）", [f'日期 {today}'] + lines + ['— 成交明细 —'] + fill_lines)
+    elif funding and fills:
+        notify(f'{today[:7]} 月度定投完成', [f'日期 {today}'] + lines + ['— 成交明细 —'] + fill_lines)
+    elif any(a[0] in ('H19_ROLL', 'H21_ROLL') for a in acts):
+        notify('期权换仓完成', [f'日期 {today}'] + [a[1] for a in acts if a[0].endswith('ROLL')] + lines + ['— 成交明细 —'] + fill_lines)
+    elif any(a[0] == 'H22_TRADE' for a in acts):
+        notify('假设22 调仓', [f'日期 {today}'] + [a[1] for a in acts if a[0] == 'H22_TRADE'] + fill_lines + lines)
+    # 风险预警：单日（相对上次运行）总资产跌超 15%；假设22 权益/持仓 低于维持线 + 10 个百分点
+    warn = []
+    last = s.get('last_values') or {}
+    for n, inv, v in rows:
+        if last.get(n) and v < last[n] * 0.85:
+            warn.append(f'{n} 总资产 ${v:,.0f}，较上次 ${last[n]:,.0f} 下跌 {v / last[n] - 1:.1%}')
+    h22 = s['H22']; px = float(b.snapshot([UNDERLYING])[UNDERLYING]['last_price']); pv = h22['shares'] * px
+    # 1.2 倍时权益/持仓≈83% 属正常；低于 78%（≈1.28 倍，再跌约 4% 就到 75% 维持线）才预警
+    if pv > 0 and h22['cash'] < 0 and (h22['cash'] + pv) / pv < H22_MAINT + 0.03:
+        warn.append(f"假设22 保证金缓冲不足：权益/持仓 {(h22['cash'] + pv) / pv:.1%}（维持线 {H22_MAINT:.0%}）")
+    if any('追保强平' in a[1] for a in acts if a[0] == 'H22_TRADE'):
+        warn.append('假设22 今天触发了追保强平（降到 1 倍）')
+    if warn:
+        notify('风险预警', [f'日期 {today}'] + warn + lines)
+    if bad or unfilled:
+        notify('对账不一致或订单未全部成交', [f'日期 {today}'] + bad + [f"未全成交：{r['code']} {r['filled']:g}/{r['qty']:g}" for r in unfilled])
+    s['last_values'] = {n: v for n, inv, v in rows}
+    save_state(s)
+
+
 def main():
-    ap = argparse.ArgumentParser(description='Moomoo 模拟盘：假设 19 / 20 / 21（只用 SIMULATE）')
+    ap = argparse.ArgumentParser(description='Moomoo 模拟盘：假设 19 / 20 / 21 / 22（只用 SIMULATE）')
     ap.add_argument('cmd', choices=['status', 'plan', 'run', 'smoke'])
     ap.add_argument('--submit', action='store_true', help='run 时真正向模拟盘下单；不带则只打印计划')
     ap.add_argument('--force', action='store_true', help='休市时也尝试（只用于调试；休市挂单会排到下个交易日）')
@@ -533,7 +714,7 @@ def main():
             smoke(b); return
         if s is None:
             s = new_state(today)
-            log(f'初始化子账本：H19、H20、H21 各 ${INIT_USD:,.0f}')
+            log(f'初始化子账本：H19、H20、H21、H22 各 ${INIT_USD:,.0f}')
             if a.cmd == 'run' and a.submit:
                 save_state(s)
         acts, funding = plan(b, s, today)
@@ -545,8 +726,21 @@ def main():
             log(f'今天（{today}）已经执行过，不重复下单'); return
         if not b.market_open() and not a.force:
             log('美股当前不在常规交易时段，今天不下单（计划任务应设在美东 9:45 之后）'); return
+        prev = {'firsts': {k: s[k].get('started') for k in ('H19', 'H20', 'H21', 'H22')}}
+        try:
+            before, _ = summary_lines(b, s)
+        except Exception:
+            before = None
+        n_orders0 = sum(1 for _ in open(LOG_F, encoding='utf-8')) if os.path.exists(LOG_F) else 0
         execute(b, s, today, acts, funding)
-        status(b, s)
+        bad = status(b, s)
+        report(b, s, today, acts, funding, prev, n_orders0, bad)
+    except Exception as e:
+        # 节点 5：执行失败（OpenD 掉线、下单失败、期权链异常……）当天发邮件
+        log(f'执行失败：{e}')
+        if a.cmd == 'run' and a.submit:
+            notify('执行失败，需要人工检查', [f'日期 {today_et()}', f'错误：{e}', '脚本已停止，今天未完成的动作明天会重新判断。'])
+        raise
     finally:
         b.close()
 
