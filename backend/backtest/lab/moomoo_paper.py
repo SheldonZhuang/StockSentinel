@@ -507,6 +507,9 @@ def summary_lines(b, s):
         ('假设21 TQQQ80%+Call20%', h21['invested'], h21['cash_stock'] + h21['cash_opt'] + h21['shares'] * px + ov(o21)),
         ('假设22 TQQQ 按波动调仓位', h22['invested'], h22['cash'] + h22['shares'] * px),
     ]
+    if s.get('H23'):
+        h23 = s['H23']; mp = h23.get('_px') or 0
+        rows.append(('假设23 MNQ期货 按波动调仓位', h23['invested'], h23['cash'] + h23['qty'] * (mp - h23['avg']) * 2.0 if mp else h23['cash']))
     rows.sort(key=lambda r: -r[2])
     out = [f'TQQQ 现价 ${px:.2f}', '排名 | 策略 | 已投入 | 总资产 | 收益率']
     out += [f'{i + 1} | {n} | ${inv:,.0f} | ${v:,.0f} | {v / inv - 1:+.2%}' for i, (n, inv, v) in enumerate(rows)]
@@ -654,6 +657,23 @@ def smoke(b):
     return st
 
 
+def run_h23_safe(s, today, submit):
+    """假设 23（期货账户）单独执行：出错只发失败邮件、不影响另外四个策略。返回对账问题列表"""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)  # python -I 不把脚本目录放进 sys.path
+    from moomoo_paper_fut import run_h23
+    try:
+        acts, fills = run_h23(s, today, MONTHLY_USD, INIT_USD, log, append_log, save_state, submit=submit)
+        for x in acts:
+            log(('' if submit else '计划：') + x)
+        return [x for x in acts if '对账不一致' in x]
+    except Exception as e:
+        log(f'H23 执行失败：{e}')
+        if submit:
+            notify('假设23（期货）执行失败', [f'日期 {today}', f'错误：{e}', '另外四个策略不受影响，照常执行。'])
+        return []
+
+
 def report(b, s, today, acts, funding, prev, n_orders0, bad):
     """按用户 2026-10-26 确认的节点发邮件：首次成交 / 月度定投 / 期权换仓 / 风险预警 / 执行异常 / 假设22 调仓"""
     new = []
@@ -665,7 +685,7 @@ def report(b, s, today, acts, funding, prev, n_orders0, bad):
     fill_lines = [f"{r['remark']} | {r['side']} {r['filled']:g}/{r['qty']:g} {r['code']} @ {r['avg']} | 中间价 {r['mid']:.3f} 偏离 "
                   + ('—' if r.get('slip_vs_mid') is None else f"{r['slip_vs_mid'] * 100:+.2f}%") + f" | 费用 {r.get('fee')}" for r in fills]
     unfilled = [r for r in new if r.get('order_id') and r.get('filled', 0) < r.get('qty', 0)]
-    first = [k for k, was in prev['firsts'].items() if not was]
+    first = [k for k, was in prev['firsts'].items() if not was and s.get(k, {}).get('started')]
     if first and fills:
         notify(f"首次建仓完成（{'、'.join(first)}）", [f'日期 {today}'] + lines + ['— 成交明细 —'] + fill_lines)
     elif funding and fills:
@@ -721,12 +741,13 @@ def main():
         for x in acts:
             log('计划：' + x[1])
         if a.cmd == 'plan' or not a.submit:
+            run_h23_safe(s, today, submit=False)
             log('（未下单；加 run --submit 执行）'); return
         if s.get('last_run') == today and not a.force:
             log(f'今天（{today}）已经执行过，不重复下单'); return
         if not b.market_open() and not a.force:
             log('美股当前不在常规交易时段，今天不下单（计划任务应设在美东 9:45 之后）'); return
-        prev = {'firsts': {k: s[k].get('started') for k in ('H19', 'H20', 'H21', 'H22')}}
+        prev = {'firsts': {k: s.get(k, {}).get('started') for k in ('H19', 'H20', 'H21', 'H22', 'H23')}}
         try:
             before, _ = summary_lines(b, s)
         except Exception:
@@ -734,6 +755,7 @@ def main():
         n_orders0 = sum(1 for _ in open(LOG_F, encoding='utf-8')) if os.path.exists(LOG_F) else 0
         execute(b, s, today, acts, funding)
         bad = status(b, s)
+        bad += run_h23_safe(s, today, submit=True)
         report(b, s, today, acts, funding, prev, n_orders0, bad)
     except Exception as e:
         # 节点 5：执行失败（OpenD 掉线、下单失败、期权链异常……）当天发邮件
