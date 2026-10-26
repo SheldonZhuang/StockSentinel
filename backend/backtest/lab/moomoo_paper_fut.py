@@ -14,6 +14,7 @@ import math
 import time
 import urllib.request
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from moomoo import (RET_OK, OpenFutureTradeContext, OpenQuoteContext, OrderStatus, OrderType, ModifyOrderOp,
                     TrdEnv, TrdSide, KLType, AuType, Market, SecurityType)
@@ -24,6 +25,18 @@ TICK = 0.25
 TARGET_VOL = 0.60
 CAP = 4.0
 ROLL_DAYS = 7
+ET = ZoneInfo('America/New_York')
+STALE_SEC = 1800         # Yahoo 期货报价本身延迟约 10 分钟；超过 30 分钟视为休市/停盘，不下单
+
+
+def cme_open(now=None):
+    """CME 股指期货时段（美东）：周日 18:00 → 周五 17:00，每天 17:00–18:00 停盘。
+    节假日不在这里判断：休市时 Yahoo 报价不更新，由 STALE_SEC 兜底"""
+    n = now or datetime.now(ET)
+    wd, hm = n.weekday(), n.hour * 60 + n.minute
+    if wd == 5 or (wd == 4 and hm >= 17 * 60) or (wd == 6 and hm < 18 * 60):
+        return False
+    return not (17 * 60 <= hm < 18 * 60)
 
 
 def third_friday(y, m):
@@ -40,7 +53,8 @@ def yahoo_mnq():
     req = urllib.request.Request('https://query1.finance.yahoo.com/v8/finance/chart/MNQ=F?range=1d&interval=1m',
                                  headers={'User-Agent': 'Mozilla/5.0'})
     m = json.load(urllib.request.urlopen(req, timeout=20))['chart']['result'][0]['meta']
-    return float(m['regularMarketPrice']), datetime.utcfromtimestamp(m['regularMarketTime']).strftime('%Y-%m-%d %H:%M UTC')
+    t = m['regularMarketTime']
+    return float(m['regularMarketPrice']), datetime.utcfromtimestamp(t).strftime('%Y-%m-%d %H:%M UTC'), time.time() - t
 
 
 class FutBroker:
@@ -97,7 +111,7 @@ class FutBroker:
         """限价追单：Yahoo 价 ± 1 / 3 / 6 个 tick，每 15 秒一档；仍未全成交则撤单。返回 (成交张数, 均价, 费用, 参考价)"""
         if not (code.startswith('US.MNQ') and code[-4:].isdigit()):
             raise SystemExit(f'拒绝下单：{code} 不在白名单')
-        ref, at = yahoo_mnq()
+        ref, at, _ = yahoo_mnq()
         sgn = 1 if side == TrdSide.BUY else -1
         steps = [round((ref + sgn * k * TICK) / TICK) * TICK for k in (1, 3, 6)]
         r, d = self.t.place_order(price=steps[0], qty=qty, code=code, trd_side=side, order_type=OrderType.NORMAL,
@@ -159,15 +173,25 @@ def _fill(h, r, sgn):
             h['avg'] = 0.0
 
 
-def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True):
-    """返回 (动作说明列表, 成交记录列表)。失败抛出，由调用方发"执行失败"邮件"""
+def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True, force=False):
+    """返回 (动作说明列表, 成交记录列表)。失败抛出，由调用方发"执行失败"邮件。
+    按 CME 时段判断能否下单，不跟美股常规时段；每天最多执行一次（信号用日线，一天调一次与回测一致）"""
     if 'H23' not in s:
         s['H23'] = new_h23(today, init); log(f'新增子账本：H23（${init:,.0f}，MNQ 期货按波动调仓位，最多 {CAP:g} 倍 QQQ）')
     h = s['H23']
+    if submit and not force:
+        if h.get('last_run') == today:
+            return [f'H23 今天（{today}）已经执行过，不重复下单'], []
+        if not cme_open():
+            return ['H23 期货当前休市（CME 美东周日 18:00–周五 17:00，每天 17–18 点停盘），今天不下单'], []
     b = FutBroker(log)
     acts, fills = [], []
     try:
-        px, at = yahoo_mnq()
+        px, at, age = yahoo_mnq()
+        if age > STALE_SEC:
+            acts.append(f'H23 MNQ 报价已 {age / 60:.0f} 分钟未更新（{at}），视为期货休市，不下单')
+            if submit:
+                return acts, fills
         cur, nxt = b.contracts()
         funding = h['funded_month'] != today[:7]
         if funding and submit:

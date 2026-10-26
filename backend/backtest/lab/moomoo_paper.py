@@ -657,13 +657,13 @@ def smoke(b):
     return st
 
 
-def run_h23_safe(s, today, submit):
-    """假设 23（期货账户）单独执行：出错只发失败邮件、不影响另外四个策略。返回对账问题列表"""
+def run_h23_safe(s, today, submit, force=False):
+    """假设 23（期货账户）单独执行：出错只发失败邮件、不影响另外四个策略；反过来股票侧失败也不拦它。返回对账问题列表"""
     if HERE not in sys.path:
         sys.path.insert(0, HERE)  # python -I 不把脚本目录放进 sys.path
     from moomoo_paper_fut import run_h23
     try:
-        acts, fills = run_h23(s, today, MONTHLY_USD, INIT_USD, log, append_log, save_state, submit=submit)
+        acts, fills = run_h23(s, today, MONTHLY_USD, INIT_USD, log, append_log, save_state, submit=submit, force=force)
         for x in acts:
             log(('' if submit else '计划：') + x)
         return [x for x in acts if '对账不一致' in x]
@@ -714,6 +714,22 @@ def report(b, s, today, acts, funding, prev, n_orders0, bad):
     save_state(s)
 
 
+def h23_only_report(s, today, prev, n_orders0, bad):
+    """股票侧没跑（休市/已执行/失败）时，单独汇报假设 23 的成交与对账"""
+    new = []
+    if os.path.exists(LOG_F):
+        with open(LOG_F, encoding='utf-8') as f:
+            new = [json.loads(l) for i, l in enumerate(f) if i >= n_orders0]
+    fills = [f"{r['remark']} | {r['side']} {r['filled']:g}/{r['qty']:g} {r['code']} @ {r['avg']} | 费用 {r.get('fee')}"
+             for r in new if r.get('order_id') and r.get('filled')]
+    unfilled = [f"未全成交：{r['code']} {r['filled']:g}/{r['qty']:g}" for r in new if r.get('order_id') and r.get('filled', 0) < r.get('qty', 0)]
+    if fills:
+        first = not prev['firsts'].get('H23') and s.get('H23', {}).get('started')
+        notify('首次建仓完成（H23）' if first else '假设23 调仓', [f'日期 {today}'] + fills)
+    if bad or unfilled:
+        notify('对账不一致或订单未全部成交', [f'日期 {today}'] + bad + unfilled)
+
+
 def main():
     ap = argparse.ArgumentParser(description='Moomoo 模拟盘：假设 19 / 20 / 21 / 22（只用 SIMULATE）')
     ap.add_argument('cmd', choices=['status', 'plan', 'run', 'smoke'])
@@ -723,6 +739,7 @@ def main():
     a = ap.parse_args()
     b = Broker(a.acc_id)
     log(f'使用模拟账户 {ACC_ID}（SIMULATE）')
+    stock_err = None
     try:
         today = today_et()
         s = load_state()
@@ -737,31 +754,46 @@ def main():
             log(f'初始化子账本：H19、H20、H21、H22 各 ${INIT_USD:,.0f}')
             if a.cmd == 'run' and a.submit:
                 save_state(s)
-        acts, funding = plan(b, s, today)
-        for x in acts:
-            log('计划：' + x[1])
         if a.cmd == 'plan' or not a.submit:
+            acts, funding = plan(b, s, today)
+            for x in acts:
+                log('计划：' + x[1])
             run_h23_safe(s, today, submit=False)
             log('（未下单；加 run --submit 执行）'); return
-        if s.get('last_run') == today and not a.force:
-            log(f'今天（{today}）已经执行过，不重复下单'); return
-        if not b.market_open() and not a.force:
-            log('美股当前不在常规交易时段，今天不下单（计划任务应设在美东 9:45 之后）'); return
         prev = {'firsts': {k: s.get(k, {}).get('started') for k in ('H19', 'H20', 'H21', 'H22', 'H23')}}
-        try:
-            before, _ = summary_lines(b, s)
-        except Exception:
-            before = None
         n_orders0 = sum(1 for _ in open(LOG_F, encoding='utf-8')) if os.path.exists(LOG_F) else 0
-        execute(b, s, today, acts, funding)
-        bad = status(b, s)
-        bad += run_h23_safe(s, today, submit=True)
-        report(b, s, today, acts, funding, prev, n_orders0, bad)
+        # 股票/期权（H19–H22）按美股常规时段；期货（H23）按 CME 时段（在 run_h23 里判断）。两边互不阻断
+        stock_done = False
+        try:
+            if s.get('last_run') == today and not a.force:
+                log(f'今天（{today}）已经执行过，不重复下单')
+            elif not b.market_open() and not a.force:
+                log('美股当前不在常规交易时段，股票/期权今天不下单（计划任务应设在美东 9:45 之后）')
+            else:
+                acts, funding = plan(b, s, today)
+                for x in acts:
+                    log('计划：' + x[1])
+                execute(b, s, today, acts, funding)
+                stock_done = True
+        except Exception as e:
+            # 节点 5：执行失败（OpenD 掉线、下单失败、期权链异常……）当天发邮件
+            stock_err = e
+            log(f'执行失败：{e}')
+            notify('执行失败，需要人工检查', [f'日期 {today}', f'错误：{e}',
+                   '股票/期权部分已停止，今天未完成的动作明天会重新判断；假设23（期货）照常单独判断。'])
+        bad = run_h23_safe(s, today, submit=True, force=a.force)
+        if stock_done:
+            report(b, s, today, acts, funding, prev, n_orders0, status(b, s) + bad)
+        else:
+            h23_only_report(s, today, prev, n_orders0, bad)
+        if stock_err:
+            raise stock_err
     except Exception as e:
-        # 节点 5：执行失败（OpenD 掉线、下单失败、期权链异常……）当天发邮件
-        log(f'执行失败：{e}')
-        if a.cmd == 'run' and a.submit:
-            notify('执行失败，需要人工检查', [f'日期 {today_et()}', f'错误：{e}', '脚本已停止，今天未完成的动作明天会重新判断。'])
+        # 股票侧失败已在上面发过邮件；这里只管启动阶段（读账本、迁移……）的失败
+        if e is not stock_err:
+            log(f'执行失败：{e}')
+            if a.cmd == 'run' and a.submit:
+                notify('执行失败，需要人工检查', [f'日期 {today_et()}', f'错误：{e}', '脚本已停止，今天未完成的动作明天会重新判断。'])
         raise
     finally:
         b.close()
