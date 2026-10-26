@@ -173,6 +173,30 @@ def _fill(h, r, sgn):
             h['avg'] = 0.0
 
 
+def status_h23(s, log):
+    """只读：H23 子账本按 Yahoo MNQ 现价估值，并与期货模拟账户持仓对账。出错只记日志（不影响 H19–H22 的 status）"""
+    h = s.get('H23') if s else None
+    if not h:
+        log('H23 MNQ 期货按波动调仓位：尚未建仓'); return []
+    try:
+        px, at, _ = yahoo_mnq()
+        eq = equity(h, px)
+        lev = h['qty'] * px * MULT / eq if eq > 0 else 0
+        log(f"H23 MNQ 期货按波动调仓位：已投入 ${h['invested']:,.2f}  市值 ${eq:,.2f}  收益 {eq / h['invested'] - 1:+.2%}  | "
+            f"{h['qty']:g} 张 {h['code'] or '-'}，均价 {h['avg']:g}，现价 {px:g}（Yahoo {at}），当前 {lev:.2f} 倍（目标 {h.get('target') or '-'}），"
+            f"现金 ${h['cash']:,.2f}，累计费用 ${h.get('fees', 0):,.2f}")
+        b = FutBroker(log)
+        try:
+            broker = b.position(h['code']) if h['code'] else 0
+        finally:
+            b.close()
+        bad = [] if abs(broker - h['qty']) < 1e-9 else [f"{h['code']} 期货账户 {broker:g} 张 vs 账本 {h['qty']:g} 张"]
+        log(f'H23 对账（期货账户 {b.acc}）：' + ('一致' if not bad else '不一致 → ' + '；'.join(bad)))
+        return bad
+    except Exception as e:
+        log(f'H23 状态查询失败：{e}'); return []
+
+
 def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True, force=False):
     """返回 (动作说明列表, 成交记录列表)。失败抛出，由调用方发"执行失败"邮件。
     按 CME 时段判断能否下单，不跟美股常规时段；每天最多执行一次（信号用日线，一天调一次与回测一致）"""

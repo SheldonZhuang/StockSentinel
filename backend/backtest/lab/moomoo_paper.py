@@ -746,7 +746,11 @@ def main():
         if s is not None:
             s = migrate(s, today)
         if a.cmd == 'status':
-            status(b, s); return
+            status(b, s)
+            if HERE not in sys.path:
+                sys.path.insert(0, HERE)
+            from moomoo_paper_fut import status_h23
+            status_h23(s, log); return
         if a.cmd == 'smoke':
             smoke(b); return
         if s is None:
