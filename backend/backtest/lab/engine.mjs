@@ -43,14 +43,16 @@ export function makeCtx(panel) {
  * @param strategy (ctx) => null | Record<string, number>
  * @param {{start?:string, end?:string, lag?:number, costBps?:number, initialWeights?:Record<string,number>}} opts
  */
-export function backtest(panel, strategy, { start = panel.dates[0], end = '9999-12-31', lag = 1, costBps = 5 } = {}) {
+// borrowSpread：总仓位 >1 时借入部分在 rf 之上额外付的年化利差（%/年；融资账户约 2.5，期货隐含融资≈rf 取 0）
+export function backtest(panel, strategy, { start = panel.dates[0], end = '9999-12-31', lag = 1, costBps = 5, borrowSpread = 0, maint = null } = {}) {
+  // maint：维持保证金比例（权益/持仓市值）。漂移后低于它 → 强制把总仓位砍回 1 倍（模拟追保强平，按换手计成本）；null = 不建模
   const { dates, ret, rf } = panel;
   const i0 = dates.findIndex(d => d >= start);
   let i1 = dates.length - 1; while (dates[i1] > end) i1--;
   if (i0 < 0 || i1 <= i0) throw new Error(`empty window ${start}..${end}`);
   const ctxAt = makeCtx(panel);
   const state = {};
-  let w = {}, eq = 1, pending = null, trades = 0, turnover = 0, exposureSum = 0, curI = i0;
+  let w = {}, eq = 1, pending = null, trades = 0, turnover = 0, exposureSum = 0, curI = i0, marginCalls = 0;
   const log = [];
   const curve = new Float64Array(i1 - i0 + 1), cash = new Float64Array(i1 - i0 + 1);
   const execute = target => {
@@ -64,10 +66,14 @@ export function backtest(panel, strategy, { start = panel.dates[0], end = '9999-
     if (i > i0) {
       let gross = 0, pr = 0;
       for (const [k, v] of Object.entries(w)) { pr += v * ret[k][i]; gross += v; }
-      pr += (1 - gross) * rf[i];
+      pr += (1 - gross) * rf[i] - Math.max(0, gross - 1) * borrowSpread / 100 / 252;
       eq *= 1 + pr;
       if (eq <= 0) { eq = 0; w = {}; }
       else for (const k of Object.keys(w)) w[k] = w[k] * (1 + ret[k][i]) / (1 + pr);
+      if (maint && eq > 0) {
+        const g = Object.values(w).reduce((a, b) => a + b, 0);
+        if (g > 1 && 1 / g < maint) { marginCalls++; execute(Object.fromEntries(Object.entries(w).map(([k, v]) => [k, v / g]))); pending = null; }
+      }
     }
     if (pending && pending.at === i) { execute(pending.w); pending = null; }
     const t = eq > 0 ? strategy(ctxAt(i, state)) : null;
@@ -75,7 +81,7 @@ export function backtest(panel, strategy, { start = panel.dates[0], end = '9999-
     curve[i - i0] = eq;
     exposureSum += Object.values(w).reduce((a, b) => a + b, 0);
   }
-  return { dates: dates.slice(i0, i1 + 1), curve, rf: rf.slice(i0, i1 + 1), trades, turnover, avgExposure: exposureSum / (i1 - i0 + 1), log };
+  return { dates: dates.slice(i0, i1 + 1), curve, rf: rf.slice(i0, i1 + 1), trades, turnover, avgExposure: exposureSum / (i1 - i0 + 1), log, marginCalls };
 }
 
 /** 统计：总收益、CAGR、年化波动、夏普（超额 rf）、最大回撤及区间、Calmar、最差自然年、逐年收益 */
