@@ -11,9 +11,9 @@
     "loading": "Chargement...",
     "reduce": "Alléger",
     "snapshotStale": "Les données du signal ne sont pas mises à jour depuis {days} jours — le backend est peut-être arrêté ; ne considérez pas le niveau actuel comme à jour",
-    "capexGuidanceBanner": "Révision à la baisse des prévisions de capex des hyperscalers — signal avancé de contraction du capex et de suroffre IA ; offre/demande IA passée en resserrement",
-    "capexGuidanceRefTitle": "Prévisions de capex (référence prospective)",
-    "capexGuidanceRefHint": "Détection automatique : direction des prévisions de capex de chaque nouveau rapport — communiqué EDGAR et recherche web (transcriptions/présentations/médias financiers) en parallèle, se complétant mutuellement, avec un instantané capex trimestriel/TTM. Référence uniquement — ne détermine pas directement le signal ; « baisse explicite + confiance élevée » est automatiquement promue en événement de resserrement (baisse du communiqué : enregistrement immédiat ; baisse détectée via le web : corroboration exigée — propos de la direction en source primaire ou ≥2 sources indépendantes, sinon simple signalement pour vérification manuelle). Survolez pour voir la citation. La détection comporte deux garde-fous : ① seuls les articles publiés après les résultats sont retenus — les avant-papiers et les attentes des analystes ne sont pas des prévisions de la direction ; ② lorsqu'un changement comptable (durée d'amortissement, reclassement des baux) modifie le chiffre nominal des prévisions sans changer les plans d'investissement réels, la direction est « maintien », pas une réduction (ex. : MSFT, CY2026 reformulé de 190 Md$ à ~175 Md$, plans inchangés). ③ Les fiches issues du web sont provisoires le soir des résultats et re-vérifiées automatiquement chaque jour pendant 48 h après la publication (sauf fiches vérifiées manuellement), pour corriger les échos d'anciennes prévisions dus à une couverture médiatique encore mince le soir même. ④ Une baisse est jugée selon sa cause : seules les baisses liées à la demande ou inexpliquées comptent ; les dépenses décalées par des retards d'approvisionnement/livraison (ex. capacités tierces retardées, rattrapage au S2), la baisse des coûts unitaires ou un changement comptable valent « maintien » (ex. MSFT FY27Q1 : CY2026 ~175 Md$→~170 Md$ pour retards de capacités tierces, accélération au S2 = maintien).",
+    "capexGuidanceBanner": "Révision à la baisse des prévisions de CapEx des hyperscalers — signal avancé de contraction du CapEx et de suroffre IA ; offre/demande IA passée en resserrement",
+    "capexGuidanceRefTitle": "Prévisions de CapEx (référence prospective)",
+    "capexGuidanceRefHint": "Détection automatique : direction des prévisions de CapEx de chaque nouveau rapport — communiqué EDGAR et recherche web (transcriptions/présentations/médias financiers) en parallèle, se complétant mutuellement, avec un instantané CapEx trimestriel/TTM. Référence uniquement — ne détermine pas directement le signal ; « baisse explicite + confiance élevée » est automatiquement promue en événement de resserrement (baisse du communiqué : enregistrement immédiat ; baisse détectée via le web : corroboration exigée — propos de la direction en source primaire ou ≥2 sources indépendantes, sinon simple signalement pour vérification manuelle). Survolez pour voir la citation. La détection comporte deux garde-fous : ① seuls les articles publiés après les résultats sont retenus — les avant-papiers et les attentes des analystes ne sont pas des prévisions de la direction ; ② lorsqu'un changement comptable (durée d'amortissement, reclassement des baux) modifie le chiffre nominal des prévisions sans changer les plans d'investissement réels, la direction est « maintien », pas une réduction (ex. : MSFT, CY2026 reformulé de 190 Md$ à ~175 Md$, plans inchangés). ③ Les fiches issues du web sont provisoires le soir des résultats et re-vérifiées automatiquement chaque jour pendant 48 h après la publication (sauf fiches vérifiées manuellement), pour corriger les échos d'anciennes prévisions dus à une couverture médiatique encore mince le soir même. ④ Une baisse est jugée selon sa cause : seules les baisses liées à la demande ou inexpliquées comptent ; les dépenses décalées par des retards d'approvisionnement/livraison (ex. capacités tierces retardées, rattrapage au S2), la baisse des coûts unitaires ou un changement comptable valent « maintien » (ex. MSFT FY27Q1 : CY2026 ~175 Md$→~170 Md$ pour retards de capacités tierces, accélération au S2 = maintien).",
     "guidanceDir": {
       "cut": "prévisions abaissées",
       "raise": "prévisions relevées",
@@ -79,13 +79,13 @@
     "trendFlat": "Stable",
     "trendDown": "Baisse",
     "modelUsageTrend": "Tendance d’usage des modèles",
-    "capexYoY": "Capex cloud (GA)",
-    "capexQtrYoY": "Capex cloud (dernier trimestre)",
+    "capexYoY": "CapEx cloud (GA)",
+    "capexQtrYoY": "CapEx cloud (dernier trimestre)",
     "hints": {
       "modelUsageTrend": "Tendance d'usage des modèles : moyenne des 28 derniers jours vs moyenne des 28 jours précédents (lissage au niveau mensuel qui dilue le bruit hebdomadaire des jours fériés). >+3 % (≈ croissance annualisée ≥+47 %) → demande vigoureuse · accommodant ; <−3 % (baisse durable de la moyenne mensuelle) → demande en repli · alerte de suroffre · resserrement. Source : openrouter.ai/rankings — proxy d'un agrégateur unique, avec bruit de parts de marché.",
-      "capexYoY": "Règle : capex 4 trimestres glissants des hyperscalers (MSFT/AMZN/GOOGL/META) >+10 % en GA → vote accommodant (boom d'investissement) ; <0 % → vote resserré (contraction du capex · alerte de suroffre — tout maillon resserré du trio rend l'offre/demande IA resserrée). Règles de l'éclaireur trimestriel (20/07/2026) : un dernier trimestre négatif bloque le vote accommodant (neutre au mieux) ; deux trimestres négatifs consécutifs → resserré directement, sans attendre le 12M (1-2 trimestres plus tôt). 2e niveau du trio de flux de trésorerie (côté investissement) : les modèles achètent du cloud",
-      "capexQtrYoY": "Rôle décisionnel limité (depuis le 20/07/2026) : GA du dernier trimestre civil publié par les quatre (alignement des calendriers — pas de trimestres mélangés en pleine saison de résultats). Le trimestre isolé est l'éclaireur du point d'inflexion — le 12M glissant est une moyenne mobile sur 4 trimestres qui dilue un freinage et le retarde de 2-3 saisons de résultats. Deux règles : ① un trimestre négatif bloque le vote accommodant du sous-signal capex (précédent : le QT du bilan ne bloque que l'accommodant) ; ② deux trimestres négatifs consécutifs → capex vote resserré directement, sans attendre le 12M. Le badge marque l'état propre de cette ligne aux seuils du 12M (>+10 % accommodant / <0 % resserré) ; le moment de divergence où le badge trimestriel change avant le 12M est l'alerte la plus précoce.",
-      "semiIpYoy": "Règle : production de semi-conducteurs en GA >+5 % → vote accommodant ; <0 % → vote resserré. C'est le maillon final côté offre du trio de flux de trésorerie offre/demande IA (usage → capex cloud → production semi). Règle de consensus du trio : un maillon en contraction → resserrement (alerte de surproduction) ; toute la chaîne en hausse → assouplissement (pénurie) ; sinon neutre.",
+      "capexYoY": "Règle : CapEx 4 trimestres glissants des hyperscalers (MSFT/AMZN/GOOGL/META) >+10 % en GA → vote accommodant (boom d'investissement) ; <0 % → vote resserré (contraction du CapEx · alerte de suroffre — tout maillon resserré du trio rend l'offre/demande IA resserrée). Règles de l'éclaireur trimestriel (20/07/2026) : un dernier trimestre négatif bloque le vote accommodant (neutre au mieux) ; deux trimestres négatifs consécutifs → resserré directement, sans attendre le 12M (1-2 trimestres plus tôt). 2e niveau du trio de flux de trésorerie (côté investissement) : les modèles achètent du cloud",
+      "capexQtrYoY": "Rôle décisionnel limité (depuis le 20/07/2026) : GA du dernier trimestre civil publié par les quatre (alignement des calendriers — pas de trimestres mélangés en pleine saison de résultats). Le trimestre isolé est l'éclaireur du point d'inflexion — le 12M glissant est une moyenne mobile sur 4 trimestres qui dilue un freinage et le retarde de 2-3 saisons de résultats. Deux règles : ① un trimestre négatif bloque le vote accommodant du sous-signal CapEx (précédent : le QT du bilan ne bloque que l'accommodant) ; ② deux trimestres négatifs consécutifs → CapEx vote resserré directement, sans attendre le 12M. Le badge marque l'état propre de cette ligne aux seuils du 12M (>+10 % accommodant / <0 % resserré) ; le moment de divergence où le badge trimestriel change avant le 12M est l'alerte la plus précoce.",
+      "semiIpYoy": "Règle : production de semi-conducteurs en GA >+5 % → vote accommodant ; <0 % → vote resserré. C'est le maillon final côté offre du trio de flux de trésorerie offre/demande IA (usage → CapEx cloud → production semi). Règle de consensus du trio : un maillon en contraction → resserrement (alerte de surproduction) ; toute la chaîne en hausse → assouplissement (pénurie) ; sinon neutre.",
       "rate": "Jugé selon la direction de la dernière décision du FOMC : une hausse (y compris graduelle de 25 pb) → resserrement, maintenu jusqu'à la décision suivante ; une baisse ou un statu quo → assouplissement. Un ajustement unique ≥50 pb (toute direction) déclenche en outre le verrou d'ajustement réactif, forçant la défense totale. Effectif le jour même de la décision : dès la publication à 14 h HE, le système lit directement le communiqué de la Fed (sans attendre la série FRED quotidienne, qui n'intègre le nouveau palier que le jour ouvré suivant) ; la page et le palier sont mis à jour le jour même.",
       "balanceSheet": "Variation du bilan (13 semaines) : expansion >0,8 % (QE) → vote assouplissement ; contraction >0,8 % (QT) ne vaut pas resserrement à elle seule — elle bloque seulement une note assouplie (backtest : le marché a monté la plupart des années de QT) ; entre les deux → pause.",
       "sahm": "Règle : valeur Sahm ≥0,5 % → début de récession, verrou Sahm forçant la défense totale (<0,5 % ne déclenche pas). Déverrouillage : taux ramené à ≤0,25 % (zone de taux zéro — déverrouillage inconditionnel, même si la valeur Sahm reste élevée, non soumis à la durée minimale de verrouillage) ; ou ajustement mineur <50 pb — à condition que la valeur Sahm soit repassée sous 0,5 % le jour même (déclencheur disparu) et que le verrou ait au moins 60 jours (durée minimale de verrouillage)",
@@ -94,7 +94,8 @@
       "reference": "Affichage indicatif, ne participe pas au jugement",
       "epuDaily": "Règle : EPU quotidien MM7 (basé sur la presse ; réagit en quelques jours aux pivots comme une pause tarifaire) percentile 10 ans >80 → resserrement, <50 → assouplissement ; doit concorder avec l’indice commercial mensuel, sinon neutre Hystérésis (2026-10-30) : une fois restrictif, il ne sort que sous le 75e percentile, pour éviter les allers-retours dus au bruit autour du 80e.",
       "oilWti": "La variation 30 j du WTI est le pricing en temps réel par le marché des chocs guerre/géopolitique, prioritaire sur les percentiles EPU : hausse ≥+20 % ET EPU élevé (>80e pct) → resserrement (choc guerre/offre) ; une flambée avec un EPU calme = reprise de la demande, pas de fausse défense. Baisse ≥20 % ET EPU non élevé → assouplissement (désescalade) ; si l'EPU est simultanément élevé, la chute est de type crise — pas d'assouplissement. Garde-fou de niveau du pétrole (2026-07-19) : une flambée n est comptée comme choc de guerre que si le prix du pétrole est aussi à un niveau élevé (au-dessus de sa médiane sur 2 ans) — les rebonds depuis un bas niveau juste après une crise (45 $ en 2009, 38 $ en 2020) surviennent alors que l EPU est encore élevé et ne sont pas des chocs de guerre ; les flambées à haut niveau (110 $ pendant la guerre Russie-Ukraine de 2022) ne sont pas affectées. Source (2026-10-30) : jugé sur le WTI spot (le contrat à terme continu affiche ~±6 pts de faux mouvements aux roulements) ; repli sur les contrats à terme seulement si le spot date de plus de 7 jours.",
-      "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement. Mesuré en dépenses réelles (hors inflation) en GA : la croissance naturelle des dépenses nominales ≈5 % pré-déclencherait le resserrement en permanence ; après déflatement PCE, ne se déclenche que si l'expansion/contraction réelle dépasse ±5 %"
+      "fiscalOutlaysTtm": "Règle (petit gouvernement) : dépenses fédérales TTM en GA >+5 % → resserrement (État grossit) ; <−5 % → assouplissement (État maigrit). Pourquoi les dépenses et non le déficit : le déficit mélange le côté recettes — un déficit dû à des baisses d'impôts (2017) est conforme au principe et ne doit pas être lu comme un resserrement. Mesuré en dépenses réelles (hors inflation) en GA : la croissance naturelle des dépenses nominales ≈5 % pré-déclencherait le resserrement en permanence ; après déflatement PCE, ne se déclenche que si l'expansion/contraction réelle dépasse ±5 %",
+      "capexQtrDecel": "Affichage seul, hors jugement (2026-10-30) : croissance annuelle du CapEx du dernier trimestre moins celle du trimestre précédent, en points. Positif = accélération, négatif = décélération. Passer de +87 % à +11 % reste « souple » selon les seuils mais constitue un fort freinage — la tarification de la chaîne (HBM/optique/énergie) suit cette dérivée seconde. Base nominale : l'inflation mémoire/matériel gonfle la croissance, la déflation la réduit ; à lire avec les raisons données dans les prévisions."
     },
     "hintGlobal": "Règle globale : Attaque (asymétrique) = offre/demande IA accommodante (le moteur actif enclenché) + monétaire/fiscale/administrative toutes non resserrées (neutre suffit ; tout resserrement met un veto) + aucun verrou + courbe des taux du Trésor US hors inversion confirmée (10a−3m inversée sur ≥51 des 63 derniers jours de bourse → veto à l'accès au palier attaque, rétrogradé en attente) + écart de crédit sans élargissement brutal (écart Baa−Trésor 10 a élargi de ≥+60 pb sur 90 j → même veto à l'accès au palier attaque) + taux réel non profondément restrictif (taux directeur − PCE tronquée 12M ≥1,5 % → même veto à l'accès au palier attaque) ; une seule dimension resserrée = alléger et attendre — cesser de renforcer, rester vigilant ; inutile de réduire les positions existantes (le backtest montre que les mois à une seule dimension resserrée n'ont pas un rendement mensuel moyen inférieur aux autres — un resserrement isolé est un signal d'attention, pas d'action) ; deux ou plus resserrées ou verrou Sahm/réactif actif = défense totale. Exception de réentrée en tendance : lorsque le marché est en tendance haussière (dernière clôture ≥ SMA des 10 dernières clôtures de fin de mois), la défense totale issue de l'arbre de décision est rétrogradée en alléger et attendre ; la défense issue d'un verrou n'est jamais annulée par la tendance. Hystérésis de rétrogradation : les montées de palier (plus défensives, y compris forcées par verrou) prennent effet immédiatement ; les descentes (plus souples) exigent que le palier plus doux persiste 30 jours de confirmation, l'ancien palier restant en vigueur entre-temps Deux ajustements (2026-07-18) : une double contraction purement monétaire+budgétaire (sans dimension administrative ni verrou) ne va que jusqu à Réduire ; la défense déclenchée par le verrou Sahm est de même rétrogradée en Réduire en tendance haussière (le verrou d ajustement réactif n est jamais annulé par la tendance). Plancher de tendance (2026-08-04) : lorsque le marché est sous sa tendance (dernière clôture < SMA 10 mois), le palier final est au minimum alléger et attendre (cesser de renforcer ; inutile de réduire l'existant).",
     "stale": "Données retardées",
@@ -103,7 +104,7 @@
     "oilWti": "Pétrole brut WTI",
     "short": {
       "modelUsage": "Usage",
-      "capex": "Capex cloud",
+      "capex": "CapEx cloud",
       "capexQtr": "trim.",
       "semiIp": "Prod. semi",
       "epuDaily": "EPU quot.",
@@ -116,7 +117,8 @@
       "spot": "Spot (différé)"
     },
     "fiscalOutlaysTtm": "Dépenses fédérales (12 mois)",
-    "capexGuidance": "Prévisions capex (référence prospective)"
+    "capexGuidance": "Prévisions CapEx (référence prospective)",
+    "capexQtrDecel": "Variation de la croissance CapEx (trim. vs trim. précédent)"
   },
   "watchlist": {
     "title": "Liste de Suivi",
@@ -208,7 +210,7 @@
       "ai_supply": "Offre/demande IA",
       "sahmLock": "Verrou Sahm",
       "reactiveAdjustmentLock": "Verrou d’ajustement réactif",
-      "capex_guidance": "Révision capex"
+      "capex_guidance": "Révision CapEx"
     },
     "signalCleared": "Effacé",
     "apiKeys": {
@@ -226,8 +228,8 @@
       "enable": "Activer",
       "disable": "Désactiver"
     },
-    "capexGuidance": "Révision capex à la baisse",
-    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de capex (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement. Deux garde-fous : la recherche web ne retient que les articles postérieurs aux résultats (avant-papiers/attentes d'analystes exclus) ; un changement comptable modifiant la valeur nominale sans changer les plans réels vaut « maintien » et ne déclenche pas cet événement. Les baisses nominales dues à des retards d'approvisionnement/livraison (dépenses décalées) ou à des coûts unitaires plus bas valent aussi « maintien » et ne déclenchent pas cet événement.",
+    "capexGuidance": "Révision CapEx à la baisse",
+    "capexGuidanceHint": "Entrée de type événement : niveau verrouillé sur resserré. Prend effet quand un hyperscaler abaisse explicitement ses prévisions de CapEx (préciser qui/quoi en note) ; l'offre/demande IA se resserre immédiatement et les abonnés sont notifiés par e-mail. Détection automatique sur les deux sources : baisse du communiqué enregistrée immédiatement ; baisse détectée via le web (conférence/médias) avec corroboration exigée — propos de la direction ou ≥2 sources indépendantes, sinon simple signalement à vérifier et saisir ici manuellement. Deux garde-fous : la recherche web ne retient que les articles postérieurs aux résultats (avant-papiers/attentes d'analystes exclus) ; un changement comptable modifiant la valeur nominale sans changer les plans réels vaut « maintien » et ne déclenche pas cet événement. Les baisses nominales dues à des retards d'approvisionnement/livraison (dépenses décalées) ou à des coûts unitaires plus bas valent aussi « maintien » et ne déclenchent pas cet événement.",
     "clearOverride": "Supprimer le forçage (retour auto)",
     "cancelLockOverride": "Annuler l'effacement du verrou (rétabli selon les données)",
     "users": {
@@ -338,7 +340,7 @@
     "relReturnLabel": "30j vs SPY",
     "bubbleTitle": "Moniteur de Bulle",
     "modelUsageTrend": "Tendance d'Usage des Modèles (28j vs 28j précédents)",
-    "capexYoY": "Capex Cloud (12M glissants)",
+    "capexYoY": "CapEx Cloud (12M glissants)",
     "capexAmount": "{bn} Mrd USD",
     "capexQtr": "Trim. {pct}",
     "semiIpYoy": "Production Semi-conducteurs (GA)",
@@ -353,7 +355,7 @@
       "power": "Énergie",
       "optical": "Modules Optiques"
     },
-    "guidanceTitle": "Détection prévisions capex",
+    "guidanceTitle": "Détection prévisions CapEx",
     "guidanceSource": {
       "press_release": "Source : communiqué",
       "web": "Source : conférence/médias"
@@ -361,7 +363,9 @@
     "guidanceQtr": "Trim.",
     "guidanceTtm": "TTM",
     "guidanceFy": "Prévision annuelle :",
-    "guidanceFwd": "Au-delà :"
+    "guidanceFwd": "Au-delà :",
+    "watchCapex": "Surveillance : {name} CapEx {qtr} trimestre ${bn} Md$ (sur un an {yoy}), depuis janvier ${ytdBn} Md$ ({ytdYoy})",
+    "watchCapexHint": "Liste de surveillance — affichage seul ; exclu du total des quatre hyperscalers et du jugement (ajout 2026-10-30). Source : SEC EDGAR 10-Q, tableau des flux (acquisitions d'immobilisations). Coté depuis moins de deux ans, pas encore de variation TTM. Son intégration sera réexaminée quand son échelle approchera celle de l'un des quatre."
   },
   "recessionLock": {
     "banner": "Verrou de Défense Actif",

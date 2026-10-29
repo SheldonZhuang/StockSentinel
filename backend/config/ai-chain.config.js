@@ -32,6 +32,13 @@ export default {
     META: { cik: '0001326801', concept: 'PaymentsToAcquirePropertyPlantAndEquipment' },
   },
 
+  // 观察名单（130号，用户 2026-10-30）：只展示、不进四家合计与判定。SpaceX(含xAI) 2026 起
+  // CapEx 高速扩张（9M $48.1B，xAI 占 8 成以上），"目前不是主力不代表以后不是"——持续观察，
+  // 规模接近四家任一家时再议是否纳入判定口径
+  WATCH_CAPEX_CIK: {
+    SPCX: { cik: '0001181412', concept: 'PaymentsToAcquirePropertyPlantAndEquipment', name: 'SpaceX (incl. xAI)' },
+  },
+
   // OpenRouter 模型调用量（需 OPENROUTER_API_KEY，展示时须注明来源 openrouter.ai/rankings）
   // 窗口 2026-07-17 重标定：原 7日均vs前28日均（窗口中心相距约17.5天，+10%阈值≈年化8倍增速，
   // 健康增长永远给不出宽松票=进攻档结构性死亡；且单周节假日回落即可假触发收紧）。

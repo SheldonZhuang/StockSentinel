@@ -11,9 +11,9 @@
     "loading": "Cargando...",
     "reduce": "Reducir",
     "snapshotStale": "Los datos de la señal llevan {days} días sin actualizarse — el backend puede estar caído; no trate el nivel actual como vigente",
-    "capexGuidanceBanner": "Recorte de la guía de capex de hyperscalers — señal anticipada de contracción del capex y sobreoferta de IA; oferta/demanda IA en restrictivo",
-    "capexGuidanceRefTitle": "Guía de capex (referencia prospectiva)",
-    "capexGuidanceRefHint": "Detección automática: dirección de la guía de capex de cada nuevo informe — comunicado EDGAR y búsqueda web (transcripciones/presentaciones/medios financieros) en paralelo, complementándose, más un resumen de capex trimestral/TTM. Solo referencia — no determina directamente la señal; \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo (recorte del comunicado: registro inmediato; recorte detectado vía web: requiere corroboración — palabras de la dirección en fuente primaria o ≥2 fuentes independientes, si no solo se señala para revisión manual). Pase el cursor para ver la cita. La detección tiene dos salvaguardas: ① solo cuentan las coberturas posteriores a los resultados — los avances previos y las expectativas de analistas no son guía de la dirección; ② cuando un cambio contable (vida útil, reclasificación de arrendamientos) altera la cifra nominal de la guía pero los planes reales de inversión no cambian, se clasifica como «mantener», no como recorte (p. ej., MSFT: CY2026 reexpresado de 190 000 M$ a ~175 000 M$ sin cambio de planes). ③ Los registros de origen web son provisionales la noche de resultados y se recomprueban automáticamente a diario durante las 48 h posteriores al informe (salvo registros verificados manualmente), corrigiendo ecos de guías antiguas por la escasa cobertura mediática esa misma noche. ④ Los recortes se juzgan por su causa: solo cuentan los motivados por la demanda o sin explicación; el gasto aplazado por retrasos de suministro/entrega (p. ej., capacidad de terceros retrasada con recuperación en el S2), menores costes unitarios o cambios contables se clasifican como «mantener» (p. ej., MSFT FY27Q1: CY2026 ~$175B→~$170B por retrasos de capacidad de terceros, S2 acelerará = mantener).",
+    "capexGuidanceBanner": "Recorte de la guía de CapEx de hyperscalers — señal anticipada de contracción del CapEx y sobreoferta de IA; oferta/demanda IA en restrictivo",
+    "capexGuidanceRefTitle": "Guía de CapEx (referencia prospectiva)",
+    "capexGuidanceRefHint": "Detección automática: dirección de la guía de CapEx de cada nuevo informe — comunicado EDGAR y búsqueda web (transcripciones/presentaciones/medios financieros) en paralelo, complementándose, más un resumen de CapEx trimestral/TTM. Solo referencia — no determina directamente la señal; \"recorte explícito + alta confianza\" se eleva automáticamente a evento restrictivo (recorte del comunicado: registro inmediato; recorte detectado vía web: requiere corroboración — palabras de la dirección en fuente primaria o ≥2 fuentes independientes, si no solo se señala para revisión manual). Pase el cursor para ver la cita. La detección tiene dos salvaguardas: ① solo cuentan las coberturas posteriores a los resultados — los avances previos y las expectativas de analistas no son guía de la dirección; ② cuando un cambio contable (vida útil, reclasificación de arrendamientos) altera la cifra nominal de la guía pero los planes reales de inversión no cambian, se clasifica como «mantener», no como recorte (p. ej., MSFT: CY2026 reexpresado de 190 000 M$ a ~175 000 M$ sin cambio de planes). ③ Los registros de origen web son provisionales la noche de resultados y se recomprueban automáticamente a diario durante las 48 h posteriores al informe (salvo registros verificados manualmente), corrigiendo ecos de guías antiguas por la escasa cobertura mediática esa misma noche. ④ Los recortes se juzgan por su causa: solo cuentan los motivados por la demanda o sin explicación; el gasto aplazado por retrasos de suministro/entrega (p. ej., capacidad de terceros retrasada con recuperación en el S2), menores costes unitarios o cambios contables se clasifican como «mantener» (p. ej., MSFT FY27Q1: CY2026 ~$175B→~$170B por retrasos de capacidad de terceros, S2 acelerará = mantener).",
     "guidanceDir": {
       "cut": "guía recortada",
       "raise": "guía elevada",
@@ -79,13 +79,13 @@
     "trendFlat": "Estable",
     "trendDown": "Bajada",
     "modelUsageTrend": "Tendencia de uso de modelos",
-    "capexYoY": "Capex cloud (interanual)",
-    "capexQtrYoY": "Capex cloud (último trimestre)",
+    "capexYoY": "CapEx cloud (interanual)",
+    "capexQtrYoY": "CapEx cloud (último trimestre)",
     "hints": {
       "modelUsageTrend": "Tendencia de uso de modelos: media de los últimos 28 días vs media de los 28 días previos (suavizado a nivel mensual que diluye el ruido semanal de festivos). >+3 % (≈ crecimiento anualizado ≥+47 %) → demanda fuerte · laxa; <−3 % (caída sostenida de la media mensual) → demanda debilitándose · alerta de sobreoferta · restrictiva. Fuente: openrouter.ai/rankings — proxy de un único agregador con ruido de cuotas.",
-      "capexYoY": "Regla: capex de hyperscalers (MSFT/AMZN/GOOGL/META, 4T móviles) interanual >+10 % → voto laxo (auge inversor); <0 % → voto restrictivo (contracción del capex · alerta de sobreoferta — cualquier eslabón restrictivo del trío vuelve restrictiva la oferta/demanda IA). Reglas del explorador trimestral (20/07/2026): un último trimestre negativo bloquea el voto laxo (neutral como máximo); dos trimestres negativos seguidos → restrictivo directamente, sin esperar al TTM (1-2 trimestres antes). 2.º nivel del trío de flujo de caja (lado inversión): los modelos compran nube",
-      "capexQtrYoY": "Rol decisorio limitado (desde el 20/07/2026): interanual del último trimestre natural publicado por las cuatro (calendarios alineados — sin mezclar trimestres en plena temporada de resultados). El trimestre suelto es el explorador del punto de giro — el 4T móvil es una media que diluye un frenazo y lo retrasa 2-3 temporadas de resultados. Dos reglas: ① un trimestre negativo bloquea el voto laxo del subsector capex (precedente: el QT del balance solo bloquea lo laxo); ② dos trimestres negativos seguidos → capex vota restrictivo directamente, sin esperar al TTM. La insignia marca el estado propio de esta fila con los umbrales del TTM (>+10 % laxa / <0 % restrictiva); el momento de divergencia en que la insignia trimestral cambia antes que el TTM es la alerta más temprana.",
-      "semiIpYoy": "Regla: producción de semiconductores interanual >+5 % → voto laxo; <0 % → voto restrictivo. Es el extremo del lado de la oferta del trío de flujo de caja de oferta/demanda IA (uso → capex cloud → producción semi). Regla de consenso del trío: cualquier eslabón en contracción → restrictiva (alerta de sobreoferta); toda la cadena al alza → laxa (escasez); si no → neutral.",
+      "capexYoY": "Regla: CapEx de hyperscalers (MSFT/AMZN/GOOGL/META, 4T móviles) interanual >+10 % → voto laxo (auge inversor); <0 % → voto restrictivo (contracción del CapEx · alerta de sobreoferta — cualquier eslabón restrictivo del trío vuelve restrictiva la oferta/demanda IA). Reglas del explorador trimestral (20/07/2026): un último trimestre negativo bloquea el voto laxo (neutral como máximo); dos trimestres negativos seguidos → restrictivo directamente, sin esperar al TTM (1-2 trimestres antes). 2.º nivel del trío de flujo de caja (lado inversión): los modelos compran nube",
+      "capexQtrYoY": "Rol decisorio limitado (desde el 20/07/2026): interanual del último trimestre natural publicado por las cuatro (calendarios alineados — sin mezclar trimestres en plena temporada de resultados). El trimestre suelto es el explorador del punto de giro — el 4T móvil es una media que diluye un frenazo y lo retrasa 2-3 temporadas de resultados. Dos reglas: ① un trimestre negativo bloquea el voto laxo del subsector CapEx (precedente: el QT del balance solo bloquea lo laxo); ② dos trimestres negativos seguidos → CapEx vota restrictivo directamente, sin esperar al TTM. La insignia marca el estado propio de esta fila con los umbrales del TTM (>+10 % laxa / <0 % restrictiva); el momento de divergencia en que la insignia trimestral cambia antes que el TTM es la alerta más temprana.",
+      "semiIpYoy": "Regla: producción de semiconductores interanual >+5 % → voto laxo; <0 % → voto restrictivo. Es el extremo del lado de la oferta del trío de flujo de caja de oferta/demanda IA (uso → CapEx cloud → producción semi). Regla de consenso del trío: cualquier eslabón en contracción → restrictiva (alerta de sobreoferta); toda la cadena al alza → laxa (escasez); si no → neutral.",
       "rate": "Se juzga por la dirección de la última decisión del FOMC: una subida (incl. gradual de 25 pb) → restrictiva, mantenida hasta la siguiente decisión; recorte o pausa → laxa. Un ajuste único ≥50 pb (cualquier dirección) además activa el bloqueo de ajuste reactivo, forzando defensa total. Efectivo el mismo día de la decisión: tras la publicación a las 14:00 h ET, el sistema lee directamente el comunicado de la Fed (sin esperar a la serie diaria de FRED, que solo refleja el nuevo escalón el siguiente día hábil); la página y el nivel se actualizan ese mismo día.",
       "balanceSheet": "Variación del balance (13 semanas): expansión >0,8 % (QE) → voto laxo; contracción >0,8 % (QT) no se juzga restrictiva por sí sola — solo bloquea una calificación laxa (backtest: el mercado subió en la mayoría de los años de QT); entre ambos → pausa.",
       "sahm": "Regla: valor Sahm ≥0,5 % → inicio de recesión, bloqueo Sahm que fuerza defensa total (<0,5 % no dispara). Desbloqueo: tasa reducida a ≤0,25 % (zona de tasa cero — desbloqueo incondicional, incluso con el valor Sahm aún elevado, no sujeto a la duración mínima del bloqueo); o un ajuste menor <50 pb — siempre que ese día el valor Sahm haya vuelto a caer por debajo de 0,5 % (disparador desaparecido) y el bloqueo tenga al menos 60 días (duración mínima del bloqueo)",
@@ -94,7 +94,8 @@
       "reference": "Solo referencia, no participa en el juicio",
       "epuDaily": "Regla: EPU diario MM7 (basado en prensa; reacciona en días a giros como pausas arancelarias) percentil 10 años >80 → restrictiva, <50 → laxa; debe coincidir con el índice comercial mensual, si no → neutral Histéresis (2026-10-30): una vez restrictivo, solo sale por debajo del percentil 75, evitando vaivenes por ruido en torno al 80.",
       "oilWti": "La variación de 30 días del WTI es el precio de mercado en tiempo real de los choques bélicos/geopolíticos, con prioridad sobre los percentiles EPU: subida ≥+20 % Y EPU elevado (>percentil 80) → restrictiva (choque bélico/de oferta); una subida con EPU en calma = recuperación de demanda, sin falsa defensa. Caída ≥20 % Y EPU no elevado → laxa (desescalada); si el EPU está simultáneamente alto, la caída es de tipo crisis — sin laxa. Salvaguarda de nivel del petróleo (2026-07-19): un repunte solo cuenta como shock bélico si el precio del petróleo está además en nivel alto (por encima de su mediana de 2 años) — los rebotes desde niveles bajos justo tras una crisis (45 $ en 2009, 38 $ en 2020) ocurren cuando el EPU sigue inevitablemente elevado y no son shocks bélicos; los repuntes en niveles altos (110 $ en la guerra Rusia-Ucrania de 2022) no se ven afectados. Fuente (2026-10-30): se juzga con el WTI al contado (el futuro continuo muestra ~±6 pp de falsos movimientos en los cambios de contrato); se recurre a futuros solo si el contado tiene más de 7 días.",
-      "fiscalOutlaysTtm": "Regla (gobierno pequeño): gasto federal TTM interanual >+5 % → restrictiva (el gobierno crece); <−5 % → laxa (el gobierno adelgaza). Por qué gasto y no déficit: el déficit mezcla el lado de ingresos — un déficit por recortes de impuestos (2017) cumple el principio y no debe leerse como restrictivo. Medido como gasto real (deflactado) interanual: el gasto nominal crece naturalmente ≈5 % y pre-activaría restrictiva de forma crónica; tras deflactar por PCE solo se dispara cuando la expansión/contracción real supera ±5 %"
+      "fiscalOutlaysTtm": "Regla (gobierno pequeño): gasto federal TTM interanual >+5 % → restrictiva (el gobierno crece); <−5 % → laxa (el gobierno adelgaza). Por qué gasto y no déficit: el déficit mezcla el lado de ingresos — un déficit por recortes de impuestos (2017) cumple el principio y no debe leerse como restrictivo. Medido como gasto real (deflactado) interanual: el gasto nominal crece naturalmente ≈5 % y pre-activaría restrictiva de forma crónica; tras deflactar por PCE solo se dispara cuando la expansión/contracción real supera ±5 %",
+      "capexQtrDecel": "Solo informativo, no interviene en el juicio (2026-10-30): crecimiento interanual del CapEx del último trimestre menos el del trimestre anterior, en puntos porcentuales. Positivo = aceleración, negativo = desaceleración. Pasar de +87 % a +11 % sigue siendo «laxo» según los umbrales pero es un frenazo fuerte; los precios de la cadena (HBM/óptica/energía) siguen esta segunda derivada. Base nominal: la inflación de memoria/hardware eleva el crecimiento y la deflación lo reduce; léase junto con los motivos de la guía."
     },
     "hintGlobal": "Regla global: Ataque (asimétrico) = oferta/demanda IA laxa (el motor activo encendido) + monetaria/fiscal/administrativa todas no restrictivas (neutral basta; cualquier restrictiva veta) + sin bloqueos + curva de rendimientos del Tesoro de EE. UU. fuera de inversión confirmada (10a−3m invertida en ≥51 de los últimos 63 días hábiles → veta el acceso al ataque, rebajado a observar) + diferencial de crédito sin ampliación brusca (diferencial Baa−Tesoro 10 a ampliado ≥+60 pb en 90 d → también veta el acceso al ataque) + tipo real no profundamente restrictivo (tipo oficial − PCE recortado 12M ≥1,5 % → también veta el acceso al ataque); solo una dimensión restrictiva = reducir y esperar — dejar de aumentar posiciones y elevar la alerta; no hace falta reducir las posiciones existentes (evidencia de backtest: los meses con una sola dimensión restrictiva no rinden de media menos que el resto — una sola restrictiva es señal de atención, no de acción); dos o más restrictivas o bloqueo Sahm/reactivo activo = defensa total. Excepción de reentrada por tendencia: cuando el mercado está en tendencia alcista (último cierre ≥ SMA de los 10 últimos cierres de fin de mes), la defensa total dictada por el árbol de decisión se rebaja a reducir y esperar; la defensa dictada por un bloqueo nunca es anulada por la tendencia. Histéresis de rebaja: las subidas de nivel (más defensivas, incl. forzadas por bloqueo) surten efecto de inmediato; las bajadas (más laxas) requieren que el nivel más suave persista 30 días de confirmación, manteniéndose entretanto el nivel anterior Dos ajustes (2026-07-18): una doble restricción puramente monetaria+fiscal (sin dimensión administrativa ni bloqueo) solo llega a Reducir; la defensa activada por el bloqueo Sahm también se rebaja a Reducir en tendencia alcista (el bloqueo de ajuste reactivo nunca es anulado por la tendencia). Suelo de tendencia (2026-08-04): con el mercado bajo su tendencia (último cierre < SMA de 10 meses), el nivel final es como mínimo reducir y esperar (no aumentar; no hace falta recortar lo existente).",
     "stale": "Datos retrasados",
@@ -103,7 +104,7 @@
     "oilWti": "Petróleo WTI",
     "short": {
       "modelUsage": "Uso",
-      "capex": "Capex cloud",
+      "capex": "CapEx cloud",
       "capexQtr": "trim.",
       "semiIp": "Prod. semi",
       "epuDaily": "EPU diario",
@@ -116,7 +117,8 @@
       "spot": "Spot (retrasado)"
     },
     "fiscalOutlaysTtm": "Gasto federal (TTM)",
-    "capexGuidance": "Guía capex (referencia prospectiva)"
+    "capexGuidance": "Guía CapEx (referencia prospectiva)",
+    "capexQtrDecel": "Cambio del crecimiento del CapEx (trim. vs trim. anterior)"
   },
   "watchlist": {
     "title": "Lista de Seguimiento",
@@ -208,7 +210,7 @@
       "ai_supply": "Oferta/demanda IA",
       "sahmLock": "Bloqueo Sahm",
       "reactiveAdjustmentLock": "Bloqueo de ajuste reactivo",
-      "capex_guidance": "Recorte guía capex"
+      "capex_guidance": "Recorte guía CapEx"
     },
     "signalCleared": "Borrado",
     "apiKeys": {
@@ -226,8 +228,8 @@
       "enable": "Activar",
       "disable": "Desactivar"
     },
-    "capexGuidance": "Recorte guía capex",
-    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de capex (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente. Dos salvaguardas: la búsqueda web solo acepta coberturas posteriores a los resultados (los avances/expectativas de analistas no cuentan); los cambios contables que alteran la guía nominal sin cambiar los planes reales se clasifican como «mantener» y no activan este evento. Los recortes nominales por retrasos de suministro/entrega (gasto aplazado) o menores costes unitarios también se clasifican como «mantener» y no activan este evento.",
+    "capexGuidance": "Recorte guía CapEx",
+    "capexGuidanceHint": "Entrada de tipo evento: nivel fijado en restrictivo. Surte efecto cuando un hyperscaler recorta explícitamente su guía de CapEx (anotar quién/qué); la oferta/demanda IA se restringe de inmediato y se notifica por correo a los suscriptores. Detección automática desde ambas fuentes: recorte del comunicado se registra de inmediato; recorte detectado vía web (llamada/medios) requiere corroboración — palabras de la dirección o ≥2 fuentes independientes; por debajo de ese umbral solo se señala y debe verificarse y registrarse aquí manualmente. Dos salvaguardas: la búsqueda web solo acepta coberturas posteriores a los resultados (los avances/expectativas de analistas no cuentan); los cambios contables que alteran la guía nominal sin cambiar los planes reales se clasifican como «mantener» y no activan este evento. Los recortes nominales por retrasos de suministro/entrega (gasto aplazado) o menores costes unitarios también se clasifican como «mantener» y no activan este evento.",
     "clearOverride": "Quitar anulación (volver a auto)",
     "cancelLockOverride": "Cancelar el borrado del bloqueo (se restaura según datos)",
     "users": {
@@ -338,7 +340,7 @@
     "relReturnLabel": "30d vs SPY",
     "bubbleTitle": "Monitor de Burbuja",
     "modelUsageTrend": "Tendencia de Uso de Modelos (28d vs 28d previos)",
-    "capexYoY": "Capex de Nube (12M móviles)",
+    "capexYoY": "CapEx de Nube (12M móviles)",
     "capexAmount": "{bn} MM USD",
     "capexQtr": "Trim. {pct}",
     "semiIpYoy": "Producción de Semiconductores Interanual",
@@ -353,7 +355,7 @@
       "power": "Energía",
       "optical": "Módulos Ópticos"
     },
-    "guidanceTitle": "Detección guía capex",
+    "guidanceTitle": "Detección guía CapEx",
     "guidanceSource": {
       "press_release": "Fuente: comunicado",
       "web": "Fuente: llamada/medios"
@@ -361,7 +363,9 @@
     "guidanceQtr": "Trim.",
     "guidanceTtm": "TTM",
     "guidanceFy": "Guía anual:",
-    "guidanceFwd": "Más allá:"
+    "guidanceFwd": "Más allá:",
+    "watchCapex": "Vigilancia: {name} CapEx {qtr} trimestre ${bn} mil M$ (interanual {yoy}), en el año ${ytdBn} mil M$ ({ytdYoy})",
+    "watchCapexHint": "Lista de vigilancia: solo informativo; no se suma al total de los cuatro hyperscalers ni interviene en el juicio (añadido 2026-10-30). Fuente: SEC EDGAR 10-Q, estado de flujos (compras de PP&E). Cotiza desde hace menos de dos años, aún sin variación TTM. Se reevaluará su inclusión cuando su escala se acerque a la de alguno de los cuatro."
   },
   "recessionLock": {
     "banner": "Bloqueo de Defensa Activo",

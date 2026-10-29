@@ -1,5 +1,6 @@
 // 信号/产业链响应组装（共享层）：内部 /api/* 与开放 /v1/* 复用同一实现，避免两套口径漂移
 import chainCfg from '../config/ai-chain.config.js';
+import { getCachedWatchCapex } from './fetch-ai-chain.js';
 import {
   getLatestSnapshot,
   getAllOverrides,
@@ -251,6 +252,8 @@ export async function buildAiChainPayload() {
       warning: !!chainSnap?.bubble_warning,
       reasons: bubbleReasons,
     },
+    // 130号观察名单 CapEx（SpaceX 含 xAI）：只展示，不进四家合计与判定
+    watchCapex: getCachedWatchCapex(),
     // capex指引自动检测：每家取最近一条记录（含 direction=none 的"未检测到指引"，产业链面板常驻展示）；
     // 113号补源后附带财报快报（单季/TTM额度与同比、本财年/未来指引、来源）
     guidance: (() => {

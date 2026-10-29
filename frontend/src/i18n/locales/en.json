@@ -11,9 +11,9 @@
     "loading": "Loading data...",
     "reduce": "Reduce",
     "snapshotStale": "Signal data has not updated for {days} days — the backend may be down; do not treat the current tier as up to date",
-    "capexGuidanceBanner": "Hyperscaler capex guidance cut — forward signal of capex contraction & AI oversupply; AI supply/demand turned TIGHT",
-    "capexGuidanceRefTitle": "Capex guidance (forward-looking reference)",
-    "capexGuidanceRefHint": "Auto-detected: forward capex guidance direction for each new earnings report — EDGAR press release and web search of call transcripts/slides/major financial media run in parallel and fill each other's gaps, plus a quarterly/TTM capex snapshot. Reference only — does not directly drive the signal; \"explicit cut + high confidence\" auto-escalates to a tightening event (press-release cuts record immediately; web-detected cuts require corroboration — management's own words from a primary source or ≥2 independent sources; otherwise only flagged for manual review). Hover to see the quoted text. Detection has two guardrails: ① only post-earnings coverage counts — pre-earnings previews and analyst expectations are not management guidance; ② when an accounting change (depreciation life, lease reclassification) shifts the nominal guidance figure while actual investment plans are unchanged, the direction is \"maintain\", not a cut (e.g. MSFT's useful-life change restated CY2026 guidance from $190B to ~$175B with plans unchanged). ③ Web-sourced records are provisional on earnings night and auto-rechecked daily for 48 hours after the report (manually verified records excepted), correcting stale-guidance echoes caused by thin same-night media coverage. ④ Cuts are judged by cause: only demand-driven or unexplained cuts count; spending deferred by supply/delivery delays (e.g., third-party capacity delays with H2 catch-up), lower unit costs, or accounting changes are \"maintain\" (e.g., MSFT FY27Q1: CY2026 ~$175B→~$170B on 3P capacity delays, H2 to accelerate = maintain).",
+    "capexGuidanceBanner": "Hyperscaler CapEx guidance cut — forward signal of CapEx contraction & AI oversupply; AI supply/demand turned TIGHT",
+    "capexGuidanceRefTitle": "CapEx guidance (forward-looking reference)",
+    "capexGuidanceRefHint": "Auto-detected: forward CapEx guidance direction for each new earnings report — EDGAR press release and web search of call transcripts/slides/major financial media run in parallel and fill each other's gaps, plus a quarterly/TTM CapEx snapshot. Reference only — does not directly drive the signal; \"explicit cut + high confidence\" auto-escalates to a tightening event (press-release cuts record immediately; web-detected cuts require corroboration — management's own words from a primary source or ≥2 independent sources; otherwise only flagged for manual review). Hover to see the quoted text. Detection has two guardrails: ① only post-earnings coverage counts — pre-earnings previews and analyst expectations are not management guidance; ② when an accounting change (depreciation life, lease reclassification) shifts the nominal guidance figure while actual investment plans are unchanged, the direction is \"maintain\", not a cut (e.g. MSFT's useful-life change restated CY2026 guidance from $190B to ~$175B with plans unchanged). ③ Web-sourced records are provisional on earnings night and auto-rechecked daily for 48 hours after the report (manually verified records excepted), correcting stale-guidance echoes caused by thin same-night media coverage. ④ Cuts are judged by cause: only demand-driven or unexplained cuts count; spending deferred by supply/delivery delays (e.g., third-party capacity delays with H2 catch-up), lower unit costs, or accounting changes are \"maintain\" (e.g., MSFT FY27Q1: CY2026 ~$175B→~$170B on 3P capacity delays, H2 to accelerate = maintain).",
     "guidanceDir": {
       "cut": "guidance cut",
       "raise": "guidance raised",
@@ -79,13 +79,13 @@
     "trendFlat": "Flat",
     "trendDown": "Down",
     "modelUsageTrend": "Model Usage Trend",
-    "capexYoY": "Hyperscaler Capex YoY",
-    "capexQtrYoY": "Hyperscaler Capex (Latest Quarter)",
+    "capexYoY": "Hyperscaler CapEx YoY",
+    "capexQtrYoY": "Hyperscaler CapEx (Latest Quarter)",
     "hints": {
       "modelUsageTrend": "Model usage trend: trailing 28-day average volume vs the prior 28-day average (monthly-level smoothing that dilutes single-week holiday noise). >+3% (roughly ≥+47% annualized growth) → strong demand · loose; <−3% (sustained decline in the monthly average) → weakening demand · oversupply warning · tight. Source: openrouter.ai/rankings — a single-aggregator proxy subject to share noise.",
-      "capexYoY": "Rule: hyperscaler (MSFT/AMZN/GOOGL/META) rolling-4Q capex YoY >+10% → loose vote (investment boom); <0% → tight vote (capex contraction · oversupply warning — any tight link in the trio makes AI supply/demand tight). Quarterly scout rules (2026-07-20): a negative latest single quarter blocks a loose vote (neutral at most); two straight negative quarters → tight directly, without waiting for TTM to turn (1-2 quarters earlier). 2nd layer of the cash-flow trio (investment side): model providers buy cloud compute",
-      "capexQtrYoY": "Limited judgment role (since 2026-07-20): YoY of the latest calendar quarter that all four have reported (fiscal-calendar aligned — no mixed quarters mid earnings season). The single quarter is the turning-point scout — TTM is a 4-quarter moving average that dilutes a brake and lags 2-3 reporting seasons. Two rules: ① a negative quarter blocks the capex sub-signal from voting loose (precedent: balance-sheet QT only blocks loose); ② two straight negative quarters → capex votes tight directly, without waiting for TTM. Badge marks this row's own state at the TTM thresholds (>+10% loose / <0% tight); the divergence moment when the quarterly badge turns before TTM is the earliest turning-point alert.",
-      "semiIpYoy": "Rule: semiconductor output YoY >+5% → loose vote; <0% → tight vote. Semi output is the supply-side tail of the AI supply/demand cash-flow trio (usage → cloud capex → semi output). Trio consensus rule: any link contracting → tight (oversupply warning); the whole chain rising → loose (undersupply); otherwise neutral.",
+      "capexYoY": "Rule: hyperscaler (MSFT/AMZN/GOOGL/META) rolling-4Q CapEx YoY >+10% → loose vote (investment boom); <0% → tight vote (CapEx contraction · oversupply warning — any tight link in the trio makes AI supply/demand tight). Quarterly scout rules (2026-07-20): a negative latest single quarter blocks a loose vote (neutral at most); two straight negative quarters → tight directly, without waiting for TTM to turn (1-2 quarters earlier). 2nd layer of the cash-flow trio (investment side): model providers buy cloud compute",
+      "capexQtrYoY": "Limited judgment role (since 2026-07-20): YoY of the latest calendar quarter that all four have reported (fiscal-calendar aligned — no mixed quarters mid earnings season). The single quarter is the turning-point scout — TTM is a 4-quarter moving average that dilutes a brake and lags 2-3 reporting seasons. Two rules: ① a negative quarter blocks the CapEx sub-signal from voting loose (precedent: balance-sheet QT only blocks loose); ② two straight negative quarters → CapEx votes tight directly, without waiting for TTM. Badge marks this row's own state at the TTM thresholds (>+10% loose / <0% tight); the divergence moment when the quarterly badge turns before TTM is the earliest turning-point alert.",
+      "semiIpYoy": "Rule: semiconductor output YoY >+5% → loose vote; <0% → tight vote. Semi output is the supply-side tail of the AI supply/demand cash-flow trio (usage → cloud CapEx → semi output). Trio consensus rule: any link contracting → tight (oversupply warning); the whole chain rising → loose (undersupply); otherwise neutral.",
       "rate": "Judged by the direction of the latest FOMC decision: a hike (incl. gradual 25bp) → tight, held until the next decision; a cut or hold → loose. A single adjustment ≥50bp (either direction) additionally triggers the reactive adjustment lock, forcing full defense. Effective on decision day: within minutes of the 2:00 p.m. ET release the system reads the Fed statement directly (rather than waiting for the daily FRED series, which only reflects the new step the next business day), so the page and the tier update the same day.",
       "balanceSheet": "Balance sheet change (13-week): expansion >0.8% (QE) → loose vote; contraction >0.8% (QT) does not read tight on its own — it only blocks a loose rating (backtest: markets rose in most QT years); in between → pause.",
       "sahm": "Rule: Sahm value ≥0.5% → early recession, triggers the Sahm lock forcing full defense (<0.5% does not trigger). Unlock: rate down to ≤0.25% (zero-rate zone — unconditional unlock, even with the Sahm value still elevated, not subject to the minimum lock age); or a <50bp small rate adjustment — requiring both that the Sahm value has fallen back below 0.5% that day (trigger gone) and the lock is at least 60 days old (minimum lock age)",
@@ -94,7 +94,8 @@
       "reference": "Reference only, not part of signal judgment",
       "epuDaily": "Rule: daily economic policy uncertainty index 7-day MA (news-based; reacts within days to policy pivots like tariff pauses) 10-year percentile >80 → tight, <50 → loose; must agree with the monthly trade index, else neutral Hysteresis (2026-10-30): once tight, it exits only below the 75th percentile, preventing flip-flops on noise around the 80th.",
       "oilWti": "WTI 30-day change is the market's real-time pricing of war/geopolitical shocks, taking priority over EPU percentiles: gain ≥+20% AND EPU elevated (>80th pct) → tight (war/supply shock); a surge while EPU is calm = demand recovery, not misread as defense. Drop ≥20% AND EPU not elevated → loose (de-escalation); if EPU is simultaneously high the crash is crisis-type — no loose. Oil-level guard (2026-07-19): a surge only counts as a war shock if the oil price is also at a high level (above its 2-year median) — low-base rebounds right after crises (e.g. $45 in 2009, $38 in 2020) happen while EPU is inevitably still elevated and are not war shocks; high-level surges (e.g. $110 during the 2022 Russia-Ukraine war) are unaffected. Source (2026-10-30): judged on WTI spot (the continuous futures contract shows ~±6pp false moves across rolls); falls back to futures only if spot is more than 7 days old.",
-      "fiscalOutlaysTtm": "Rule (small-government): TTM federal outlays YoY expands >5% → tight (government growing, harmful to markets); shrinks >5% → loose (government slimming). Why outlays not deficit: deficit mixes in the revenue side — tax-cut-driven deficits (e.g. 2017) fit the low-tax principle and should not read as tight. Measured as real (inflation-adjusted) outlays YoY: nominal outlays naturally grow ~5% and would chronically pre-trigger tight; after PCE deflation it only fires when real expansion/contraction exceeds ±5%"
+      "fiscalOutlaysTtm": "Rule (small-government): TTM federal outlays YoY expands >5% → tight (government growing, harmful to markets); shrinks >5% → loose (government slimming). Why outlays not deficit: deficit mixes in the revenue side — tax-cut-driven deficits (e.g. 2017) fit the low-tax principle and should not read as tight. Measured as real (inflation-adjusted) outlays YoY: nominal outlays naturally grow ~5% and would chronically pre-trigger tight; after PCE deflation it only fires when real expansion/contraction exceeds ±5%",
+      "capexQtrDecel": "Display only, not used in judgment (2026-10-30): latest single-quarter CapEx YoY minus the prior quarter's, in percentage points. Positive = accelerating, negative = decelerating. A drop from +87% to +11% still reads \"loose\" on thresholds but is a sharp slowdown — supply-chain pricing (HBM/optics/power) follows this second derivative. Nominal basis: memory/hardware price inflation lifts growth and deflation depresses it; read alongside the stated guidance reasons."
     },
     "hintGlobal": "Global rule: Attack (asymmetric) = AI supply/demand loose (the active engine firing) + monetary/fiscal/admin all not tight (neutral is fine; any tight vetoes) + no locks + US Treasury yield curve not in confirmed inversion (10y−3m inverted on ≥51 of the last 63 trading days vetoes attack entry, downgrading to watch) + credit spread not widening sharply (Baa−10y Treasury spread widening ≥+60bp over 90 days likewise vetoes attack entry, downgrading to watch) + real rate not deeply restrictive (policy rate − 12M trimmed-mean PCE ≥1.5% likewise vetoes attack entry); one dimension tight = reduce & watch — stop adding, raise alertness; no need to trim existing positions (backtest evidence: months with a single tight dimension average market returns no lower than other months — a single tight is an attention signal, not an action signal); two+ tight or Sahm/reactive lock active = full defense. Trend re-entry exception: when the market is in an uptrend (latest close ≥ SMA of the last 10 month-end closes), decision-tree-driven full defense is downgraded to reduce & watch; lock-driven defense is never overridden by the trend. Downgrade hysteresis: upgrades (more defensive, incl. lock-forced) take effect immediately; downgrades (more lenient) require the milder tier to persist for a 30-day confirmation period, keeping the previous tier meanwhile Two refinements (2026-07-18): a pure monetary+fiscal double-tight (no administrative dim, no lock) only reaches Reduce; Sahm-lock-driven defense is likewise downgraded to Reduce in an uptrend (the reactive-adjustment lock is never overridden by trend). Trend floor (2026-08-04): when the market is below trend (latest close < 10-month SMA), the final tier is at least reduce & watch (stop adding, raise alertness; no need to trim holdings).",
     "stale": "Data delayed",
@@ -103,7 +104,7 @@
     "oilWti": "WTI Crude Oil",
     "short": {
       "modelUsage": "Usage",
-      "capex": "Cloud Capex",
+      "capex": "Cloud CapEx",
       "capexQtr": "Qtr",
       "semiIp": "Semi Output",
       "epuDaily": "Daily EPU",
@@ -116,7 +117,8 @@
       "spot": "Spot (delayed)"
     },
     "fiscalOutlaysTtm": "Federal Outlays (TTM)",
-    "capexGuidance": "Capex guidance (forward reference)"
+    "capexGuidance": "CapEx guidance (forward reference)",
+    "capexQtrDecel": "CapEx growth change (qtr vs prior qtr)"
   },
   "watchlist": {
     "title": "Watchlist",
@@ -215,7 +217,7 @@
       "ai_supply": "AI Supply",
       "sahmLock": "Sahm Lock",
       "reactiveAdjustmentLock": "Reactive Adjustment Lock",
-      "capex_guidance": "Capex Guidance Cut"
+      "capex_guidance": "CapEx Guidance Cut"
     },
     "signalCleared": "Cleared",
     "apiKeys": {
@@ -233,8 +235,8 @@
       "enable": "Enable",
       "disable": "Disable"
     },
-    "capexGuidance": "Capex Guidance Cut",
-    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts capex guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses. Two guardrails: web search only trusts post-earnings coverage (previews/analyst expectations are not guidance); accounting-basis changes that shift nominal guidance with unchanged actual plans are \"maintain\" and do not trigger this event. Nominal cuts from supply/delivery delays (spend deferred) or lower unit costs are likewise \"maintain\" and do not trigger this event.",
+    "capexGuidance": "CapEx Guidance Cut",
+    "capexGuidanceHint": "Event-type input: tier locked to tight. Takes effect when a hyperscaler explicitly cuts CapEx guidance (note which company/what was said); AI supply/demand tightens immediately and subscribers are emailed. Auto-detection records from both sources: press-release cuts record immediately; web-detected cuts (call/media search) require corroboration — management's own words or ≥2 independent sources; below that threshold they are only flagged and must be verified and entered here manually. Set an expiry or clear manually when the event lapses. Two guardrails: web search only trusts post-earnings coverage (previews/analyst expectations are not guidance); accounting-basis changes that shift nominal guidance with unchanged actual plans are \"maintain\" and do not trigger this event. Nominal cuts from supply/delivery delays (spend deferred) or lower unit costs are likewise \"maintain\" and do not trigger this event.",
     "clearOverride": "Clear override (back to auto)",
     "cancelLockOverride": "Cancel lock-clear (lock restored per data)",
     "users": {
@@ -345,7 +347,7 @@
     "relReturnLabel": "30d vs SPY",
     "bubbleTitle": "Bubble Monitor",
     "modelUsageTrend": "Model Usage Trend (28d vs prior 28d)",
-    "capexYoY": "Hyperscaler Capex (TTM)",
+    "capexYoY": "Hyperscaler CapEx (TTM)",
     "capexAmount": "${bn}B",
     "capexQtr": "Qtr {pct}",
     "semiIpYoy": "Semiconductor Output YoY",
@@ -360,7 +362,7 @@
       "power": "Power & Energy",
       "optical": "Optical Modules"
     },
-    "guidanceTitle": "Capex guidance scan",
+    "guidanceTitle": "CapEx guidance scan",
     "guidanceSource": {
       "press_release": "Source: press release",
       "web": "Source: call/media search"
@@ -368,7 +370,9 @@
     "guidanceQtr": "Qtr",
     "guidanceTtm": "TTM",
     "guidanceFy": "FY guidance:",
-    "guidanceFwd": "Beyond:"
+    "guidanceFwd": "Beyond:",
+    "watchCapex": "Watch: {name} CapEx {qtr} quarter ${bn}B (YoY {yoy}), YTD ${ytdBn}B ({ytdYoy})",
+    "watchCapexHint": "Watch list — display only; not included in the four-hyperscaler total or the judgment (added 2026-10-30). Source: SEC EDGAR 10-Q cash-flow purchases of PP&E. Listed for under two years, so no TTM YoY yet. Will be reassessed for inclusion once its scale approaches any of the four."
   },
   "footer": {
     "sources": "Data: FRED · SEC EDGAR · OpenRouter · Market feeds",

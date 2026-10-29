@@ -52,7 +52,7 @@ const DIM_LABELS = {
 
 const BUBBLE_REASON_LABELS = {
   modelUsage: '模型调用量下滑 Model usage declining',
-  capex: '云厂商资本开支同比转负 Hyperscaler capex YoY negative',
+  capex: '云厂商资本开支同比转负 Hyperscaler CapEx YoY negative',
 };
 
 /**
@@ -76,7 +76,7 @@ export function buildAlertEmail(payload) {
       lines.push(`⚠️ AI泡沫预警触发 Bubble warning triggered：${reasons}`);
     } else if (c.kind === 'capexGuidance') {
       const noteStr = c.note ? `（${escapeHtml(c.note)}）` : '';
-      lines.push(`🔴 云厂商capex指引下修事件录入 Hyperscaler capex guidance cut recorded${noteStr}——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维即时转收紧 forward signal of capex contraction & AI oversupply; AI supply/demand dimension turns TIGHT immediately`);
+      lines.push(`🔴 云厂商CapEx指引下修事件录入 Hyperscaler CapEx guidance cut recorded${noteStr}——未来资本开支缩减与AI供过于求的前瞻信号，AI供需维即时转收紧 forward signal of CapEx contraction & AI oversupply; AI supply/demand dimension turns TIGHT immediately`);
     } else if (c.kind === 'sahmLockOn') {
       const sahmStr = details.sahmValue != null ? `（当前值 ${Number(details.sahmValue).toFixed(2)}）` : '';
       lines.push(`🔴 萨姆规则触发，进入衰退防守锁定 Sahm Rule triggered, recession defense lock activated${sahmStr}`);

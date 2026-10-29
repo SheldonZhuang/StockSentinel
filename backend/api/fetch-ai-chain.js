@@ -393,6 +393,49 @@ export async function fetchCapexSeriesForSymbol(sym) {
 }
 
 /**
+ * 观察名单 CapEx（130号，只展示不进判定）：EDGAR YTD 差分出单季，算最新单季同比与年初至今同比。
+ * 上市不足 8 季时 TTM 同比无从计算，如实给 null。12 小时内存缓存（季度数据，日内不变）。
+ */
+const watchCapexCache = { at: 0, data: null };
+export async function fetchWatchCapex() {
+  if (watchCapexCache.data && Date.now() - watchCapexCache.at < 12 * 3600 * 1000) return watchCapexCache.data;
+  const out = [];
+  for (const [symbol, { cik, concept, name }] of Object.entries(chainCfg.WATCH_CAPEX_CIK || {})) {
+    try {
+      const facts = (await edgarGet(edgarUrl(cik, concept))).data?.units?.USD || [];
+      const q = deriveQuarterlyCapex(facts) || [];
+      const latest = q[0];
+      if (!latest) continue;
+      const prevYear = q.find(x => quarterKey(x.date) === shiftQuarterKey(quarterKey(latest.date), -4));
+      // 年初至今：同年 start 的最长 YTD 事实 vs 上年同期
+      const ytd = facts.filter(f => f.end === latest.date && f.start?.slice(0, 4) === latest.date.slice(0, 4))
+        .sort((a, b) => a.start.localeCompare(b.start))[0];
+      const prevEnd = `${Number(latest.date.slice(0, 4)) - 1}${latest.date.slice(4)}`;
+      const ytdPrev = facts.find(f => f.end === prevEnd && f.start?.slice(0, 4) === prevEnd.slice(0, 4));
+      out.push({
+        symbol, name, qtrEnd: latest.date,
+        qtrCapex: Math.abs(latest.capitalExpenditure),
+        qtrCapexYoY: prevYear ? (Math.abs(latest.capitalExpenditure) / Math.abs(prevYear.capitalExpenditure) - 1) * 100 : null,
+        ytdCapex: ytd ? Math.abs(ytd.val) : null,
+        ytdCapexYoY: ytd && ytdPrev ? (Math.abs(ytd.val) / Math.abs(ytdPrev.val) - 1) * 100 : null,
+      });
+    } catch (err) {
+      console.warn(`[fetch-ai-chain] watch capex(${symbol}) failed:`, err.message);
+    }
+  }
+  if (out.length) Object.assign(watchCapexCache, { at: Date.now(), data: out });
+  return out;
+}
+
+/** 请求路径用：只读缓存不阻塞（EDGAR 走全局串行限速，冷启动现拉会拖慢页面）；过期则后台刷新 */
+export function getCachedWatchCapex() {
+  if (!watchCapexCache.data || Date.now() - watchCapexCache.at >= 12 * 3600 * 1000) {
+    fetchWatchCapex().catch(() => {});
+  }
+  return watchCapexCache.data || [];
+}
+
+/**
  * 云厂商季度资本开支：SEC EDGAR 官方财报数据（Yahoo 财报接口对数据中心IP限流，弃用）
  * 单公司失败 → 剔除（calcCapexYoY 只聚合有完整8季数据的公司）
  */

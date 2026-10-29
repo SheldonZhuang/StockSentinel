@@ -128,6 +128,7 @@ function hintFor(ind) {
   if (ind.key === 'yieldCurve') return t('indicators.hints.yieldCurve');
   // capex单季同比：参考指标但有专属提示（拐点侦察兵语义 + 错季对齐口径）
   if (ind.key === 'capexQtrYoY') return t('indicators.hints.capexQtrYoY');
+  if (ind.key === 'capexQtrDecel') return t('indicators.hints.capexQtrDecel');
   // capex指引：自动检测语义与局限（新闻稿源/none≠无指引）
   if (ind.key === 'capexGuidance') return t('signal.capexGuidanceRefHint');
   return t('indicators.hints.reference');
@@ -201,6 +202,12 @@ const groups = computed(() => {
             : null,
           periodDate: ind.capexQtrEnd,
         },
+        // 130号（用户 2026-10-30 拍板，只展示不进判定）：单季同比较上一季变化（百分点）=增速的加速/减速。
+        // 供应链定价看二阶导：+87%→+11% 在 TTM/单季阈值下仍是"宽松"，但已是大幅刹车
+        ...(ind.capexQtrYoY != null && ind.capexQtrPrevQtrYoY != null ? [{
+          key: 'capexQtrDecel', signed: true, value: ind.capexQtrYoY - ind.capexQtrPrevQtrYoY, unit: 'pp', change: null,
+          periodDate: ind.capexQtrEnd,
+        }] : []),
         // capex指引（前瞻参考）紧跟云Capex口径：每家最近一次检测（含"未给指引"），文本芯片型行
         ...((ind.capexGuidanceRecords || []).length ? [{
           key: 'capexGuidance', value: null, change: null,

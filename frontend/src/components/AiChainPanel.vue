@@ -75,6 +75,15 @@
       </div>
       <!-- 点击/回车展开的判定规则说明：title 悬停在触屏/键盘上完全不可达（120号 a11y 修复） -->
       <div v-if="expandedHint && expandedHint !== 'guidance'" class="hint-expand">{{ hintTexts[expandedHint] }}</div>
+      <!-- 130号观察名单 CapEx（只展示不进判定）：SpaceX 含 xAI，单季与年初至今同比，EDGAR 10-Q 口径 -->
+      <div v-for="w in watchCapex" :key="w.symbol" class="bubble-source watch-capex" :title="$t('aiChain.watchCapexHint')">
+        {{ $t('aiChain.watchCapex', {
+          name: w.name, qtr: formatQuarterEnd(w.qtrEnd), bn: (w.qtrCapex / 1e9).toFixed(1),
+          yoy: w.qtrCapexYoY != null ? formatPct(w.qtrCapexYoY) : '—',
+          ytdBn: w.ytdCapex != null ? (w.ytdCapex / 1e9).toFixed(1) : '—',
+          ytdYoy: w.ytdCapexYoY != null ? formatPct(w.ytdCapexYoY) : '—',
+        }) }}
+      </div>
       <div v-if="bubble.modelUsageAsOf" class="bubble-source">
         Source: OpenRouter (openrouter.ai/rankings), as of {{ bubble.modelUsageAsOf }}
       </div>
@@ -214,6 +223,10 @@ const semiIpClass = computed(() => {
   if (sig === 'neutral') return 'neutral';
   return '';
 });
+
+const watchCapex = computed(() => chainData.value?.watchCapex || []);
+// '2026-09-30' → '2026Q3'
+const formatQuarterEnd = d => (d ? `${d.slice(0, 4)}Q${Math.ceil(Number(d.slice(5, 7)) / 3)}` : '—');
 
 // 资本开支显示：总额（按语言用 亿/億/억 或 B/Mrd/MM）+ TTM同比% + 最新单季同比（拐点侦察兵，参考）
 const capexDisplay = computed(() => {
