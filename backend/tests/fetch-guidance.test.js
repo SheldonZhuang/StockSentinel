@@ -32,6 +32,7 @@ import {
   computeCapexStats,
   latestCompletedQuarterEnd,
   webCutQualified,
+  normalizeCutDirection,
 } from '../api/fetch-guidance.js';
 import {
   saveGuidanceRecord,
@@ -387,6 +388,38 @@ describe('processCapexGuidance', () => {
     }));
   });
 
+  it('130号：web 下修达佐证门槛但原因为供给/交付节奏后移 → 归 maintain，不录 N3（MSFT FY27Q1 实证）', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    const today = new Date().toISOString().slice(0, 10);
+    axios.get.mockImplementation(url => {
+      if (url.includes('CIK0000789019')) {
+        return Promise.resolve({ data: { filings: { recent: {
+          form: ['8-K'], items: ['2.02'], filingDate: [today], accessionNumber: ['0001193125-26-436122'],
+        } } } });
+      }
+      if (url.includes('data.sec.gov/submissions/')) {
+        return Promise.resolve({ data: { filings: { recent: { form: [], items: [], filingDate: [], accessionNumber: [] } } } });
+      }
+      if (url.includes('index.json')) {
+        return Promise.resolve({ data: { directory: { item: [{ name: 'ex991.htm' }] } } });
+      }
+      return Promise.resolve({ data: 'no relevant keywords here' });
+    });
+    axios.post.mockResolvedValue(llmReply({
+      hasGuidance: true, direction: 'cut', cutDriver: 'supply_timing',
+      quote: 'for the calendar year, spend should be approximately $170 billion due to the 3P capacity delays… H2 CapEx to accelerate',
+      confidence: 'high', fyGuidance: 'CY2026 ~$170B vs ~$175B prior', forwardGuidance: 'H2 accelerate',
+      sources: ['https://cnbc.com/a', 'https://www.benzinga.com/b'], primarySource: true,
+    }));
+
+    const r = await processCapexGuidance();
+    expect(r.autoEvents).toBe(0);
+    expect(setAdminSignal).not.toHaveBeenCalled();
+    expect(saveGuidanceRecord).toHaveBeenCalledWith(expect.objectContaining({
+      direction: 'maintain', autoEventCreated: 0, fyGuidance: expect.stringContaining('timing shift'),
+    }));
+  });
+
   it('新闻稿判维持但 web 检出达标下修（一手来源）→ 方向覆盖为 cut 并录 N3', async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     const today = new Date().toISOString().slice(0, 10);
@@ -549,6 +582,24 @@ describe('webCutQualified（N3 佐证门槛纯函数）', () => {
     expect(webCutQualified({ ...base, direction: 'maintain', primarySource: true, sources: ['https://www.sec.gov/x'] })).toBe(false);
     expect(webCutQualified({ ...base, hasGuidance: false, primarySource: true, sources: ['https://www.sec.gov/x'] })).toBe(false);
     expect(webCutQualified(null)).toBe(false);
+  });
+});
+
+describe('normalizeCutDirection（130号下修归因）', () => {
+  it('需求驱动/未说明原因/非法值 → 仍为 cut（保守）', () => {
+    expect(normalizeCutDirection({ direction: 'cut', cutDriver: 'demand' }).direction).toBe('cut');
+    expect(normalizeCutDirection({ direction: 'cut' })).toMatchObject({ direction: 'cut', cutDriver: 'unspecified' });
+    expect(normalizeCutDirection({ direction: 'cut', cutDriver: 'bogus' })).toMatchObject({ direction: 'cut', cutDriver: 'unspecified' });
+  });
+  it('供给节奏/降价/会计口径 → maintain 并在 fyGuidance 注明原因', () => {
+    for (const d of ['supply_timing', 'cost', 'accounting']) {
+      const j = normalizeCutDirection({ direction: 'cut', cutDriver: d, fyGuidance: 'X' });
+      expect(j.direction).toBe('maintain');
+      expect(j.fyGuidance).toMatch(/counted as maintain] X$/);
+    }
+  });
+  it('非 cut 方向不受影响', () => {
+    expect(normalizeCutDirection({ direction: 'raise', cutDriver: 'supply_timing' }).direction).toBe('raise');
   });
 });
 

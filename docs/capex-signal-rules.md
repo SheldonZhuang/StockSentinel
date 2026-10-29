@@ -52,6 +52,16 @@
     名义指引从 ~$190B 重述为 ~$175B，实际支出零变化。**长期警示**：MSFT FY27 起
     "含融资租赁"口径的媒体数字会系统性变低——未来媒体报"MSFT capex 下降"须先核对
     口径再判；判定层 EDGAR 现金口径（purchases of PP&E）不含融资租赁，天然免疫。
+  - **下修归因护栏（2026-10-30，130号，用户复盘指出）**：N3 的经济含义是"需求收缩/供过于求
+    的前瞻信号"，数字下调不等于需求收缩。LLM 输出新增 `cutDriver`：demand（需求放缓/回报不足/
+    主动收缩）、supply_timing（第三方/租赁产能交付延迟、建设进度等致开支**后移**，未表示总投资
+    意图降低）、cost（单价下降、产能规划不变）、accounting（会计口径）、unspecified（未说明）。
+    只有 demand / unspecified 保留 cut（未说明原因保守按下修，防守信号宁可多问一次）；其余由
+    `normalizeCutDirection` 归 maintain 并在 fy_guidance 注明原因。实证：MSFT FY27Q1 "CY2026
+    ~$170B（此前 ~$175B）due to the 3P capacity delays… H2 capex to accelerate" 被误判 cut 自动录 N3
+    （媒体标题 "trims AI spending" 加强了误判），启动补丁已改档为 maintain 并撤销该 N3。
+    **剩余已知局限**：cutDriver 仍是同一次 LLM 输出，佐证门槛只验来源可信、不验归因；
+    下修是否是真需求收缩，最终仍靠 EDGAR 单季同比（N1/N2）数据确认——前瞻信号做预警、数据扣扳机。
 
 capex 子信号收紧 → 三件套共识规则"任一环节收紧→整维收紧" → AI 供需维收紧。
 

@@ -179,6 +179,23 @@ export function calcRateSteps(observations) {
  * 任何解析/网络失败都返回 null，判定链退回原有 FRED 逻辑（新源绝不是单点故障）。
  * @returns {object|null}
  */
+/**
+ * FOMC 决议日 FRED 生效滞后护栏是否生效（server.js 21:00 管道用）：决议已开、FRED 新台阶
+ * 尚未落地的 ≤2 天窗口内沿用上一快照的决议前基线，防"加息当晚误判暂停→宽松"。
+ * 让位条件：①Fed 声明源已给出真实区间（rateSource=fed_statement，127号）；
+ * ②Fed 声明确认本次按兵不动（130号）——按兵不动不会产生新台阶，护栏无事可等，
+ * 留着只会把"暂停=宽松"压回上次加息的基线。
+ */
+export function isRateDecisionPending({ macroData, prevSnapshot, today }) {
+  const decisionDate = macroData.rateDecisionDate;
+  if (!decisionDate || macroData.rateSource === 'fed_statement') return false;
+  if (macroData.fedDecisionAction === 'maintain' && macroData.fedDecisionDate === decisionDate) return false;
+  const lastRateStepDate = macroData.rateSteps?.[0]?.date ?? null;
+  return (lastRateStepDate === null || lastRateStepDate < decisionDate)
+    && (Date.parse(today) - Date.parse(decisionDate)) / 86400000 <= 2
+    && prevSnapshot?.fred_rate_prev != null;
+}
+
 export function applyFedDecisionOverride({ macroData, fedDecision, today }) {
   if (!fedDecision) return null;
   const { action, lower, upper, effectiveDate, decisionDate } = fedDecision;

@@ -234,6 +234,7 @@ function migrateSchema() {
   }
   if (changed) persist();
   patchGuidanceData();
+  patchMsftFy27Q1Guidance();
 }
 
 function sha256Hex(s) {
@@ -931,6 +932,35 @@ export async function getAllOverrides() {
     getActiveAdminSignal('capex_guidance'),
   ]);
   return { fiscal, administrative, aiSupply, sahmLockClear, reactiveAdjustmentLockClear, capexGuidance };
+}
+
+// 130号一次性数据补丁（2026-10-30，用户复盘指出）：MSFT FY27Q1 财报 web 检索把
+// "CY2026 ~$170B（此前~$175B）due to 3P capacity delays…H2 capex to accelerate" 判为 cut，
+// 自动录入 N3 收紧事件。实为第三方产能交付延迟致开支后移、下半年补回加码，不是需求收缩。
+// 定点修正档案为 maintain 并人工定档（防 48h 复检窗口被 LLM 重新判 cut），撤销仍指向该条的
+// 活动 N3 override（写 'auto' 清除哨兵，留审计痕迹）。幂等；本机与云端两套库各自启动即收敛。
+// 检测 prompt 已加 cutDriver 归因、非需求原因下修归 maintain（fetch-guidance.js normalizeCutDirection）
+function patchMsftFy27Q1Guidance() {
+  const ACC = '0001193125-26-436122';
+  const rec = all(`SELECT id FROM capex_guidance_records
+    WHERE accession = ? AND direction = 'cut'`, [ACC]);
+  if (rec.length) {
+    db.run(`UPDATE capex_guidance_records SET
+        direction = 'maintain', manual_verified = 1, auto_event_created = 0,
+        fy_guidance = 'CY2026 ~$170B (prior ~$175B): timing shift from third-party capacity delivery delays, spend deferred to FY27 H2 not cancelled — counted as maintain. Q2 FY27 capex >$50B.'
+      WHERE accession = ?`, [ACC]);
+    console.log('[migrate] 130号补丁：MSFT FY27Q1 指引档 cut→maintain（3P 产能交付延迟致开支后移，非需求收缩）并人工定档');
+  }
+  const latest = all(`SELECT signal, note FROM admin_signal_overrides
+    WHERE type = 'capex_guidance' ORDER BY created_at DESC, id DESC LIMIT 1`);
+  const revoke = latest[0]?.signal === 'tight' && (latest[0].note || '').includes('MSFT 2026-10-28');
+  if (revoke) {
+    db.run(`INSERT INTO admin_signal_overrides (type, signal, expires_at, note, set_by)
+      VALUES ('capex_guidance', 'auto', NULL, ?, 'migration-130')`,
+      ['130号复盘撤销：MSFT 2026-10-28 "~$170B due to 3P capacity delays, H2 accelerate" 为交付延迟致开支后移，非需求驱动下修']);
+    console.log('[migrate] 130号补丁：已撤销 MSFT 2026-10-28 误报的 N3 capex_guidance 收紧事件');
+  }
+  if (rec.length || revoke) persist();
 }
 
 // --- Capex 指引自动检测记录 ---

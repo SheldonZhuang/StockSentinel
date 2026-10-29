@@ -8,7 +8,7 @@ import adminRouter from './api/admin.js';
 import watchlistRouter from './api/watchlist.js';
 import { requireAuth, ensureAdminUser, normalizeEmail } from './api/auth.js';
 
-import { fetchMacroData } from './api/fetch-macro.js';
+import { fetchMacroData, isRateDecisionPending } from './api/fetch-macro.js';
 import { fetchPolicyData } from './api/fetch-policy.js';
 import { fetchAiChainData } from './api/fetch-ai-chain.js';
 import chainCfg from './config/ai-chain.config.js';
@@ -330,13 +330,9 @@ async function runDailyUpdateInner() {
   // 给出的是 currentRate=prevRate 的"持平"，方向仍然是错的。Fed 官方声明源（fed_statement）
   // 已给出真实区间与方向时必须让位，否则会把 25bp 加息重新压回"持平"（9/16 实战：
   // 网页显示"3.75% 0.00%（持平）"正是这条护栏的产物）。故仅 rateSource==='fred' 时生效
-  const lastRateStepDate = macroData.rateSteps?.[0]?.date ?? null;
-  const decisionDataPending = macroData.rateSource !== 'fed_statement'
-    && !!macroData.rateDecisionDate
-    && (lastRateStepDate === null || lastRateStepDate < macroData.rateDecisionDate)
-    && (Date.parse(today) - Date.parse(macroData.rateDecisionDate)) / 86400000 <= 2
-    && prevSnapshot?.fred_rate_prev != null;
-  if (decisionDataPending) {
+  // 130号：Fed 声明已确认本次按兵不动时同样让位——按兵不动 FRED 永远不会出新台阶，
+  // 护栏会把"暂停=宽松"压回上次加息的基线约 2 天（10-28 实战：货币维被误留 tight）
+  if (isRateDecisionPending({ macroData, prevSnapshot, today })) {
     console.log(`[cron] FOMC decision ${macroData.rateDecisionDate} not yet in FRED series, keeping previous rate baseline`);
     macroData.prevRate = prevSnapshot.fred_rate_prev;
   }

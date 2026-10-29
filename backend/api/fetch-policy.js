@@ -127,13 +127,15 @@ export async function fetchFiscalData(apiKey) {
       if (avgPrev !== 0) inflationPct = (avgCur / avgPrev - 1) * 100;
     }
   } catch (err) {
-    console.warn('[fetch-policy] PCE price index fetch failed, fiscal falls back to nominal:', err.message);
+    console.warn('[fetch-policy] PCE price index fetch failed, fiscal judgment falls back to stale-keep:', err.message);
   }
 
-  // 实际支出同比 = 名义同比 − 通胀（通胀拉取失败则退回名义，保持可用）
+  // 实际支出同比 = 名义同比 − 通胀。130号：通胀拉取失败时给 null（server 层 stale-keep
+  // 沿用上一快照判定），不再退回名义口径——±5% 阈值按实际口径标定，名义同比在 3% 通胀下
+  // 常年 >5%，退回名义等于换了指标沿用旧阈值，一次 PCEPI 失败就误判收紧并发信
   const realChangePct = (nominalChangePct !== null && inflationPct !== null)
     ? nominalChangePct - inflationPct
-    : nominalChangePct;
+    : null;
 
   const fiscalPeriodDate = latestDate(obs);
   const fiscalReleaseDate = fiscalPeriodDate

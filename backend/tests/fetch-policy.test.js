@@ -203,9 +203,26 @@ describe('fetchPolicyData', () => {
     expect(data.oilPeriodDate).toBe('2026-05-30');
   });
 
+  it('130号：PCEPI 失败 → 实际同比 null（交 server 层 stale-keep），不退回名义口径套实际阈值', async () => {
+    mockFredBySeriesId({
+      MTSO133FMS: fiscalObs,
+      PCEPI: new Error('FRED 500'),
+      EPUTRADE: epuObs,
+      USEPUINDXD: epuDailyObs,
+      DCOILWTICO: oilObs,
+      IPG3344S: semiIpObs,
+    });
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    const data = await fetchPolicyData();
+    expect(data.outlaysNominalChangePct).toBeCloseTo(10, 5); // 名义 +10% 仍展示
+    expect(data.fiscalInflationPct).toBeNull();
+    expect(data.outlaysChangePct).toBeNull();                // 旧行为=10 → 误判收紧
+  });
+
   it('单维度失败隔离：EPUTRADE 拒绝 → 月度侧 null，日频侧与财政/AI照常', async () => {
     mockFredBySeriesId({
       MTSO133FMS: fiscalObs,
+      PCEPI: pcepiObs,
       EPUTRADE: new Error('FRED 500'),
       USEPUINDXD: epuDailyObs,
       DCOILWTICO: oilObs,
@@ -217,7 +234,7 @@ describe('fetchPolicyData', () => {
     expect(data.epuTrade).toBe(null);
     expect(data.epuTradePercentile).toBe(null);
     expect(data.epuDailyPercentile).toBe(100); // 日频侧不受月度失败影响
-    expect(data.outlaysChangePct).toBeCloseTo(10, 5);
+    expect(data.outlaysChangePct).toBeCloseTo(8, 1); // 财政照常（实际口径）
     expect(data.semiIpYoy).toBe(7.2);
   });
 
