@@ -138,9 +138,11 @@ function dimDetail(dim, d) {
     // 油价事件层归因须复刻 calcAdminSignal 完整护栏（120号，与前端 SignalHero dimDetail 同步修）：
     // 大涨须 EPU 护栏放行且非低位反弹才判 tight；护栏未放行时实际收紧由 EPU 双代理定档，
     // 归因 WTI 是错误归因；大跌（loose 方向）不该出现在收紧维归因里（旧 Math.abs 两者都错归因）
+    // 130号迟滞：本归因只在行政维已收紧时调用；处收紧时 calcAdminSignal 的高位门槛为 >75
+    // （跌破75才退出），与之同口径——用 80 会把迟滞期内的油价冲击错归因到 EPU
     const guard = d.epuDailyPercentile ?? d.epuTradePercentile;
     const oilTightFired = d.oilChange30dPct != null && d.oilChange30dPct >= 20
-      && guard != null && guard > 80 && d.oilLevelLow !== true;
+      && guard != null && guard > 75 && d.oilLevelLow !== true;
     if (oilTightFired) {
       s = `WTI 30D ${fmt(d.oilChange30dPct)}`;
     } else {

@@ -247,8 +247,8 @@ export async function fetchAdminData(apiKey) {
     }),
     (async () => {
       // 油价两层（用户拍板：油价水平语义必须是真实WTI，不用ETF代理）：
-      // ① WTI期货 CL=F（原始chart接口直连，最新交易日，战争定价第一反应）
-      // ② FRED DCOILWTICO 现货（EIA编制，发布滞后3~5个工作日，兜底并标注"现货(滞后)"）
+      // ① FRED DCOILWTICO 现货（EIA编制，判定主口径，130号起；发布滞后数个工作日）
+      // ② WTI期货 CL=F（现货陈旧或失败时兜底，最新交易日，战争定价第一反应）
       // 现货长窗（730天）承担两职：O1水平护栏的2年中位数基准 + 期货失败时的兜底涨跌幅
       let spotObs = [];
       try {
@@ -264,6 +264,15 @@ export async function fetchAdminData(apiKey) {
       // 期货现价 vs 现货中位：前月基差为美分级，可忽略
       const levelLow = latest => (latest !== null && median !== null ? latest < median : null);
 
+      // 130号（用户拍板）：判定优先用现货——期货连续合约 30 天窗口必跨一次换月，实测与现货的
+      // 30 日涨跌幅差达 ±6pp；现货发布滞后数个工作日，最新观测超过 OIL_SPOT_MAX_STALE_DAYS 天
+      // 才退回期货（保住战争冲击的时效）。
+      const spot = calcWindowChangePct(spotObs, cfg.OIL_SHOCK_WINDOW_DAYS);
+      const spotFresh = spot.latestDate
+        && (Date.parse(todayET()) - Date.parse(spot.latestDate)) / 86400000 <= cfg.OIL_SPOT_MAX_STALE_DAYS;
+      if (spot.latest !== null && spot.changePct !== null && spotFresh) {
+        return { oilWti: spot.latest, oilChange30dPct: spot.changePct, oilPeriodDate: spot.latestDate, oilSource: 'spot', oilLevelLow: levelLow(spot.latest) };
+      }
       try {
         const bars = await fetchYahooChartCloses('CL=F', cfg.OIL_LOOKBACK_DAYS);
         const obs = (bars || [])

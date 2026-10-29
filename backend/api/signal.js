@@ -3,7 +3,7 @@ import cfg from '../config/signal.config.js';
 const {
   SIGNAL, FINAL_SIGNAL, RATE_REACTIVE_ADJUSTMENT_BP, BALANCE_SHEET_PAUSE_THRESHOLD_PCT,
   FISCAL_TTM_CHANGE_THRESHOLD_PCT,
-  EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_LOOSE,
+  EPU_PERCENTILE_TIGHT, EPU_PERCENTILE_TIGHT_EXIT, EPU_PERCENTILE_LOOSE,
   AI_MODEL_USAGE_LOOSE_PCT, AI_MODEL_USAGE_DECLINE_THRESHOLD_PCT,
   AI_CAPEX_YOY_LOOSE_PCT, AI_CAPEX_YOY_TIGHT_PCT,
   AI_SEMI_IP_YOY_LOOSE_PCT, AI_SEMI_IP_YOY_TIGHT_PCT,
@@ -167,9 +167,9 @@ export function calcFiscalSignal({ outlaysChangePct }) {
 /**
  * 行政子信号：百分位 → 档位（>80 收紧，<50 宽松）
  */
-function epuPercentileSignal(percentile) {
+function epuPercentileSignal(percentile, tightTh = EPU_PERCENTILE_TIGHT) {
   if (percentile === null || percentile === undefined) return null;
-  if (percentile > EPU_PERCENTILE_TIGHT) return SIGNAL.TIGHT;
+  if (percentile > tightTh) return SIGNAL.TIGHT;
   if (percentile < EPU_PERCENTILE_LOOSE) return SIGNAL.LOOSE;
   return SIGNAL.NEUTRAL;
 }
@@ -185,10 +185,13 @@ function epuPercentileSignal(percentile) {
  * EPU双代理：月度贸易专项 EPUTRADE（结构性）+ 日频EPU 7日均线（时效性）。
  * 两者都有数据时一致才定档，不一致→观望；单边缺失用可用侧；全缺→观望
  */
-export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct, oilLevelLow }) {
+export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct, oilLevelLow, prevAdminSignal }) {
+  // 130号迟滞（用户拍板）：上一判定已是收紧时，"高位"门槛从 >80 降到 >75 分位才退出，
+  // 防新闻编制指数在 80 分位边界的噪声来回翻转。EPU 百分位档与油价事件层的 EPU 护栏同口径
+  const tightTh = prevAdminSignal === SIGNAL.TIGHT ? EPU_PERCENTILE_TIGHT_EXIT : EPU_PERCENTILE_TIGHT;
   const guardPct = epuDailyPercentile ?? epuTradePercentile; // 优先用更新鲜的日频做护栏
   const guardKnown = guardPct !== null && guardPct !== undefined;
-  const uncertaintyHigh = guardKnown && guardPct > EPU_PERCENTILE_TIGHT;
+  const uncertaintyHigh = guardKnown && guardPct > tightTh;
 
   if (oilChange30dPct !== null && oilChange30dPct !== undefined) {
     // 飙升侧双护栏：①EPU高位（战争冲击必伴随不确定性飙升）②油价水平护栏（2026-07-19 O1采纳）——
@@ -200,8 +203,8 @@ export function calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilCha
     if (oilChange30dPct <= -OIL_SHOCK_PCT && guardKnown && !uncertaintyHigh) return SIGNAL.LOOSE;
   }
 
-  const tradeSignal = epuPercentileSignal(epuTradePercentile);
-  const dailySignal = epuPercentileSignal(epuDailyPercentile);
+  const tradeSignal = epuPercentileSignal(epuTradePercentile, tightTh);
+  const dailySignal = epuPercentileSignal(epuDailyPercentile, tightTh);
 
   if (tradeSignal !== null && dailySignal !== null) {
     return tradeSignal === dailySignal ? tradeSignal : SIGNAL.NEUTRAL;

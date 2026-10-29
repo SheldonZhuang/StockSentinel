@@ -356,7 +356,7 @@ export function runDailyReplay(DD, opts = {}) {
       oilForAdmin = null;
       oilGuardSuppressed = true;
     }
-    const admin = calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct: oilForAdmin });
+    const admin = calcAdminSignal({ epuTradePercentile, epuDailyPercentile, oilChange30dPct: oilForAdmin, prevAdminSignal: opts.noAdminHysteresis ? null : (prevSnap?.admin ?? null) });
 
     // -- 萨姆（发布阶梯）与锁（快照差+台阶） --
     while (pSahm + 1 < sahmVis.length && sahmVis[pSahm + 1].visibleFrom <= today) pSahm++;
@@ -418,7 +418,7 @@ export function runDailyReplay(DD, opts = {}) {
       date: today, rate: currentRate,
       sahmLockActive: locks.sahmLockActive, reactiveLockActive: locks.reactiveLockActive,
       sahmLockSince: locks.sahmLockSince, reactiveLockSince: locks.reactiveLockSince,
-      final: hold.signal, pendingSince: hold.pendingSince,
+      final: hold.signal, pendingSince: hold.pendingSince, admin,
     };
   }
   return records;

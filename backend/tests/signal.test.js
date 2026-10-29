@@ -187,6 +187,14 @@ describe('calcFiscalSignal', () => {
 
 // 行政信号：双代理（月度EPUTRADE + 日频EPU 7日均线）10年百分位，>80 tight / <50 loose，一致才定档
 describe('calcAdminSignal', () => {
+  it('130号迟滞：已收紧时 >75 分位维持收紧，跌破 75 才退出；未收紧时仍须 >80 进入', () => {
+    expect(calcAdminSignal({ epuTradePercentile: 78, epuDailyPercentile: 79.9, prevAdminSignal: 'tight' })).toBe('tight');
+    expect(calcAdminSignal({ epuTradePercentile: 78, epuDailyPercentile: 79.9, prevAdminSignal: 'neutral' })).toBe('neutral');
+    expect(calcAdminSignal({ epuTradePercentile: 80.7, epuDailyPercentile: 74.9, prevAdminSignal: 'tight' })).toBe('neutral');
+    expect(calcAdminSignal({ epuTradePercentile: 80.7, epuDailyPercentile: 80.1, prevAdminSignal: null })).toBe('tight');
+    // 油价事件层的 EPU 护栏同口径：已收紧时 77 分位仍算高位，飙升维持战争冲击收紧
+    expect(calcAdminSignal({ epuTradePercentile: 77, epuDailyPercentile: 77, oilChange30dPct: 25, prevAdminSignal: 'tight' })).toBe('tight');
+  });
   it('单边（仅月度）：百分位 > 80 → 收紧', () => {
     expect(calcAdminSignal({ epuTradePercentile: 92.5 })).toBe('tight');
   });

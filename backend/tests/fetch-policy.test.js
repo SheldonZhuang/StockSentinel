@@ -249,7 +249,29 @@ describe('fetchPolicyData', () => {
     expect(data.semiIpYoy).toBe(7.2);
   });
 
-  it('油价优先用 CL=F 期货（最新交易日），FRED 现货仅兜底', async () => {
+  it('130号：现货新鲜（≤7天）→ 判定用现货，不受期货换月扰动', async () => {
+    const d = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+    mockFredBySeriesId({
+      MTSO133FMS: fiscalObs, EPUTRADE: epuObs, USEPUINDXD: epuDailyObs, IPG3344S: semiIpObs,
+      DCOILWTICO: [{ date: d(2), value: '110' }, { date: d(33), value: '100' }], // 现货 +10%
+    });
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    const fredImpl = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url, ...rest) => {
+      if (url.includes('/v8/finance/chart/CL%3DF')) {
+        return Promise.resolve({ data: { chart: { result: [{
+          timestamp: [Date.now() / 1000 - 31 * 86400, Date.now() / 1000],
+          indicators: { quote: [{ close: [100, 125] }] }, // 期货 +25%（若用了期货会误触事件层）
+        }] } } });
+      }
+      return fredImpl(url, ...rest);
+    });
+    const data = await fetchPolicyData();
+    expect(data.oilSource).toBe('spot');
+    expect(data.oilChange30dPct).toBeCloseTo(10, 5);
+  });
+
+  it('现货陈旧（>7天）→ 退回 CL=F 期货（保战争冲击时效），FRED 现货仅兜底', async () => {
     mockFredBySeriesId({
       MTSO133FMS: fiscalObs,
       EPUTRADE: epuObs,

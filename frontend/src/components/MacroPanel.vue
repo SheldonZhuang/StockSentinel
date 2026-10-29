@@ -84,9 +84,11 @@ function formatMonth(dateStr) {
 const JUDGED_KEYS = new Set(['modelUsageTrend', 'capexYoY', 'semiIpYoy', 'rate', 'balanceSheet', 'sahm', 'fiscalOutlaysTtm', 'epuTrade', 'epuDaily', 'oilWti']);
 
 // EPU 百分位 → 子档位徽章（阈值同步 signal.config.js：>80 收紧 / <50 宽松）
-function epuBadge(percentile) {
+// 130号迟滞（同步 calcAdminSignal / EPU_PERCENTILE_TIGHT_EXIT=75）：行政维已收紧时高位门槛 >75，否则 >80
+const epuTightTh = ind => (ind.adminAutoSignal === 'tight' ? 75 : 80);
+function epuBadge(percentile, ind) {
   if (percentile == null) return null;
-  if (percentile > 80) return 'tight';
+  if (percentile > epuTightTh(ind)) return 'tight';
   if (percentile < 50) return 'loose';
   return 'neutral';
 }
@@ -100,7 +102,7 @@ function oilBadge(ind) {
   if (ind.oilChange30dPct == null) return null;
   const guard = ind.epuDailyPercentile ?? ind.epuTradePercentile;
   const guardKnown = guard != null;
-  const uncertaintyHigh = guardKnown && guard > 80;
+  const uncertaintyHigh = guardKnown && guard > epuTightTh(ind);
   // O1油价水平护栏(2026-07-19)：低位反弹(oilLevelLow===true)不判战争冲击——与 backend calcAdminSignal 同步
   if (ind.oilChange30dPct >= 20 && uncertaintyHigh && ind.oilLevelLow !== true) return 'tight';
   if (ind.oilChange30dPct <= -20 && guardKnown && !uncertaintyHigh) return 'loose';
@@ -302,13 +304,13 @@ const groups = computed(() => {
           // 日频EPU 7日均线：政策转向（如关税战暂停）数天内可见，与月度贸易专项指数一致才定档
           key: 'epuDaily', value: ind.epuDaily, unit: '', change: null,
           extra: ind.epuDailyPercentile != null ? `${t('indicators.percentile10y')} ${ind.epuDailyPercentile.toFixed(0)}` : null,
-          signalBadge: epuBadge(ind.epuDailyPercentile),
+          signalBadge: epuBadge(ind.epuDailyPercentile, ind),
           periodDate: ind.epuDailyPeriodDate,
         },
         {
           key: 'epuTrade', value: ind.epuTrade, unit: '', change: null,
           extra: ind.epuTradePercentile != null ? `${t('indicators.percentile10y')} ${ind.epuTradePercentile.toFixed(0)}` : null,
-          signalBadge: epuBadge(ind.epuTradePercentile),
+          signalBadge: epuBadge(ind.epuTradePercentile, ind),
           periodDate: ind.epuTradePeriodDate, periodIsMonth: true,
         },
       ],

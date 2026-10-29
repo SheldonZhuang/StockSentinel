@@ -271,7 +271,11 @@ export function replayMonth(m, prevState, variants = {}) {
   // WTI高于近2年月末中位数（低位反弹=危机后复苏非战争冲击）。注意：月度单代理口径下该分支
   // 结构性冗余——飙升tight本就要求epuHigh(>80分位)，被抑制后回落到百分位判定仍是tight，
   // 开关预期逐位无变化（--eval-oil 实证），保留仅为与日度口径对齐可复现
-  const epuTightTh = variants.epuTightPercentile ?? cfg.EPU_PERCENTILE_TIGHT;
+  // 130号迟滞：上月行政已收紧时退出门槛降到 EPU_PERCENTILE_TIGHT_EXIT（与线上 calcAdminSignal 同口径）；
+  // W2 覆盖阈值时迟滞宽度同步平移
+  const epuEnterTh = variants.epuTightPercentile ?? cfg.EPU_PERCENTILE_TIGHT;
+  const epuTightTh = prevState.admin === S.TIGHT && !variants.noAdminHysteresis
+    ? epuEnterTh - (cfg.EPU_PERCENTILE_TIGHT - cfg.EPU_PERCENTILE_TIGHT_EXIT) : epuEnterTh;
   const epuHigh = m.epuPercentile !== null && m.epuPercentile > epuTightTh;
   const oilSurgeBlocked = !!variants.oilLevelGuard && m.oilLevelLow === true;
   const oilEvent = m.oilChangePct !== null && m.oilChangePct !== undefined
@@ -920,6 +924,7 @@ export function runReplay(D, variants = VARIANTS_DEFAULT) {
     state = {
       sahmLockActive: r.sahmLockActive, reactiveLockActive: r.reactiveLockActive,
       reactiveLockDir: r.reactiveLockDir, sahmLockAge: r.sahmLockAge, reactiveLockAge: r.reactiveLockAge,
+      admin: r.admin, // 130号行政迟滞
       rateSignal: r.rateSignal, sahmHighStreak: r.sahmHighStreak, // X2/X4 变体状态（基线下计算无副作用）
     };
     prevRate = rate;

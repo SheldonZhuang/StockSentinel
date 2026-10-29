@@ -366,7 +366,7 @@ async function runDailyUpdateInner() {
   };
 
   const fiscalAuto = calcFiscalSignal(policyData);
-  const adminAuto = calcAdminSignal(policyData);
+  const adminAuto = calcAdminSignal({ ...policyData, prevAdminSignal: prevSnapshot?.admin_auto_signal ?? null });
   const aiSupplyAuto = calcAiSupplySignal(aiSupplyInputs);
   const aiSubSignals = deriveAiSupplySubSignals(aiSupplyInputs);
 
