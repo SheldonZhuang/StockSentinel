@@ -257,10 +257,15 @@ describe('fetchPolicyData', () => {
       for (const [sym, closes] of Object.entries(closesBySymbol)) {
         if (url.includes(`/v8/finance/chart/${encodeURIComponent(sym)}?`)) {
           if (closes instanceof Error) return Promise.reject(closes);
+          // 两点序列：相隔 35 天；长序列：逐日、末点 2026-07-10
+          const end = Date.UTC(2026, 6, 10) / 1000;
+          const timestamp = closes.length === 2
+            ? [Date.UTC(2026, 5, 5) / 1000, end]
+            : closes.map((_, i) => end - (closes.length - 1 - i) * 86400);
           return Promise.resolve({ data: { chart: { result: [{
             meta: sym === 'CL=F' ? { shortName } : {},
-            timestamp: [Date.UTC(2026, 5, 5) / 1000, Date.UTC(2026, 6, 10) / 1000],
-     indicators: { quote: [{ close: closes }] },
+            timestamp,
+            indicators: { quote: [{ close: closes }] },
           }] } } });
         }
       }
@@ -288,6 +293,20 @@ describe('fetchPolicyData', () => {
     expect(data.oilChange30dPct).toBeCloseTo(-30, 5);
     expect(data.oilPeriodDate).toBe('2026-07-10');
     expect(data.oilSource).toBe('futures');
+  });
+
+  it('131号：O1 水平护栏用期货 2 年中位（同口径），不拿期货价比现货中位', async () => {
+    // 现货 2 年中位 90（期货 85 会被判"低位"），期货 2 年中位 80（85 处高位）
+    const d = n => new Date(Date.UTC(2026, 6, 10) - n * 86400000).toISOString().slice(0, 10);
+    mockFredBySeriesId({
+      MTSO133FMS: fiscalObs, EPUTRADE: epuObs, USEPUINDXD: epuDailyObs, IPG3344S: semiIpObs,
+      DCOILWTICO: Array.from({ length: 150 }, (_, i) => ({ date: d(i), value: '90' })),
+    });
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    chartMock({ 'CL=F': Array(150).fill(80), 'CLZ26.NYM': [100, 85] });
+    const data = await fetchPolicyData();
+    expect(data.oilWti).toBe(85);
+    expect(data.oilLevelLow).toBe(false);
   });
 
   it('单合约失败 → 退回 CL=F 连续合约，仍是期货', async () => {

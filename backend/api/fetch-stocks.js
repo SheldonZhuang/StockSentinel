@@ -19,7 +19,7 @@ export async function fetchStockData(symbol, startDate, endDate) {
   const lastClose = closes[closes.length - 1] ?? null;
   const currentPrice = quote?.price ?? lastClose;
 
-  // 报价链无P/S（FMP免费层只盖大盘股、Yahoo summary端点限流）→ EDGAR XBRL 计算真实P/S
+  // 报价链无P/S（Yahoo summary 端点限流；FMP 131号起停用）→ EDGAR XBRL 计算真实P/S
   const currentPS = quote?.priceToSales
     ?? await getPsFromEdgar(normalizeSymbol(symbol), currentPrice);
 
@@ -36,7 +36,7 @@ export async function fetchStockData(symbol, startDate, endDate) {
     endDate,
     dataPointCount: closes.length,
     currentPE: quote?.trailingPE ?? null,
-    currentPS, // FMP/EDGAR双路真实P/S；ETF/指数无财报为null属正常
+    currentPS, // Yahoo summary/EDGAR 双路真实P/S；ETF/指数无财报为null属正常
     trailingPE: quote?.trailingPE ?? null,
     forwardPE: quote?.forwardPE ?? null,
     shortName: quote?.shortName ?? symbol,

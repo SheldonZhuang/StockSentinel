@@ -24,7 +24,7 @@
 | AI供需（长线主线） | 现金流三件套，沿产业链资金流向：OpenRouter 模型调用量（需求侧）→ SEC EDGAR 云厂商资本开支（投资侧）→ FRED `IPG3344S` 半导体产出同比（供给侧） | 调用量 28日均vs前28日均 >+3% 宽松 / <−3% 收紧；capex 滚动4季同比 >+10% 宽松 / <0% 收紧，另有单季侦察兵规则（最新单季同比<0 拦截宽松；连续两季<0 直接收紧，比 TTM 提前 1-2 个季度）；半导体产出同比 >+5% 宽松 / <0% 收紧。三件套共识：任一环节收缩→收紧（供过于求预警），全链向上→宽松，其余中性 |
 | 货币政策 | Fed 官方 FOMC 声明（决议当日即时）+ FRED `DFEDTARU` 利率 + `WALCL` 资产负债表（核心PCE/Trimmed PCE/失业率仅参考展示） | 按最近一次 FOMC 决议方向判定：加息（含渐进25bp）→收紧并保持到下次决议；降息或按兵不动→宽松。单次调整 ≥50bp（不论方向）触发应对式调整锁强制全面防守。QT 只拦截宽松评级不单票定罪（回测实证 QT 年份市场多数上涨）。**决议当晚即生效**：Fed 官网美东 14:00 发布声明后直接读声明文本（`fetch-fed-rate.js` 解析目标区间与动词），不等 FRED 日更序列（后者次一工作日才见新台阶，此前会造成决议当晚"持平/方向反了"）；FRED 台阶落地后自动切回序列口径 |
 | 财政政策 | FRED `MTSO133FMS` 联邦月度支出 | "大市场小政府"原则：滚动12月**实际**（PCE平减）支出同比扩大 >5%→收紧（政府变大），收缩 >5%→宽松（政府瘦身）。用支出不用赤字：减税型赤字不应判收紧 |
-| 行政政策 | FRED `EPUTRADE`（月度贸易专项）+ `USEPUINDXD`（日频EPU 7日均线）+ WTI 油价（战争冲击实时代理，期货主力单合约优先、取不到才用现货） | 油价30天涨跌 ≥±20% 事件层优先：飙升且 EPU 高位且油价处高位（高于近2年中位，低位反弹不判战争冲击）→收紧；暴跌且 EPU 未高位→宽松。否则 EPU 双源10年百分位 >80→收紧（已收紧时跌破75才退出），<50→宽松，双源一致才定档 |
+| 行政政策 | FRED `EPUTRADE`（月度贸易专项）+ `USEPUINDXD`（日频EPU 7日均线）+ WTI 油价（战争冲击实时代理，期货主力单合约优先、取不到才用现货；高位判断比期货近2年中位） | 油价30天涨跌 ≥±20% 事件层优先：飙升且 EPU 高位且油价处高位（高于近2年中位，低位反弹不判战争冲击）→收紧；暴跌且 EPU 未高位→宽松。否则 EPU 双源10年百分位 >80→收紧（已收紧时跌破75才退出），<50→宽松，双源一致才定档 |
 
 **全局叠加（防守分级）**：
 
@@ -80,7 +80,7 @@
 - **后端**：Node.js + Express + [sql.js](https://github.com/sql-js/sql.js)（WASM SQLite）+ node-cron + bcryptjs + JWT
 - **前端**：Vue 3 + Vite + vue-i18n（中/英/法/德/西/日/韩 七语言）
 - **测试**：Vitest 全量套件（后端+前端，具体用例数以 `npm test` 实跑为准）
-- **数据源**：FRED API（宏观/财政/行政/半导体产出/收益率曲线）、Fed 官网 FOMC 声明与货币政策 RSS（决议结果即时源，14:00 发布后当天生效）、行情多层回退 moomoo OpenD（本机网关，美股LV3实时，可选）→Yahoo→Tiingo→TwelveData（+FMP估值；日线口径复权源 Yahoo/Tiingo 优先于生价源）、SEC EDGAR XBRL（云厂商capex，双口径）、OpenRouter（模型调用量）、Federal Register API（政策参考素材）
+- **数据源**：FRED API（宏观/财政/行政/半导体产出/收益率曲线）、Fed 官网 FOMC 声明与货币政策 RSS（决议结果即时源，14:00 发布后当天生效）、行情多层回退 moomoo OpenD（本机网关，美股LV3实时，可选）→Yahoo→Tiingo→TwelveData（估值：Yahoo summary + EDGAR 计算 P/S；日线口径复权源 Yahoo/Tiingo 优先于生价源）、SEC EDGAR XBRL（云厂商capex，双口径）、OpenRouter（模型调用量）、Federal Register API（政策参考素材）
 - **部署**：Railway（后端）+ Vercel（前端）；数据库每日备份至 GitHub 私有仓库
 
 ## 目录结构
@@ -122,7 +122,7 @@ TWELVEDATA_API_KEY=your_twelvedata_key # 行情备用源（可选）
 MOOMOO_WS_HOST=127.0.0.1               # moomoo OpenD 本机网关，美股LV3实时行情（可选，三项配齐才启用）
 MOOMOO_WS_PORT=33333                   # OpenD 的 WebSocket 端口（与 TCP 11111 是两个开关）
 MOOMOO_WS_KEY=your_opend_ws_key        # 对应 OpenD"WebSocket鉴权密钥"字段——勿填进"WebSocket私钥/证书"(SSL文件字段)，会致OpenD设置错误无法登录；排障见 docs/moomoo-cloud-setup.md
-FMP_API_KEY=your_fmp_key               # P/E、P/S 估值补全（可选）
+FMP_API_KEY=your_fmp_key               # 仅 CapEx 备源（EDGAR 失败时、财报后新季值），可选
 OPENROUTER_API_KEY=your_openrouter_key # 模型调用量监测 + AI日报 + 研究 Agent（可选）
 CLAUDE_GATEWAY_URL=https://your-claude-gateway   # 可选：OpenAI 兼容的 Claude 网关；OpenRouter 上的 Claude 不可用时优先用它
 CLAUDE_GATEWAY_KEY=your_gateway_key              # 与上一行成对；都不配则 Claude 不可用时直接用最新 Grok

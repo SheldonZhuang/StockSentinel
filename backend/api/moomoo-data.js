@@ -108,7 +108,7 @@ export async function closesFromMoomoo(symbol, startDate, endDate) {
 }
 
 /**
- * 实时快照报价（LV3）：含 PE/PB；P/S 由后续 FMP 补全，与 yahoo provider 同形
+ * 实时快照报价（LV3）：含 PE/PB；P/S 由后续 Yahoo summary / EDGAR 补全，与 yahoo provider 同形
  */
 export async function quoteFromMoomoo(symbol) {
   if (!moomooEnabled() || !isUsSymbol(symbol)) return null;
@@ -126,7 +126,7 @@ export async function quoteFromMoomoo(symbol) {
     // 亏损公司PE为负，按行业惯例视为"无PE"（与Yahoo口径一致）
     trailingPE: pe !== null && pe > 0 ? pe : null,
     forwardPE: null,
-    priceToSales: null, // moomoo 快照无P/S，由 FMP ratios 补全
+    priceToSales: null, // moomoo 快照无P/S，由 Yahoo summary / EDGAR 补全
     priceToBook: snap?.equityExData?.pbRate ?? null,
     shortName: snap?.basic?.name ?? null,
     source: 'moomoo',

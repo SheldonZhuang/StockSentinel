@@ -266,34 +266,35 @@ export async function fetchAdminData(apiKey) {
       // ① WTI 主力单合约（如 CLZ26.NYM）自身 30 天历史——最新交易日、且窗口内不跨换月（131号）
       // ② CL=F 连续合约（单合约拉不到时兜底；窗口跨换月会有数个 pp 的换月跳空）
       // ③ FRED DCOILWTICO 现货（EIA编制，发布滞后约一周，期货全失败才用并标注"现货(滞后)"）
-      // 现货长窗（730天）承担两职：O1水平护栏的2年中位数基准 + 期货失败时的兜底涨跌幅
+      // 现货长窗（730天）：期货全失败时的兜底涨跌幅，以及期货长窗不足时的 O1 水平基准
       let spotObs = [];
       try {
         spotObs = await fetchSeries(FRED_SERIES.OIL_WTI, daysAgoET(cfg.OIL_LEVEL_LOOKBACK_DAYS), apiKey);
       } catch (err) {
         console.warn('[fetch-policy] oil spot series failed:', err.message);
       }
-      const spotVals = spotObs.map(o => parseFloat(o.value)).filter(v => !isNaN(v));
+      // O1 水平护栏："是否高于近2年中位"——131号起价格与中位同口径：期货价对 CL=F 2 年中位，
+      // 现货价对现货 2 年中位（期货对现货中位在剧烈贴水时差数美元，2026-11 约 $3）。
       // 样本太少（<100观测）不判水平，oilLevelLow=null → calcAdminSignal fail-open（不抑制飙升判定）
-      const median = spotVals.length >= 100
-        ? [...spotVals].sort((a, b) => a - b)[Math.floor(spotVals.length / 2)]
-        : null;
-      // 期货现价 vs 现货2年中位：前月基差平时为美分级，剧烈贴水时可达数美元（2026-11 约 $3）；
-      // 只影响"是否处高位"这一粗护栏，接受
-      const levelLow = latest => (latest !== null && median !== null ? latest < median : null);
+      const medianOf = vals => (vals.length >= 100 ? [...vals].sort((x, y) => x - y)[Math.floor(vals.length / 2)] : null);
+      const spotMedian = medianOf(spotObs.map(o => parseFloat(o.value)).filter(v => !isNaN(v)));
+      const lowVs = (latest, median) => (latest !== null && median !== null ? latest < median : null);
       const fromBars = bars => calcWindowChangePct(
         (bars || []).map(b => ({ date: b.date, value: String(b.close) }))
           .sort((a, b) => (a.date < b.date ? 1 : -1)), // calcWindowChangePct 期望降序
         cfg.OIL_SHOCK_WINDOW_DAYS);
 
       try {
-        const { bars, meta } = await fetchYahooChart('CL=F', cfg.OIL_LOOKBACK_DAYS);
+        // CL=F 一次拉 2 年：既给水平护栏的期货中位，也是单合约失败时的 30 天兜底序列
+        const { bars, meta } = await fetchYahooChart('CL=F', cfg.OIL_LEVEL_LOOKBACK_DAYS);
+        // 期货长窗不足（新上市/接口截断）时退回现货中位，好过不判
+        const futMedian = medianOf((bars || []).map(b => b.close)) ?? spotMedian;
         const contract = frontContractSymbol(meta?.shortName);
         if (contract) {
           try {
             const r = fromBars(await fetchYahooChartCloses(contract, cfg.OIL_LOOKBACK_DAYS));
             if (r.latest !== null && r.changePct !== null) {
-              return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: levelLow(r.latest) };
+              return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: lowVs(r.latest, futMedian) };
             }
           } catch (err) {
             console.warn(`[fetch-policy] ${contract} futures failed:`, err.message);
@@ -301,13 +302,13 @@ export async function fetchAdminData(apiKey) {
         }
         const r = fromBars(bars);
         if (r.latest !== null && r.changePct !== null) {
-          return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: levelLow(r.latest) };
+          return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: lowVs(r.latest, futMedian) };
         }
       } catch (err) {
         console.warn('[fetch-policy] CL=F futures failed:', err.message);
       }
       const { latest, changePct, latestDate: d } = calcWindowChangePct(spotObs, cfg.OIL_SHOCK_WINDOW_DAYS);
-      return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: latest !== null ? 'spot' : null, oilLevelLow: levelLow(latest) };
+      return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: latest !== null ? 'spot' : null, oilLevelLow: lowVs(latest, spotMedian) };
     })().catch(err => {
       console.warn('[fetch-policy] oil fetch failed:', err.message);
       return { oilWti: null, oilChange30dPct: null, oilPeriodDate: null, oilSource: null, oilLevelLow: null };
