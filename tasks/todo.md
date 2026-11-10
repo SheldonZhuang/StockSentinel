@@ -1,3 +1,18 @@
+# 基础设施完善（2026-10-27 从 Career 会话评估，用户同意「有必要才加」）
+
+评估全文：tasks/infra-upgrade-assessment-2026-10-27.md。结论：Kafka、Spark、Docker 对股哨兵没有实际必要，不做；只做下面两项。
+
+- [ ] 模拟盘状态看板（中优先，约 1 天）：Admin 面板加只读页，读 backtest/lab/out/moomoo_paper_state.json 和 moomoo_paper_orders.jsonl，显示各子账本现金、持仓、成交、未成交单、对账结果、最近失败；不对公众显示收益
+- [ ] 回测数据层改 Parquet + DuckDB（低优先，1–2 天，只限 backend/backtest/lab/）：先写导出脚本，改 1–2 个 run 脚本从 DuckDB 读，输出与原版逐行一致后再推广
+
+# 131号：油价改期货 + 依赖安全补丁（2026-11-10）
+
+- [x] 油价判定改回期货优先：主力单合约自身 30 天历史 → CL=F 连续 → 现货兜底（ef60106，已部署云端与本机）
+- [x] npm audit fix：后端 13→2（只剩 futu-api 依赖的 protobufjs 6.x，上游未修，只解析 moomoo 本机网关的回包，风险低），前端 7→0；876+38 测试通过、前端构建通过
+- [ ] 油价水平护栏口径：期货价对现货 2 年中位，贴水大时可能误判（约 1 小时，待用户决定）
+- [ ] FMP 免费额度耗尽（云端 11-10 日志 402，熔断 12h）：减少调用或弃用（待用户决定）
+- [ ] 外部探活（如 UptimeRobot 每 5 分钟查 /api/signal）：需用户注册账号
+
 # Railway 安全事件（2026-10-21 起）— 待处理
 
 Railway 披露：环境变量可能被第三方读取（部分已解密），建议轮换 Railway 里的全部环境变量；全平台暂停构建/部署
@@ -7,6 +22,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
 - [x] OPENROUTER_API_KEY 已由用户更换（2026-10-22）：本机实测新 key 可用（$25 额度已用 $4.87，与本系统账本 $4.66 + 未入账的探测请求相符，未见被盗用迹象）；本机后端已重启加载新 key
 - [x] 影响记录（2026-10-24 已恢复：云端 10-22 快照 AI 供需回到 loose，新 key 生效）：10-21 快照 AI 供需 loose→neutral，原因是旧 key 被吊销导致"模型调用量"取数 401（按既定规则，单一子信号缺失不触发 stale-keep）；最终档位仍为 reduce，无实际影响。云端要等 Railway 恢复部署后才会用上新 key（改 Railway 变量需重新部署才生效）
 - 用户决定（2026-10-22）：其他密钥暂不轮换；Railway 上其他 11 个项目暂不处理
+- 用户再次决定（2026-11-10）：密钥暂时不换；下面这项保留，等用户主动提起再做
 - [ ] 用户在各服务后台重新签发，填入 Railway 与 backend/.env（不在对话里贴值）：
   - RESEND_API_KEY、FRED_API_KEY、TIINGO_API_KEY、TWELVEDATA_API_KEY、CLOUDFLARE_API_TOKEN、GITHUB_BACKUP_TOKEN（含吊销旧 PAT）、FMP_API_KEY（若在 Railway 配过）
   - JWT_SECRET（换后所有用户需重新登录）、ADMIN_PASSWORD（换后须同步更新管理员账户密码）
@@ -87,7 +103,7 @@ Railway 披露：环境变量可能被第三方读取（部分已解密），建
   - [x] /v1/research/notes、/v1/research/notes/:ticker{/:quarter}、POST /v1/research/ask（keyless 403、free 5/日、pro 50/日；拒答买卖建议；核对不过的句子不返回）+ openapi.yaml
   - [x] MCP get_research_note / ask_company（backend/api/mcp.js 与 mcp/index.js 同步，版本 1.1.0）；SKILL、README 同步
   - [x] 前端 /research 只读页（公司 → 财季 → 笔记，数字与引文可点 SEC 原文）；七语言；暗/亮主题与 390px 手机实测（修了固定列遮挡数字的问题）
-  - [ ] 云端：笔记要在云端出现，需在 Railway 设 RESEARCH_ENABLED=1（首轮采集约 50 秒、30MB 原文缓存落卷，然后为 8 家最近一季各生成一份笔记）；云端是否配 Claude 网关待用户决定
+  - [x] （2026-11-10 核实：线上 /v1/research/notes 已有 AMD/AMZN 等 FY2026Q3 笔记）云端：笔记要在云端出现，需在 Railway 设 RESEARCH_ENABLED=1（首轮采集约 50 秒、30MB 原文缓存落卷，然后为 8 家最近一季各生成一份笔记）；云端是否配 Claude 网关待用户决定
         用户决定（2026-10-24）：云端保持 Grok（OpenRouter 自动选，无区域限制），不配 Claude 网关
   - [x] （2026-10-24 完成：npm stock-sentinel-mcp@1.1.0 用户发布；MCP 注册表 io.github.SheldonZhuang/stock-sentinel 1.1.0 由 mcp-publisher 经 gh token 发布）mcp 包 1.1.0 发布到 npm / MCP 注册表：用户已同意发布（2026-10-22）。已就绪：打包 3 个文件、server.json 通过官方校验、mcp-publisher v1.8.1 已下载并核对校验和。
         2026-10-24：npm 已恢复（All Systems Operational），npm pack 预检 1.1.0 / 3 文件 / 5.3kB 正常，npm 上最新仍是 1.0.3；等用户登录。mcp-publisher 在 %TEMP%	mp.iLw8u5ETSzmcp-publisher.exe（临时目录，可能被清理）
@@ -732,3 +748,14 @@ LLM 判 none 正确;$195-205B 指引是 CFO 电话会口头给的——新闻稿
 - [x] 双触发源：每小时看门狗cron（用户没打开页面也自愈——顺带修复"21:00失败要等次日才重试"的旧缺口）+ /api/signal与/v1/signal访问触发
 - [x] 前端：catchUp横幅（7语言）+ 30秒轮询x10次，新快照落库自动刷新
 - [x] README可信度工程第⑤层/SKILL/openapi归档；590测试全过；推送部署
+
+# 130号：判断指标复盘与升级（2026-10-30）— 已完成
+
+- [x] MSFT CapEx 误报：下修归因 cutDriver，供给/交付后移、降价、会计口径归维持；启动补丁撤销 N3（632aa6e）
+- [x] 货币维：FOMC 按兵不动当天护栏让位；财政维：PCEPI 失败不退名义口径（632aa6e）
+- [x] 行政维 EPU 迟滞 >80 进 / <75 出（回测中性）；油价判定改 WTI 现货（67fbf56）
+- [x] CapEx 统一大写、增速变化(pp)展示行、SpaceX(含xAI) CapEx 观察名单（b1e10c6）
+- [x] 回测报告局限补财政 MTS 一次性会计调整（01ccbd0）
+- 复核：本机与云端均已部署；10-29 快照 aiSupply=loose / monetary=loose / fiscal=neutral / admin=tight → reduce；
+  AMZN 10-29 财报自动检测为维持（2026 现金 CapEx ~$220B，Q3 单季 $54.2B/+68.4%），未误录 N3
+- 观察：四家 Q3 10-Q 全部入 EDGAR 后 CapEx 共同季才翻新到 2026Q3（目前仍显示 Q2，属正常）
