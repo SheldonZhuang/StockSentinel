@@ -19,6 +19,7 @@ import {
   calcRelativeReturn,
   calcWindowChangePct,
   fetchPolicyData,
+  frontContractSymbol,
 } from '../api/fetch-policy.js';
 
 // 生成 FRED desc 序列：从 latestDate 往前逐月，每月固定 value
@@ -249,54 +250,63 @@ describe('fetchPolicyData', () => {
     expect(data.semiIpYoy).toBe(7.2);
   });
 
-  it('130号：现货新鲜（≤7天）→ 判定用现货，不受期货换月扰动', async () => {
-    const d = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
-    mockFredBySeriesId({
-      MTSO133FMS: fiscalObs, EPUTRADE: epuObs, USEPUINDXD: epuDailyObs, IPG3344S: semiIpObs,
-      DCOILWTICO: [{ date: d(2), value: '110' }, { date: d(33), value: '100' }], // 现货 +10%
-    });
-    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+  // 131号：期货优先，且用主力单合约自身历史（CL=F meta.shortName → CLZ26.NYM），窗口不跨换月
+  const chartMock = (closesBySymbol, shortName = 'Crude Oil Dec 26') => {
     const fredImpl = axios.get.getMockImplementation();
     axios.get.mockImplementation((url, ...rest) => {
-      if (url.includes('/v8/finance/chart/CL%3DF')) {
-        return Promise.resolve({ data: { chart: { result: [{
-          timestamp: [Date.now() / 1000 - 31 * 86400, Date.now() / 1000],
-          indicators: { quote: [{ close: [100, 125] }] }, // 期货 +25%（若用了期货会误触事件层）
-        }] } } });
+      for (const [sym, closes] of Object.entries(closesBySymbol)) {
+        if (url.includes(`/v8/finance/chart/${encodeURIComponent(sym)}?`)) {
+          if (closes instanceof Error) return Promise.reject(closes);
+          return Promise.resolve({ data: { chart: { result: [{
+            meta: sym === 'CL=F' ? { shortName } : {},
+            timestamp: [Date.UTC(2026, 5, 5) / 1000, Date.UTC(2026, 6, 10) / 1000],
+     indicators: { quote: [{ close: closes }] },
+          }] } } });
+        }
       }
       return fredImpl(url, ...rest);
     });
-    const data = await fetchPolicyData();
-    expect(data.oilSource).toBe('spot');
-    expect(data.oilChange30dPct).toBeCloseTo(10, 5);
+  };
+  const fredWithOil = () => mockFredBySeriesId({
+    MTSO133FMS: fiscalObs, EPUTRADE: epuObs, USEPUINDXD: epuDailyObs, IPG3344S: semiIpObs,
+    DCOILWTICO: oilObs, // FRED 现货兜底值 96/+20%，若走了兜底则断言会失败
   });
 
-  it('现货陈旧（>7天）→ 退回 CL=F 期货（保战争冲击时效），FRED 现货仅兜底', async () => {
-    mockFredBySeriesId({
-      MTSO133FMS: fiscalObs,
-      EPUTRADE: epuObs,
-      USEPUINDXD: epuDailyObs,
-      DCOILWTICO: oilObs, // FRED 兜底值 96/+20%，若走了兜底则断言会失败
-      IPG3344S: semiIpObs,
-    });
-    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
-    // 油价期货走 Yahoo 原始 chart 接口（axios直连），在 series_id 分发之外单独拦截
-    const fredImpl = axios.get.getMockImplementation();
-    axios.get.mockImplementation((url, ...rest) => {
-      if (url.includes('/v8/finance/chart/CL%3DF')) {
-        return Promise.resolve({ data: { chart: { result: [{
-          timestamp: [Date.UTC(2026, 5, 5) / 1000, Date.UTC(2026, 6, 10) / 1000],
-          indicators: { quote: [{ close: [100, 70] }] }, // 30天 -30%，且日期比FRED新4天
-        }] } } });
-      }
-      return fredImpl(url, ...rest);
-    });
+  it('frontContractSymbol：shortName → 单合约代码', () => {
+    expect(frontContractSymbol('Crude Oil Dec 26')).toBe('CLZ26.NYM');
+    expect(frontContractSymbol('Crude Oil Jan 27')).toBe('CLF27.NYM');
+    expect(frontContractSymbol('Crude Oil')).toBe(null);
+    expect(frontContractSymbol(undefined)).toBe(null);
+  });
 
+  it('131号：期货优先——用主力单合约自身30天历史，不用连续合约（避开换月跳空）', async () => {
+    fredWithOil();
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    chartMock({ 'CL=F': [100, 125], 'CLZ26.NYM': [100, 70] }); // 连续 +25%（含换月跳空），单合约 -30%
     const data = await fetchPolicyData();
     expect(data.oilWti).toBe(70);
     expect(data.oilChange30dPct).toBeCloseTo(-30, 5);
     expect(data.oilPeriodDate).toBe('2026-07-10');
     expect(data.oilSource).toBe('futures');
+  });
+
+  it('单合约失败 → 退回 CL=F 连续合约，仍是期货', async () => {
+    fredWithOil();
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    chartMock({ 'CL=F': [100, 125], 'CLZ26.NYM': new Error('404') });
+    const data = await fetchPolicyData();
+    expect(data.oilWti).toBe(125);
+    expect(data.oilChange30dPct).toBeCloseTo(25, 5);
+    expect(data.oilSource).toBe('futures');
+  });
+
+  it('期货全部失败 → FRED 现货兜底并标注 spot', async () => {
+    fredWithOil();
+    yahooFinance.historical.mockResolvedValue([{ close: 100 }, { close: 100 }]);
+    chartMock({ 'CL=F': new Error('429') });
+    const data = await fetchPolicyData();
+    expect(data.oilSource).toBe('spot');
+    expect(data.oilWti).toBe(96);
   });
 
   it('缺少 FRED_API_KEY → 全部 null，不抛错', async () => {

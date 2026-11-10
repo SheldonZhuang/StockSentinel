@@ -1,7 +1,7 @@
 import axios from 'axios';
 import cfg from '../config/signal.config.js';
 import { fetchSeries, fetchReleaseDate, latestValue, latestDate } from './fetch-macro.js';
-import { todayET, daysAgoET } from '../utils/datetime.js';
+import { daysAgoET } from '../utils/datetime.js';
 
 const {
   FRED_SERIES,
@@ -201,16 +201,32 @@ export function calcWindowChangePct(observations, windowDays) {
  * @returns {Array<{date, close:number}>|null} 升序
  */
 export async function fetchYahooChartCloses(symbol, rangeDays) {
+  return (await fetchYahooChart(symbol, rangeDays)).bars;
+}
+
+/** 同 fetchYahooChartCloses，另返回 chart meta（期货的 shortName 含当前主力合约月份） */
+export async function fetchYahooChart(symbol, rangeDays) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${rangeDays}d&interval=1d`;
   const res = await axios.get(url, { timeout: 15000 });
   const result = res.data?.chart?.result?.[0];
+  const meta = result?.meta || null;
   const ts = result?.timestamp;
   const closes = result?.indicators?.quote?.[0]?.close;
-  if (!ts || !closes) return null;
+  if (!ts || !closes) return { bars: null, meta };
   const bars = ts
     .map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] }))
     .filter(b => b.close !== null && b.close !== undefined && !isNaN(b.close));
-  return bars.length ? bars : null;
+  return { bars: bars.length ? bars : null, meta };
+}
+
+const FUTURES_MONTH_CODES = { Jan: 'F', Feb: 'G', Mar: 'H', Apr: 'J', May: 'K', Jun: 'M', Jul: 'N', Aug: 'Q', Sep: 'U', Oct: 'V', Nov: 'X', Dec: 'Z' };
+
+/**
+ * CL=F meta.shortName（"Crude Oil Dec 26"）→ 单合约代码 "CLZ26.NYM"；格式不符返回 null
+ */
+export function frontContractSymbol(shortName) {
+  const m = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{2})\s*$/.exec(shortName || '');
+  return m ? `CL${FUTURES_MONTH_CODES[m[1]]}${m[2]}.NYM` : null;
 }
 
 /**
@@ -246,9 +262,10 @@ export async function fetchAdminData(apiKey) {
       return { epuDaily: null, epuDailyPercentile: null, epuDailyPeriodDate: null };
     }),
     (async () => {
-      // 油价两层（用户拍板：油价水平语义必须是真实WTI，不用ETF代理）：
-      // ① FRED DCOILWTICO 现货（EIA编制，判定主口径，130号起；发布滞后数个工作日）
-      // ② WTI期货 CL=F（现货陈旧或失败时兜底，最新交易日，战争定价第一反应）
+      // 油价三层（用户拍板：油价水平语义必须是真实WTI，不用ETF代理）：
+      // ① WTI 主力单合约（如 CLZ26.NYM）自身 30 天历史——最新交易日、且窗口内不跨换月（131号）
+      // ② CL=F 连续合约（单合约拉不到时兜底；窗口跨换月会有数个 pp 的换月跳空）
+      // ③ FRED DCOILWTICO 现货（EIA编制，发布滞后约一周，期货全失败才用并标注"现货(滞后)"）
       // 现货长窗（730天）承担两职：O1水平护栏的2年中位数基准 + 期货失败时的兜底涨跌幅
       let spotObs = [];
       try {
@@ -261,26 +278,30 @@ export async function fetchAdminData(apiKey) {
       const median = spotVals.length >= 100
         ? [...spotVals].sort((a, b) => a - b)[Math.floor(spotVals.length / 2)]
         : null;
-      // 期货现价 vs 现货中位：前月基差为美分级，可忽略
+      // 期货现价 vs 现货2年中位：前月基差平时为美分级，剧烈贴水时可达数美元（2026-11 约 $3）；
+      // 只影响"是否处高位"这一粗护栏，接受
       const levelLow = latest => (latest !== null && median !== null ? latest < median : null);
+      const fromBars = bars => calcWindowChangePct(
+        (bars || []).map(b => ({ date: b.date, value: String(b.close) }))
+          .sort((a, b) => (a.date < b.date ? 1 : -1)), // calcWindowChangePct 期望降序
+        cfg.OIL_SHOCK_WINDOW_DAYS);
 
-      // 130号（用户拍板）：判定优先用现货——期货连续合约 30 天窗口必跨一次换月，实测与现货的
-      // 30 日涨跌幅差达 ±6pp；现货发布滞后数个工作日，最新观测超过 OIL_SPOT_MAX_STALE_DAYS 天
-      // 才退回期货（保住战争冲击的时效）。
-      const spot = calcWindowChangePct(spotObs, cfg.OIL_SHOCK_WINDOW_DAYS);
-      const spotFresh = spot.latestDate
-        && (Date.parse(todayET()) - Date.parse(spot.latestDate)) / 86400000 <= cfg.OIL_SPOT_MAX_STALE_DAYS;
-      if (spot.latest !== null && spot.changePct !== null && spotFresh) {
-        return { oilWti: spot.latest, oilChange30dPct: spot.changePct, oilPeriodDate: spot.latestDate, oilSource: 'spot', oilLevelLow: levelLow(spot.latest) };
-      }
       try {
-        const bars = await fetchYahooChartCloses('CL=F', cfg.OIL_LOOKBACK_DAYS);
-        const obs = (bars || [])
-          .map(b => ({ date: b.date, value: String(b.close) }))
-          .sort((a, b) => (a.date < b.date ? 1 : -1)); // calcWindowChangePct 期望降序
-        const { latest, changePct, latestDate: d } = calcWindowChangePct(obs, cfg.OIL_SHOCK_WINDOW_DAYS);
-        if (latest !== null && changePct !== null) {
-          return { oilWti: latest, oilChange30dPct: changePct, oilPeriodDate: d, oilSource: 'futures', oilLevelLow: levelLow(latest) };
+        const { bars, meta } = await fetchYahooChart('CL=F', cfg.OIL_LOOKBACK_DAYS);
+        const contract = frontContractSymbol(meta?.shortName);
+        if (contract) {
+          try {
+            const r = fromBars(await fetchYahooChartCloses(contract, cfg.OIL_LOOKBACK_DAYS));
+            if (r.latest !== null && r.changePct !== null) {
+              return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: levelLow(r.latest) };
+            }
+          } catch (err) {
+            console.warn(`[fetch-policy] ${contract} futures failed:`, err.message);
+          }
+        }
+        const r = fromBars(bars);
+        if (r.latest !== null && r.changePct !== null) {
+          return { oilWti: r.latest, oilChange30dPct: r.changePct, oilPeriodDate: r.latestDate, oilSource: 'futures', oilLevelLow: levelLow(r.latest) };
         }
       } catch (err) {
         console.warn('[fetch-policy] CL=F futures failed:', err.message);
