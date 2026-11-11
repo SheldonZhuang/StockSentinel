@@ -15,7 +15,9 @@ Moomoo 模拟盘执行器：假设 19（滚动 TQQQ 远月 LEAPS Call + 定投�
   H20：每月首个交易日，把子账本可用现金全部按整股买 TQQQ（限价 = 卖一价 ×1.001）
   H19：建仓/换仓选"当前能买到的最远到期日（须 >2 年）"、行权价最接近现价×1.02 的 Call；
        每月首个交易日现金够 1 张就加买同一张；到期前 91 天卖出旧合约、同日买新合约；
-       期权限价从中间价起，每 10 秒向卖价（买单）/买价（卖单）挪 25% 价差，最多 4 次，仍未成交则撤单、下次再试
+       期权限价从中间价起，每 10 秒向卖价（买单）/买价（卖单）挪 25% 价差，到对手价后再越过 5% / 10%
+  当天执行到位（用户 2026-11-11）：一轮追单不齐立刻重取报价再追，同一次运行最多 3 轮；仍不齐记 pending，
+       当天下一轮运行（及之后每个交易日）按原规则重算补单——不再等到下个月定投日
   月度定投：每个自然月第一次运行时给两个子账本各加 3000/7.8 美元（回测口径；实盘应按实际换汇记录）
 
 用法（backend/ 下）：
@@ -254,13 +256,34 @@ class Broker:
             return None
 
 
+SLEEVES = ('H19', 'H20', 'H21', 'H22')
+CHASE_ROUNDS = 3          # 同一次运行内最多追几轮
+OPT_BEYOND = (0.05, 0.10)  # 期权追到对手价仍未成交时，再越过对手价的幅度
 DONE = {OrderStatus.FILLED_ALL}
 DEAD = {OrderStatus.CANCELLED_ALL, OrderStatus.CANCELLED_PART, OrderStatus.FAILED, OrderStatus.DISABLED, OrderStatus.DELETED}
 
 
 def chase(b, code, side, qty, is_option, remark):
-    """限价追单。股票：买单从卖一×1.001 起，最多 3 档；期权：从中间价起，每 10 秒向对手价挪 1/4 价差，最多到对手价。
-    仍未全部成交则撤单，返回实际成交（部分成交也记账）。"""
+    """当天必须执行到位（用户 2026-11-11）：一轮追单没成交齐，立刻重取报价对剩余数量再追，最多 CHASE_ROUNDS 轮。
+    返回合并后的成交（股数合计、加权均价、费用合计）；仍不齐由调用方记待补，交给当天下一轮运行"""
+    left, got, cost, fee, last = qty, 0.0, 0.0, 0.0, None
+    for i in range(CHASE_ROUNDS):
+        if i:
+            log(f'  第 {i + 1} 轮追单：剩余 {left:g}，重取报价')
+        last = _chase_once(b, code, side, int(left), is_option, remark)
+        got += last['filled']; cost += last['filled'] * last['avg']; fee += last['fee'] or 0
+        left = qty - got
+        if left <= 0:
+            break
+    if left > 0:  # 多轮后仍不齐：记一条汇总，邮件按它报"未全成交"（单轮未成交、下一轮补齐的不报）
+        append_log({'short': True, 'code': code, 'qty': qty, 'filled': got, 'remark': remark})
+    return {**last, 'qty': qty, 'filled': got, 'avg': cost / got if got else 0, 'fee': fee if fee else last['fee']}
+
+
+def _chase_once(b, code, side, qty, is_option, remark):
+    """限价追单。股票：买单从卖一×1.001 起，最多 5 档（到 ±2%）；期权：从中间价起，每 10 秒向对手价挪 1/4 价差，到对手价后再越过 5% / 10%。
+    期权越过对手价：远月 Call 成交稀少，11-02 两笔定投挂到卖价仍 0 成交（用户 2026-11-11：价格不合适就调整，确保当天成交）。
+    仍未全部成交则撤单，返回实际成交（部分成交也记账），由调用方标记待补、当天下一轮再补。"""
     s = b.snapshot([code])[code]
     bid, ask = float(s['bid_price'] or 0), float(s['ask_price'] or 0)
     if bid <= 0 or ask <= 0:
@@ -269,10 +292,10 @@ def chase(b, code, side, qty, is_option, remark):
     buy = side == TrdSide.BUY
     if is_option:
         far = ask if buy else bid
-        steps = [mid + (far - mid) * k / 4 for k in range(5)]
+        steps = [mid + (far - mid) * k / 4 for k in range(5)] + [far * (1 + f if buy else 1 - f) for f in OPT_BEYOND]
         wait = 10
     else:
-        steps = [ask * f for f in (1.001, 1.002, 1.004)] if buy else [bid * f for f in (0.999, 0.998, 0.996)]
+        steps = [ask * f for f in (1.001, 1.002, 1.004, 1.01, 1.02)] if buy else [bid * f for f in (0.999, 0.998, 0.996, 0.99, 0.98)]
         wait = 20
     oid = b.order(code, side, qty, steps[0], remark)
     log(f"下单 {code} {'买' if buy else '卖'} {qty} @ {steps[0]:.2f}（买一 {bid} 卖一 {ask} 中间 {mid:.3f}）→ 订单 {oid}")
@@ -348,12 +371,14 @@ def h21_rebalance_and_buy(b, s, today):
         sell = math.floor((have - want - move) / bid) if bid > 0 else 0
         if sell > 0:
             r = chase(b, UNDERLYING, TrdSide.SELL, sell, False, 'H21 rebalance sell')
+            mark_fill(h, r, sell)
             h['shares'] -= r['filled']; h['cash_opt'] += r['filled'] * r['avg'] - (r['fee'] or 0)
     else:            # 股票少了：从期权池拨钱到股票池再买整股
         move = min(h['cash_opt'], want - have); h['cash_opt'] -= move; h['cash_stock'] += move
         k = math.floor(h['cash_stock'] / (ask * 1.004)) if ask > 0 else 0
         if k > 0:
             r = chase(b, UNDERLYING, TrdSide.BUY, k, False, 'H21 rebalance buy')
+            mark_fill(h, r, k)
             h['shares'] += r['filled']; h['cash_stock'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
     save_state(s)
     spot = float(snap['last_price'])
@@ -364,9 +389,18 @@ def h21_rebalance_and_buy(b, s, today):
         h21_buy_opt(b, s, n, tgt)
 
 
+def mark_fill(h, r, n):
+    """买卖没成交齐 → 子账本记待补（pending）：计划任务 1 小时后的第二轮当天就按原规则重算并补单，仍不齐则之后每个交易日继续。
+    用户 2026-11-11：资金够、策略定了，就要当天执行到位，不能因为执行拖延让模拟盘偏离回测"""
+    if r['filled'] < n:
+        h['pending'] = True
+        log(f"  只成交 {r['filled']:g}/{n}，已记待补，下一轮运行继续")
+
+
 def h21_buy_opt(b, s, n, tgt):
     h = s['H21']
     r = chase(b, tgt['code'], TrdSide.BUY, n, True, 'H21 LEAPS buy')
+    mark_fill(h, r, n)
     if r['filled'] > 0:
         o = h['option'] or {'code': tgt['code'], 'strike': tgt['strike'], 'expiry': tgt['expiry'], 'qty': 0}
         o['qty'] += r['filled']; h['option'] = o
@@ -421,7 +455,8 @@ def plan(b, s, today, force_buy=False):
     if funding:
         acts.append(('FUND', f'新月份：四个子账本各入账定投 ${MONTHLY_USD:.2f}（H21 按 80/20 分进股票池/期权池）'))
     # 只在三种日子买入：该子账本第一次运行（建仓）、每月首个交易日（定投）、换仓日。其他日子即使有零头现金也不买
-    may = lambda k: funding or force_buy or not s[k].get('started')
+    # pending：上一轮买单没成交齐 → 按原规则重算补单（当天第二轮或之后的交易日）
+    may = lambda k: funding or force_buy or not s[k].get('started') or s[k].get('pending')
     acts += plan_h21(b, s, today, spot, ask, funding, may('H21'))
     acts += plan_h22(b, s, today, spot, float(snap['bid_price'] or 0) or spot, ask, funding)
     may_buy = may('H20')
@@ -543,10 +578,13 @@ def execute(b, s, today, acts, funding):
         s['last_month_funded'] = today[:7]
         save_state(s)
     h22_accrue(s, today)
+    for k in SLEEVES:  # 本轮计划已按 pending 重算，先清掉，没成交齐的下面再标
+        s[k]['pending'] = False
     for a in acts:
         if a[0] == 'H22_TRADE':
             d = a[2]
             r = chase(b, UNDERLYING, TrdSide.BUY if d > 0 else TrdSide.SELL, abs(d), False, f'H22 vol-target {a[3]:.1f}x')
+            mark_fill(s['H22'], r, abs(d))
             q = r['filled'] if d > 0 else -r['filled']
             s['H22']['shares'] += q
             s['H22']['cash'] -= q * r['avg'] + (r['fee'] or 0)
@@ -554,6 +592,7 @@ def execute(b, s, today, acts, funding):
             save_state(s)
         elif a[0] == 'H21_STOCK':
             r = chase(b, UNDERLYING, TrdSide.BUY, a[2], False, 'H21 TQQQ 80%')
+            mark_fill(s['H21'], r, a[2])
             s['H21']['shares'] += r['filled']
             s['H21']['cash_stock'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
             save_state(s)
@@ -562,6 +601,7 @@ def execute(b, s, today, acts, funding):
         elif a[0] == 'H21_ROLL':
             o = s['H21']['option']
             r = chase(b, o['code'], TrdSide.SELL, int(o['qty']), True, 'H21 roll sell')
+            mark_fill(s['H21'], r, int(o['qty']))
             s['H21']['cash_opt'] += r['filled'] * r['avg'] * 100 - (r['fee'] or 0)
             o['qty'] -= r['filled']
             if o['qty'] <= 0:
@@ -574,12 +614,14 @@ def execute(b, s, today, acts, funding):
     for a in acts:
         if a[0] == 'H20_BUY':
             r = chase(b, UNDERLYING, TrdSide.BUY, a[2], False, 'H20 TQQQ hold+DCA')
+            mark_fill(s['H20'], r, a[2])
             s['H20']['shares'] += r['filled']
             s['H20']['cash'] -= r['filled'] * r['avg'] + (r['fee'] or 0)
             save_state(s)
         elif a[0] == 'H19_ROLL':
             opt = s['H19']['option']
             r = chase(b, opt['code'], TrdSide.SELL, int(opt['qty']), True, 'H19 roll sell')
+            mark_fill(s['H19'], r, int(opt['qty']))
             s['H19']['cash'] += r['filled'] * r['avg'] * 100 - (r['fee'] or 0)
             opt['qty'] -= r['filled']
             if opt['qty'] <= 0:
@@ -595,6 +637,7 @@ def execute(b, s, today, acts, funding):
         elif a[0] == 'H19_BUY':
             tgt = a[3]
             r = chase(b, tgt['code'], TrdSide.BUY, a[2], True, 'H19 LEAPS buy')
+            mark_fill(s['H19'], r, a[2])
             if r['filled'] > 0:
                 o = s['H19']['option'] or {'code': tgt['code'], 'strike': tgt['strike'], 'expiry': tgt['expiry'], 'qty': 0}
                 o['qty'] += r['filled']
@@ -684,7 +727,7 @@ def report(b, s, today, acts, funding, prev, n_orders0, bad):
     lines, rows = summary_lines(b, s)
     fill_lines = [f"{r['remark']} | {r['side']} {r['filled']:g}/{r['qty']:g} {r['code']} @ {r['avg']} | 中间价 {r['mid']:.3f} 偏离 "
                   + ('—' if r.get('slip_vs_mid') is None else f"{r['slip_vs_mid'] * 100:+.2f}%") + f" | 费用 {r.get('fee')}" for r in fills]
-    unfilled = [r for r in new if r.get('order_id') and r.get('filled', 0) < r.get('qty', 0)]
+    unfilled = [r for r in new if r.get('short')]
     first = [k for k, was in prev['firsts'].items() if not was and s.get(k, {}).get('started')]
     if first and fills:
         notify(f"首次建仓完成（{'、'.join(first)}）", [f'日期 {today}'] + lines + ['— 成交明细 —'] + fill_lines)
@@ -722,7 +765,7 @@ def h23_only_report(s, today, prev, n_orders0, bad):
             new = [json.loads(l) for i, l in enumerate(f) if i >= n_orders0]
     fills = [f"{r['remark']} | {r['side']} {r['filled']:g}/{r['qty']:g} {r['code']} @ {r['avg']} | 费用 {r.get('fee')}"
              for r in new if r.get('order_id') and r.get('filled')]
-    unfilled = [f"未全成交：{r['code']} {r['filled']:g}/{r['qty']:g}" for r in new if r.get('order_id') and r.get('filled', 0) < r.get('qty', 0)]
+    unfilled = [f"未全成交：{r['code']} {r['filled']:g}/{r['qty']:g}" for r in new if r.get('short')]
     if fills:
         first = not prev['firsts'].get('H23') and s.get('H23', {}).get('started')
         notify('首次建仓完成（H23）' if first else '假设23 调仓', [f'日期 {today}'] + fills)
@@ -769,11 +812,14 @@ def main():
         # 股票/期权（H19–H22）按美股常规时段；期货（H23）按 CME 时段（在 run_h23 里判断）。两边互不阻断
         stock_done = False
         try:
-            if s.get('last_run') == today and not a.force:
+            pending = [k for k in SLEEVES if s[k].get('pending')]
+            if s.get('last_run') == today and not a.force and not pending:
                 log(f'今天（{today}）已经执行过，不重复下单')
             elif not b.market_open() and not a.force:
                 log('美股当前不在常规交易时段，股票/期权今天不下单（计划任务应设在美东 9:45 之后）')
             else:
+                if s.get('last_run') == today and not a.force:
+                    log(f"今天（{today}）已经执行过，但 {'、'.join(pending)} 上一轮没成交齐，按原规则重算补单")
                 acts, funding = plan(b, s, today)
                 for x in acts:
                     log('计划：' + x[1])

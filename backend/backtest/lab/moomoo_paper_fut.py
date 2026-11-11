@@ -26,6 +26,7 @@ TARGET_VOL = 0.60
 CAP = 4.0
 ROLL_DAYS = 7
 ET = ZoneInfo('America/New_York')
+CHASE_PCT = (0.0005, 0.002, 0.005, 0.01, 0.02)  # 追单各档相对 Yahoo 价的偏移（买加卖减）
 STALE_SEC = 1800         # Yahoo 期货报价本身延迟约 10 分钟；超过 30 分钟视为休市/停盘，不下单
 
 
@@ -108,12 +109,15 @@ class FutBroker:
         return float(d.iloc[0]['long_required_im']) if r == RET_OK else px * MULT * 0.08
 
     def trade(self, code, qty, side, remark):
-        """限价追单：Yahoo 价 ± 1 / 3 / 6 个 tick，每 15 秒一档；仍未全成交则撤单。返回 (成交张数, 均价, 费用, 参考价)"""
+        """限价追单：每档重取 Yahoo 价，按 ±0.05% / 0.2% / 0.5% / 1% / 2% 挂价，每 15 秒一档；仍未全成交则撤单。返回 (成交张数, 均价, 费用, 参考价)
+        Yahoo 报价延迟约 10 分钟、MNQ 十分钟常走几十点：原来 ±1/3/6 tick（最多 1.5 点）在行情反向时挂不上（11-02、11-03 两次减仓未成交）。
+        限价只是"最差价"上限：可成交的限价单按市场价成交（11-04 卖单限价 28405.25、成交 28406），放宽不会额外吃滑点"""
         if not (code.startswith('US.MNQ') and code[-4:].isdigit()):
             raise SystemExit(f'拒绝下单：{code} 不在白名单')
         ref, at, _ = yahoo_mnq()
         sgn = 1 if side == TrdSide.BUY else -1
-        steps = [round((ref + sgn * k * TICK) / TICK) * TICK for k in (1, 3, 6)]
+        px_at = lambda base, pct: round(base * (1 + sgn * pct) / TICK) * TICK
+        steps = [px_at(ref, CHASE_PCT[0])]
         r, d = self.t.place_order(price=steps[0], qty=qty, code=code, trd_side=side, order_type=OrderType.NORMAL,
                                   trd_env=ENV, acc_id=self.acc, remark=remark[:60])
         if r != RET_OK:
@@ -121,20 +125,25 @@ class FutBroker:
         oid = str(d['order_id'][0])
         self.log(f"期货下单 {code} {'买' if sgn > 0 else '卖'} {qty} 张 @ {steps[0]}（Yahoo 参考 {ref}，{at}）→ 订单 {oid}")
         st = None
-        for p in steps[1:] + [None]:
+        for pct in CHASE_PCT[1:] + (None,):
             time.sleep(15)
             r, o = self.t.order_list_query(order_id=oid, trd_env=ENV, acc_id=self.acc, refresh_cache=True)
             st = o.iloc[0] if r == RET_OK and len(o) else None
             if st is not None and st['order_status'] in (OrderStatus.FILLED_ALL, OrderStatus.CANCELLED_ALL, OrderStatus.FAILED):
                 break
-            if p is None:
+            if pct is None:
                 self.t.modify_order(ModifyOrderOp.CANCEL, oid, 0, 0, trd_env=ENV, acc_id=self.acc); time.sleep(3)
                 r, o = self.t.order_list_query(order_id=oid, trd_env=ENV, acc_id=self.acc, refresh_cache=True)
                 st = o.iloc[0] if r == RET_OK and len(o) else None
                 self.log(f'  期货追单结束未全成交，已撤单')
                 break
+            try:
+                base = yahoo_mnq()[0]
+            except Exception:
+                base = ref
+            p = px_at(base, pct)
             self.t.modify_order(ModifyOrderOp.NORMAL, oid, qty, p, trd_env=ENV, acc_id=self.acc)
-            self.log(f'  未成交，改价 → {p}')
+            self.log(f'  未成交，改价 → {p}（Yahoo {base}，偏移 {pct:.2%}）')
         filled = float(st['dealt_qty']) if st is not None else 0
         avg = float(st['dealt_avg_price'] or 0) if st is not None else 0
         fee = None
@@ -145,6 +154,22 @@ class FutBroker:
             pass
         return {'order_id': oid, 'code': code, 'side': 'BUY' if sgn > 0 else 'SELL', 'qty': qty, 'filled': filled, 'avg': avg,
                 'bid': ref, 'ask': ref, 'mid': ref, 'slip_vs_mid': (avg / ref - 1) if avg else None, 'fee': fee, 'remark': remark}
+
+
+def trade_all(b, code, qty, side, remark, append_log):
+    """当天执行到位：一轮没成交齐就重取 Yahoo 价对剩余张数再追，最多 3 轮（每轮最远挂到 ±2%，基本等同市价）"""
+    left, got, cost, fee, r = qty, 0.0, 0.0, 0.0, None
+    for i in range(3):
+        if i:
+            b.log(f'  期货第 {i + 1} 轮追单：剩余 {left:g} 张')
+        r = b.trade(code, int(left), side, remark); append_log(r)
+        got += r['filled']; cost += r['filled'] * r['avg']; fee += r['fee'] or 0
+        left = qty - got
+        if left <= 0:
+            break
+    if left > 0:
+        append_log({'short': True, 'code': code, 'qty': qty, 'filled': got, 'remark': remark})
+    return {**r, 'qty': qty, 'filled': got, 'avg': cost / got if got else 0, 'fee': fee}
 
 
 def new_h23(today, init):
@@ -210,6 +235,7 @@ def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True, f
             return ['H23 期货当前休市（CME 美东周日 18:00–周五 17:00，每天 17–18 点停盘），今天不下单'], []
     b = FutBroker(log)
     acts, fills = [], []
+    short = False  # 有单子没成交齐 → 不记 last_run，当天下一轮（1 小时后）重算补单（用户 2026-11-11：当天执行到位）
     try:
         px, at, age = yahoo_mnq()
         if age > STALE_SEC:
@@ -224,8 +250,9 @@ def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True, f
         if h['code'] and today >= (datetime.fromisoformat(expiry_of(h['code'])) - timedelta(days=ROLL_DAYS)).strftime('%Y-%m-%d') and h['qty']:
             acts.append(f"H23 换月：平掉 {h['qty']:g} 张 {h['code']}（{expiry_of(h['code'])} 到期）→ 改用 {nxt}")
             if submit:
-                r = b.trade(h['code'], int(abs(h['qty'])), TrdSide.SELL if h['qty'] > 0 else TrdSide.BUY, 'H23 roll close')
-                _fill(h, r, -1 if h['qty'] > 0 else 1); fills.append(r); append_log(r); save_state(s)
+                r = trade_all(b, h['code'], int(abs(h['qty'])), TrdSide.SELL if h['qty'] > 0 else TrdSide.BUY, 'H23 roll close', append_log)
+                short |= r['filled'] < abs(h['qty'])
+                _fill(h, r, -1 if h['qty'] > 0 else 1); fills.append(r); save_state(s)
         code = h['code'] if h['code'] and h['qty'] else (nxt if today >= (datetime.fromisoformat(expiry_of(cur)) - timedelta(days=ROLL_DAYS)).strftime('%Y-%m-%d') else cur)
         vol = b.qqq_vol20(today)
         lev = min(CAP, TARGET_VOL / vol)
@@ -241,11 +268,17 @@ def run_h23(s, today, monthly, init, log, append_log, save_state, submit=True, f
         else:
             acts.append(f"H23 {'建仓' if not h.get('started') else '调仓'}：{note}，{'买' if d > 0 else '卖'} {abs(d)} 张")
             if submit:
-                r = b.trade(code, abs(d), TrdSide.BUY if d > 0 else TrdSide.SELL, f'H23 vol-target {lev:.2f}x')
-                _fill(h, r, 1 if d > 0 else -1); fills.append(r); append_log(r)
+                r = trade_all(b, code, abs(d), TrdSide.BUY if d > 0 else TrdSide.SELL, f'H23 vol-target {lev:.2f}x', append_log)
+                short |= r['filled'] < abs(d)
+                _fill(h, r, 1 if d > 0 else -1); fills.append(r)
                 h['code'] = code if h['qty'] else None
         if submit:
-            h['target'] = round(lev, 2); h['started'] = True; h['last_run'] = today; save_state(s)
+            h['target'] = round(lev, 2); h['started'] = True
+            if short:
+                acts.append('H23 有单子没成交齐：今天不记为已执行，下一轮运行按最新信号重算补单')
+            else:
+                h['last_run'] = today
+            save_state(s)
         # 对账
         broker = b.position(h['code']) if h['code'] else 0
         if h['code'] and abs(broker - h['qty']) > 1e-9:
