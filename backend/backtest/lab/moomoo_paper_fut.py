@@ -26,7 +26,8 @@ TARGET_VOL = 0.60
 CAP = 4.0
 ROLL_DAYS = 7
 ET = ZoneInfo('America/New_York')
-CHASE_PCT = (0.0005, 0.002, 0.005, 0.01, 0.02)  # 追单各档相对 Yahoo 价的偏移（买加卖减）
+CHASE_PCT = (0.0005, 0.002, 0.005, 0.01, 0.02)  # 追单各档相对 Yahoo 价的偏移（买加卖减）；每轮最后一档放大一倍
+CHASE_MAX_PCT = 0.05
 STALE_SEC = 1800         # Yahoo 期货报价本身延迟约 10 分钟；超过 30 分钟视为休市/停盘，不下单
 
 
@@ -108,7 +109,7 @@ class FutBroker:
         r, d = self.t.acctradinginfo_query(order_type=OrderType.NORMAL, code=code, price=px, trd_env=ENV, acc_id=self.acc)
         return float(d.iloc[0]['long_required_im']) if r == RET_OK else px * MULT * 0.08
 
-    def trade(self, code, qty, side, remark):
+    def trade(self, code, qty, side, remark, level=0):
         """限价追单：每档重取 Yahoo 价，按 ±0.05% / 0.2% / 0.5% / 1% / 2% 挂价，每 15 秒一档；仍未全成交则撤单。返回 (成交张数, 均价, 费用, 参考价)
         Yahoo 报价延迟约 10 分钟、MNQ 十分钟常走几十点：原来 ±1/3/6 tick（最多 1.5 点）在行情反向时挂不上（11-02、11-03 两次减仓未成交）。
         限价只是"最差价"上限：可成交的限价单按市场价成交（11-04 卖单限价 28405.25、成交 28406），放宽不会额外吃滑点"""
@@ -117,7 +118,8 @@ class FutBroker:
         ref, at, _ = yahoo_mnq()
         sgn = 1 if side == TrdSide.BUY else -1
         px_at = lambda base, pct: round(base * (1 + sgn * pct) / TICK) * TICK
-        steps = [px_at(ref, CHASE_PCT[0])]
+        pcts = CHASE_PCT[:-1] + (min(CHASE_MAX_PCT, CHASE_PCT[-1] * (level + 1)),)  # 每轮把最后一档再放宽一倍
+        steps = [px_at(ref, pcts[0])]
         r, d = self.t.place_order(price=steps[0], qty=qty, code=code, trd_side=side, order_type=OrderType.NORMAL,
                                   trd_env=ENV, acc_id=self.acc, remark=remark[:60])
         if r != RET_OK:
@@ -125,7 +127,7 @@ class FutBroker:
         oid = str(d['order_id'][0])
         self.log(f"期货下单 {code} {'买' if sgn > 0 else '卖'} {qty} 张 @ {steps[0]}（Yahoo 参考 {ref}，{at}）→ 订单 {oid}")
         st = None
-        for pct in CHASE_PCT[1:] + (None,):
+        for pct in pcts[1:] + (None,):
             time.sleep(15)
             r, o = self.t.order_list_query(order_id=oid, trd_env=ENV, acc_id=self.acc, refresh_cache=True)
             st = o.iloc[0] if r == RET_OK and len(o) else None
@@ -157,15 +159,17 @@ class FutBroker:
 
 
 def trade_all(b, code, qty, side, remark, append_log):
-    """当天执行到位：一轮没成交齐就重取 Yahoo 价对剩余张数再追，最多 3 轮（每轮最远挂到 ±2%，基本等同市价）"""
-    left, got, cost, fee, r = qty, 0.0, 0.0, 0.0, None
-    for i in range(3):
+    """只有当天成交才算执行完成（用户 2026-11-11）：一轮没成交齐就重取 Yahoo 价、放宽价格对剩余张数再追，
+    直到全部成交或 CME 当天停盘（美东 17:00）为止"""
+    left, got, cost, fee, r, i = qty, 0.0, 0.0, 0.0, None, 0
+    while True:
         if i:
-            b.log(f'  期货第 {i + 1} 轮追单：剩余 {left:g} 张')
-        r = b.trade(code, int(left), side, remark); append_log(r)
+            b.log(f'  期货第 {i + 1} 轮追单：剩余 {left:g} 张，放宽价格')
+        r = b.trade(code, int(left), side, remark, level=i); append_log(r)
+        i += 1
         got += r['filled']; cost += r['filled'] * r['avg']; fee += r['fee'] or 0
         left = qty - got
-        if left <= 0:
+        if left <= 0 or not cme_open():
             break
     if left > 0:
         append_log({'short': True, 'code': code, 'qty': qty, 'filled': got, 'remark': remark})

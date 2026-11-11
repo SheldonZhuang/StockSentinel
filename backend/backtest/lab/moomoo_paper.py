@@ -16,7 +16,7 @@ Moomoo 模拟盘执行器：假设 19（滚动 TQQQ 远月 LEAPS Call + 定投�
   H19：建仓/换仓选"当前能买到的最远到期日（须 >2 年）"、行权价最接近现价×1.02 的 Call；
        每月首个交易日现金够 1 张就加买同一张；到期前 91 天卖出旧合约、同日买新合约；
        期权限价从中间价起，每 10 秒向卖价（买单）/买价（卖单）挪 25% 价差，到对手价后再越过 5% / 10%
-  当天执行到位（用户 2026-11-11）：一轮追单不齐立刻重取报价再追，同一次运行最多 3 轮；仍不齐记 pending，
+  当天执行到位（用户 2026-11-11：只有当天成交才算执行完成）：一轮追单不齐立刻重取报价、放宽价格再追，直到成交或收盘；仍不齐记 pending，
        当天下一轮运行（及之后每个交易日）按原规则重算补单——不再等到下个月定投日
   月度定投：每个自然月第一次运行时给两个子账本各加 3000/7.8 美元（回测口径；实盘应按实际换汇记录）
 
@@ -257,31 +257,36 @@ class Broker:
 
 
 SLEEVES = ('H19', 'H20', 'H21', 'H22')
-CHASE_ROUNDS = 3          # 同一次运行内最多追几轮
-OPT_BEYOND = (0.05, 0.10)  # 期权追到对手价仍未成交时，再越过对手价的幅度
+STOCK_CUTOFF = (15, 58)    # 美东时间：追单一直追到收盘前这一刻
+STOCK_MAX_PCT = 0.05       # 股票限价最远偏离对手价
+OPT_BEYOND = (0.05, 0.10)  # 期权追到对手价仍未成交时，再越过对手价的幅度（每轮再放大一倍）
+OPT_BEYOND_CAP = 0.50
 DONE = {OrderStatus.FILLED_ALL}
 DEAD = {OrderStatus.CANCELLED_ALL, OrderStatus.CANCELLED_PART, OrderStatus.FAILED, OrderStatus.DISABLED, OrderStatus.DELETED}
 
 
 def chase(b, code, side, qty, is_option, remark):
-    """当天必须执行到位（用户 2026-11-11）：一轮追单没成交齐，立刻重取报价对剩余数量再追，最多 CHASE_ROUNDS 轮。
-    返回合并后的成交（股数合计、加权均价、费用合计）；仍不齐由调用方记待补，交给当天下一轮运行"""
-    left, got, cost, fee, last = qty, 0.0, 0.0, 0.0, None
-    for i in range(CHASE_ROUNDS):
+    """只有当天成交才算执行完成（用户 2026-11-11）：一轮追单没成交齐，立刻重取报价、把价格再放宽一级，对剩余数量继续追，
+    直到全部成交或到美东 15:58 收盘前为止。返回合并后的成交（股数合计、加权均价、费用合计）；
+    收盘前仍不齐（极少：如半日市提前收盘、无报价）由调用方记待补并发邮件"""
+    left, got, cost, fee, last, i = qty, 0.0, 0.0, 0.0, None, 0
+    while True:
         if i:
-            log(f'  第 {i + 1} 轮追单：剩余 {left:g}，重取报价')
-        last = _chase_once(b, code, side, int(left), is_option, remark)
+            log(f'  第 {i + 1} 轮追单：剩余 {left:g}，重取报价、放宽价格')
+        last = _chase_once(b, code, side, int(left), is_option, remark, level=i)
+        i += 1
         got += last['filled']; cost += last['filled'] * last['avg']; fee += last['fee'] or 0
         left = qty - got
-        if left <= 0:
+        if left <= 0 or datetime.now(ET) >= datetime.now(ET).replace(hour=STOCK_CUTOFF[0], minute=STOCK_CUTOFF[1], second=0):
             break
-    if left > 0:  # 多轮后仍不齐：记一条汇总，邮件按它报"未全成交"（单轮未成交、下一轮补齐的不报）
+    if left > 0:  # 收盘前仍不齐：记一条汇总，邮件按它报"未全成交"（单轮未成交、下一轮补齐的不报）
         append_log({'short': True, 'code': code, 'qty': qty, 'filled': got, 'remark': remark})
     return {**last, 'qty': qty, 'filled': got, 'avg': cost / got if got else 0, 'fee': fee if fee else last['fee']}
 
 
-def _chase_once(b, code, side, qty, is_option, remark):
-    """限价追单。股票：买单从卖一×1.001 起，最多 5 档（到 ±2%）；期权：从中间价起，每 10 秒向对手价挪 1/4 价差，到对手价后再越过 5% / 10%。
+def _chase_once(b, code, side, qty, is_option, remark, level=0):
+    """限价追单（一轮）。股票：买单从卖一×1.001 起 5 档，最后一档 ±2% × (level+1)、最多 ±5%；
+    期权：从中间价起，每 10 秒向对手价挪 1/4 价差，到对手价后再越过 5% / 10%（× (level+1)，最多越过 50%）。
     期权越过对手价：远月 Call 成交稀少，11-02 两笔定投挂到卖价仍 0 成交（用户 2026-11-11：价格不合适就调整，确保当天成交）。
     仍未全部成交则撤单，返回实际成交（部分成交也记账），由调用方标记待补、当天下一轮再补。"""
     s = b.snapshot([code])[code]
@@ -292,10 +297,13 @@ def _chase_once(b, code, side, qty, is_option, remark):
     buy = side == TrdSide.BUY
     if is_option:
         far = ask if buy else bid
-        steps = [mid + (far - mid) * k / 4 for k in range(5)] + [far * (1 + f if buy else 1 - f) for f in OPT_BEYOND]
+        beyond = [min(OPT_BEYOND_CAP, f * (level + 1)) for f in OPT_BEYOND]
+        steps = [mid + (far - mid) * k / 4 for k in range(5)] + [far * (1 + f if buy else 1 - f) for f in beyond]
         wait = 10
     else:
-        steps = [ask * f for f in (1.001, 1.002, 1.004, 1.01, 1.02)] if buy else [bid * f for f in (0.999, 0.998, 0.996, 0.99, 0.98)]
+        last_pct = min(STOCK_MAX_PCT, 0.02 * (level + 1))
+        pcts = (0.001, 0.002, 0.004, 0.01, last_pct)
+        steps = [ask * (1 + x) for x in pcts] if buy else [bid * (1 - x) for x in pcts]
         wait = 20
     oid = b.order(code, side, qty, steps[0], remark)
     log(f"下单 {code} {'买' if buy else '卖'} {qty} @ {steps[0]:.2f}（买一 {bid} 卖一 {ask} 中间 {mid:.3f}）→ 订单 {oid}")
@@ -810,6 +818,8 @@ def main():
         prev = {'firsts': {k: s.get(k, {}).get('started') for k in ('H19', 'H20', 'H21', 'H22', 'H23')}}
         n_orders0 = sum(1 for _ in open(LOG_F, encoding='utf-8')) if os.path.exists(LOG_F) else 0
         # 股票/期权（H19–H22）按美股常规时段；期货（H23）按 CME 时段（在 run_h23 里判断）。两边互不阻断
+        # 期货先执行：股票/期权可能一直追到收盘，不能拖住期货
+        bad = run_h23_safe(s, today, submit=True, force=a.force)
         stock_done = False
         try:
             pending = [k for k in SLEEVES if s[k].get('pending')]
@@ -831,7 +841,6 @@ def main():
             log(f'执行失败：{e}')
             notify('执行失败，需要人工检查', [f'日期 {today}', f'错误：{e}',
                    '股票/期权部分已停止，今天未完成的动作明天会重新判断；假设23（期货）照常单独判断。'])
-        bad = run_h23_safe(s, today, submit=True, force=a.force)
         if stock_done:
             report(b, s, today, acts, funding, prev, n_orders0, status(b, s) + bad)
         else:
