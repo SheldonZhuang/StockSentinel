@@ -260,7 +260,7 @@ SLEEVES = ('H19', 'H20', 'H21', 'H22')
 STOCK_CUTOFF = (15, 58)    # 美东时间：追单一直追到收盘前这一刻
 STOCK_MAX_PCT = 0.05       # 股票限价最远偏离对手价
 OPT_BEYOND = (0.05, 0.10)  # 期权追到对手价仍未成交时，再越过对手价的幅度（每轮再放大一倍）
-OPT_BEYOND_CAP = 0.50
+OPT_BEYOND_CAP = 0.20
 DONE = {OrderStatus.FILLED_ALL}
 DEAD = {OrderStatus.CANCELLED_ALL, OrderStatus.CANCELLED_PART, OrderStatus.FAILED, OrderStatus.DISABLED, OrderStatus.DELETED}
 
@@ -270,33 +270,64 @@ def chase(b, code, side, qty, is_option, remark):
     直到全部成交或到美东 15:58 收盘前为止。返回合并后的成交（股数合计、加权均价、费用合计）；
     收盘前仍不齐（极少：如半日市提前收盘、无报价）由调用方记待补并发邮件"""
     left, got, cost, fee, last, i = qty, 0.0, 0.0, 0.0, None, 0
+    cutoff = lambda: datetime.now(ET) >= datetime.now(ET).replace(hour=STOCK_CUTOFF[0], minute=STOCK_CUTOFF[1], second=0)
     while True:
+        if is_option and not _opt_matchable(b, code, cutoff):
+            break
         if i:
             log(f'  第 {i + 1} 轮追单：剩余 {left:g}，重取报价、放宽价格')
         last = _chase_once(b, code, side, int(left), is_option, remark, level=i)
         i += 1
         got += last['filled']; cost += last['filled'] * last['avg']; fee += last['fee'] or 0
         left = qty - got
-        if left <= 0 or datetime.now(ET) >= datetime.now(ET).replace(hour=STOCK_CUTOFF[0], minute=STOCK_CUTOFF[1], second=0):
+        if left <= 0 or cutoff():
             break
     if left > 0:  # 收盘前仍不齐：记一条汇总，邮件按它报"未全成交"（单轮未成交、下一轮补齐的不报）
         append_log({'short': True, 'code': code, 'qty': qty, 'filled': got, 'remark': remark})
+    if last is None:  # 一单没下（期权全天不满足撮合条件）
+        return {'order_id': None, 'code': code, 'side': 'BUY' if side == TrdSide.BUY else 'SELL', 'qty': qty, 'filled': 0, 'avg': 0, 'fee': None, 'remark': remark}
     return {**last, 'qty': qty, 'filled': got, 'avg': cost / got if got else 0, 'fee': fee if fee else last['fee']}
+
+
+def _opt_matchable(b, code, cutoff):
+    """模拟盘只在"最新价位于买一卖一之间"时撮合（topic814 第 16 条）。不满足时不下单空转，每分钟看一次行情，
+    等真实成交把最新价拉回价差内再下单；到收盘仍不满足返回 False"""
+    warned = False
+    while True:
+        s = b.snapshot([code])[code]
+        bid, ask, lp = float(s['bid_price'] or 0), float(s['ask_price'] or 0), float(s['last_price'] or 0)
+        if bid > 0 and ask > 0 and (lp <= 0 or bid <= lp <= ask):
+            if warned:
+                log(f'  {code} 最新价 {lp} 已回到买一 {bid} / 卖一 {ask} 之间，开始下单')
+            return True
+        if cutoff():
+            log(f'  {code} 到收盘最新价 {lp} 仍不在买一 {bid} / 卖一 {ask} 之间（当天无真实成交），模拟盘无法撮合')
+            return False
+        if not warned:
+            log(f'  {code} 最新价 {lp} 不在买一 {bid} / 卖一 {ask} 之间：按模拟盘规则此时任何价格都撮合不了，每分钟检查一次，等真实成交')
+            warned = True
+        time.sleep(60)
 
 
 def _chase_once(b, code, side, qty, is_option, remark, level=0):
     """限价追单（一轮）。股票：买单从卖一×1.001 起 5 档，最后一档 ±2% × (level+1)、最多 ±5%；
-    期权：从中间价起，每 10 秒向对手价挪 1/4 价差，到对手价后再越过 5% / 10%（× (level+1)，最多越过 50%）。
-    期权越过对手价：远月 Call 成交稀少，11-02 两笔定投挂到卖价仍 0 成交（用户 2026-11-11：价格不合适就调整，确保当天成交）。
+    期权：从中间价起，每 10 秒向"有效对手价"挪 1/4 价差，再越过 5% / 10%（× (level+1)，最多 20%）。
+    moomoo 美股融资融券模拟账户撮合规则（官方 support.futunn.com/topic814 第 16 条）："首先判断最新价是否在买一档和卖一档中间，
+    当委托买入价格大于最新价，委托卖出价格小于最新价，即满足撮合条件"。所以有效对手价 = 买单 max(卖一, 最新价+0.01)、卖单 min(买一, 最新价−0.01)；
+    最新价不在买一卖一之间时（远月 Call 当天无真实成交，如 11-02 成交量 0、最新价 20.50 低于买一 21.0）任何价格都撮合不了，只能等真实成交更新最新价。
     仍未全部成交则撤单，返回实际成交（部分成交也记账），由调用方标记待补、当天下一轮再补。"""
     s = b.snapshot([code])[code]
-    bid, ask = float(s['bid_price'] or 0), float(s['ask_price'] or 0)
+    bid, ask, last_px = float(s['bid_price'] or 0), float(s['ask_price'] or 0), float(s['last_price'] or 0)
     if bid <= 0 or ask <= 0:
         raise RuntimeError(f'{code} 无有效买卖价（bid {bid} ask {ask}），可能休市或无报价')
     mid = (bid + ask) / 2
     buy = side == TrdSide.BUY
     if is_option:
         far = ask if buy else bid
+        if last_px > 0:  # 撮合要求买价 > 最新价、卖价 < 最新价
+            far = max(far, last_px + 0.01) if buy else min(far, last_px - 0.01)
+            if not (bid <= last_px <= ask):
+                log(f'  注意：{code} 最新价 {last_px} 不在买一 {bid} / 卖一 {ask} 之间——按模拟盘撮合规则，出现真实成交前任何价格都无法撮合')
         beyond = [min(OPT_BEYOND_CAP, f * (level + 1)) for f in OPT_BEYOND]
         steps = [mid + (far - mid) * k / 4 for k in range(5)] + [far * (1 + f if buy else 1 - f) for f in beyond]
         wait = 10
@@ -306,7 +337,7 @@ def _chase_once(b, code, side, qty, is_option, remark, level=0):
         steps = [ask * (1 + x) for x in pcts] if buy else [bid * (1 - x) for x in pcts]
         wait = 20
     oid = b.order(code, side, qty, steps[0], remark)
-    log(f"下单 {code} {'买' if buy else '卖'} {qty} @ {steps[0]:.2f}（买一 {bid} 卖一 {ask} 中间 {mid:.3f}）→ 订单 {oid}")
+    log(f"下单 {code} {'买' if buy else '卖'} {qty} @ {steps[0]:.2f}（买一 {bid} 卖一 {ask} 中间 {mid:.3f} 最新 {last_px}）→ 订单 {oid}")
     st = None
     for p in steps[1:] + [None]:
         time.sleep(wait)
